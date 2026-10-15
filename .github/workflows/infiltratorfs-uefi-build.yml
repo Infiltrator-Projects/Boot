@@ -1,30 +1,50 @@
-name: InfiltratorFS UEFI build
+name: Qualify InfiltratorFS UEFI integration
 
 on:
-  push:
+  pull_request:
     paths:
       - 'filesystems/fsw_infiltratorfs.c'
       - 'filesystems/fsw_infiltratorfs.h'
       - 'filesystems/infiltratorfs/**'
       - 'filesystems/Make.gnuefi'
       - 'filesystems/Makefile'
+      - 'scripts/vendor-infiltratorfs.sh'
+      - '.github/workflows/infiltratorfs-uefi-build.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'filesystems/fsw_infiltratorfs.c'
+      - 'filesystems/fsw_infiltratorfs.h'
+      - 'filesystems/infiltratorfs/**'
+      - 'filesystems/Make.gnuefi'
+      - 'filesystems/Makefile'
+      - 'scripts/vendor-infiltratorfs.sh'
       - '.github/workflows/infiltratorfs-uefi-build.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: infiltratorfs-uefi-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gnuefi-x64:
-    runs-on: ubuntu-latest
+    name: GNU-EFI x86-64 qualification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
     steps:
-      - name: Check out boot manager
-        uses: actions/checkout@v4
+      - name: Check out Boot Manager source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install GNU-EFI toolchain
         run: |
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y gnu-efi gcc make binutils
+          sudo apt-get install -y --no-install-recommends gnu-efi gcc make binutils
 
       - name: Locate GNU-EFI files
         id: paths
@@ -35,16 +55,17 @@ jobs:
           LDS="$(dpkg -L gnu-efi | grep '/elf_x86_64_efi\.lds$' | head -n1)"
           LIBEFI="$(dpkg -L gnu-efi | grep '/libefi\.a$' | head -n1)"
           LIBGNUEFI="$(dpkg -L gnu-efi | grep '/libgnuefi\.a$' | head -n1)"
-          test -n "$CRT" && test -n "$LDS" && test -n "$LIBEFI" && test -n "$LIBGNUEFI"
+
+          test -n "$CRT"
+          test -n "$LDS"
+          test -n "$LIBEFI"
+          test -n "$LIBGNUEFI"
+
           echo "EFICRT0=$(dirname "$CRT")" >> "$GITHUB_OUTPUT"
           echo "EFILIB=$(dirname "$LIBEFI")" >> "$GITHUB_OUTPUT"
           echo "GNUEFILIB=$(dirname "$LIBGNUEFI")" >> "$GITHUB_OUTPUT"
-          echo "CRT=$CRT"
-          echo "LDS=$LDS"
-          echo "LIBEFI=$LIBEFI"
-          echo "LIBGNUEFI=$LIBGNUEFI"
 
-      - name: Build InfiltratorFS EFI driver
+      - name: Build read-only InfiltratorFS EFI driver
         shell: bash
         run: |
           set -euo pipefail
@@ -53,17 +74,18 @@ jobs:
             EFICRT0='${{ steps.paths.outputs.EFICRT0 }}' \
             EFILIB='${{ steps.paths.outputs.EFILIB }}' \
             GNUEFILIB='${{ steps.paths.outputs.GNUEFILIB }}'
+
           test -s filesystems/infiltratorfs_x64.so
           test -s filesystems/infiltratorfs_x64.efi
           file filesystems/infiltratorfs_x64.efi
 
-      - name: Reject unresolved operating-system runtime dependencies
+      - name: Reject host-runtime dependencies
         shell: bash
         run: |
           set -euo pipefail
-          test -s filesystems/infiltratorfs_x64.so
           unresolved="$(nm -u filesystems/infiltratorfs_x64.so || true)"
           printf '%s\n' "$unresolved"
+
           if printf '%s\n' "$unresolved" | grep -E ' (fopen|open|read|write|lseek|mmap|pthread_[[:alnum:]_]*|dlopen|clock_gettime|gettimeofday|getenv|_Exit|fprintf|fputc|ferror|snprintf|__ctype_b_loc)$'; then
             echo 'Unexpected operating-system/runtime dependency in EFI driver.' >&2
             exit 1

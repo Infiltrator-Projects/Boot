@@ -1,33 +1,55 @@
 # InfiltratorOS Boot Manager
 
-InfiltratorOS Boot Manager is a fork of **rEFInd**.
+InfiltratorOS Boot Manager is the firmware-stage boot manager for InfiltratorOS. It is an Infiltrator project and is engineered under the canonical Infiltrator Engineering Philosophy.
 
-This project deliberately begins with the existing rEFInd codebase rather than pretending to be a clean-room or independently originated boot manager. rEFInd provides the initial working foundation while InfiltratorOS Boot Manager is progressively redesigned and rewritten for the requirements of InfiltratorOS.
+The repository was bootstrapped from a proven EFI codebase so that development could begin from working firmware machinery instead of recreating solved low-level mechanisms. That history is recorded in `docs/PROVENANCE.md`. It is provenance only: it does not define the product, its architecture, its user experience, its engineering standard, or its end state.
 
-## Project origin
+## Product contract
 
-The initial InfiltratorOS Boot Manager source tree was imported from the current rEFInd upstream `master` tree at commit:
+The Boot Manager exists to make the transition from firmware to the selected operating system safe, deterministic, understandable and effortless. It must discover valid boot paths, present them coherently, preserve platform trust boundaries, fail visibly rather than invent success, and avoid mutating firmware or persistent state without a justified and explicit contract.
 
-`cf542da4459ff18535b0ae3a7910af032834e469`
+InfiltratorOS is the product authority. External implementations, standards, firmware conventions and inherited mechanisms are evidence and mechanisms to study; none of them owns InfiltratorOS behaviour merely because it existed first.
 
-That upstream commit was authored by Rod Smith on 7 January 2026.
+## Engineering standard
 
-The original rEFInd project, its authors, contributors, history, documentation, and licensing remain credited. The imported upstream documentation is retained in `README.txt`, `CREDITS.txt`, `LICENSE.txt`, `COPYING.txt`, and the other upstream files in this repository.
+This repository follows the canonical [Infiltrator Engineering Philosophy](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/blob/main/docs/PHILOSOPHY.md): Mercedes-Benz engineering excellence as an execution benchmark — deep engineering hidden beneath a calm surface, one authority per concern, explicit ownership, proportional complexity, deterministic behaviour, designed failure and recovery, and technical documentation precise enough for another expert to maintain the system confidently.
 
-## Direction
+The project-specific application of that standard is in `PHILOSOPHY.md`.
 
-The intention is not simply to rebrand rEFInd. The rEFInd codebase is the starting point.
+## Current implementation
 
-Development will progressively replace, restructure, and rewrite the boot manager for InfiltratorOS. During that process, portions of the repository will continue to contain original or modified rEFInd code until they are replaced. Attribution and applicable licence requirements remain in force for code derived from rEFInd and its own upstream sources.
+The current tree deliberately retains some historical directory, file and symbol names while the implementation is progressively reorganised. Names such as `refind`, `RefindPkg` and related build identifiers are therefore implementation history, not product identity or architectural authority. They should be replaced only when doing so improves a real boundary or removes real debt; rename-only churn is not a quality improvement.
 
-As the rewrite progresses, this repository should make the distinction clear between inherited rEFInd code and new InfiltratorOS-specific work.
+The current major implementation areas are:
 
-## Licensing
+- `refind/` — the present firmware application and boot-flow implementation;
+- `libeg/` — graphics and presentation support;
+- `EfiLib/` — EFI support mechanisms;
+- `filesystems/` — firmware filesystem drivers and adapters, including the read-only InfiltratorFS integration;
+- `mok/` — trust and MOK-related support inherited by the current implementation;
+- `gzip/` — compressed-data support used by the firmware application;
+- `gptsync/` — GPT/MBR synchronisation utility code retained by the current tree;
+- `Makefile` and `Make.common` — current build orchestration, including GNU-EFI and inherited TianoCore/EDK2 paths.
 
-This repository currently contains code inherited from rEFInd and rEFIt under multiple licences. rEFInd's `LICENSE.txt` states that modifications made in the rEFInd fork are covered by GNU GPL version 3, while original rEFIt portions use the rEFIt licence and some filesystem-driver components have their own GPL licensing. rEFInd documentation is covered by GNU FDL 1.3.
+The authoritative architectural interpretation of those areas is `docs/ARCHITECTURE.md`.
 
-See `LICENSE.txt`, `COPYING.txt`, and the licence files within the relevant subdirectories for the authoritative terms.
+## Maintained documentation
 
-## Upstream
+The maintained project documentation is intentionally separated by concern:
 
-rEFInd is maintained by Rod Smith. The upstream project remains the source and historical origin of the code from which InfiltratorOS Boot Manager began.
+- `PHILOSOPHY.md` — project-specific engineering rules;
+- `docs/DESIGN.md` — product behaviour and interaction principles;
+- `docs/ARCHITECTURE.md` — ownership, boundaries and current/target structure;
+- `docs/PRODUCT-QUALITY.md` — acceptance standard and craftsmanship requirements;
+- `docs/SAFETY.md` — firmware, persistence and trust-boundary safety rules;
+- `docs/VALIDATION.md` — qualification and release evidence;
+- `docs/PROVENANCE.md` — historical source and licensing provenance;
+- `BUILDING.md` — current build entry point;
+- `CONTRIBUTING.md` — change discipline;
+- `CHANGELOG.md` — InfiltratorOS Boot Manager project history.
+
+Historical imported documents such as `README.txt`, `BUILDING.txt` and `NEWS.txt` are retained for provenance and compatibility context. Where they conflict with maintained Infiltrator documentation, the maintained Infiltrator documentation governs product intent and engineering practice; licensing and attribution obligations remain authoritative regardless of document age.
+
+## Licensing and attribution
+
+The repository contains material under multiple licences inherited from its source history as well as Infiltrator-developed work. Attribution and licence obligations are preserved. See `docs/PROVENANCE.md`, `LICENSE.txt`, `COPYING.txt`, `CREDITS.txt`, and licence files in relevant subdirectories.
