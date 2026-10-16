@@ -3,7 +3,7 @@ HISTORICAL UPSTREAM DOCUMENTATION
 
 This file is retained from the source tree used to bootstrap Boot. It documents historical rEFInd packaging and installation behaviour and is preserved for provenance, compatibility context and licensing history.
 
-It is not the product README for Boot. See README.md, BUILDING.md, PHILOSOPHY.md and docs/ for maintained Infiltrator product documentation. Historical names and instructions below do not define current product identity or engineering policy.
+It is not the product README for Boot. See README.md, BUILDING.md, docs/PHILOSOPHY.md and docs/ for maintained Infiltrator product documentation. Historical names and instructions below do not define current product identity or engineering policy.
 
 Brief Installation Instructions (Binary Package)
 ================================================

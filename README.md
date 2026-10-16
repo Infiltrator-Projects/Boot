@@ -19,7 +19,7 @@ InfiltratorOS is the product authority. External implementations, standards, fir
 
 This repository follows the canonical [Infiltrator Engineering Philosophy](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/blob/main/docs/PHILOSOPHY.md): Mercedes-Benz engineering excellence as an execution benchmark — deep engineering hidden beneath a calm surface, one authority per concern, explicit ownership, proportional complexity, deterministic behaviour, designed failure and recovery, and technical documentation precise enough for another expert to maintain the system confidently.
 
-The project-specific application of that standard is in `PHILOSOPHY.md`.
+The project-specific application of that standard is in `docs/PHILOSOPHY.md`.
 
 ## Current implementation
 
@@ -42,7 +42,7 @@ The authoritative architectural interpretation of those areas is `docs/ARCHITECT
 
 The maintained project documentation is intentionally separated by concern:
 
-- `PHILOSOPHY.md` — project-specific engineering rules;
+- `docs/PHILOSOPHY.md` — project-specific engineering rules;
 - `docs/DESIGN.md` — product behaviour and interaction principles;
 - `docs/ARCHITECTURE.md` — ownership, boundaries and current/target structure;
 - `docs/PRODUCT-QUALITY.md` — acceptance standard and craftsmanship requirements;

@@ -4,7 +4,7 @@
 
 This document is the architectural authority for Boot. It describes the ownership model the product is converging toward and maps the current source tree onto that model without treating historical directory names as design decisions.
 
-The architecture is governed by `PHILOSOPHY.md` and the canonical Infiltrator Engineering Philosophy.
+The architecture is governed by `docs/PHILOSOPHY.md` and the canonical Infiltrator Engineering Philosophy.
 
 ## System responsibility
 
