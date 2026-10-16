@@ -58,3 +58,7 @@ Historical imported documents such as `README.txt`, `BUILDING.txt` and `NEWS.txt
 ## Licensing and attribution
 
 The repository contains material under multiple licences inherited from its source history as well as Infiltrator-developed work. Attribution and licence obligations are preserved. See `docs/PROVENANCE.md`, `LICENSE.txt`, `COPYING.txt`, `CREDITS.txt`, and licence files in relevant subdirectories.
+
+## Source preview and qualification
+
+[VERSION](VERSION) identifies the Infiltrator source preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI compiles the full GNU-EFI x86-64 program and read-only InfiltratorFS driver and reproduces pinned vendor source. A source preview distributes exact tracked source only. Firmware runtime, trust, installation and recovery require separate qualification before a binary release.

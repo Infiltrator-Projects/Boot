@@ -1,5 +1,12 @@
 # Changelog
 
+## Source preview 0.1.0 — 2026-10-16
+
+- Qualify the complete GNU-EFI x86-64 program alongside the read-only InfiltratorFS driver.
+- Replace host-dependent default toolchain selection with explicit GNU-EFI defaults and preserve recursive make flags.
+- Keep generic cleanup inside repository-owned outputs.
+- Publish exact source as an immutable prerelease, with binary/runtime qualification explicitly separate.
+
 All notable Boot project changes are recorded here.
 
 This changelog tracks the Infiltrator project itself. Historical upstream change history imported with the initial source tree remains in `NEWS.txt` and is not duplicated here.

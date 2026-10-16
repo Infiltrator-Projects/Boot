@@ -14,7 +14,7 @@ The current tree contains three inherited build paths:
 
 The existence of a target does not mean that target is currently release-qualified.
 
-The repository's current automated firmware build evidence is focused on the GNU-EFI x86-64 path used for the InfiltratorFS UEFI integration. See `docs/VALIDATION.md` for what that does and does not prove.
+The maintained source workflow builds the complete GNU-EFI x86-64 program and the read-only InfiltratorFS driver, and reproduces the pinned vendor tree. See `docs/VALIDATION.md` for what that does and does not prove.
 
 ## GNU-EFI prerequisites
 
@@ -43,9 +43,9 @@ Use the narrowest target that matches what is being qualified. A broad build is 
 
 ## Determinism
 
-The generic `make all` target currently detects locally installed EDK2/TianoCore paths and otherwise falls back to GNU-EFI. That behaviour is inherited and convenient for development, but host-dependent toolchain selection must not be mistaken for a deterministic release definition.
+The default `make all`, `make fs` and `make gptsync` targets use GNU-EFI deterministically. TianoCore/EDK2 targets remain explicit developer choices. Recursive make calls preserve the selected make executable and flags.
 
-Release qualification should invoke an explicit toolchain/target and record the environment used.
+Run `bash scripts/build-gnuefi.sh` on an x86-64 Debian-family build host. It resolves the installed GNU-EFI toolchain and builds without invoking installation. Generic cleanup removes repository outputs; it does not delete an external EDK2 workspace.
 
 ## Vendored InfiltratorFS source
 
@@ -86,3 +86,5 @@ A future Boot package must use the current Boot identity throughout. Setup
 will own the graphical installation transaction and the explicit installation
 of qualified firmware artifacts. Building or packaging Boot must not install
 it to the developer's EFI partition or alter NVRAM.
+
+The root VERSION identifies source previews, independently of inherited engine compatibility. The source workflow publishes an immutable prerelease ZIP after build/vendor checks. It excludes generated firmware binaries from distribution until firmware, trust and mutation/recovery evidence is sufficient for a binary release.

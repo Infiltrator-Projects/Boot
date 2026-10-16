@@ -120,3 +120,9 @@ The project is not performing a ceremonial rewrite. Migration is incremental and
 A change that touches inherited code should leave ownership clearer than before. Prefer extracting an authority, removing a duplicate policy path, tightening an interface, making state explicit, or deleting obsolete machinery. Do not split cohesive code solely to make files smaller and do not introduce abstraction solely to hide historical names.
 
 The end state is a boot manager whose architecture can be explained in product terms without reference to the implementation it originally started from.
+
+## Build and source-preview ownership
+
+The default GNU-EFI targets are explicit and independent of ambient EDK2/TianoCore installations. The product-owned build script locates GNU-EFI and compiles the full program and read-only InfiltratorFS driver. Make recursion preserves the chosen executable and flags. Generic cleanup owns repository outputs only.
+
+Root VERSION owns source-preview identity; inherited engine versions remain separate. The single source workflow owns vendor verification, compilation and exact source artifacts. Publication promotes that sealed source as a prerelease. Binary release eligibility still belongs to firmware/runtime, trust and installation/recovery qualification.

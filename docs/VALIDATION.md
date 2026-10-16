@@ -32,13 +32,15 @@ Any code capable of modifying NVRAM, boot order, ESP contents, partition metadat
 
 ## Current automated qualification
 
-The repository currently has focused automated coverage for the InfiltratorFS UEFI integration:
+The maintained source workflow has the following automated coverage:
+
+- building the full GNU-EFI x86-64 program through an explicit toolchain entry point;
 
 - building the read-only InfiltratorFS EFI driver with GNU-EFI on x86-64;
 - rejecting unresolved host operating-system/runtime dependencies in the resulting shared object; and
 - verifying that the committed vendored InfiltratorFS/Common/LZ4 tree matches the exact pinned source generator.
 
-These checks are useful but deliberately not described as complete Boot qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
+These checks establish source/build evidence and are deliberately not described as complete Boot runtime qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
 
 ## Required change evidence
 
@@ -97,3 +99,7 @@ Before release, answer with evidence:
 - Are documentation and release claims limited to what the evidence proves?
 
 A release is not qualified if those questions cannot be answered confidently for the risk introduced by the change.
+
+## Source-preview publication
+
+Root VERSION identifies the source preview; inherited engine/profile versions retain their separate meaning. The same successful source workflow seals tracked Git source and commit identity with SHA-256. Its publisher downloads that artifact, compares complete remote bytes before and after draft promotion, and creates an immutable prerelease. No firmware binary or automatic installation is included. The release notes state the build-only evidence and remaining firmware/trust/mutation qualification explicitly.
