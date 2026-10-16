@@ -1,12 +1,17 @@
-# InfiltratorOS Boot Manager
+# Boot
 
-InfiltratorOS Boot Manager is the firmware-stage boot manager for InfiltratorOS. It is an Infiltrator project and is engineered under the canonical Infiltrator Engineering Philosophy.
+Boot is the firmware-stage boot manager for InfiltratorOS. It is an Infiltrator project and is engineered under the canonical Infiltrator Engineering Philosophy.
+
+The component name is **Boot**. The operating system is **InfiltratorOS**;
+**Filesystems** provides filesystem capability information, and **Setup** is the
+name reserved for the future installer. **InfiltratorFS** remains the name of the
+filesystem format.
 
 The repository was bootstrapped from a proven EFI codebase so that development could begin from working firmware machinery instead of recreating solved low-level mechanisms. That history is recorded in `docs/PROVENANCE.md`. It is provenance only: it does not define the product, its architecture, its user experience, its engineering standard, or its end state.
 
 ## Product contract
 
-The Boot Manager exists to make the transition from firmware to the selected operating system safe, deterministic, understandable and effortless. It must discover valid boot paths, present them coherently, preserve platform trust boundaries, fail visibly rather than invent success, and avoid mutating firmware or persistent state without a justified and explicit contract.
+Boot exists to make the transition from firmware to the selected operating system safe, deterministic, understandable and effortless. It must discover valid boot paths, present them coherently, preserve platform trust boundaries, fail visibly rather than invent success, and avoid mutating firmware or persistent state without a justified and explicit contract.
 
 InfiltratorOS is the product authority. External implementations, standards, firmware conventions and inherited mechanisms are evidence and mechanisms to study; none of them owns InfiltratorOS behaviour merely because it existed first.
 
@@ -46,7 +51,7 @@ The maintained project documentation is intentionally separated by concern:
 - `docs/PROVENANCE.md` — historical source and licensing provenance;
 - `BUILDING.md` — current build entry point;
 - `CONTRIBUTING.md` — change discipline;
-- `CHANGELOG.md` — InfiltratorOS Boot Manager project history.
+- `CHANGELOG.md` — Boot project history.
 
 Historical imported documents such as `README.txt`, `BUILDING.txt` and `NEWS.txt` are retained for provenance and compatibility context. Where they conflict with maintained Infiltrator documentation, the maintained Infiltrator documentation governs product intent and engineering practice; licensing and attribution obligations remain authoritative regardless of document age.
 

@@ -8,4 +8,4 @@ Infiltratr Common version: 1.19.35
 LZ4 repository: lz4/lz4
 LZ4 commit: ebb370ca83af193212df4dcbadcc5d87bc0de2f0
 LZ4 version: 1.10.0
-Purpose: read-only UEFI/FSW port for InfiltratorOS Boot Manager
+Purpose: read-only UEFI/FSW port for Boot

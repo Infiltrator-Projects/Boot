@@ -38,7 +38,7 @@ The repository currently has focused automated coverage for the InfiltratorFS UE
 - rejecting unresolved host operating-system/runtime dependencies in the resulting shared object; and
 - verifying that the committed vendored InfiltratorFS/Common/LZ4 tree matches the exact pinned source generator.
 
-These checks are useful but deliberately not described as complete Boot Manager qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
+These checks are useful but deliberately not described as complete Boot qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
 
 ## Required change evidence
 

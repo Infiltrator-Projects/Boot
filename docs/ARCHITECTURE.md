@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This document is the architectural authority for InfiltratorOS Boot Manager. It describes the ownership model the product is converging toward and maps the current source tree onto that model without treating historical directory names as design decisions.
+This document is the architectural authority for Boot. It describes the ownership model the product is converging toward and maps the current source tree onto that model without treating historical directory names as design decisions.
 
 The architecture is governed by `PHILOSOPHY.md` and the canonical Infiltrator Engineering Philosophy.
 
 ## System responsibility
 
-InfiltratorOS Boot Manager owns the firmware-stage transition from platform firmware to a selected operating-system loader. Its responsibilities are deliberately narrow:
+Boot owns the firmware-stage transition from platform firmware to a selected operating-system loader. Its responsibilities are deliberately narrow:
 
 1. initialise the minimum firmware-facing mechanisms required for the product;
 2. discover bootable candidates and supporting filesystems;

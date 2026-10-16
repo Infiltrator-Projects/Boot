@@ -2,7 +2,7 @@
 
 ## Standard
 
-InfiltratorOS Boot Manager is held to the canonical Infiltrator Engineering Philosophy and its Mercedes-Benz execution benchmark: deep engineering, restrained presentation, reliability, trust, technical precision and craftsmanship as one integrated standard.
+Boot is held to the canonical Infiltrator Engineering Philosophy and its Mercedes-Benz execution benchmark: deep engineering, restrained presentation, reliability, trust, technical precision and craftsmanship as one integrated standard.
 
 Quality is not a final polish pass. For a boot manager, correctness, startup behaviour, input handling, visual clarity, firmware compatibility, filesystem safety, trust handling, build reproducibility and recovery are all product quality.
 
@@ -18,7 +18,7 @@ The ordinary experience should be simple, but internal complexity may remain whe
 
 ### One product voice
 
-User-visible terminology, maintained documentation, diagnostics and new source-level abstractions should describe InfiltratorOS Boot Manager in InfiltratorOS terms. Historical terminology remains only where it is part of a current technical or legal contract.
+User-visible terminology, maintained documentation, diagnostics and new source-level abstractions should describe Boot in InfiltratorOS terms. Historical terminology remains only where it is part of a current technical or legal contract.
 
 ### Performance is observable behaviour
 

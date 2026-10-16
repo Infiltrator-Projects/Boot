@@ -106,7 +106,7 @@ Infiltratr Common version: ${COMMON_VERSION}
 LZ4 repository: lz4/lz4
 LZ4 commit: ${LZ4_COMMIT}
 LZ4 version: ${LZ4_VERSION}
-Purpose: read-only UEFI/FSW port for InfiltratorOS Boot Manager
+Purpose: read-only UEFI/FSW port for Boot
 EOF
 
 if [[ "${MODE}" == "--check" ]]; then

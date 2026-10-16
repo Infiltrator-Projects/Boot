@@ -1,6 +1,6 @@
 # Contributing
 
-InfiltratorOS Boot Manager is governed by the canonical Infiltrator Engineering Philosophy and the repository-specific rules in `PHILOSOPHY.md`.
+Boot is governed by the canonical Infiltrator Engineering Philosophy and the repository-specific rules in `PHILOSOPHY.md`.
 
 Changes are judged by engineering quality, not by novelty, code volume or how completely they resemble the source tree from which the project originally began.
 

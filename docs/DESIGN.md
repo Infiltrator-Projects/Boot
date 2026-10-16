@@ -2,7 +2,7 @@
 
 ## Product intent
 
-InfiltratorOS Boot Manager should make firmware-stage boot selection feel deliberate, calm and dependable. The user should see the smallest amount of information necessary to understand what can be booted, what is selected, and what went wrong when boot cannot proceed.
+Boot should make firmware-stage boot selection feel deliberate, calm and dependable. The user should see the smallest amount of information necessary to understand what can be booted, what is selected, and what went wrong when boot cannot proceed.
 
 Complexity belongs beneath the interface. The product may contain substantial firmware, filesystem, compatibility and trust machinery, but the user should not be required to understand that machinery during normal boot.
 
@@ -93,6 +93,6 @@ The user should be able to identify the default action immediately. Destructive 
 
 ## Product identity
 
-The project must be understandable as InfiltratorOS Boot Manager without requiring knowledge of the codebase it originally started from. Historical filenames and symbols may remain during migration where changing them would create disproportionate risk, but new product concepts, documentation, UI language and architectural decisions must use InfiltratorOS terminology and ownership.
+The project must be understandable as Boot without requiring knowledge of the codebase it originally started from. Historical filenames and symbols may remain during migration where changing them would create disproportionate risk, but new product concepts, documentation, UI language and architectural decisions must use InfiltratorOS terminology and ownership.
 
 The target is not a reskinned historical implementation. The target is a coherent InfiltratorOS boot product that retains any existing mechanism only when that mechanism remains the strongest engineering choice.

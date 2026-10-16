@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This document records how InfiltratorOS Boot Manager began and preserves the source-history context required for attribution, licensing and technical archaeology.
+This document records how Boot began and preserves the source-history context required for attribution, licensing and technical archaeology.
 
 It is deliberately separate from product design and architecture. Provenance explains where code came from; it does not define what the product is.
 
 ## Initial source basis
 
-The initial InfiltratorOS Boot Manager source tree was imported from the rEFInd upstream `master` tree at commit:
+The initial Boot source tree was imported from the rEFInd upstream `master` tree at commit:
 
 `cf542da4459ff18535b0ae3a7910af032834e469`
 
@@ -16,7 +16,7 @@ That upstream commit was authored by Rod Smith on 7 January 2026.
 
 The imported tree supplied an already-working EFI implementation from which InfiltratorOS development could begin. The project intentionally chose a proven starting implementation rather than pretending to be a clean-room or independently originated EFI boot manager.
 
-That decision does not make rEFInd the ongoing product specification, design authority or architectural owner of InfiltratorOS Boot Manager. Existing mechanisms are retained, changed or replaced according to current InfiltratorOS requirements and the canonical Infiltrator Engineering Philosophy.
+That decision does not make rEFInd the ongoing product specification, design authority or architectural owner of Boot. Existing mechanisms are retained, changed or replaced according to current InfiltratorOS requirements and the canonical Infiltrator Engineering Philosophy.
 
 ## Historical material retained in the repository
 
@@ -46,7 +46,7 @@ Correct wording is:
 
 - the repository **began from** a specific rEFInd source snapshot;
 - some current source remains derived from or based on that material; and
-- InfiltratorOS Boot Manager is the current product and owns its current requirements, architecture and direction.
+- Boot is the current product and owns its current requirements, architecture and direction.
 
 The product should not be routinely described as though its historical source basis were its defining feature. References to rEFInd belong where they carry technical, historical or legal meaning.
 

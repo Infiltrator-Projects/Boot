@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /*
- * InfiltratorFS -> rEFInd FSW bridge for InfiltratorOS Boot Manager.
+ * InfiltratorFS -> rEFInd FSW bridge for Boot.
  *
  * The filesystem semantics and on-disk parsing remain in the canonical
  * portable InfiltratorFS core. This file only adapts that core to FSW/UEFI.

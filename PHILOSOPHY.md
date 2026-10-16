@@ -1,10 +1,17 @@
-# InfiltratorOS Boot Manager Engineering Philosophy
+# Boot Engineering Philosophy
 
 This repository follows the canonical [Infiltrator Engineering Philosophy](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/blob/main/docs/PHILOSOPHY.md). This document specialises that philosophy for a firmware-stage boot manager. It does not replace or weaken the canonical standard.
 
 ## Product authority
 
-InfiltratorOS Boot Manager owns its product behaviour.
+Boot owns its product behaviour.
+
+Boot belongs to the single InfiltratorOS product and shares its visual and
+interaction language. The ordinary boot and installation experience is
+graphical. A hidden terminal is reserved for absolute emergency recovery.
+Public application, package and publication identities use the current
+component name; historical names are retained only where source provenance or
+an internal implementation detail still requires them.
 
 The repository began from an existing EFI implementation, but inherited code has no special architectural authority because of its age, origin or existing shape. It may be retained when it remains the strongest justified implementation, changed when a stronger boundary or behaviour is required, and removed when it no longer serves a product contract.
 

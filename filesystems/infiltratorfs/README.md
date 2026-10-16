@@ -1,6 +1,6 @@
 # InfiltratorFS UEFI integration
 
-InfiltratorOS Boot Manager includes InfiltratorFS as a first-class filesystem target.
+Boot includes InfiltratorFS as a first-class filesystem target.
 
 This directory is the UEFI integration layer. It is deliberately based on the canonical portable InfiltratorFS format/core implementation rather than the Linux kernel VFS adapter; Linux kernel code cannot be used directly in UEFI.
 

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable InfiltratorOS Boot Manager project changes are recorded here.
+All notable Boot project changes are recorded here.
 
 This changelog tracks the Infiltrator project itself. Historical upstream change history imported with the initial source tree remains in `NEWS.txt` and is not duplicated here.
 
@@ -8,7 +8,10 @@ This changelog tracks the Infiltrator project itself. Historical upstream change
 
 ### Changed
 
-- Reframed the repository around InfiltratorOS Boot Manager as the product authority rather than its historical source basis.
+- Renamed the component to Boot across maintained documentation and integration metadata.
+- Archived imported package definitions as source provenance so the current product cannot publish under the historical upstream package identity.
+- Recorded InfiltratorOS's shared graphical product contract and emergency-only terminal policy.
+- Reframed the repository around Boot as the product authority rather than its historical source basis.
 - Added project-specific engineering, design, architecture, product-quality, safety, validation and provenance documentation under the canonical Infiltrator Engineering Philosophy.
 - Added maintained build and contribution guidance.
 - Defined inherited names and source structure as transitional implementation details rather than product identity.

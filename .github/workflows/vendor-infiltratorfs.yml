@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Check out Boot Manager source
+      - name: Check out Boot source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Verify exact vendored source

@@ -1,6 +1,6 @@
-# Building InfiltratorOS Boot Manager
+# Building Boot
 
-This is the maintained build entry point for InfiltratorOS Boot Manager.
+This is the maintained build entry point for Boot.
 
 `BUILDING.txt` is retained historical upstream documentation. It may still contain useful low-level information, but it is not the authority for current Infiltrator engineering policy or qualification claims.
 
@@ -74,3 +74,15 @@ Treat installation and firmware mutation as separate operations governed by `doc
 ## Qualification
 
 After building, apply the evidence rules in `docs/VALIDATION.md`. Compilation proves only that the selected source/toolchain combination produced an artifact. It does not prove runtime boot behaviour, trust handling, persistent-state safety or compatibility on architectures/firmware that were not exercised.
+
+## Product packaging
+
+Boot currently has no qualified Debian package or published binary release.
+The imported Debian/RPM package definitions are archived under
+`docs/provenance/packaging/`; they describe the source project's historical
+distribution and are not active Boot publishing definitions.
+
+A future Boot package must use the current Boot identity throughout. Setup
+will own the graphical installation transaction and the explicit installation
+of qualified firmware artifacts. Building or packaging Boot must not install
+it to the developer's EFI partition or alter NVRAM.
