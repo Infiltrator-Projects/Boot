@@ -1,6 +1,6 @@
 # Boot Engineering Philosophy
 
-This repository follows the canonical [Infiltrator Engineering Philosophy](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/blob/main/docs/PHILOSOPHY.md). This document specialises that philosophy for a firmware-stage boot manager. It does not replace or weaken the canonical standard.
+This repository follows the canonical [Infiltrator Engineering Philosophy](https://github.com/Infiltrator-Projects/Libraries/blob/main/docs/PHILOSOPHY.md). This document specialises that philosophy for a firmware-stage boot manager. It does not replace or weaken the canonical standard.
 
 ## Product authority
 

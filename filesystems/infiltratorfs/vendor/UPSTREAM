@@ -2,9 +2,9 @@ Repository: Infiltrator-Projects/InfiltratorFS
 Commit: 0451f95cadf57484640d87eea2037e067bc7ed6f
 Version: 0.18.94
 On-disk format: 0.18
-Infiltratr Common repository: Infiltrator-Projects/Infiltrator-Libraries
-Infiltratr Common commit: 7cc5de3de0e94ed2cfcff0840bbb5346eb5c9c9f
-Infiltratr Common version: 1.19.35
+Libraries repository: Infiltrator-Projects/Libraries
+Libraries commit: 7cc5de3de0e94ed2cfcff0840bbb5346eb5c9c9f
+Libraries version: 1.19.35
 LZ4 repository: lz4/lz4
 LZ4 commit: ebb370ca83af193212df4dcbadcc5d87bc0de2f0
 LZ4 version: 1.10.0

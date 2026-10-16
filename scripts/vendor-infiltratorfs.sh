@@ -11,7 +11,7 @@ readonly INFILFS_COMMIT="0451f95cadf57484640d87eea2037e067bc7ed6f"
 readonly INFILFS_VERSION="0.18.94"
 readonly INFILFS_FORMAT="0.18"
 
-readonly COMMON_REPOSITORY="https://github.com/Infiltrator-Projects/Infiltrator-Libraries.git"
+readonly COMMON_REPOSITORY="https://github.com/Infiltrator-Projects/Libraries.git"
 readonly COMMON_COMMIT="7cc5de3de0e94ed2cfcff0840bbb5346eb5c9c9f"
 readonly COMMON_VERSION="1.19.35"
 
@@ -100,9 +100,9 @@ Repository: Infiltrator-Projects/InfiltratorFS
 Commit: ${INFILFS_COMMIT}
 Version: ${INFILFS_VERSION}
 On-disk format: ${INFILFS_FORMAT}
-Infiltratr Common repository: Infiltrator-Projects/Infiltrator-Libraries
-Infiltratr Common commit: ${COMMON_COMMIT}
-Infiltratr Common version: ${COMMON_VERSION}
+Libraries repository: Infiltrator-Projects/Libraries
+Libraries commit: ${COMMON_COMMIT}
+Libraries version: ${COMMON_VERSION}
 LZ4 repository: lz4/lz4
 LZ4 commit: ${LZ4_COMMIT}
 LZ4 version: ${LZ4_VERSION}
