@@ -70,6 +70,10 @@ mkdir -p \
     "${staged}/lz4"
 
 cp -a "${infilfs_checkout}/include/infilfs" "${staged}/include/"
+# Normalize the shared library product label in the retained wrapper comment.
+# The pinned implementation and required copyright notices are unchanged.
+sed -i '/^ \* The implementation lives in /c\ * The implementation lives in Libraries 1.11+ so byte-order handling' \
+    "${staged}/include/infilfs/endian.h"
 cp "${infilfs_checkout}/src/checksum.c" "${staged}/src/"
 cp "${infilfs_checkout}/src/status.c" "${staged}/src/"
 cp "${infilfs_checkout}/src/storage.c" "${staged}/src/"
