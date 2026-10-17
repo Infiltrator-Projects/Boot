@@ -1126,6 +1126,19 @@ static VOID PaintAll(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN
         DrawTextWithTransparency(Screen->Hint2, (UGAWidth - egComputeTextWidth(Screen->Hint2)) / 2,
                                  UGAHeight - (egGetFontHeight() * 2));
     } // if
+
+    // On-screen, RAM-only evidence when firmware icon reads fail.
+    {
+        CHAR16 *Diagnostic = egGetIconDiagnosticText();
+        if (Diagnostic != NULL) {
+            UINTN Width = egComputeTextWidth(Diagnostic);
+            UINTN Height = egGetFontHeight();
+            if (Height > 0 && UGAHeight > Height * 6 && Width < UGAWidth)
+                DrawTextWithTransparency(Diagnostic, (UGAWidth - Width) / 2,
+                                         UGAHeight - Height * 5);
+            MyFreePool(Diagnostic);
+        }
+    }
 } // static VOID PaintAll()
 
 // Move the selection to State->CurrentSelection, adjusting icon row if necessary...

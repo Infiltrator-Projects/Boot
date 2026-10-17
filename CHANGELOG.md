@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.12 — 2026-10-18
+
+- Normalize root icon filenames when `icons_dir .` is selected; cold-start EFI filesystem drivers no longer receive a literal `.\\` path prefix.
+- Retry transient EFI icon read errors at most twice (100 ms pause each), without repeatedly probing absent optional ICNS names.
+- Reject incomplete successful file reads and avoid dereferencing a null image when an icon fails to decode.
+- Display RAM-only icon fallback/recovery/read-error counters and EFI error names on the graphical main menu when anomalies occur, without diagnostic disk writes.
+- Prevent Boot-specific previous-selection and hidden-state reads/writes from creating `EFI/BOOT/vars` when `use_nvram false` is configured on the removable test.
+- A cold boot on 0.1.11 displayed striped dummy icons whereas a warm reboot on the same SD displayed normal artwork. SD hardware instability remains a suspected, unproven cause; real-firmware verification of 0.1.12 is still required.
+
 ## Unreleased
 
 ## 0.1.11 — 2026-10-18

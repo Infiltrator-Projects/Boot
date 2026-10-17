@@ -111,6 +111,8 @@ EG_IMAGE * egLoadImage(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, IN BO
 EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, IN UINTN IconSize);
 EG_IMAGE * egLoadIconAnyType(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *SubdirName, IN CHAR16 *BaseName, IN UINTN IconSize);
 EG_IMAGE * egFindIcon(IN CHAR16 *BaseName, IN UINTN IconSize);
+VOID egRecordIconFallback(IN CHAR16 *Name);
+CHAR16 *egGetIconDiagnosticText(VOID); // Caller frees with MyFreePool().
 EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEAN WantAlpha);
 
 EG_IMAGE * egEnsureImageSize(IN EG_IMAGE *Image, IN UINTN Width, IN UINTN Height, IN EG_PIXEL *Color);

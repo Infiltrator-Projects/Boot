@@ -41,6 +41,13 @@ jobs:
           grep -q '^fold_linux_kernels true$' boot.conf
           grep -q '^default_selection vmlinuz$' boot.conf
           grep -q '^use_graphics_for linux$' boot.conf
+          # Icon cold-start recovery and RAM-only diagnostics must stay bounded.
+          grep -q 'BOOT_ICON_MAX_RETRIES 2' libeg/image.c
+          grep -q 'egIsTransientIconReadFailure(Status)' libeg/image.c
+          grep -q 'BufferSize != (UINTN)ReadSize' libeg/image.c
+          grep -q 'egGetIconDiagnosticText()' refind/menu.c
+          grep -q 'Name && GlobalConfig.UseNvram' refind/main.c
+          grep -q 'return EFI_WRITE_PROTECTED; // never redirect state writes' refind/lib.c
           python3 - <<'PY_BOOT_LINUX_SPLASH'
           from pathlib import Path
           source = Path('refind/config.c').read_text()

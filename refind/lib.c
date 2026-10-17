@@ -433,7 +433,11 @@ EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer
     BOOLEAN ReadFromNvram = TRUE;
 
     if ((GlobalConfig.UseNvram == FALSE) && GuidsAreEqual(vendor, &RefindGuid)) {
-        ReadFromNvram = FALSE;
+        // Do not create EFI/BOOT/vars just to read Boot state in SD tests.
+        *buffer = NULL;
+        if (size != NULL)
+            *size = 0;
+        return EFI_NOT_FOUND;
     }
     LOG(3, LOG_LINE_NORMAL, L"Getting EFI variable '%s' from %s", name,
         ReadFromNvram ? L"NVRAM" : L"disk");
@@ -487,7 +491,7 @@ EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, 
     BOOLEAN     WriteToNvram = TRUE;
 
     if ((GlobalConfig.UseNvram == FALSE) && GuidsAreEqual(vendor, &RefindGuid))
-        WriteToNvram = FALSE;
+        return EFI_WRITE_PROTECTED; // never redirect state writes to an ESP or NVRAM
 
     OldStatus = EfivarGetRaw(vendor, name, &OldBuf, &OldSize);
     LOG(2, LOG_LINE_NORMAL, L"Saving EFI variable '%s' to %s", name,

@@ -229,7 +229,8 @@ VOID AboutrEFInd(VOID)
 // if it's different from what's already stored there.
 VOID StoreLoaderName(IN CHAR16 *Name) {
 
-    if (Name) {
+    // Removable use_nvram false test must not write EFI/BOOT/vars.
+    if (Name && GlobalConfig.UseNvram) {
         EfivarSetRaw(&RefindGuid, L"PreviousBoot", (CHAR8*) Name, StrLen(Name) * 2 + 2, TRUE);
     } // if
 } // VOID StoreLoaderName()

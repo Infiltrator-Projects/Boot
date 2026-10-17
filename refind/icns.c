@@ -86,8 +86,10 @@ EG_IMAGE * BuiltinIcon(IN UINTN Id)
 
     if (BuiltinIconTable[Id].Image == NULL) {
        BuiltinIconTable[Id].Image = egFindIcon(BuiltinIconTable[Id].FileName, GlobalConfig.IconSizes[BuiltinIconTable[Id].IconSize]);
-       if (BuiltinIconTable[Id].Image == NULL)
+       if (BuiltinIconTable[Id].Image == NULL) {
+          egRecordIconFallback(BuiltinIconTable[Id].FileName);
           BuiltinIconTable[Id].Image = DummyImage(GlobalConfig.IconSizes[BuiltinIconTable[Id].IconSize]);
+       }
     } // if
 
     return BuiltinIconTable[Id].Image;
@@ -139,6 +141,7 @@ EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconNam
     // If all of these fail, return the dummy image....
     if (Image == NULL) {
        LOG(4, LOG_LINE_NORMAL, L"Setting dummy image");
+       egRecordIconFallback(FallbackIconName);
        Image = DummyImage(GlobalConfig.IconSizes[ICON_SIZE_BIG]);
     }
 

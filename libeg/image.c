@@ -237,6 +237,68 @@ VOID egFreeImage(IN EG_IMAGE *Image)
 }
 
 //
+// Volatile icon I/O diagnostics. Never saved to an ESP or EFI variable.
+//
+#define BOOT_ICON_MAX_RETRIES 2
+#define BOOT_ICON_RETRY_DELAY_US 100000
+#define BOOT_ICON_NAME_LENGTH 64
+
+static UINTN BootIconFallbacks = 0;
+static UINTN BootIconRecovered = 0;
+static UINTN BootIconErrors = 0;
+static EFI_STATUS BootLastIconStatus = EFI_SUCCESS;
+static CHAR16 BootLastIconName[BOOT_ICON_NAME_LENGTH] = L"";
+
+static VOID egRememberIconName(IN CHAR16 *Name) {
+    UINTN i = 0;
+    if (!Name)
+        return;
+    while (Name[i] && i < BOOT_ICON_NAME_LENGTH - 1) {
+        BootLastIconName[i] = Name[i];
+        i++;
+    }
+    BootLastIconName[i] = 0;
+}
+static BOOLEAN egIsTransientIconReadFailure(IN EFI_STATUS Status) {
+    return Status == EFI_NOT_READY || Status == EFI_DEVICE_ERROR ||
+           Status == EFI_TIMEOUT || Status == EFI_MEDIA_CHANGED ||
+           Status == EFI_NO_MEDIA;
+}
+static VOID egRecordIconReadError(IN CHAR16 *Name, IN EFI_STATUS Status) {
+    if (Status != EFI_NOT_FOUND) {
+        BootIconErrors++;
+        BootLastIconStatus = Status;
+        egRememberIconName(Name);
+    } else if (BootIconErrors == 0) {
+        BootLastIconStatus = Status;
+    }
+}
+VOID egRecordIconFallback(IN CHAR16 *Name) {
+    BootIconFallbacks++;
+    if (BootIconErrors == 0)
+        egRememberIconName(Name);
+}
+CHAR16 *egGetIconDiagnosticText(VOID) {
+    CHAR16 *StatusName = L"none";
+    if (!BootIconFallbacks && !BootIconRecovered && !BootIconErrors)
+        return NULL;
+    switch (BootLastIconStatus) {
+        case EFI_NOT_FOUND: StatusName = L"EFI_NOT_FOUND"; break;
+        case EFI_DEVICE_ERROR: StatusName = L"EFI_DEVICE_ERROR"; break;
+        case EFI_NOT_READY: StatusName = L"EFI_NOT_READY"; break;
+        case EFI_TIMEOUT: StatusName = L"EFI_TIMEOUT"; break;
+        case EFI_MEDIA_CHANGED: StatusName = L"EFI_MEDIA_CHANGED"; break;
+        case EFI_NO_MEDIA: StatusName = L"EFI_NO_MEDIA"; break;
+        case EFI_LOAD_ERROR: StatusName = L"EFI_LOAD_ERROR"; break;
+        case EFI_OUT_OF_RESOURCES: StatusName = L"EFI_OUT_OF_RESOURCES"; break;
+        default: StatusName = L"EFI_OTHER"; break;
+    }
+    return PoolPrint(L"Icon diagnostic: %d fallback, %d recovered, %d errors; %s (%s)",
+                     BootIconFallbacks, BootIconRecovered, BootIconErrors,
+                     StatusName, BootLastIconName[0] ? BootLastIconName : L"unknown");
+}
+
+//
 // Basic file operations
 //
 
@@ -277,9 +339,10 @@ EFI_STATUS egLoadFile(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, OUT UI
 
     Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &BufferSize, Buffer);
     refit_call1_wrapper(FileHandle->Close, FileHandle);
-    if (EFI_ERROR(Status)) {
+    if (EFI_ERROR(Status) || BufferSize != (UINTN)ReadSize) {
         MyFreePool(Buffer);
-        return Status;
+        // EFI_SUCCESS with a short read is still an incomplete image.
+        return EFI_ERROR(Status) ? Status : EFI_DEVICE_ERROR;
     }
 
     *FileData = Buffer;
@@ -382,21 +445,35 @@ EG_IMAGE * egLoadImage(IN EFI_FILE* BaseDir, IN CHAR16 *FileName, IN BOOLEAN Wan
 EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN IconSize)
 {
     EFI_STATUS      Status;
-    UINT8           *FileData;
-    UINTN           FileDataLength;
+    UINT8           *FileData = NULL;
+    UINTN           FileDataLength = 0;
+    UINTN           Attempt;
     EG_IMAGE        *Image, *NewImage;
 
     if (BaseDir == NULL || Path == NULL)
         return NULL;
 
-    // load file
-    Status = egLoadFile(BaseDir, Path, &FileData, &FileDataLength);
-    if (EFI_ERROR(Status))
-        return NULL;
+    // Bounded retries for media errors, not optional missing .icns files.
+    for (Attempt = 0; Attempt <= BOOT_ICON_MAX_RETRIES; Attempt++) {
+        Status = egLoadFile(BaseDir, Path, &FileData, &FileDataLength);
+        if (!EFI_ERROR(Status)) {
+            if (Attempt > 0)
+                BootIconRecovered++;
+            break;
+        }
+        egRecordIconReadError(Path, Status);
+        if (Attempt == BOOT_ICON_MAX_RETRIES ||
+            !egIsTransientIconReadFailure(Status))
+            return NULL;
+        refit_call1_wrapper(BS->Stall, BOOT_ICON_RETRY_DELAY_US);
+    }
 
-    // decode it
     Image = egDecodeAny(FileData, FileDataLength, IconSize, TRUE);
     MyFreePool(FileData);
+    if (Image == NULL) {
+        egRecordIconReadError(Path, EFI_LOAD_ERROR);
+        return NULL;
+    }
     if ((Image->Width != IconSize) || (Image->Height != IconSize)) {
         NewImage = egScaleImage(Image, IconSize, IconSize);
         if (NewImage) {
@@ -426,7 +503,11 @@ EG_IMAGE * egLoadIconAnyType(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *SubdirNam
     UINTN i = 0;
 
     while (((Extension = FindCommaDelimited(ICON_EXTENSIONS, i++)) != NULL) && (Image == NULL)) {
-        FileName = PoolPrint(L"%s\\%s.%s", SubdirName, BaseName, Extension);
+        // A literal dot component can be rejected by a cold-start EFI driver.
+        if (SubdirName != NULL && SubdirName[0] == L'.' && SubdirName[1] == 0)
+            FileName = PoolPrint(L"%s.%s", BaseName, Extension);
+        else
+            FileName = PoolPrint(L"%s\\%s.%s", SubdirName, BaseName, Extension);
         Image = egLoadIcon(BaseDir, FileName, IconSize);
         LOG(4, LOG_LINE_NORMAL, L"Have loaded Image in egLoadIconAnyType()");
         MyFreePool(Extension);
