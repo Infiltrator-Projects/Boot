@@ -32,13 +32,13 @@ Any code capable of modifying NVRAM, boot order, ESP contents, partition metadat
 
 ## Current automated qualification
 
-The maintained source workflow has the following automated coverage:
+The maintained development-preview workflow has the following automated coverage:
 
 - building the full GNU-EFI x86-64 program through an explicit toolchain entry point;
-
 - building the read-only InfiltratorFS EFI driver with GNU-EFI on x86-64;
-- rejecting unresolved host operating-system/runtime dependencies in the resulting shared object; and
-- verifying that the committed vendored InfiltratorFS/Common/LZ4 tree matches the exact pinned source generator.
+- rejecting unresolved host operating-system/runtime dependencies in the resulting shared object;
+- verifying that the committed vendored InfiltratorFS/Common/LZ4 tree matches the exact pinned source generator; and
+- sealing the generated EFI binaries, tracked source archive and source-commit identity together with SHA-256 checksums before publication.
 
 These checks establish source/build evidence and are deliberately not described as complete Boot runtime qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
 
@@ -100,6 +100,8 @@ Before release, answer with evidence:
 
 A release is not qualified if those questions cannot be answered confidently for the risk introduced by the change.
 
-## Source-preview publication
+## Development-preview publication
 
-Root VERSION identifies the source preview; inherited engine/profile versions retain their separate meaning. The same successful source workflow seals tracked Git source and commit identity with SHA-256. Its publisher downloads that artifact, compares complete remote bytes before and after draft promotion, and creates an immutable prerelease. No firmware binary or automatic installation is included. The release notes state the build-only evidence and remaining firmware/trust/mutation qualification explicitly.
+Root VERSION identifies the development preview; inherited engine/profile versions retain their separate meaning. The same successful workflow seals the generated GNU-EFI x86-64 Boot application, read-only InfiltratorFS EFI driver, tracked Git source and source-commit identity with SHA-256. Its publisher downloads that artifact, verifies the checksum manifest, compares complete remote bytes before and after draft promotion, and creates an immutable prerelease.
+
+The generated EFI files are published for controlled testing because they are the exact artifacts that passed the current host-build checks. Their publication does not elevate host-build evidence into firmware-runtime, Secure Boot, installation or recovery qualification. No automatic installation is included, and the workflow must not modify an EFI System Partition or NVRAM.

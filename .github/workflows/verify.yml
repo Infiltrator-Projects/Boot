@@ -1,4 +1,4 @@
-name: Verify Boot source
+name: Verify Boot development preview
 on:
   push:
     branches: [main]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: boot-source-${{ github.ref }}
+  group: boot-preview-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   verify:
@@ -28,12 +28,14 @@ jobs:
           version=$(tr -d '\r\n' < VERSION)
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           mkdir -p dist
+          cp refind/refind_x64.efi "dist/Boot-$version-x86_64.efi"
+          cp filesystems/infiltratorfs_x64.efi "dist/InfiltratorFS-$version-x86_64.efi"
           git archive --format=zip --prefix="Boot-$version/" HEAD > "dist/Boot-$version-source.zip"
           printf '%s\n' "$GITHUB_SHA" > dist/SOURCE_COMMIT
-          (cd dist && sha256sum *.zip SOURCE_COMMIT > SHA256SUMS.txt)
+          (cd dist && sha256sum *.efi *.zip SOURCE_COMMIT > SHA256SUMS.txt)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: boot-qualified-${{ github.sha }}
+          name: boot-preview-${{ github.sha }}
           path: dist/*
           if-no-files-found: error
           retention-days: 14
@@ -50,9 +52,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: boot-qualified-${{ github.sha }}
+          name: boot-preview-${{ github.sha }}
           path: release
-      - name: Publish exact qualified bytes
+      - name: Publish exact verified preview bytes
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -75,7 +77,7 @@ jobs:
             git push origin "refs/tags/$tag"
           fi
           if ! gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"; then
-            gh release create "$tag" --verify-tag --draft --prerelease --title "Boot $version source preview" --notes "Exact source preview. GNU-EFI x86-64 compilation and vendored-source identity are verified. Firmware runtime, Secure Boot and persistent installation/recovery are not qualified by this preview. No installable firmware binary is distributed."
+            gh release create "$tag" --verify-tag --draft --prerelease --title "Boot $version development preview" --notes "Development preview. GNU-EFI x86-64 compilation and vendored-source identity are verified. Includes the generated Boot and read-only InfiltratorFS EFI binaries for controlled testing. Firmware runtime, Secure Boot, persistent installation and recovery are not yet qualified. No installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
             gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"
           fi
           draft=$(jq -r .isDraft "$RUNNER_TEMP/release-state")

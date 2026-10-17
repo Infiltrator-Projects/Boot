@@ -59,6 +59,8 @@ Historical imported documents such as `README.txt`, `BUILDING.txt` and `NEWS.txt
 
 The repository contains material under multiple licences inherited from its source history as well as Infiltrator-developed work. Attribution and licence obligations are preserved. See `docs/PROVENANCE.md`, `LICENSE.txt`, `COPYING.txt`, `CREDITS.txt`, and licence files in relevant subdirectories.
 
-## Source preview and qualification
+## Development preview and qualification
 
-[VERSION](VERSION) identifies the Infiltrator source preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI compiles the full GNU-EFI x86-64 program and read-only InfiltratorFS driver and reproduces pinned vendor source. A source preview distributes exact tracked source only. Firmware runtime, trust, installation and recovery require separate qualification before a binary release.
+[VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI compiles the full GNU-EFI x86-64 program and read-only InfiltratorFS driver, reproduces pinned vendor source, and publishes the exact generated EFI binaries together with exact tracked source, source-commit identity and SHA-256 checksums.
+
+The published EFI files are development artifacts for controlled testing. They are not an installer and publishing them does not claim firmware-runtime, Secure Boot, persistent-installation or recovery qualification. Setup remains responsible for the eventual supported installation transaction.

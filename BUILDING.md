@@ -14,7 +14,7 @@ The current tree contains three inherited build paths:
 
 The existence of a target does not mean that target is currently release-qualified.
 
-The maintained source workflow builds the complete GNU-EFI x86-64 program and the read-only InfiltratorFS driver, and reproduces the pinned vendor tree. See `docs/VALIDATION.md` for what that does and does not prove.
+The maintained development-preview workflow builds the complete GNU-EFI x86-64 program and the read-only InfiltratorFS driver, reproduces the pinned vendor tree, and seals the exact generated EFI binaries with the tracked source and commit identity. See `docs/VALIDATION.md` for what that does and does not prove.
 
 ## GNU-EFI prerequisites
 
@@ -77,14 +77,10 @@ After building, apply the evidence rules in `docs/VALIDATION.md`. Compilation pr
 
 ## Product packaging
 
-Boot currently has no qualified Debian package or published binary release.
-The imported Debian/RPM package definitions are archived under
-`docs/provenance/packaging/`; they describe the source project's historical
-distribution and are not active Boot publishing definitions.
+Boot currently has no qualified Debian package or production-qualified binary release. The imported Debian/RPM package definitions are archived under `docs/provenance/packaging/`; they describe the source project's historical distribution and are not active Boot publishing definitions.
 
-A future Boot package must use the current Boot identity throughout. Setup
-will own the graphical installation transaction and the explicit installation
-of qualified firmware artifacts. Building or packaging Boot must not install
-it to the developer's EFI partition or alter NVRAM.
+The development-preview workflow publishes the exact GNU-EFI x86-64 Boot application and read-only InfiltratorFS EFI driver that were produced by the successful CI build, alongside source, source-commit identity and SHA-256 checksums. These binaries are intended for controlled testing; the preview does not perform installation and does not modify an EFI System Partition or NVRAM.
 
-The root VERSION identifies source previews, independently of inherited engine compatibility. The source workflow publishes an immutable prerelease ZIP after build/vendor checks. It excludes generated firmware binaries from distribution until firmware, trust and mutation/recovery evidence is sufficient for a binary release.
+A future supported Boot package must use the current Boot identity throughout. Setup will own the graphical installation transaction and the explicit installation of qualified firmware artifacts. Building or packaging Boot must not install it to the developer's EFI partition or alter NVRAM.
+
+The root VERSION identifies development previews independently of inherited engine compatibility. Firmware-runtime, Secure Boot, persistent-installation and recovery qualification remain separate release gates.

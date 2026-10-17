@@ -1,5 +1,12 @@
 # Changelog
 
+## Development preview 0.1.2 — 2026-10-17
+
+- Publish the exact GNU-EFI x86-64 Boot application produced by CI as a versioned EFI development artifact.
+- Publish the exact read-only InfiltratorFS EFI driver produced by the same build.
+- Seal both EFI binaries, the tracked source archive and source-commit identity in one SHA-256 manifest and verify the complete remote release before and after publication.
+- Keep firmware-runtime, Secure Boot, persistent-installation and recovery qualification explicitly separate; the preview performs no installation and does not modify ESP or NVRAM state.
+
 ## Source preview 0.1.0 — 2026-10-16
 
 - Qualify the complete GNU-EFI x86-64 program alongside the read-only InfiltratorFS driver.
