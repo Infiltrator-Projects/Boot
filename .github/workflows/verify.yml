@@ -26,14 +26,18 @@ jobs:
           bash -n scripts/build-gnuefi.sh
           bash -n scripts/build-mb-fonts.sh
           bash -n scripts/build-icons.sh
+          bash -n scripts/build-theme.sh
           bash -n scripts/build-uefi-bundle.sh
           bash scripts/build-gnuefi.sh
           version=$(tr -d '\r\n' < VERSION)
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           grep -q '#define CONFIG_FILE_NAME[[:space:]]*L"boot.conf"' refind/config.h
           grep -q '^icons_dir \.$' boot.conf
+          grep -q '^banner boot-banner\.png$' boot.conf
+          grep -q '^selection_big boot-selection-big\.png$' boot.conf
+          grep -q '^selection_small boot-selection-small\.png$' boot.conf
           grep -q '^font mb-corpo-s-regular\.png$' boot.conf
-          grep -q '^hideui banner$' boot.conf
+          grep -q '^hideui badges hints$' boot.conf
           grep -q '^showtools reboot,shutdown,firmware$' boot.conf
           test -s boot.conf
           mkdir -p dist
@@ -50,6 +54,33 @@ jobs:
           test -s "$icons_dir/ICON_PROVENANCE.txt"
           test ! -e "$icons_dir/os_refind.png"
           test ! -e "$icons_dir/os_refit.png"
+          bash scripts/build-theme.sh dist "$icons_dir" dist
+          test -s dist/boot-banner.png
+          test -s dist/boot-selection-big.png
+          test -s dist/boot-selection-small.png
+          test -s dist/THEME_PROVENANCE.txt
+          test -s "$icons_dir/func_reset.png"
+          test -s "$icons_dir/func_shutdown.png"
+          test -s "$icons_dir/func_firmware.png"
+          test -s "$icons_dir/os_uefi.png"
+          test -s "$icons_dir/os_unknown.png"
+          grep -q '^design_contract=infiltrator-design-v1$' dist/THEME_PROVENANCE.txt
+          grep -q '^theme_background=#050608$' dist/THEME_PROVENANCE.txt
+          grep -q '^theme_accent=#00ADEF$' dist/THEME_PROVENANCE.txt
+          python3 - dist/mb-corpo-s-regular.png dist/boot-banner.png dist/boot-selection-big.png <<'PY'
+          import sys
+          from PIL import Image
+          font = Image.open(sys.argv[1]).convert('RGBA')
+          assert font.width % 96 == 0
+          opaque = [p for p in font.getdata() if p[3] > 16]
+          assert opaque, 'font atlas has no visible glyph pixels'
+          assert max(p[0] + p[1] + p[2] for p in opaque) < 96, 'font master must be dark for renderer contrast inversion'
+          banner = Image.open(sys.argv[2]).convert('RGBA')
+          assert banner.size == (640, 120)
+          assert banner.getpixel((0, 0))[:3] == (5, 6, 8)
+          selection = Image.open(sys.argv[3]).convert('RGBA')
+          assert selection.size == (288, 288)
+          PY
           cp "$icons_dir/os_infiltratoros.png" dist/os_infiltratoros.png
           cp "$icons_dir/ICON_PROVENANCE.txt" dist/ICON_PROVENANCE.txt
           cp refind/refind_x64.efi "dist/Boot-$version-x86_64.efi"
@@ -64,6 +95,13 @@ jobs:
           assert 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi' not in names
           assert 'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi' in names
           assert 'EFI/BOOT/os_infiltratoros.png' in names
+          assert 'EFI/BOOT/boot-banner.png' in names
+          assert 'EFI/BOOT/boot-selection-big.png' in names
+          assert 'EFI/BOOT/boot-selection-small.png' in names
+          assert 'EFI/BOOT/THEME_PROVENANCE.txt' in names
+          assert 'EFI/BOOT/func_reset.png' in names
+          assert 'EFI/BOOT/func_shutdown.png' in names
+          assert 'EFI/BOOT/func_firmware.png' in names
           PY
           git archive --format=zip --prefix="Boot-$version/" HEAD > "dist/Boot-$version-source.zip"
           printf '%s\n' "$GITHUB_SHA" > dist/SOURCE_COMMIT
@@ -116,7 +154,7 @@ jobs:
             git push origin "refs/tags/$tag"
           fi
           if ! gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"; then
-            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Boot release. GNU-EFI x86-64 compilation and vendored-source identity are verified. Includes a ready-to-copy UEFI bundle containing the Boot EFI application, Boot-owned boot.conf, hash-verified MB Corpo firmware typography, direct runtime icons generated from pinned canonical product artwork, and the separately built InfiltratorFS driver retained under drivers-disabled rather than an auto-loaded driver path. Firmware runtime, Secure Boot, persistent installation and recovery qualification remain separate evidence; no installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
+            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Boot release. GNU-EFI x86-64 compilation and vendored-source identity are verified. Includes a ready-to-copy UEFI bundle containing the Boot EFI application, Boot-owned boot.conf, proportional MB Corpo firmware typography, canonical Infiltrator night-palette theme assets generated from the pinned Libraries design contract, direct runtime icons including product-owned InfiltratorOS artwork, and the separately built InfiltratorFS driver retained under drivers-disabled rather than an auto-loaded driver path. Firmware runtime, Secure Boot, persistent installation and recovery qualification remain separate evidence; no installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
             gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"
           fi
           draft=$(jq -r .isDraft "$RUNNER_TEMP/release-state")
