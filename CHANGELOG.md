@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.9 — 2026-10-17
+
+- Replace the inherited pale firmware presentation with a Boot-owned theme generated from the pinned `Infiltrator-Projects/Libraries` `infiltrator-design-v1` night palette, including the canonical `#050608` background, `#2B3137` selection surface and `#00ADEF` neutral accent.
+- Add a Boot product banner generated from the canonical InfiltratorOS artwork and MB Corpo A Title Cond typography instead of relying on the inherited embedded banner or presenting an unbranded empty surface.
+- Replace the inherited grey selection tiles with Common-aligned focus surfaces and replace reboot, shutdown and firmware utility glyphs with one restrained Boot visual language.
+- Replace inherited multicolour EFI/unknown fallback artwork with neutral Common-aligned candidate glyphs while leaving recognised operating-system identities intact.
+- Hide volume badges and inherited bottom-of-screen instructional hints on the normal graphical selection surface to reduce visual noise.
+- Correct MB Corpo firmware rendering: generated atlases now use the dark master expected by the renderer for correct light/dark contrast, and the runtime derives proportional glyph advances from atlas alpha bounds instead of forcing the proportional MB face into visibly artificial monospaced tracking.
+- Pin theme provenance to the canonical Libraries design contract and verify palette identity, font-master contrast, generated theme geometry and required runtime assets in CI.
+
 ## 0.1.8 — 2026-10-17
 
 - Record the first successful physical Dell Latitude 5550 Boot-to-Linux handoff: Boot starts from removable media, discovers the installed EFI paths on internal storage and successfully transfers control to Linux without requiring an OS payload on the removable card.
