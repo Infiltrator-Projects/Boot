@@ -17,25 +17,32 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnu-efi gcc make binutils
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnu-efi gcc make binutils curl xz-utils python3-pil
       - name: Verify pinned source and full GNU-EFI build
         shell: bash
         run: |
           set -euo pipefail
           bash scripts/vendor-infiltratorfs.sh --check
           bash -n scripts/build-gnuefi.sh
+          bash -n scripts/build-mb-fonts.sh
           bash scripts/build-gnuefi.sh
           version=$(tr -d '\r\n' < VERSION)
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           grep -q '#define CONFIG_FILE_NAME[[:space:]]*L"boot.conf"' refind/config.h
+          grep -q '^font mb-corpo-s-regular\.png$' boot.conf
           test -s boot.conf
           mkdir -p dist
+          bash scripts/build-mb-fonts.sh dist
+          test -s dist/mb-corpo-s-regular.png
+          test -s dist/mb-corpo-s-bold.png
+          test -s dist/mb-corpo-a-cond-regular.png
+          test -s dist/FONT_PROVENANCE.txt
           cp refind/refind_x64.efi "dist/Boot-$version-x86_64.efi"
           cp filesystems/infiltratorfs_x64.efi "dist/InfiltratorFS-$version-x86_64.efi"
           cp boot.conf dist/boot.conf
           git archive --format=zip --prefix="Boot-$version/" HEAD > "dist/Boot-$version-source.zip"
           printf '%s\n' "$GITHUB_SHA" > dist/SOURCE_COMMIT
-          (cd dist && sha256sum *.efi *.conf *.zip SOURCE_COMMIT > SHA256SUMS.txt)
+          (cd dist && sha256sum *.efi *.conf *.png *.txt *.zip SOURCE_COMMIT > SHA256SUMS.txt)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: boot-release-${{ github.sha }}
@@ -84,7 +91,7 @@ jobs:
             git push origin "refs/tags/$tag"
           fi
           if ! gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"; then
-            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Boot release. GNU-EFI x86-64 compilation and vendored-source identity are verified. Includes the generated Boot EFI application, read-only InfiltratorFS EFI driver and Boot-owned boot.conf runtime configuration. Firmware runtime, Secure Boot, persistent installation and recovery qualification remain separate evidence; no installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
+            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Boot release. GNU-EFI x86-64 compilation and vendored-source identity are verified. Includes the generated Boot EFI application, read-only InfiltratorFS EFI driver, Boot-owned boot.conf runtime configuration, and hash-verified MB Corpo firmware font atlases generated from the canonical pinned MBLink archive. Firmware runtime, Secure Boot, persistent installation and recovery qualification remain separate evidence; no installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
             gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"
           fi
           draft=$(jq -r .isDraft "$RUNNER_TEMP/release-state")
