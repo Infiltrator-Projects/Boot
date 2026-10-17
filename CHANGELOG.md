@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.11 — 2026-10-18
+
+- Restore the graphical Linux handoff: Boot now leaves GOP graphics enabled when starting a Linux EFI-stub kernel instead of switching to its text-mode loader announcement.
+- For automatic Linux command lines derived from `/etc/fstab` only, add `quiet splash` to the normal entry when Plymouth is installed, allowing the installed distribution's selected boot theme to appear during direct EFI-stub boot. Explicit Linux options files remain authoritative; recovery/single-user options remain unsuppressed.
+- Record that the physical Dell 800 GiB ext4 Linux Mint root successfully booted directly through Boot 0.1.10; Plymouth splash did not because the inferred command line omitted `quiet splash` and the runtime disabled graphics for Linux by default.
 - Correct product banner ownership: the canonical InfiltratorOS artwork now replaces the BOOT wordmark instead of appearing beside it.
 - Prevent theme generation from compositing the firmware atlas' embedded `IB` metric headers as visible font pixels; the leaked header caused dots above text and fallback glyphs.
 - Validate in CI that the generated banner has no unexpected text outside the centered product artwork.
