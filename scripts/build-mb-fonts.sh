@@ -45,35 +45,50 @@ render_atlas() {
     local output_file="$2"
     python3 - "$font_file" "$output_file" <<'PY'
 from pathlib import Path
+import math
 import sys
 from PIL import Image, ImageDraw, ImageFont
 
 font_path = Path(sys.argv[1])
 out_path = Path(sys.argv[2])
 
-# Boot consumes a 96-cell atlas for ASCII 32-126 plus one fallback glyph.
-# The runtime now derives proportional advances from each cell's alpha bounds,
-# so the compatibility atlas no longer forces MB Corpo into artificial monospaced
-# tracking. Render a dark base glyph because the firmware renderer treats the
-# stored atlas as its dark-on-light master and inverts it for dark surfaces.
 glyphs = ''.join(chr(code) for code in range(32, 127)) + '?'
 font = ImageFont.truetype(str(font_path), 30)
+
+# Measure around a shared baseline so glyph shape, side bearings and vertical
+# alignment remain those of the real MB face. Row zero of each fixed-width cell
+# carries one byte of native FreeType advance plus an "IB" marker. Boot skips
+# that metadata row when drawing, so the compatibility PNG remains self-contained
+# without distorting proportional typography.
 probe = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
 probe_draw = ImageDraw.Draw(probe)
-boxes = [probe_draw.textbbox((0, 0), glyph, font=font) for glyph in glyphs]
-cell_width = max(right - left for left, top, right, bottom in boxes) + 6
-ascent, descent = font.getmetrics()
-cell_height = ascent + descent + 6
+boxes = [probe_draw.textbbox((0, 0), glyph, font=font, anchor='ls') for glyph in glyphs]
+advances = [max(1, int(round(probe_draw.textlength(glyph, font=font)))) for glyph in glyphs]
+
+min_left = min(left for left, top, right, bottom in boxes)
+max_right = max(right for left, top, right, bottom in boxes)
+min_top = min(top for left, top, right, bottom in boxes)
+max_bottom = max(bottom for left, top, right, bottom in boxes)
+
+pad_x = 4
+pad_y = 3
+origin_x = pad_x - min_left
+baseline_y = 1 + pad_y - min_top
+cell_width = origin_x + max_right + pad_x
+cell_height = 1 + (max_bottom - min_top) + pad_y * 2
+
+if cell_width > 255:
+    raise SystemExit('firmware font cell is too wide for embedded advance metadata')
+if max(advances) > 255:
+    raise SystemExit('firmware font advance is too wide for embedded advance metadata')
 
 atlas = Image.new('RGBA', (cell_width * len(glyphs), cell_height), (0, 0, 0, 0))
 draw = ImageDraw.Draw(atlas)
-for index, (glyph, box) in enumerate(zip(glyphs, boxes)):
-    left, top, right, bottom = box
-    width = right - left
-    height = bottom - top
-    x = index * cell_width + (cell_width - width) // 2 - left
-    y = (cell_height - height) // 2 - top
-    draw.text((x, y), glyph, font=font, fill=(0, 0, 0, 255))
+for index, (glyph, advance) in enumerate(zip(glyphs, advances)):
+    cell_x = index * cell_width
+    # Metadata: R = native advance, G/B = "IB", A = 255. Runtime never renders row 0.
+    atlas.putpixel((cell_x, 0), (advance, 0x49, 0x42, 255))
+    draw.text((cell_x + origin_x, baseline_y), glyph, font=font, anchor='ls', fill=(0, 0, 0, 255))
 
 out_path.parent.mkdir(parents=True, exist_ok=True)
 atlas.save(out_path, format='PNG', optimize=False)
@@ -82,7 +97,17 @@ if atlas.width % 96 != 0:
     raise SystemExit('firmware font atlas width is not divisible by 96')
 if atlas.mode != 'RGBA':
     raise SystemExit('firmware font atlas must retain an alpha channel')
-print(f'{out_path}: {atlas.width}x{atlas.height}, {atlas.width // 96}px compatibility cells')
+
+# Re-open the PNG so CI generation itself proves that encoded metric bytes survive
+# the actual PNG encoder/decoder path rather than only the in-memory image.
+with Image.open(out_path).convert('RGBA') as check:
+    decoded_cell = check.width // 96
+    for index, expected in enumerate(advances):
+        r, g, b, a = check.getpixel((index * decoded_cell, 0))
+        if (r, g, b, a) != (expected, 0x49, 0x42, 255):
+            raise SystemExit(f'font metric metadata did not survive PNG encoding at glyph {index}')
+
+print(f'{out_path}: {atlas.width}x{atlas.height}, {cell_width}px cells, native proportional advances embedded')
 PY
 }
 
@@ -101,5 +126,5 @@ ui_bold_file=${ui_bold}
 ui_bold_sha256=${ui_bold_sha256}
 brand_regular_file=${brand_regular}
 brand_regular_sha256=${brand_regular_sha256}
-rendering_contract=30px dark-base RGBA compatibility atlas with runtime proportional alpha-bound metrics
+rendering_contract=30px dark-base RGBA compatibility atlas with embedded native proportional advances and preserved baseline bearings
 EOF
