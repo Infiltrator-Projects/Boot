@@ -51,18 +51,19 @@ from PIL import Image, ImageDraw, ImageFont
 font_path = Path(sys.argv[1])
 out_path = Path(sys.argv[2])
 
-# Boot's current renderer uses a fixed-width 96-glyph atlas: ASCII 32-126
-# followed by one fallback glyph. Physical Dell firmware testing showed the
-# previous 18px atlas was unnecessarily small, so render a 30px UI master while
-# preserving the renderer's existing fixed-cell contract.
+# Boot consumes a 96-cell atlas for ASCII 32-126 plus one fallback glyph.
+# The runtime now derives proportional advances from each cell's alpha bounds,
+# so the compatibility atlas no longer forces MB Corpo into artificial monospaced
+# tracking. Render a dark base glyph because the firmware renderer treats the
+# stored atlas as its dark-on-light master and inverts it for dark surfaces.
 glyphs = ''.join(chr(code) for code in range(32, 127)) + '?'
 font = ImageFont.truetype(str(font_path), 30)
 probe = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
 probe_draw = ImageDraw.Draw(probe)
 boxes = [probe_draw.textbbox((0, 0), glyph, font=font) for glyph in glyphs]
-cell_width = max(right - left for left, top, right, bottom in boxes) + 4
+cell_width = max(right - left for left, top, right, bottom in boxes) + 6
 ascent, descent = font.getmetrics()
-cell_height = ascent + descent + 4
+cell_height = ascent + descent + 6
 
 atlas = Image.new('RGBA', (cell_width * len(glyphs), cell_height), (0, 0, 0, 0))
 draw = ImageDraw.Draw(atlas)
@@ -72,7 +73,7 @@ for index, (glyph, box) in enumerate(zip(glyphs, boxes)):
     height = bottom - top
     x = index * cell_width + (cell_width - width) // 2 - left
     y = (cell_height - height) // 2 - top
-    draw.text((x, y), glyph, font=font, fill=(255, 255, 255, 255))
+    draw.text((x, y), glyph, font=font, fill=(0, 0, 0, 255))
 
 out_path.parent.mkdir(parents=True, exist_ok=True)
 atlas.save(out_path, format='PNG', optimize=False)
@@ -81,7 +82,7 @@ if atlas.width % 96 != 0:
     raise SystemExit('firmware font atlas width is not divisible by 96')
 if atlas.mode != 'RGBA':
     raise SystemExit('firmware font atlas must retain an alpha channel')
-print(f'{out_path}: {atlas.width}x{atlas.height}, {atlas.width // 96}px cells')
+print(f'{out_path}: {atlas.width}x{atlas.height}, {atlas.width // 96}px compatibility cells')
 PY
 }
 
@@ -100,4 +101,5 @@ ui_bold_file=${ui_bold}
 ui_bold_sha256=${ui_bold_sha256}
 brand_regular_file=${brand_regular}
 brand_regular_sha256=${brand_regular_sha256}
+rendering_contract=30px dark-base RGBA compatibility atlas with runtime proportional alpha-bound metrics
 EOF
