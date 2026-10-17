@@ -63,4 +63,6 @@ The repository contains material under multiple licences inherited from its sour
 
 [VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI compiles the full GNU-EFI x86-64 program and read-only InfiltratorFS driver, reproduces pinned vendor source, and publishes the exact generated EFI binaries together with exact tracked source, source-commit identity and SHA-256 checksums.
 
+The ready-to-copy Boot bundle is deliberately a Boot test surface rather than an assertion that every separately built firmware component is needed for ordinary OS handoff. The InfiltratorFS EFI driver remains available in the bundle under `EFI/BOOT/drivers-disabled/`; it is not placed in Boot's auto-loaded driver path unless a future qualified boot scenario actually requires it.
+
 The published EFI files are development artifacts for controlled testing. They are not an installer and publishing them does not claim firmware-runtime, Secure Boot, persistent-installation or recovery qualification. Setup remains responsible for the eventual supported installation transaction.
