@@ -39,7 +39,345 @@ jobs:
           grep -q '^font mb-corpo-s-regular\.png$' boot.conf
           grep -q '^scan_all_linux_kernels true$' boot.conf
           grep -q '^fold_linux_kernels true$' boot.conf
-          grep -q '^default_selection vmlinuz$' boot.conf
+          grep -q '^default_selection vmlinuz          grep -q '^hideui badges hints$' boot.conf
+          grep -q '^showtools reboot,shutdown,firmware$' boot.conf
+          grep -q 'return EFI_WRITE_PROTECTED;' filesystems/fsw_efi.c
+          test -s boot.conf
+          test -s filesystems/ext4_x64.efi
+          test -s filesystems/infiltratorfs_x64.efi
+          mkdir -p dist
+          bash scripts/build-mb-fonts.sh dist
+          test -s dist/mb-corpo-s-regular.png
+          test -s dist/mb-corpo-s-bold.png
+          test -s dist/mb-corpo-a-cond-regular.png
+          test -s dist/FONT_PROVENANCE.txt
+          icons_dir="$RUNNER_TEMP/boot-icons"
+          bash scripts/build-icons.sh "$icons_dir"
+          test -s "$icons_dir/os_infiltratoros.png"
+          test -s "$icons_dir/os_infiltrator.png"
+          test -s "$icons_dir/os_infiltratorboot.png"
+          test -s "$icons_dir/ICON_PROVENANCE.txt"
+          test ! -e "$icons_dir/os_refind.png"
+          test ! -e "$icons_dir/os_refit.png"
+          bash scripts/build-theme.sh dist "$icons_dir" dist
+          test -s dist/boot-banner.png
+          test -s dist/boot-selection-big.png
+          test -s dist/boot-selection-small.png
+          test -s dist/THEME_PROVENANCE.txt
+          test -s "$icons_dir/func_reset.png"
+          test -s "$icons_dir/func_shutdown.png"
+          test -s "$icons_dir/func_firmware.png"
+          test -s "$icons_dir/os_uefi.png"
+          test -s "$icons_dir/os_unknown.png"
+          grep -q '^design_contract=infiltrator-design-v1$' dist/THEME_PROVENANCE.txt
+          grep -q '^theme_background=#050608$' dist/THEME_PROVENANCE.txt
+          grep -q '^theme_accent=#00ADEF$' dist/THEME_PROVENANCE.txt
+          python3 - dist/mb-corpo-s-regular.png dist/boot-banner.png dist/boot-selection-big.png <<'PY'
+          import sys
+          from PIL import Image
+          font = Image.open(sys.argv[1]).convert('RGBA')
+          assert font.width % 96 == 0
+          cell = font.width // 96
+          advances = []
+          for index in range(96):
+              r, g, b, a = font.getpixel((index * cell, 0))
+              assert (g, b, a) == (0x49, 0x42, 255), f'missing IB metric marker at glyph {index}'
+              assert r > 0, f'zero glyph advance at glyph {index}'
+              advances.append(r)
+          assert len(set(advances)) > 8, 'MB proportional advances collapsed toward fixed-width rendering'
+          opaque = [font.getpixel((x, y))
+                    for y in range(1, font.height)
+                    for x in range(font.width)
+                    if font.getpixel((x, y))[3] > 16]
+          assert opaque, 'font atlas has no visible glyph pixels'
+          assert max(p[0] + p[1] + p[2] for p in opaque) < 96, 'font master must be dark for renderer contrast inversion'
+          banner = Image.open(sys.argv[2]).convert('RGBA')
+          assert banner.size == (640, 120)
+          assert banner.getpixel((0, 0))[:3] == (5, 6, 8)
+          background = banner.getpixel((0, 0))
+          # The InfiltratorOS artwork must replace the wordmark, not sit
+          # beside an additional 'BOOT' text glyph or metric-row artifacts.
+          assert all(banner.getpixel((x, y)) == background
+                     for y in range(120)
+                     for x in list(range(220)) + list(range(420, 640))), 'unexpected banner text outside logo'
+          assert any(banner.getpixel((x, y)) != background
+                     for y in range(120) for x in range(240, 400)), 'missing InfiltratorOS artwork'
+          selection = Image.open(sys.argv[3]).convert('RGBA')
+          assert selection.size == (288, 288)
+          PY
+          cp "$icons_dir/os_infiltratoros.png" dist/os_infiltratoros.png
+          cp "$icons_dir/ICON_PROVENANCE.txt" dist/ICON_PROVENANCE.txt
+          cp refind/refind_x64.efi "dist/Boot-$version-x86_64.efi"
+          cp filesystems/ext4_x64.efi "dist/BootExt4-$version-x86_64.efi"
+          cp filesystems/infiltratorfs_x64.efi "dist/InfiltratorFS-$version-x86_64.efi"
+          cp boot.conf dist/boot.conf
+          bash scripts/build-uefi-bundle.sh dist "$icons_dir" "$version"
+          test -s "dist/Boot-$version-x86_64-uefi.zip"
+          python3 - "dist/Boot-$version-x86_64-uefi.zip" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              names = set(z.namelist())
+          assert 'EFI/BOOT/drivers_x64/BootExt4_x64.efi' in names
+          assert 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi' not in names
+          assert 'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi' in names
+          assert 'EFI/BOOT/os_infiltratoros.png' in names
+          assert 'EFI/BOOT/boot-banner.png' in names
+          assert 'EFI/BOOT/boot-selection-big.png' in names
+          assert 'EFI/BOOT/boot-selection-small.png' in names
+          assert 'EFI/BOOT/THEME_PROVENANCE.txt' in names
+          assert 'EFI/BOOT/func_reset.png' in names
+          assert 'EFI/BOOT/func_shutdown.png' in names
+          assert 'EFI/BOOT/func_firmware.png' in names
+          PY
+          git archive --format=zip --prefix="Boot-$version/" HEAD > "dist/Boot-$version-source.zip"
+          printf '%s\n' "$GITHUB_SHA" > dist/SOURCE_COMMIT
+          (cd dist && sha256sum *.efi *.conf *.png *.txt *.zip SOURCE_COMMIT > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: boot-release-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: boot-release-${{ github.sha }}
+          path: release
+      - name: Publish exact verified release bytes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin main --tags
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA" || exit 0
+          test "$(cat release/SOURCE_COMMIT)" = "$GITHUB_SHA"
+          (cd release && sha256sum -c SHA256SUMS.txt)
+          version=$(tr -d '\r\n' < VERSION)
+          tag="v$version"
+          if git rev-parse -q --verify "refs/tags/$tag^{commit}" >/dev/null; then
+            if [[ "$(git rev-parse "$tag^{commit}")" != "$GITHUB_SHA" ]]; then
+              if gh release view "$tag" --json isDraft --jq '.isDraft' | grep -qx false; then
+                gh release edit "$tag" --title "Boot $version" --prerelease=false --latest
+                echo "$tag is already published; promoted it to a normal GitHub Release. Advance VERSION for the next product release."
+                exit 0
+              fi
+              echo "$tag exists but does not identify this commit and has no published release."
+              exit 1
+            fi
+          else
+            git tag "$tag" "$GITHUB_SHA"
+            git push origin "refs/tags/$tag"
+          fi
+          if ! gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"; then
+            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Boot release. GNU-EFI x86-64 compilation and vendored-source identity are verified. The ready-to-copy bundle contains the Boot EFI application, Boot-owned boot.conf, MB Corpo firmware typography with embedded native proportional metrics, canonical Infiltrator night-palette presentation assets, a read-only active ext4 EFI filesystem driver so Boot can discover Linux kernels and initrds outside the FAT ESP, and the separately built InfiltratorFS driver retained under drivers-disabled. GRUB remains discoverable as a fallback while direct Linux kernel handoff is being physically qualified. Firmware runtime, Secure Boot, persistent installation and recovery qualification remain separate evidence; no installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
+            gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"
+          fi
+          draft=$(jq -r .isDraft "$RUNNER_TEMP/release-state")
+          if [[ "$draft" == true ]]; then
+            gh release upload "$tag" release/* --clobber
+          fi
+          verify_remote() {
+            local destination
+            destination=$(mktemp -d)
+            gh release download "$tag" --dir "$destination"
+            diff -qr release "$destination"
+            rm -rf "$destination"
+          }
+          verify_remote
+          if [[ "$draft" == true ]]; then
+            gh release edit "$tag" --draft=false --prerelease=false --latest
+          else
+            gh release edit "$tag" --prerelease=false --latest
+          fi
+          verify_remote
+          git fetch origin "refs/tags/$tag:refs/tags/$tag"
+          test "$(git rev-parse "$tag^{commit}")" = "$GITHUB_SHA"
+ boot.conf
+          grep -q '^use_graphics_for linux          grep -q '^hideui badges hints$' boot.conf
+          grep -q '^showtools reboot,shutdown,firmware$' boot.conf
+          grep -q 'return EFI_WRITE_PROTECTED;' filesystems/fsw_efi.c
+          test -s boot.conf
+          test -s filesystems/ext4_x64.efi
+          test -s filesystems/infiltratorfs_x64.efi
+          mkdir -p dist
+          bash scripts/build-mb-fonts.sh dist
+          test -s dist/mb-corpo-s-regular.png
+          test -s dist/mb-corpo-s-bold.png
+          test -s dist/mb-corpo-a-cond-regular.png
+          test -s dist/FONT_PROVENANCE.txt
+          icons_dir="$RUNNER_TEMP/boot-icons"
+          bash scripts/build-icons.sh "$icons_dir"
+          test -s "$icons_dir/os_infiltratoros.png"
+          test -s "$icons_dir/os_infiltrator.png"
+          test -s "$icons_dir/os_infiltratorboot.png"
+          test -s "$icons_dir/ICON_PROVENANCE.txt"
+          test ! -e "$icons_dir/os_refind.png"
+          test ! -e "$icons_dir/os_refit.png"
+          bash scripts/build-theme.sh dist "$icons_dir" dist
+          test -s dist/boot-banner.png
+          test -s dist/boot-selection-big.png
+          test -s dist/boot-selection-small.png
+          test -s dist/THEME_PROVENANCE.txt
+          test -s "$icons_dir/func_reset.png"
+          test -s "$icons_dir/func_shutdown.png"
+          test -s "$icons_dir/func_firmware.png"
+          test -s "$icons_dir/os_uefi.png"
+          test -s "$icons_dir/os_unknown.png"
+          grep -q '^design_contract=infiltrator-design-v1$' dist/THEME_PROVENANCE.txt
+          grep -q '^theme_background=#050608$' dist/THEME_PROVENANCE.txt
+          grep -q '^theme_accent=#00ADEF$' dist/THEME_PROVENANCE.txt
+          python3 - dist/mb-corpo-s-regular.png dist/boot-banner.png dist/boot-selection-big.png <<'PY'
+          import sys
+          from PIL import Image
+          font = Image.open(sys.argv[1]).convert('RGBA')
+          assert font.width % 96 == 0
+          cell = font.width // 96
+          advances = []
+          for index in range(96):
+              r, g, b, a = font.getpixel((index * cell, 0))
+              assert (g, b, a) == (0x49, 0x42, 255), f'missing IB metric marker at glyph {index}'
+              assert r > 0, f'zero glyph advance at glyph {index}'
+              advances.append(r)
+          assert len(set(advances)) > 8, 'MB proportional advances collapsed toward fixed-width rendering'
+          opaque = [font.getpixel((x, y))
+                    for y in range(1, font.height)
+                    for x in range(font.width)
+                    if font.getpixel((x, y))[3] > 16]
+          assert opaque, 'font atlas has no visible glyph pixels'
+          assert max(p[0] + p[1] + p[2] for p in opaque) < 96, 'font master must be dark for renderer contrast inversion'
+          banner = Image.open(sys.argv[2]).convert('RGBA')
+          assert banner.size == (640, 120)
+          assert banner.getpixel((0, 0))[:3] == (5, 6, 8)
+          background = banner.getpixel((0, 0))
+          # The InfiltratorOS artwork must replace the wordmark, not sit
+          # beside an additional 'BOOT' text glyph or metric-row artifacts.
+          assert all(banner.getpixel((x, y)) == background
+                     for y in range(120)
+                     for x in list(range(220)) + list(range(420, 640))), 'unexpected banner text outside logo'
+          assert any(banner.getpixel((x, y)) != background
+                     for y in range(120) for x in range(240, 400)), 'missing InfiltratorOS artwork'
+          selection = Image.open(sys.argv[3]).convert('RGBA')
+          assert selection.size == (288, 288)
+          PY
+          cp "$icons_dir/os_infiltratoros.png" dist/os_infiltratoros.png
+          cp "$icons_dir/ICON_PROVENANCE.txt" dist/ICON_PROVENANCE.txt
+          cp refind/refind_x64.efi "dist/Boot-$version-x86_64.efi"
+          cp filesystems/ext4_x64.efi "dist/BootExt4-$version-x86_64.efi"
+          cp filesystems/infiltratorfs_x64.efi "dist/InfiltratorFS-$version-x86_64.efi"
+          cp boot.conf dist/boot.conf
+          bash scripts/build-uefi-bundle.sh dist "$icons_dir" "$version"
+          test -s "dist/Boot-$version-x86_64-uefi.zip"
+          python3 - "dist/Boot-$version-x86_64-uefi.zip" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              names = set(z.namelist())
+          assert 'EFI/BOOT/drivers_x64/BootExt4_x64.efi' in names
+          assert 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi' not in names
+          assert 'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi' in names
+          assert 'EFI/BOOT/os_infiltratoros.png' in names
+          assert 'EFI/BOOT/boot-banner.png' in names
+          assert 'EFI/BOOT/boot-selection-big.png' in names
+          assert 'EFI/BOOT/boot-selection-small.png' in names
+          assert 'EFI/BOOT/THEME_PROVENANCE.txt' in names
+          assert 'EFI/BOOT/func_reset.png' in names
+          assert 'EFI/BOOT/func_shutdown.png' in names
+          assert 'EFI/BOOT/func_firmware.png' in names
+          PY
+          git archive --format=zip --prefix="Boot-$version/" HEAD > "dist/Boot-$version-source.zip"
+          printf '%s\n' "$GITHUB_SHA" > dist/SOURCE_COMMIT
+          (cd dist && sha256sum *.efi *.conf *.png *.txt *.zip SOURCE_COMMIT > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: boot-release-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: boot-release-${{ github.sha }}
+          path: release
+      - name: Publish exact verified release bytes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin main --tags
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA" || exit 0
+          test "$(cat release/SOURCE_COMMIT)" = "$GITHUB_SHA"
+          (cd release && sha256sum -c SHA256SUMS.txt)
+          version=$(tr -d '\r\n' < VERSION)
+          tag="v$version"
+          if git rev-parse -q --verify "refs/tags/$tag^{commit}" >/dev/null; then
+            if [[ "$(git rev-parse "$tag^{commit}")" != "$GITHUB_SHA" ]]; then
+              if gh release view "$tag" --json isDraft --jq '.isDraft' | grep -qx false; then
+                gh release edit "$tag" --title "Boot $version" --prerelease=false --latest
+                echo "$tag is already published; promoted it to a normal GitHub Release. Advance VERSION for the next product release."
+                exit 0
+              fi
+              echo "$tag exists but does not identify this commit and has no published release."
+              exit 1
+            fi
+          else
+            git tag "$tag" "$GITHUB_SHA"
+            git push origin "refs/tags/$tag"
+          fi
+          if ! gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"; then
+            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Boot release. GNU-EFI x86-64 compilation and vendored-source identity are verified. The ready-to-copy bundle contains the Boot EFI application, Boot-owned boot.conf, MB Corpo firmware typography with embedded native proportional metrics, canonical Infiltrator night-palette presentation assets, a read-only active ext4 EFI filesystem driver so Boot can discover Linux kernels and initrds outside the FAT ESP, and the separately built InfiltratorFS driver retained under drivers-disabled. GRUB remains discoverable as a fallback while direct Linux kernel handoff is being physically qualified. Firmware runtime, Secure Boot, persistent installation and recovery qualification remain separate evidence; no installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
+            gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"
+          fi
+          draft=$(jq -r .isDraft "$RUNNER_TEMP/release-state")
+          if [[ "$draft" == true ]]; then
+            gh release upload "$tag" release/* --clobber
+          fi
+          verify_remote() {
+            local destination
+            destination=$(mktemp -d)
+            gh release download "$tag" --dir "$destination"
+            diff -qr release "$destination"
+            rm -rf "$destination"
+          }
+          verify_remote
+          if [[ "$draft" == true ]]; then
+            gh release edit "$tag" --draft=false --prerelease=false --latest
+          else
+            gh release edit "$tag" --prerelease=false --latest
+          fi
+          verify_remote
+          git fetch origin "refs/tags/$tag:refs/tags/$tag"
+          test "$(git rev-parse "$tag^{commit}")" = "$GITHUB_SHA"
+ boot.conf
+          python3 - <<'PY_BOOT_LINUX_SPLASH'
+          from pathlib import Path
+          source = Path('refind/config.c').read_text()
+          assert 'HasPlymouth' in source
+          assert 'L" quiet splash"' in source
+          assert 'L"\\\\usr\\\\bin\\\\plymouth"' in source
+          assert 'L"\\\\usr\\\\sbin\\\\plymouthd"' in source
+          assert '"ro root=%s single' in source
+          PY_BOOT_LINUX_SPLASH
           grep -q '^hideui badges hints$' boot.conf
           grep -q '^showtools reboot,shutdown,firmware$' boot.conf
           grep -q 'return EFI_WRITE_PROTECTED;' filesystems/fsw_efi.c
