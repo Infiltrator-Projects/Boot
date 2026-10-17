@@ -1127,6 +1127,23 @@ static VOID PaintAll(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN
                                  UGAHeight - (egGetFontHeight() * 2));
     } // if
 
+    // Two volatile pre-menu startup timings. Measurement ends before the
+    // user can wait at the menu, so countdowns never inflate these figures.
+    {
+        UINTN Line;
+        for (Line = 0; Line < 2; Line++) {
+            CHAR16 *Timing = BootGetStartupTimingLine(Line);
+            if (Timing != NULL) {
+                UINTN Width = egComputeTextWidth(Timing);
+                UINTN Height = egGetFontHeight();
+                if (Height > 0 && UGAHeight > Height * 10 && Width < UGAWidth)
+                    DrawTextWithTransparency(Timing, (UGAWidth - Width) / 2,
+                                             UGAHeight - Height * (9 - Line));
+                MyFreePool(Timing);
+            }
+        }
+    }
+
     // On-screen, RAM-only evidence when firmware icon reads fail.
     {
         CHAR16 *Diagnostic = egGetIconDiagnosticText();

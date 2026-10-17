@@ -137,3 +137,11 @@ Observed on a Dell Latitude 5550 with Boot 0.1.11 installed on SD: a cold boot r
 0.1.12 converts icon path `.` into a direct root-relative filename, retries only actual EFI transient read errors (up to twice), checks for short EFI_SUCCESS reads and null decodes, and shows volatile fallback/recovery/error counters and status on-screen. Ordinary missing optional icons are not retried and their EFI_NOT_FOUND reports are not classified as hardware errors. Boot-specific state reads/writes with `use_nvram false` cannot create an SD or internal-ESP `vars` directory. This does not suppress intentional firmware-management operations.
 
 Cold and warm photographs, boot selection and subsequent `cat /proc/cmdline` are required for runtime qualification. Successful CI cannot establish reliable SD hardware or firmware behavior.
+
+## Boot 0.1.13 RAM-only pre-menu performance investigation
+
+The Dell Latitude 5550, launched using the internal ESP `EFI/InfiltratorBoot/BOOTX64.EFI` and retaining GRUB as the default, showed approximately 17.5–17.8s in systemd-analyze's `loader` column across two tests. Its operator observed the apparent delay before Boot's graphical screen. A change from menu `timeout 0` to `timeout 3` did not materially change that column. Those observations warrant measurement but do not definitively assign every measured loader second to Boot's own startup.
+
+0.1.13 reports two volatile lines in the graphical Boot menu with timing categories (disks, config, drivers, re-scan, graphics, OS discovery, total), ending before the menu wait. The implementation uses the UEFI runtime clock and may show only approximately second-resolution data on firmware with coarse RTC GetTime; do not interpret sub-second values as precise in that case. No disk logs or EFI variables are written by the measurement.
+
+For a useful test, photograph the on-screen timing lines from a cold internal-SSD Boot launch. Compare the reported total and largest stage against the Linux `systemd-analyze time` loader phase after entering Linux. If the on-screen measurement is unavailable or clearly inconsistent, instrument with an EFI high-resolution timing source separately rather than optimizing guessed hotspots. Do not remove ext4 drivers or broad OS discovery until the bottleneck is identified. GRUB remains first in permanent BootOrder.

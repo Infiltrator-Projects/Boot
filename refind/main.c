@@ -467,6 +467,69 @@ VOID LogBasicInfo(VOID) {
 //
 // main entry point
 //
+// Early-boot timing is volatile, read-only, and independent of disk logging.
+// EFI GetTime is coarse on some machines; timings are indicative, not a
+// promise of sub-second precision. Do not use this for control flow.
+#define BOOT_STARTUP_MARKS 8
+static UINT64 BootStartupMs[BOOT_STARTUP_MARKS];
+static BOOLEAN BootStartupValid[BOOT_STARTUP_MARKS];
+
+static VOID BootMarkStartup(IN UINTN Index) {
+    EFI_TIME Now;
+    EFI_STATUS Status;
+    if (Index >= BOOT_STARTUP_MARKS)
+        return;
+    Status = refit_call2_wrapper(RT->GetTime, &Now, NULL);
+    BootStartupValid[Index] = !EFI_ERROR(Status) && Now.Hour < 24 &&
+                               Now.Minute < 60 && Now.Second < 60 &&
+                               Now.Nanosecond < 1000000000;
+    if (BootStartupValid[Index])
+        BootStartupMs[Index] =
+            (((UINT64)Now.Hour * 60 + Now.Minute) * 60 + Now.Second) * 1000 +
+            Now.Nanosecond / 1000000;
+}
+
+static UINTN BootStartupDeciseconds(IN UINTN First, IN UINTN Last) {
+    UINT64 Start, End;
+    if (First >= BOOT_STARTUP_MARKS || Last >= BOOT_STARTUP_MARKS ||
+        !BootStartupValid[First] || !BootStartupValid[Last])
+        return 0;
+    Start = BootStartupMs[First];
+    End = BootStartupMs[Last];
+    if (End < Start)
+        End += 86400000; // RTC midnight rollover
+    if (End < Start || End - Start > 180000)
+        return 0; // RTC discontinuity; avoid implausible times
+    return (UINTN)((End - Start + 50) / 100);
+}
+
+// Called by the graphical main menu; no files, EFI variables or boot policy
+// are modified. The final timestamp is taken before opening the menu.
+CHAR16 *BootGetStartupTimingLine(IN UINTN Line) {
+    UINTN i;
+    UINTN Disks, Config, Drivers, Rescan, Screen, Loaders, Total;
+    for (i = 0; i < BOOT_STARTUP_MARKS; i++)
+        if (!BootStartupValid[i])
+            return NULL;
+
+    Disks   = BootStartupDeciseconds(0, 1);
+    Config  = BootStartupDeciseconds(1, 2);
+    Drivers = BootStartupDeciseconds(2, 3);
+    Rescan  = BootStartupDeciseconds(3, 4);
+    Screen  = BootStartupDeciseconds(4, 5);
+    Loaders = BootStartupDeciseconds(5, 7);
+    Total   = BootStartupDeciseconds(0, 7);
+    if (Line == 0)
+        return PoolPrint(L"Startup: disks %d.%ds | config %d.%ds | drivers %d.%ds | re-scan %d.%ds",
+                         Disks / 10, Disks % 10, Config / 10, Config % 10,
+                         Drivers / 10, Drivers % 10, Rescan / 10, Rescan % 10);
+    if (Line == 1)
+        return PoolPrint(L"Startup: graphics %d.%ds | OS discovery %d.%ds | total %d.%ds",
+                         Screen / 10, Screen % 10, Loaders / 10, Loaders % 10,
+                         Total / 10, Total % 10);
+    return NULL;
+}
+
 EFI_STATUS
 EFIAPI
 efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
@@ -481,6 +544,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
     // bootstrap
     InitializeLib(ImageHandle, SystemTable);
+    BootMarkStartup(0);
     Status = InitRefitLib(ImageHandle);
     if (EFI_ERROR(Status))
         return Status;
@@ -497,6 +561,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     // ScanVolumes() is needed to register the new filesystem(s) accessed
     // by the drivers.
     ScanVolumes();
+    BootMarkStartup(1);
     ReadConfig(GlobalConfig.ConfigFilename);
     if (GlobalConfig.LogLevel > 0) {
         StartLogging(FALSE);
@@ -504,8 +569,14 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }
     LOG(3, LOG_LINE_NORMAL, L"GlobalConfig.DontScanFiles is '%s'", GlobalConfig.DontScanFiles);
     MokProtocol = SecureBootSetup();
-    if (LoadDrivers())
+    BootMarkStartup(2);
+    if (LoadDrivers()) {
+        BootMarkStartup(3);
         ScanVolumes();
+    } else {
+        BootMarkStartup(3);
+    }
+    BootMarkStartup(4);
 
     LOG(1, LOG_LINE_SEPARATOR, L"Initializing basic features");
     AdjustDefaultSelection();
@@ -524,6 +595,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     // further bootstrap (now with config available)
     SetupScreen();
     SetVolumeIcons();
+    BootMarkStartup(5);
     ScanForBootloaders(FALSE);
     ScanForTools();
 
@@ -531,6 +603,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     // message that must be deleted, so do so
     BltClearScreen(TRUE);
     pdInitialize();
+    BootMarkStartup(7);
 
     if (GlobalConfig.ScanDelay > 0) {
        if (GlobalConfig.ScanDelay > 1) {

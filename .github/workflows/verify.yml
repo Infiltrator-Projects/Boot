@@ -48,6 +48,11 @@ jobs:
           grep -q 'egGetIconDiagnosticText()' refind/menu.c
           grep -q 'Name && GlobalConfig.UseNvram' refind/main.c
           grep -q 'return EFI_WRITE_PROTECTED; // never redirect state writes' refind/lib.c
+          # Volatile pre-menu timing diagnostics must remain separate from ESP writes.
+          grep -q 'BootGetStartupTimingLine' refind/main.c
+          grep -q 'BootMarkStartup(7)' refind/main.c
+          grep -q 'BootGetStartupTimingLine(Line)' refind/menu.c
+          grep -q 'RT->GetTime' refind/main.c
           python3 - <<'PY_BOOT_LINUX_SPLASH'
           from pathlib import Path
           source = Path('refind/config.c').read_text()

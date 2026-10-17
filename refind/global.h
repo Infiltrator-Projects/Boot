@@ -428,6 +428,8 @@ EG_IMAGE * GetDiskBadge(IN UINTN DiskType);
 LOADER_ENTRY * MakeGenericLoaderEntry(VOID);
 VOID StoreLoaderName(IN CHAR16 *Name);
 VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect);
+// Volatile EFI startup measurements; caller frees returned string.
+CHAR16 *BootGetStartupTimingLine(IN UINTN Line);
 
 int gunzip(unsigned char *buf, long len,
            long (*fill)(void*, unsigned long),

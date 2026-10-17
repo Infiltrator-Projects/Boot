@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.13 — 2026-10-18
+
+- Add a RAM-only pre-menu startup timing breakdown showing first volume discovery, configuration/Secure Boot setup, EFI driver loading/connection, post-driver volume rescan, screen preparation, and loader/icon discovery.
+- Show measurements as two small lines on the Boot graphical menu. Timings end before the menu countdown or any manual user delay, distinguishing startup initialization from selection wait.
+- Use read-only EFI Runtime GetTime for coarse per-boot timings; no EFI variables, ESP files or NVRAM settings are written by instrumentation.
+- Keep scan/driver/boot behaviour unchanged pending physical evidence; do not remove ext4 discovery merely to improve a benchmark.
+- On Dell Latitude 5550 the pre-menu slowdown remains under investigation: Linux reported 17.845s and 17.542s loader periods across adjacent observations, while firmware varied from 14.139s to 11.112s. These Linux timings are not yet a breakdown of Boot itself.
+
 ## 0.1.12 — 2026-10-18
 
 - Normalize root icon filenames when `icons_dir .` is selected; cold-start EFI filesystem drivers no longer receive a literal `.\\` path prefix.
