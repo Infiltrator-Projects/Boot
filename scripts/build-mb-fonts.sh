@@ -52,9 +52,9 @@ font_path = Path(sys.argv[1])
 out_path = Path(sys.argv[2])
 
 # Boot's current renderer uses a fixed-width 96-glyph atlas: ASCII 32-126
-# followed by one fallback glyph. Physical 1920x1080 firmware testing showed
-# the previous 18px atlas was unnecessarily small, so render a 30px UI master
-# while preserving the renderer's existing fixed-cell contract.
+# followed by one fallback glyph. Physical Dell firmware testing showed the
+# previous 18px atlas was unnecessarily small, so render a 30px UI master while
+# preserving the renderer's existing fixed-cell contract.
 glyphs = ''.join(chr(code) for code in range(32, 127)) + '?'
 font = ImageFont.truetype(str(font_path), 30)
 probe = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
