@@ -1100,14 +1100,21 @@ VOID ScanUserConfigured(CHAR16 *FileName)
 } // VOID ScanUserConfigured()
 
 // Create an options file based on /etc/fstab. The resulting file has two options
-// lines, one of which boots the system with "ro root={rootfs}" and the other of
-// which boots the system with "ro root={rootfs} single", where "{rootfs}" is the
-// filesystem identifier associated with the "/" line in /etc/fstab.
+// lines, one of which boots the system with "ro root={rootfs}" (also
+// "quiet splash" when Plymouth is installed) and the other of which boots
+// with "ro root={rootfs} single". The root identifier comes from /etc/fstab.
+// The graphical flags apply only to automatically generated normal entries;
+// explicit Linux options files and recovery entries remain authoritative.
 static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
     UINTN        TokenCount, i;
     REFIT_FILE   *Options = NULL, *Fstab = NULL;
     EFI_STATUS   Status;
     CHAR16       **TokenList, *Line, *Root = NULL;
+    // Leave other distributions and explicit boot configurations untouched.
+    // A Plymouth-capable root gets the splash option used by its normal
+    // graphical startup; the single-user entry stays verbose.
+    BOOLEAN      HasPlymouth = FileExists(Volume->RootDir, L"\\usr\\bin\\plymouth") ||
+                               FileExists(Volume->RootDir, L"\\usr\\sbin\\plymouthd");
 
     if (FileExists(Volume->RootDir, L"\\etc\\fstab")) {
         Options = AllocateZeroPool(sizeof(REFIT_FILE));
@@ -1134,7 +1141,8 @@ static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
                         for (i = 0; i < StrLen(Root); i++)
                             if (Root[i] == '\\')
                                 Root[i] = '/';
-                        Line = PoolPrint(L"\"Boot with normal options\"    \"ro root=%s\"\n", Root);
+                        Line = PoolPrint(L"\"Boot with normal options\"    \"ro root=%s%s\"\n",
+                                         Root, HasPlymouth ? L" quiet splash" : L"");
                         MergeStrings((CHAR16 **) &(Options->Buffer), Line, 0);
                         MyFreePool(Line);
                         Line = PoolPrint(L"\"Boot into single-user mode\"  \"ro root=%s single\"\n", Root);
