@@ -9,9 +9,11 @@ version="${3:-$(tr -d '\r\n' < "$root/VERSION")}"
 output="${4:-$dist/Boot-$version-x86_64-uefi.zip}"
 
 boot_efi="$dist/Boot-$version-x86_64.efi"
+ext4_efi="$dist/BootExt4-$version-x86_64.efi"
 fs_efi="$dist/InfiltratorFS-$version-x86_64.efi"
 for required in \
     "$boot_efi" \
+    "$ext4_efi" \
     "$fs_efi" \
     "$dist/boot.conf" \
     "$dist/mb-corpo-s-regular.png" \
@@ -31,13 +33,19 @@ test ! -e "$icons_dir/os_refit.png"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 boot_dir="$stage/EFI/BOOT"
-mkdir -p "$boot_dir/drivers-disabled" "$boot_dir/icons"
+mkdir -p "$boot_dir/drivers_x64" "$boot_dir/drivers-disabled" "$boot_dir/icons"
 
 install -m 0644 "$boot_efi" "$boot_dir/BOOTX64.EFI"
 
-# InfiltratorFS is built and published as a separately qualified artifact, but
-# Boot's removable-media bundle does not need it for ordinary Linux/Windows EFI
-# handoff. Keep it available without placing it in an auto-loaded driver path.
+# The current physical Linux target stores its kernel and initrd on ext4 rather
+# than on the FAT ESP. Boot therefore needs read-only ext4 access before it can
+# discover and launch the kernel EFI stub directly instead of chaining through
+# GRUB. This driver exposes only read operations; its EFI Write entry point
+# returns EFI_WRITE_PROTECTED.
+install -m 0644 "$ext4_efi" "$boot_dir/drivers_x64/BootExt4_x64.efi"
+
+# InfiltratorFS remains a separately qualified artifact and is not involved in
+# this ext4 Linux boot path. Keep it available without auto-loading it.
 install -m 0644 "$fs_efi" "$boot_dir/drivers-disabled/InfiltratorFS_x64.efi"
 
 install -m 0644 "$dist/boot.conf" "$boot_dir/boot.conf"
@@ -50,10 +58,9 @@ install -m 0644 "$dist/boot-selection-small.png" "$boot_dir/boot-selection-small
 install -m 0644 "$dist/THEME_PROVENANCE.txt" "$boot_dir/THEME_PROVENANCE.txt"
 
 # Physical Dell firmware successfully loaded direct PNG assets beside
-# BOOTX64.EFI but every inherited icons/<name> lookup fell back to dummy
-# graphics. Make the runtime path deterministic by putting the actual menu PNGs
-# beside Boot and using icons_dir . in boot.conf. Retain the icons directory as
-# provenance/licence material for the shipped artwork.
+# BOOTX64.EFI but inherited icons/<name> lookups fell back to dummy graphics.
+# Keep the runtime lookup deterministic and retain icons/ as provenance/licence
+# material for the shipped artwork.
 find "$icons_dir" -maxdepth 1 -type f -name '*.png' -print0 |
 while IFS= read -r -d '' icon; do
     install -m 0644 "$icon" "$boot_dir/$(basename "$icon")"
@@ -61,8 +68,7 @@ done
 cp -R "$icons_dir/." "$boot_dir/icons/"
 
 # Write the ZIP deterministically: sorted paths, fixed timestamps and stable
-# permissions. This makes the ready-to-copy UEFI bundle an exact release input
-# rather than a runner-dependent archive.
+# permissions. This makes the ready-to-copy UEFI bundle an exact release input.
 python3 - "$stage" "$output" <<'PY'
 from pathlib import Path
 import sys
@@ -89,6 +95,7 @@ required = {
     'EFI/BOOT/func_firmware.png',
     'EFI/BOOT/os_uefi.png',
     'EFI/BOOT/os_unknown.png',
+    'EFI/BOOT/drivers_x64/BootExt4_x64.efi',
     'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi',
 }
 files = sorted(path for path in stage.rglob('*') if path.is_file())
@@ -97,8 +104,8 @@ missing = required - relative
 if missing:
     raise SystemExit(f'bundle is missing required files: {sorted(missing)}')
 
-active_driver = 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi'
-if active_driver in relative:
+infiltrator_active = 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi'
+if infiltrator_active in relative:
     raise SystemExit('InfiltratorFS leaked into Boot auto-load path')
 
 for historical in (
@@ -123,7 +130,7 @@ with zipfile.ZipFile(output, 'r') as archive:
     missing = required - names
     if missing:
         raise SystemExit(f'written bundle is missing required files: {sorted(missing)}')
-    if active_driver in names:
+    if infiltrator_active in names:
         raise SystemExit('written bundle contains an auto-loaded InfiltratorFS driver')
     bad = archive.testzip()
     if bad is not None:
