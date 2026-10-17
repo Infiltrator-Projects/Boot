@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Correct product banner ownership: the canonical InfiltratorOS artwork now replaces the BOOT wordmark instead of appearing beside it.
+- Prevent theme generation from compositing the firmware atlas' embedded `IB` metric headers as visible font pixels; the leaked header caused dots above text and fallback glyphs.
+- Validate in CI that the generated banner has no unexpected text outside the centered product artwork.
+
 ## 0.1.10 — 2026-10-17
 
 - Add an active read-only ext4 EFI filesystem driver to the removable Boot bundle so Boot can read Linux kernels and initrds stored on ext4 instead of seeing only ESP-resident loaders such as `EFI\\ubuntu\\grubx64.efi`.
