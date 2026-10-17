@@ -106,8 +106,8 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
         Print(L" * Sign %s with a machine owner key (MOK)\n", Name);
         Print(L" * Use a MOK utility (often present on the second row) to add a MOK with which\n");
         Print(L"   %s has already been signed.\n", Name);
-        Print(L" * Use a MOK utility to register %s (\"enroll its hash\") without\n", Name);
-        Print(L"   signing it.\n");
+        Print(L" * Use a MOK utility to register %s (\"enroll its hash\") without\n");
+        Print(L"   signing it.\n", Name);
         Print(L"\nSee http://www.rodsbooks.com/refind/secureboot.html for more information\n");
         PauseForKey();
     } // if
@@ -229,16 +229,25 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     LoaderType = IsValidLoader(Volume->RootDir, Filename);
     if ((LoaderType == LOADER_TYPE_EFI) || (LoaderType == LOADER_TYPE_GZIP)) {
         DevicePath = FileDevicePath(Volume->DeviceHandle, Filename);
-        // NOTE: Below commented-out line could be more efficient if file were read ahead of
-        // time and passed as a pre-loaded image to LoadImage(), but it doesn't work on my
-        // 32-bit Mac Mini or my 64-bit Intel box when launching a Linux kernel; the
-        // kernel returns a "Failed to handle fs_proto" error message.
-        // TODO: Track down the cause of this error and fix it, if possible.
+        // OS loaders stay path-backed because some kernels require the firmware
+        // filesystem protocol during handoff. Drivers are different: Boot has
+        // already opened and validated the file, so load the exact driver bytes
+        // from memory and avoid asking buggy firmware to resolve the path again.
         if (LoaderType == LOADER_TYPE_EFI) {
-            // ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
-            //                                            ImageData, ImageSize, &ChildImageHandle);
-            ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
-                                                        NULL, 0, &ChildImageHandle);
+            if (IsDriver) {
+                Status = egLoadFile(Volume->RootDir, Filename, &ImageData, &ImageSize);
+                if (!EFI_ERROR(Status)) {
+                    LOG(2, LOG_LINE_NORMAL, L"Loading driver '%s' from a %llu-byte memory buffer",
+                        ImageTitle, (UINT64) ImageSize);
+                    ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
+                                                                ImageData, ImageSize, &ChildImageHandle);
+                } else {
+                    ReturnStatus = Status;
+                }
+            } else {
+                ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
+                                                            NULL, 0, &ChildImageHandle);
+            }
         } else {
             Status = egLoadFile(Volume->RootDir, Filename, &gzData, &gzSize);
             if (!EFI_ERROR(Status)) {
@@ -367,7 +376,6 @@ EFI_STATUS RebootIntoFirmware(VOID) {
         osind |= (UINT64)*b;
     MyFreePool(b);
 
-    err = EfivarSetRaw(&GlobalGuid, L"OsIndications", (CHAR8 *)&osind, sizeof(UINT64), TRUE);
     if (err != EFI_SUCCESS)
         return err;
 
@@ -401,7 +409,8 @@ VOID RebootIntoLoader(LOADER_ENTRY *Entry) {
     LOG(1, LOG_LINE_NORMAL, L"Error calling ResetSystem: %r", Status);
     Print(L"Error calling ResetSystem: %r\n", Status);
     PauseForKey();
-} // RebootIntoLoader()
+    return Status;
+} // EFI_STATUS RebootIntoLoader()
 
 //
 // EFI OS loader functions
