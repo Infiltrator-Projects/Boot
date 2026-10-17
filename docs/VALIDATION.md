@@ -37,10 +37,26 @@ The maintained development-preview workflow has the following automated coverage
 - building the full GNU-EFI x86-64 program through an explicit toolchain entry point;
 - building the read-only InfiltratorFS EFI driver with GNU-EFI on x86-64;
 - rejecting unresolved host operating-system/runtime dependencies in the resulting shared object;
-- verifying that the committed vendored InfiltratorFS/Common/LZ4 tree matches the exact pinned source generator; and
+- verifying that the committed vendored InfiltratorFS/Common/LZ4 tree matches the exact pinned source generator;
+- verifying that the removable Boot bundle keeps the optional InfiltratorFS driver outside the auto-loaded driver path; and
 - sealing the generated EFI binaries, tracked source archive and source-commit identity together with SHA-256 checksums before publication.
 
 These checks establish source/build evidence and are deliberately not described as complete Boot runtime qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
+
+## Current physical-firmware evidence
+
+On 17 October 2026, Boot was exercised from a removable FAT32 EFI System Partition on a Dell Latitude 5550 using the firmware one-time boot menu. Secure Boot was disabled for this development test and Boot's configuration kept its own persistent state out of motherboard NVRAM.
+
+That test established the following behaviour on real hardware:
+
+- the Dell firmware successfully started Boot from `EFI/BOOT/BOOTX64.EFI` on removable media;
+- Boot discovered EFI boot paths on the internal storage;
+- selecting the Linux path successfully handed execution from Boot to the installed Linux system on the internal disk; and
+- the removable-media Boot test did not require a kernel or operating-system payload on the removable card itself.
+
+The same test also identified presentation defects rather than boot-handoff defects: the inherited embedded banner remained visible, runtime icon lookups under the inherited `icons` subdirectory fell back to dummy graphics, and the 18px firmware font atlas was too small for comfortable use on the test display. Those observations are evidence for the subsequent presentation/layout changes; they are not themselves proof that those changes are fixed until the revised build is retested on the same hardware.
+
+InfiltratorFS was not required for the successful Linux handoff. The separately built InfiltratorFS EFI driver therefore remains outside the default auto-loaded driver path in the removable Boot bundle until a boot scenario that actually requires that driver is deliberately qualified.
 
 ## Required change evidence
 
@@ -102,6 +118,6 @@ A release is not qualified if those questions cannot be answered confidently for
 
 ## Development-preview publication
 
-Root VERSION identifies the development preview; inherited engine/profile versions retain their separate meaning. The same successful workflow seals the generated GNU-EFI x86-64 Boot application, read-only InfiltratorFS EFI driver, tracked Git source and source-commit identity with SHA-256. Its publisher downloads that artifact, verifies the checksum manifest, compares complete remote bytes before and after draft promotion, and creates an immutable prerelease.
+Root VERSION identifies the development preview; inherited engine/profile versions retain their separate meaning. The same successful workflow seals the generated GNU-EFI x86-64 Boot application, read-only InfiltratorFS EFI driver, tracked Git source and source-commit identity with SHA-256. Its publisher downloads that artifact, verifies the checksum manifest, compares complete remote bytes before and after publication, and publishes the verified release bytes.
 
-The generated EFI files are published for controlled testing because they are the exact artifacts that passed the current host-build checks. Their publication does not elevate host-build evidence into firmware-runtime, Secure Boot, installation or recovery qualification. No automatic installation is included, and the workflow must not modify an EFI System Partition or NVRAM.
+The generated EFI files are published for controlled testing because they are the exact artifacts that passed the current host-build checks. Their publication does not elevate host-build evidence into universal firmware-runtime, Secure Boot, installation or recovery qualification. No automatic installation is included, and the workflow must not modify an EFI System Partition or NVRAM.
