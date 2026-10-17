@@ -27,14 +27,29 @@ test ! -e "$icons_dir/os_refit.png"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 boot_dir="$stage/EFI/BOOT"
-mkdir -p "$boot_dir/drivers_x64" "$boot_dir/icons"
+mkdir -p "$boot_dir/drivers-disabled" "$boot_dir/icons"
 
 install -m 0644 "$boot_efi" "$boot_dir/BOOTX64.EFI"
-install -m 0644 "$fs_efi" "$boot_dir/drivers_x64/InfiltratorFS_x64.efi"
+
+# InfiltratorFS is built and published as a separately qualified artifact, but
+# Boot's removable-media bundle does not need it for ordinary Linux/Windows EFI
+# handoff. Keep it available without placing it in an auto-loaded driver path.
+install -m 0644 "$fs_efi" "$boot_dir/drivers-disabled/InfiltratorFS_x64.efi"
+
 install -m 0644 "$dist/boot.conf" "$boot_dir/boot.conf"
 install -m 0644 "$dist/mb-corpo-s-regular.png" "$boot_dir/mb-corpo-s-regular.png"
 install -m 0644 "$dist/mb-corpo-s-bold.png" "$boot_dir/mb-corpo-s-bold.png"
 install -m 0644 "$dist/mb-corpo-a-cond-regular.png" "$boot_dir/mb-corpo-a-cond-regular.png"
+
+# Physical Dell firmware successfully loaded direct PNG assets beside
+# BOOTX64.EFI but every inherited icons/<name> lookup fell back to dummy
+# graphics. Make the runtime path deterministic by putting the actual menu PNGs
+# beside Boot and using icons_dir . in boot.conf. Retain the icons directory as
+# provenance/licence material for the shipped artwork.
+find "$icons_dir" -maxdepth 1 -type f -name '*.png' -print0 |
+while IFS= read -r -d '' icon; do
+    install -m 0644 "$icon" "$boot_dir/$(basename "$icon")"
+done
 cp -R "$icons_dir/." "$boot_dir/icons/"
 
 # Write the ZIP deterministically: sorted paths, fixed timestamps and stable
@@ -54,18 +69,29 @@ required = {
     'EFI/BOOT/mb-corpo-s-regular.png',
     'EFI/BOOT/mb-corpo-s-bold.png',
     'EFI/BOOT/mb-corpo-a-cond-regular.png',
-    'EFI/BOOT/icons/os_infiltratoros.png',
-    'EFI/BOOT/icons/os_infiltrator.png',
-    'EFI/BOOT/icons/os_infiltratorboot.png',
-    'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi',
+    'EFI/BOOT/os_infiltratoros.png',
+    'EFI/BOOT/os_infiltrator.png',
+    'EFI/BOOT/os_infiltratorboot.png',
+    'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi',
 }
 files = sorted(path for path in stage.rglob('*') if path.is_file())
 relative = {path.relative_to(stage).as_posix() for path in files}
 missing = required - relative
 if missing:
     raise SystemExit(f'bundle is missing required files: {sorted(missing)}')
-if 'EFI/BOOT/icons/os_refind.png' in relative or 'EFI/BOOT/icons/os_refit.png' in relative:
-    raise SystemExit('historical boot-manager product icons leaked into the Boot runtime bundle')
+
+active_driver = 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi'
+if active_driver in relative:
+    raise SystemExit('InfiltratorFS leaked into Boot auto-load path')
+
+for historical in (
+    'EFI/BOOT/os_refind.png',
+    'EFI/BOOT/os_refit.png',
+    'EFI/BOOT/icons/os_refind.png',
+    'EFI/BOOT/icons/os_refit.png',
+):
+    if historical in relative:
+        raise SystemExit('historical boot-manager product icon leaked into the Boot runtime bundle')
 
 with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
     for path in files:
@@ -80,6 +106,8 @@ with zipfile.ZipFile(output, 'r') as archive:
     missing = required - names
     if missing:
         raise SystemExit(f'written bundle is missing required files: {sorted(missing)}')
+    if active_driver in names:
+        raise SystemExit('written bundle contains an auto-loaded InfiltratorFS driver')
     bad = archive.testzip()
     if bad is not None:
         raise SystemExit(f'ZIP integrity failure at {bad}')
