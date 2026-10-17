@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.14 — 2026-10-18
+
+- Fix the startup measurement checkpoints so all eight samples are recorded before the on-screen report is generated. Without this, 0.1.13's diagnostic line remained hidden even though the EFI binary compiled successfully.
+- Add a CI guard requiring the sixth checkpoint. No boot discovery, loading, or storage behaviour is changed.
+
 ## 0.1.13 — 2026-10-18
 
 - Add a RAM-only pre-menu startup timing breakdown showing first volume discovery, configuration/Secure Boot setup, EFI driver loading/connection, post-driver volume rescan, screen preparation, and loader/icon discovery.

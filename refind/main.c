@@ -597,6 +597,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     SetVolumeIcons();
     BootMarkStartup(5);
     ScanForBootloaders(FALSE);
+    BootMarkStartup(6);
     ScanForTools();
 
     // SetupScreen() clears the screen; but ScanForBootloaders() may display a

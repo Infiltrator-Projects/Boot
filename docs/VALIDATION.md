@@ -145,3 +145,7 @@ The Dell Latitude 5550, launched using the internal ESP `EFI/InfiltratorBoot/BOO
 0.1.13 reports two volatile lines in the graphical Boot menu with timing categories (disks, config, drivers, re-scan, graphics, OS discovery, total), ending before the menu wait. The implementation uses the UEFI runtime clock and may show only approximately second-resolution data on firmware with coarse RTC GetTime; do not interpret sub-second values as precise in that case. No disk logs or EFI variables are written by the measurement.
 
 For a useful test, photograph the on-screen timing lines from a cold internal-SSD Boot launch. Compare the reported total and largest stage against the Linux `systemd-analyze time` loader phase after entering Linux. If the on-screen measurement is unavailable or clearly inconsistent, instrument with an EFI high-resolution timing source separately rather than optimizing guessed hotspots. Do not remove ext4 drivers or broad OS discovery until the bottleneck is identified. GRUB remains first in permanent BootOrder.
+
+### 0.1.14 timing checkpoint fix
+
+0.1.13 omitted timing marker 6, causing the menu's all-markers-valid gate to suppress the timing lines. 0.1.14 supplies that marker before tool discovery and guards its presence in CI. Use 0.1.14 or newer for physical timing tests; 0.1.13 cannot display the intended timing breakdown.
