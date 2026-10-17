@@ -149,3 +149,11 @@ For a useful test, photograph the on-screen timing lines from a cold internal-SS
 ### 0.1.14 timing checkpoint fix
 
 0.1.13 omitted timing marker 6, causing the menu's all-markers-valid gate to suppress the timing lines. 0.1.14 supplies that marker before tool discovery and guards its presence in CI. Use 0.1.14 or newer for physical timing tests; 0.1.13 cannot display the intended timing breakdown.
+
+### 0.1.15 targeted filesystem-driver binding
+
+The GNU-EFI broad controller path traverses the entire EFI handle database once for each device and invokes recursive controller connection, including unrelated hardware. This can be costly at startup and makes an unsafe assumption about handle index ordering within the nested database scan.
+
+For Boot's normal, bundled filesystem drivers, the driver binding requirement is much narrower: connect to present logical partitions with BlockIo but without SimpleFileSystem. Boot 0.1.15 uses that subset after starting the bundled driver and preserves the legacy broad pass only when custom driver directories are explicitly configured or when the user requests a full interactive rescan.
+
+Startup qualification: verify on actual firmware that Boot discovers the same internal ext4 Mint kernel and initrd, ESP GRUB fallback, Windows loader, and permitted removable volumes as 0.1.14. Inspect the RAM-only menu phase timings, particularly `drivers` and `re-scan`. The ext4 driver might require a firmware-specific fallback; keep GRUB as the default until confirmed. Do not infer a measured improvement solely from `systemd-analyze`'s loader interval, which also includes user menu time and handoff activities.

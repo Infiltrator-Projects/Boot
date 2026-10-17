@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.15 — 2026-10-18
+
+- Replace the broad all-controller reconnect in the standard bundled filesystem-driver startup path with a targeted pass over present logical disk partitions that lack SimpleFileSystem.
+- Avoid firmware rescans of every unrelated controller in the normal path; preserve the full connection behaviour for explicitly configured custom driver directories and interactive rescans.
+- Count an EFI driver as loaded only when StartEFIImage succeeds, avoiding unnecessary follow-on volume rescans when a driver file fails to start.
+- Keep ext4 discovery, filesystem scanning, graphics, OS detection and kernel handoff enabled; make no modifications to ESP installations or NVRAM.
+- Add automated source-contract checks for partition-only binding, fallback behaviour and successful-driver accounting.
+- This is a code-level performance candidate, not a measured claim that the approximately 17.5-second Linux loader stage is resolved. Physical timing evidence is still required before declaring a fix.
+
 ## 0.1.14 — 2026-10-18
 
 - Fix the startup measurement checkpoints so all eight samples are recorded before the on-screen report is generated. Without this, 0.1.13's diagnostic line remained hidden even though the EFI binary compiled successfully.

@@ -537,6 +537,55 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     MyFreePool(Handles);
 } // VOID ConnectFilesystemDriver()
 
+// Boot's bundled EFI drivers provide filesystems on disk partitions.
+// Connecting every firmware controller recursively here is unnecessarily
+// expensive and, on some firmware, can trigger peripheral initialization.
+//
+// Connect only present partitions that do not already expose a filesystem.
+// The full legacy connection pass remains available for explicitly configured
+// custom driver directories and for interactive rescans.
+static VOID ConnectFilesystemPartitions(VOID) {
+    EFI_STATUS Status;
+    EFI_HANDLE *Handles = NULL;
+    UINTN Count = 0, Index, Attempted = 0, Connected = 0;
+    MY_EFI_BLOCK_IO_PROTOCOL *BlockIo;
+    MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *Fs;
+
+    Status = refit_call5_wrapper(gBS->LocateHandleBuffer, ByProtocol,
+                                 &gMyEfiBlockIoProtocolGuid, NULL,
+                                 &Count, &Handles);
+    if (EFI_ERROR(Status))
+        return;
+
+    for (Index = 0; Index < Count; Index++) {
+        BlockIo = NULL;
+        Status = refit_call3_wrapper(gBS->HandleProtocol, Handles[Index],
+                                     &gMyEfiBlockIoProtocolGuid,
+                                     (VOID **)&BlockIo);
+        if (EFI_ERROR(Status) || BlockIo == NULL || BlockIo->Media == NULL ||
+            !BlockIo->Media->LogicalPartition || !BlockIo->Media->MediaPresent)
+            continue;
+
+        Fs = NULL;
+        Status = refit_call3_wrapper(gBS->HandleProtocol, Handles[Index],
+                                     &gMyEfiSimpleFileSystemProtocolGuid,
+                                     (VOID **)&Fs);
+        if (!EFI_ERROR(Status))
+            continue; // Already mounted by firmware or another driver.
+
+        Attempted++;
+        Status = refit_call4_wrapper(gBS->ConnectController, Handles[Index],
+                                     NULL, NULL, FALSE);
+        if (!EFI_ERROR(Status))
+            Connected++;
+    }
+
+    MyFreePool(Handles);
+    LOG(1, LOG_LINE_NORMAL,
+        L"Filesystem partition binding: attempted %d, connected %d",
+        Attempted, Connected);
+} // static VOID ConnectFilesystemPartitions()
+
 // Scan a directory for drivers.
 // Originally from rEFIt's main.c (BSD), but modified since then (GPLv3).
 static UINTN ScanDriverDir(IN CHAR16 *Path)
@@ -555,8 +604,9 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
             continue;   // skip this
 
         FileName = PoolPrint(L"%s\\%s", Path, DirEntry->FileName);
-        NumFound++;
         Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE);
+        if (!EFI_ERROR(Status))
+            NumFound++;
         MyFreePool(DirEntry);
         MyFreePool(FileName);
     } // while
@@ -602,8 +652,14 @@ BOOLEAN LoadDrivers(VOID) {
         MyFreePool(Directory);
     } // while
 
-    // connect all devices
-    if (NumFound > 0)
-        ConnectAllDriversToAllControllers();
+    // The default bundled ext4 driver needs only filesystem partition
+    // bindings. Preserve the broad firmware controller pass for explicitly
+    // configured extra drivers, which may expose other protocols.
+    if (NumFound > 0) {
+        if (GlobalConfig.DriverDirs != NULL && GlobalConfig.DriverDirs[0] != 0)
+            ConnectAllDriversToAllControllers();
+        else
+            ConnectFilesystemPartitions();
+    }
     return (NumFound > 0);
 } /* BOOLEAN LoadDrivers() */
