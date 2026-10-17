@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5 — 2026-10-17
+
+- Generate Boot's InfiltratorOS OS icon from the canonical pinned `InfiltratorOS/assets/infiltratoros.png` artwork and verify its exact Git blob identity before conversion.
+- Provide `infiltratoros`, `infiltrator` and `InfiltratorBoot` icon hints from the same product-owned artwork so discovery can identify InfiltratorOS before its root filesystem is necessarily readable.
+- Ship the runtime `icons` directory Boot expects, retaining functional and third-party OS glyphs while excluding historical boot-manager product identity icons.
+- Configure the runtime explicitly with `icons_dir icons`.
+- Publish a deterministic ready-to-copy x86-64 UEFI bundle rooted at `EFI/BOOT`, containing `BOOTX64.EFI`, `boot.conf`, MB firmware fonts, runtime icons and the InfiltratorFS driver in `drivers_x64`.
+- Include icon provenance and the generated InfiltratorOS icon in the release checksum set.
+
 ## 0.1.4 — 2026-10-17
 
 - Generate Boot-compatible firmware bitmap atlases from the canonical pinned MB Corpo archive used by InfiltratorOS.
