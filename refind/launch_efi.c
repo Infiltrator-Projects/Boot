@@ -232,14 +232,14 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
         // OS loaders stay path-backed because some kernels require the firmware
         // filesystem protocol during handoff. Drivers are different: Boot has
         // already opened and validated the file, so load the exact driver bytes
-        // from memory and avoid asking buggy firmware to resolve the path again.
+        // from memory and give firmware no filesystem path to resolve again.
         if (LoaderType == LOADER_TYPE_EFI) {
             if (IsDriver) {
                 Status = egLoadFile(Volume->RootDir, Filename, &ImageData, &ImageSize);
                 if (!EFI_ERROR(Status)) {
                     LOG(2, LOG_LINE_NORMAL, L"Loading driver '%s' from a %llu-byte memory buffer",
                         ImageTitle, (UINT64) ImageSize);
-                    ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
+                    ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, NULL,
                                                                 ImageData, ImageSize, &ChildImageHandle);
                 } else {
                     ReturnStatus = Status;
