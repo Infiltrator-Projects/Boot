@@ -41,14 +41,18 @@
 #include "egemb_font_large.h"
 #define FONT_NUM_CHARS 96
 #define EXTERNAL_FONT_ALPHA_THRESHOLD 16
+#define FONT_METRIC_MARKER_G 0x49
+#define FONT_METRIC_MARKER_B 0x42
 
 static EG_IMAGE *BaseFontImage = NULL;
 static EG_IMAGE *DarkFontImage = NULL;
 static EG_IMAGE *LightFontImage = NULL;
 
 static UINTN FontCellWidth = 7;
+static UINTN FontDataYOffset = 0;
 static BOOLEAN FontMetricsReady = FALSE;
 static BOOLEAN ProportionalFont = FALSE;
+static BOOLEAN EmbeddedFontMetrics = FALSE;
 static UINTN FontGlyphLeft[FONT_NUM_CHARS];
 static UINTN FontGlyphWidth[FONT_NUM_CHARS];
 static UINTN FontGlyphAdvance[FONT_NUM_CHARS];
@@ -63,14 +67,13 @@ static UINTN egGlyphIndex(IN CHAR16 Character) {
     return Character - 32;
 } // UINTN egGlyphIndex()
 
-// The historical embedded firmware font is fixed-width. Boot's externally
-// generated MB Corpo atlas uses the same 96-cell bitmap contract so it remains
-// compatible with the decoder, but the typeface itself is proportional. Derive
-// useful per-glyph metrics from the alpha channel once after loading instead of
-// forcing every glyph into the widest cell and producing artificial tracking.
+// The historical embedded firmware font is fixed-width. Boot's generated MB
+// atlases remain 96 fixed cells for compatibility, but each cell can carry the
+// typeface's native advance in a metadata row. If that marker is absent, retain
+// the alpha-bound fallback used for older externally supplied atlases.
 static VOID egPrepareFontMetrics(VOID) {
     UINTN Glyph, X, Y, CellStart, Left, Right, Width, Advance;
-    BOOLEAN HaveInk;
+    BOOLEAN HaveInk, HaveEmbeddedMetrics = TRUE;
     EG_PIXEL *Pixel;
 
     if ((BaseFontImage == NULL) || (BaseFontImage->Width == 0) ||
@@ -78,8 +81,36 @@ static VOID egPrepareFontMetrics(VOID) {
         return;
 
     FontCellWidth = BaseFontImage->Width / FONT_NUM_CHARS;
+    FontDataYOffset = 0;
+    EmbeddedFontMetrics = FALSE;
     if ((FontCellWidth == 0) || ((BaseFontImage->Width % FONT_NUM_CHARS) != 0)) {
         ProportionalFont = FALSE;
+        FontMetricsReady = TRUE;
+        return;
+    }
+
+    if (ProportionalFont && (BaseFontImage->Height > 1)) {
+        for (Glyph = 0; Glyph < FONT_NUM_CHARS; Glyph++) {
+            Pixel = &(BaseFontImage->PixelData[Glyph * FontCellWidth]);
+            if ((Pixel->g != FONT_METRIC_MARKER_G) || (Pixel->b != FONT_METRIC_MARKER_B) ||
+                (Pixel->a != 255) || (Pixel->r == 0)) {
+                HaveEmbeddedMetrics = FALSE;
+                break;
+            }
+        }
+    } else {
+        HaveEmbeddedMetrics = FALSE;
+    }
+
+    if (HaveEmbeddedMetrics) {
+        EmbeddedFontMetrics = TRUE;
+        FontDataYOffset = 1;
+        for (Glyph = 0; Glyph < FONT_NUM_CHARS; Glyph++) {
+            Pixel = &(BaseFontImage->PixelData[Glyph * FontCellWidth]);
+            FontGlyphLeft[Glyph] = 0;
+            FontGlyphWidth[Glyph] = FontCellWidth;
+            FontGlyphAdvance[Glyph] = Pixel->r;
+        }
         FontMetricsReady = TRUE;
         return;
     }
@@ -111,7 +142,6 @@ static VOID egPrepareFontMetrics(VOID) {
         }
 
         if (!HaveInk) {
-            // Space has no ink. Give it a restrained proportional advance.
             Advance = (FontCellWidth * 2) / 5;
             if (Advance < 4)
                 Advance = 4;
@@ -144,6 +174,8 @@ static VOID egPrepareFont() {
         else
             BaseFontImage = egPrepareEmbeddedImage(&egemb_font, TRUE);
         ProportionalFont = FALSE;
+        EmbeddedFontMetrics = FALSE;
+        FontDataYOffset = 0;
         FontMetricsReady = FALSE;
     }
     if ((BaseFontImage != NULL) && !FontMetricsReady)
@@ -152,7 +184,9 @@ static VOID egPrepareFont() {
 
 UINTN egGetFontHeight(VOID) {
    egPrepareFont();
-   return (BaseFontImage != NULL) ? BaseFontImage->Height : 0;
+   if (BaseFontImage == NULL || BaseFontImage->Height <= FontDataYOffset)
+       return 0;
+   return BaseFontImage->Height - FontDataYOffset;
 } // UINTN egGetFontHeight()
 
 UINTN egGetFontCellWidth(VOID) {
@@ -182,7 +216,7 @@ VOID egMeasureText(IN CHAR16 *Text, OUT UINTN *Width, OUT UINTN *Height) {
     if (Width != NULL)
         *Width = egComputeTextWidth(Text);
     if (Height != NULL)
-        *Height = (BaseFontImage != NULL) ? BaseFontImage->Height : 0;
+        *Height = egGetFontHeight();
 }
 
 VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN UINTN PosY, IN UINT8 BGBrightness)
@@ -190,13 +224,14 @@ VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN
     EG_IMAGE        *FontImage;
     EG_PIXEL        *BufferPtr;
     EG_PIXEL        *FontPixelData;
-    UINTN           BufferLineOffset, FontLineOffset;
+    UINTN           BufferLineOffset, FontLineOffset, FontHeight;
     UINTN           TextLength;
     UINTN           i, c, GlyphWidth, GlyphLeft, Advance, PenX;
 
     egPrepareFont();
+    FontHeight = egGetFontHeight();
     if ((BaseFontImage == NULL) || (CompImage == NULL) || (Text == NULL) ||
-        (PosY >= CompImage->Height) || (PosX >= CompImage->Width))
+        (FontHeight == 0) || (PosY >= CompImage->Height) || (PosX >= CompImage->Width))
         return;
 
     TextLength = StrLen(Text);
@@ -224,34 +259,37 @@ VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN
     BufferPtr = CompImage->PixelData;
     BufferLineOffset = CompImage->Width;
     BufferPtr += PosY * BufferLineOffset;
-    FontPixelData = FontImage->PixelData;
+    FontPixelData = FontImage->PixelData + FontDataYOffset * FontImage->Width;
     FontLineOffset = FontImage->Width;
     PenX = PosX;
 
     for (i = 0; i < TextLength; i++) {
         c = egGlyphIndex(Text[i]);
-        GlyphLeft = ProportionalFont ? FontGlyphLeft[c] : 0;
-        GlyphWidth = ProportionalFont ? FontGlyphWidth[c] : FontCellWidth;
+        GlyphLeft = EmbeddedFontMetrics ? 0 : (ProportionalFont ? FontGlyphLeft[c] : 0);
+        GlyphWidth = EmbeddedFontMetrics ? FontCellWidth : (ProportionalFont ? FontGlyphWidth[c] : FontCellWidth);
         Advance = ProportionalFont ? FontGlyphAdvance[c] : FontCellWidth;
 
         if (PenX >= CompImage->Width)
             break;
 
         if (GlyphWidth > 0) {
-            if ((PenX + GlyphWidth) > CompImage->Width)
+            UINTN DrawWidth = GlyphWidth;
+            if ((PenX + DrawWidth) > CompImage->Width)
+                DrawWidth = CompImage->Width - PenX;
+            if (DrawWidth == 0)
                 break;
             egRawCompose(BufferPtr + PenX,
                          FontPixelData + c * FontCellWidth + GlyphLeft,
-                         GlyphWidth, FontImage->Height,
+                         DrawWidth, FontHeight,
                          BufferLineOffset, FontLineOffset);
         }
         PenX += Advance;
     }
 }
 
-// Load a font bitmap from the specified file. External Boot font atlases are
-// proportional faces carried in a fixed-cell compatibility bitmap, so derive
-// proportional metrics from their alpha channel after loading.
+// Load a font bitmap from the specified file. Boot-generated MB atlases carry
+// their native proportional advances in-band. Older external atlases continue
+// to work through alpha-bound fallback metrics.
 VOID egLoadFont(IN CHAR16 *Filename) {
    if (DarkFontImage) {
       egFreeImage(DarkFontImage);
@@ -267,6 +305,8 @@ VOID egLoadFont(IN CHAR16 *Filename) {
    }
 
    ProportionalFont = TRUE;
+   EmbeddedFontMetrics = FALSE;
+   FontDataYOffset = 0;
    FontMetricsReady = FALSE;
    BaseFontImage = egLoadImage(SelfDir, Filename, TRUE);
    if (BaseFontImage == NULL) {
