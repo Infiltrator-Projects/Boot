@@ -52,10 +52,11 @@ font_path = Path(sys.argv[1])
 out_path = Path(sys.argv[2])
 
 # Boot's current renderer uses a fixed-width 96-glyph atlas: ASCII 32-126
-# followed by one fallback glyph. Render the proportional MB face into fixed
-# cells so the firmware renderer can consume the real product typography.
+# followed by one fallback glyph. Physical 1920x1080 firmware testing showed
+# the previous 18px atlas was unnecessarily small, so render a 30px UI master
+# while preserving the renderer's existing fixed-cell contract.
 glyphs = ''.join(chr(code) for code in range(32, 127)) + '?'
-font = ImageFont.truetype(str(font_path), 18)
+font = ImageFont.truetype(str(font_path), 30)
 probe = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
 probe_draw = ImageDraw.Draw(probe)
 boxes = [probe_draw.textbbox((0, 0), glyph, font=font) for glyph in glyphs]
