@@ -336,7 +336,8 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     ErrorInfo = PoolPrint(L"returned from %s", ImageTitle);
     CheckError(Status, ErrorInfo);
     MyFreePool(ErrorInfo);
-    if (IsDriver) {
+    if (IsDriver && !EFI_ERROR(Status)) {
+        // Only attempt binding after a driver starts successfully.
         // Below should have no effect on most systems, but works
         // around bug with some EFIs that prevents filesystem drivers
         // from binding to partitions.

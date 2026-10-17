@@ -46,6 +46,12 @@ Firmware-facing code owns UEFI protocols, handles, variables, memory and platfor
 
 Filesystem drivers and adapters expose bounded read access required for discovery and loading. The default product contract is read-only. Filesystem policy belongs to the filesystem integration boundary, not to presentation or boot selection code.
 
+The runtime filesystem extension contract is EFI Driver Binding + EFI Simple File System, **not** a named filesystem embedded in Boot's OS scanner. Boot loads all enabled qualified drivers in `drivers_x64` before scanning volumes, and asks firmware to bind them only to present BlockIo handles lacking SimpleFileSystem. This includes logical partitions **and native whole-disk layouts**; requiring `LogicalPartition` would rule out future Amiga RDB probing. Each driver must reject unsupported formats quickly through its EFI driver binding interface. Boot then rescans volumes and discovers boot files using the standard EFI file APIs. It does not parse ext, AmigaFS or another format in its UI or kernel handoff.
+
+`filesystems/boot-driver-manifest.tsv` is the release packaging policy for each qualified driver: `enabled filename_x64.efi ReleaseArtifactPrefix` auto-loads, `disabled filename_x64.efi ReleaseArtifactPrefix` ships without executing. Release artifacts follow `ReleaseArtifactPrefix-VERSION-x86_64.efi`. An entry is valid only when the independently built, versioned driver exists and has passed qualification. New filesystem support must be introduced via an independently compiled EFI driver (including read-only semantics and format probing), an artifact-copy build step, and an explicit manifest entry. The manifest does not claim that an unimplemented AmigaFS driver exists. Disabled and enabled plugin inventories are verified exactly in the ZIP.
+
+Driver startup must not reconnect every firmware device merely because a filesystem module was added. Broad controller binding is reserved for explicit custom non-filesystem driver paths or interactive rescans.
+
 ### Trust and verification
 
 Trust-sensitive mechanisms own signature, Secure Boot, MOK and related decisions where applicable. Trust state must be explicit and must not be reduced to a cosmetic warning after a decision has already been made.

@@ -1,0 +1,8 @@
+# Boot firmware filesystem drivers qualified for release packaging.
+# state   packaged EFI filename    versioned dist artifact prefix
+# All 'enabled' drivers are loaded from drivers_x64 before OS discovery.
+# 'disabled' drivers are shipped for later qualification, never auto-loaded.
+# To add AmigaFS, first build/validate its EFI driver, then add an entry
+# such as: enabled BootAmigaFS_x64.efi BootAmigaFS
+enabled  BootExt4_x64.efi        BootExt4
+disabled InfiltratorFS_x64.efi  InfiltratorFS

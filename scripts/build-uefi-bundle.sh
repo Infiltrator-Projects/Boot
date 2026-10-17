@@ -9,12 +9,10 @@ version="${3:-$(tr -d '\r\n' < "$root/VERSION")}"
 output="${4:-$dist/Boot-$version-x86_64-uefi.zip}"
 
 boot_efi="$dist/Boot-$version-x86_64.efi"
-ext4_efi="$dist/BootExt4-$version-x86_64.efi"
-fs_efi="$dist/InfiltratorFS-$version-x86_64.efi"
+driver_manifest="$root/filesystems/boot-driver-manifest.tsv"
+test -s "$driver_manifest"
 for required in \
     "$boot_efi" \
-    "$ext4_efi" \
-    "$fs_efi" \
     "$dist/boot.conf" \
     "$dist/mb-corpo-s-regular.png" \
     "$dist/mb-corpo-s-bold.png" \
@@ -37,16 +35,50 @@ mkdir -p "$boot_dir/drivers_x64" "$boot_dir/drivers-disabled" "$boot_dir/icons"
 
 install -m 0644 "$boot_efi" "$boot_dir/BOOTX64.EFI"
 
-# The current physical Linux target stores its kernel and initrd on ext4 rather
-# than on the FAT ESP. Boot therefore needs read-only ext4 access before it can
-# discover and launch the kernel EFI stub directly instead of chaining through
-# GRUB. This driver exposes only read operations; its EFI Write entry point
-# returns EFI_WRITE_PROTECTED.
-install -m 0644 "$ext4_efi" "$boot_dir/drivers_x64/BootExt4_x64.efi"
+# Enable only explicitly qualified filesystem drivers. The manifest is the
+# single staging authority; adding AmigaFS or further modules does not require
+# modifying Boot's loader. Disabled drivers are shipped separately and cannot
+# auto-load. Dist artifact names are derived from the same public version.
+python3 - "$driver_manifest" "$dist" "$boot_dir" "$version" <<'PY_DRIVERS'
+from pathlib import Path
+import re
+import shutil
+import sys
 
-# InfiltratorFS remains a separately qualified artifact and is not involved in
-# this ext4 Linux boot path. Keep it available without auto-loading it.
-install -m 0644 "$fs_efi" "$boot_dir/drivers-disabled/InfiltratorFS_x64.efi"
+manifest = Path(sys.argv[1])
+dist = Path(sys.argv[2])
+boot_dir = Path(sys.argv[3])
+version = sys.argv[4]
+loaded = {}
+enabled = 0
+for lineno, raw in enumerate(manifest.read_text(encoding="utf-8").splitlines(), 1):
+    entry = raw.strip()
+    if not entry or entry.startswith("#"):
+        continue
+    parts = entry.split()
+    if len(parts) != 3:
+        raise SystemExit(f"bad driver manifest line {lineno}: expected state, EFI filename, artifact prefix")
+    state, dest_name, prefix = parts
+    if state not in {"enabled", "disabled"}:
+        raise SystemExit(f"invalid driver state {state!r} on line {lineno}")
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*_x64[.]efi", dest_name):
+        raise SystemExit(f"invalid driver filename on line {lineno}")
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", prefix):
+        raise SystemExit(f"invalid artifact prefix on line {lineno}")
+    if dest_name in loaded:
+        raise SystemExit(f"duplicate driver {dest_name}")
+    loaded[dest_name] = state
+    source = dist / f"{prefix}-{version}-x86_64.efi"
+    if not source.is_file() or source.stat().st_size == 0:
+        raise SystemExit(f"missing or empty qualified driver: {source}")
+    dest_dir = "drivers_x64" if state == "enabled" else "drivers-disabled"
+    shutil.copyfile(source, boot_dir / dest_dir / dest_name)
+    if state == "enabled":
+        enabled += 1
+if not enabled:
+    raise SystemExit("no enabled filesystem drivers")
+print(f"Staged {enabled} enabled and {len(loaded) - enabled} disabled EFI drivers")
+PY_DRIVERS
 
 install -m 0644 "$dist/boot.conf" "$boot_dir/boot.conf"
 install -m 0644 "$dist/mb-corpo-s-regular.png" "$boot_dir/mb-corpo-s-regular.png"
@@ -69,13 +101,14 @@ cp -R "$icons_dir/." "$boot_dir/icons/"
 
 # Write the ZIP deterministically: sorted paths, fixed timestamps and stable
 # permissions. This makes the ready-to-copy UEFI bundle an exact release input.
-python3 - "$stage" "$output" <<'PY'
+python3 - "$stage" "$output" "$driver_manifest" <<'PY'
 from pathlib import Path
 import sys
 import zipfile
 
 stage = Path(sys.argv[1])
 output = Path(sys.argv[2])
+manifest = Path(sys.argv[3])
 output.parent.mkdir(parents=True, exist_ok=True)
 required = {
     'EFI/BOOT/BOOTX64.EFI',
@@ -95,8 +128,6 @@ required = {
     'EFI/BOOT/func_firmware.png',
     'EFI/BOOT/os_uefi.png',
     'EFI/BOOT/os_unknown.png',
-    'EFI/BOOT/drivers_x64/BootExt4_x64.efi',
-    'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi',
 }
 files = sorted(path for path in stage.rglob('*') if path.is_file())
 relative = {path.relative_to(stage).as_posix() for path in files}
@@ -104,9 +135,20 @@ missing = required - relative
 if missing:
     raise SystemExit(f'bundle is missing required files: {sorted(missing)}')
 
-infiltrator_active = 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi'
-if infiltrator_active in relative:
-    raise SystemExit('InfiltratorFS leaked into Boot auto-load path')
+expected_drivers = set()
+for raw in manifest.read_text(encoding="utf-8").splitlines():
+    entry = raw.strip()
+    if not entry or entry.startswith("#"):
+        continue
+    state, dest_name, prefix = entry.split()
+    target = 'drivers_x64' if state == 'enabled' else 'drivers-disabled'
+    expected_drivers.add(f'EFI/BOOT/{target}/{dest_name}')
+actual_drivers = {name for name in relative
+                  if name.startswith('EFI/BOOT/drivers_x64/') or
+                     name.startswith('EFI/BOOT/drivers-disabled/')}
+if actual_drivers != expected_drivers:
+    raise SystemExit(f'driver manifest/staging mismatch: expected {sorted(expected_drivers)}, got {sorted(actual_drivers)}')
+required.update(expected_drivers)
 
 for historical in (
     'EFI/BOOT/os_refind.png',
@@ -130,8 +172,11 @@ with zipfile.ZipFile(output, 'r') as archive:
     missing = required - names
     if missing:
         raise SystemExit(f'written bundle is missing required files: {sorted(missing)}')
-    if infiltrator_active in names:
-        raise SystemExit('written bundle contains an auto-loaded InfiltratorFS driver')
+    actual_drivers = {name for name in names
+                      if name.startswith('EFI/BOOT/drivers_x64/') or
+                         name.startswith('EFI/BOOT/drivers-disabled/')}
+    if actual_drivers != expected_drivers:
+        raise SystemExit('written bundle driver inventory does not match the manifest')
     bad = archive.testzip()
     if bad is not None:
         raise SystemExit(f'ZIP integrity failure at {bad}')

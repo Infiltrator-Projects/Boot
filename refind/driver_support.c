@@ -537,14 +537,15 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     MyFreePool(Handles);
 } // VOID ConnectFilesystemDriver()
 
-// Boot's bundled EFI drivers provide filesystems on disk partitions.
-// Connecting every firmware controller recursively here is unnecessarily
-// expensive and, on some firmware, can trigger peripheral initialization.
+// Bundled filesystem drivers may support GPT/MBR partitions, optical media,
+// or native whole-disk layouts (such as Amiga RDB). They expose standard UEFI
+// protocols and decide independently whether they support each block device.
 //
-// Connect only present partitions that do not already expose a filesystem.
-// The full legacy connection pass remains available for explicitly configured
-// custom driver directories and for interactive rescans.
-static VOID ConnectFilesystemPartitions(VOID) {
+// Restrict binding to media-bearing BlockIo handles with no filesystem;
+// never reconnect unrelated firmware controllers. In particular, do not
+// require LogicalPartition: it would prevent native whole-disk drivers from
+// discovering their own on-disk partition maps.
+static VOID ConnectFilesystemBlockDevices(VOID) {
     EFI_STATUS Status;
     EFI_HANDLE *Handles = NULL;
     UINTN Count = 0, Index, Attempted = 0, Connected = 0;
@@ -563,7 +564,7 @@ static VOID ConnectFilesystemPartitions(VOID) {
                                      &gMyEfiBlockIoProtocolGuid,
                                      (VOID **)&BlockIo);
         if (EFI_ERROR(Status) || BlockIo == NULL || BlockIo->Media == NULL ||
-            !BlockIo->Media->LogicalPartition || !BlockIo->Media->MediaPresent)
+            !BlockIo->Media->MediaPresent)
             continue;
 
         Fs = NULL;
@@ -582,9 +583,9 @@ static VOID ConnectFilesystemPartitions(VOID) {
 
     MyFreePool(Handles);
     LOG(1, LOG_LINE_NORMAL,
-        L"Filesystem partition binding: attempted %d, connected %d",
+        L"Filesystem block-device binding: attempted %d, connected %d",
         Attempted, Connected);
-} // static VOID ConnectFilesystemPartitions()
+} // static VOID ConnectFilesystemBlockDevices()
 
 // Scan a directory for drivers.
 // Originally from rEFIt's main.c (BSD), but modified since then (GPLv3).
@@ -652,14 +653,15 @@ BOOLEAN LoadDrivers(VOID) {
         MyFreePool(Directory);
     } // while
 
-    // The default bundled ext4 driver needs only filesystem partition
-    // bindings. Preserve the broad firmware controller pass for explicitly
-    // configured extra drivers, which may expose other protocols.
+    // Any number of bundled filesystem drivers can coexist in drivers_x64.
+    // Their Supported() checks decide which block-device handles to bind.
+    // Preserve the broad firmware pass for explicitly configured non-filesystem
+    // drivers that may expose other protocols.
     if (NumFound > 0) {
         if (GlobalConfig.DriverDirs != NULL && GlobalConfig.DriverDirs[0] != 0)
             ConnectAllDriversToAllControllers();
         else
-            ConnectFilesystemPartitions();
+            ConnectFilesystemBlockDevices();
     }
     return (NumFound > 0);
 } /* BOOLEAN LoadDrivers() */

@@ -57,17 +57,33 @@ jobs:
           python3 - <<'PY_BOOT_DRIVER_BINDING'
           from pathlib import Path
           s = Path('refind/driver_support.c').read_text()
-          assert 'static VOID ConnectFilesystemPartitions(VOID)' in s
-          assert '!BlockIo->Media->LogicalPartition' in s
+          assert 'static VOID ConnectFilesystemBlockDevices(VOID)' in s
           assert '!BlockIo->Media->MediaPresent' in s
+          assert 'static VOID ConnectFilesystemBlockDevices(VOID)' in s
+          assert '!BlockIo->Media->LogicalPartition' not in s
           assert '&gMyEfiSimpleFileSystemProtocolGuid' in s
           assert 'if (!EFI_ERROR(Status))\n            NumFound++;' in s
           assert 'GlobalConfig.DriverDirs[0] != 0' in s
-          assert 'ConnectAllDriversToAllControllers();\n        else\n            ConnectFilesystemPartitions();' in s
+          assert 'ConnectAllDriversToAllControllers();\n        else\n            ConnectFilesystemBlockDevices();' in s
           startup = s[s.index('BOOLEAN LoadDrivers(VOID)'):]
           assert startup.count('ConnectAllDriversToAllControllers();') == 1
-          assert startup.count('ConnectFilesystemPartitions();') == 1
+          assert startup.count('ConnectFilesystemBlockDevices();') == 1
+          assert 'IsDriver && !EFI_ERROR(Status)' in Path('refind/launch_efi.c').read_text()
           PY_BOOT_DRIVER_BINDING
+          python3 - <<'PY_BOOT_DRIVER_MANIFEST'
+          from pathlib import Path
+          p = Path('filesystems/boot-driver-manifest.tsv')
+          entries = [line.split() for line in p.read_text().splitlines()
+                     if line.strip() and not line.lstrip().startswith('#')]
+          assert entries
+          assert all(len(row) == 3 and row[0] in ('enabled', 'disabled') for row in entries)
+          assert len({row[1] for row in entries}) == len(entries)
+          assert ('enabled', 'BootExt4_x64.efi', 'BootExt4') in [tuple(row) for row in entries]
+          assert ('disabled', 'InfiltratorFS_x64.efi', 'InfiltratorFS') in [tuple(row) for row in entries]
+          bundler = Path('scripts/build-uefi-bundle.sh').read_text()
+          assert 'driver_manifest="$root/filesystems/boot-driver-manifest.tsv"' in bundler
+          assert 'actual_drivers != expected_drivers' in bundler
+          PY_BOOT_DRIVER_MANIFEST
           python3 - <<'PY_BOOT_LINUX_SPLASH'
           from pathlib import Path
           source = Path('refind/config.c').read_text()

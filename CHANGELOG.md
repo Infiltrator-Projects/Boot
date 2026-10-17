@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.16 — 2026-10-18
+
+- Generalise Boot's targeted driver binding from GPT/MBR logical partitions to any present BlockIo volume lacking a filesystem, including native whole-disk layouts that future Amiga RDB drivers may need.
+- Keep boot discovery filesystem-agnostic: all qualified drivers in the active directory register their own EFI filesystem bindings, while Boot accesses the resulting standard SimpleFileSystem handles.
+- Add a version-aware filesystem driver manifest to release packaging. It controls enabled versus disabled bundles and ensures the ZIP driver inventory exactly matches explicitly qualified release artifacts, avoiding hard-coded ext4-only packaging.
+- Continue to ship read-only ext4 active for the real Linux boot path and unqualified InfiltratorFS disabled. AmigaFS is not shipped until implemented and separately qualified.
+- Avoid recovery binding when an EFI driver's entry point fails to start; no GRUB, NVRAM, or installed ESP files are touched.
+
 ## 0.1.15 — 2026-10-18
 
 - Replace the broad all-controller reconnect in the standard bundled filesystem-driver startup path with a targeted pass over present logical disk partitions that lack SimpleFileSystem.
