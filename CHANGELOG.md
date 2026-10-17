@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6 — 2026-10-17
+
+- Load EFI drivers from Boot-owned memory buffers after Boot has opened and validated them, avoiding firmware device-path re-resolution failures observed on real Dell UEFI hardware.
+- Keep OS-loader handoff path-backed so Linux, Windows and macOS loader semantics are unchanged.
+- Preserve the existing `drivers_x64` runtime layout and InfiltratorFS binary contract; this release changes Boot's driver-loading path rather than the filesystem parser.
+
 ## 0.1.5 — 2026-10-17
 
 - Generate Boot's InfiltratorOS OS icon from the canonical pinned `InfiltratorOS/assets/infiltratoros.png` artwork and verify its exact Git blob identity before conversion.
