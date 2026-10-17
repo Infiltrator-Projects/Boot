@@ -6,7 +6,7 @@
 - Keep the separately built InfiltratorFS EFI driver under `EFI/BOOT/drivers-disabled/` in the ready-to-copy bundle instead of placing it in Boot's auto-loaded `drivers_x64` path when it is not required for ordinary OS handoff.
 - Hide the inherited embedded banner by default and restrict the development-preview utility row to reboot, shutdown and firmware setup, removing inherited installer/boot-order surfaces from the normal Boot test UI.
 - Place runtime menu PNGs beside `BOOTX64.EFI` and configure `icons_dir .`, following physical evidence that direct self-directory assets loaded while inherited icon-subdirectory lookups fell back to dummy graphics on the Dell firmware.
-- Increase generated MB Corpo firmware typography from 18px to 30px for practical readability on the tested 1920x1080 laptop display.
+- Increase generated MB Corpo firmware typography from 18px to 30px after the physical laptop test showed the previous atlas was too small for comfortable reading.
 - Extend CI so the verified bundle must contain the optional driver only in `drivers-disabled`, must contain the direct runtime InfiltratorOS icon, and must enforce the revised Boot presentation configuration.
 
 ## 0.1.7 — 2026-10-17
