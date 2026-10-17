@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.7 — 2026-10-17
+
+- Complete Boot's memory-backed EFI driver path by passing no device path to firmware `LoadImage()` when a validated driver image is already supplied in memory.
+- Remove the remaining firmware filesystem/device-path dependency from InfiltratorFS driver loading while leaving OS-loader handoff unchanged.
+- Follow the UEFI memory-to-memory `LoadImage()` contract so real firmware cannot re-resolve the driver file path during this load operation.
+
 ## 0.1.6 — 2026-10-17
 
 - Load EFI drivers from Boot-owned memory buffers after Boot has opened and validated them, avoiding firmware device-path re-resolution failures observed on real Dell UEFI hardware.
