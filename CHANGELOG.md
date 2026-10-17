@@ -1,11 +1,25 @@
 # Changelog
 
-## Development preview 0.1.2 — 2026-10-17
+## 0.1.4 — 2026-10-17
 
-- Publish the exact GNU-EFI x86-64 Boot application produced by CI as a versioned EFI development artifact.
+- Generate Boot-compatible firmware bitmap atlases from the canonical pinned MB Corpo archive used by InfiltratorOS.
+- Verify the archive and all three source faces against their canonical SHA-256 identities before generation.
+- Publish MB Corpo S Regular, MB Corpo S Bold and MB Corpo A Title Cond Regular firmware atlases with the Boot release.
+- Configure Boot to use MB Corpo S Regular for its current single-font firmware UI.
+- Include font provenance and all generated font assets in the release checksum manifest.
+
+## 0.1.3 — 2026-10-17
+
+- Rename Boot's runtime configuration contract from the inherited `refind.conf` name to `boot.conf`.
+- Publish `boot.conf` as a verified release asset beside the EFI binaries.
+- Keep removable-media qualification state off motherboard NVRAM by default while physical testing is in progress.
+
+## 0.1.2 — 2026-10-17
+
+- Publish the exact GNU-EFI x86-64 Boot application produced by CI as a versioned EFI artifact.
 - Publish the exact read-only InfiltratorFS EFI driver produced by the same build.
 - Seal both EFI binaries, the tracked source archive and source-commit identity in one SHA-256 manifest and verify the complete remote release before and after publication.
-- Keep firmware-runtime, Secure Boot, persistent-installation and recovery qualification explicitly separate; the preview performs no installation and does not modify ESP or NVRAM state.
+- Keep firmware-runtime, Secure Boot, persistent-installation and recovery qualification explicitly separate; the release performs no installation and does not modify ESP or NVRAM state.
 
 ## Source preview 0.1.0 — 2026-10-16
 
