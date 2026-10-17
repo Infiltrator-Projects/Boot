@@ -78,13 +78,21 @@ def atlas_text(atlas_path, text, colour, gap=3, scale=1.0):
     if atlas.width % 96:
         raise SystemExit(f'{atlas_path} is not a 96-cell firmware atlas')
     cell = atlas.width // 96
+    # Row zero is the IB metric header, not part of the font artwork.
+    # Rendering it produced false dots above the product title and EFI glyphs.
+    if not all(
+        (atlas.getpixel((index * cell, 0))[1:4] == (0x49, 0x42, 255))
+        for index in range(96)
+    ):
+        raise SystemExit(f'{atlas_path} lacks complete embedded IB metrics')
+    glyph_top = 1
     pieces = []
     total_width = 0
     max_height = 1
 
     for character in text:
         index = ord(character) - 32 if 32 <= ord(character) < 127 else 95
-        glyph = atlas.crop((index * cell, 0, (index + 1) * cell, atlas.height))
+        glyph = atlas.crop((index * cell, glyph_top, (index + 1) * cell, atlas.height))
         bbox = glyph.getchannel('A').getbbox()
         if bbox is None:
             width = max(4, (cell * 2) // 5)
@@ -115,25 +123,17 @@ def atlas_text(atlas_path, text, colour, gap=3, scale=1.0):
     return image
 
 
-# Product banner: InfiltratorOS product mark plus Boot's own name, rendered from
-# the canonical brand face on the canonical night surface.
+# Product banner: show the canonical InfiltratorOS artwork alone.
+# The product mark replaces the inherited Boot wordmark; it must not be
+# accompanied by a separately rendered 'BOOT' label.
 banner = Image.new('RGBA', (640, 120), BG)
 logo = Image.open(os_icon_path).convert('RGBA')
 logo_bbox = logo.getchannel('A').getbbox()
 if logo_bbox:
     logo = logo.crop(logo_bbox)
-logo.thumbnail((82, 82), Image.Resampling.LANCZOS)
-word = atlas_text(brand_atlas_path, 'BOOT', TITLE, gap=4, scale=1.55)
-combined_width = logo.width + 30 + word.width
-start_x = (banner.width - combined_width) // 2
-logo_y = (banner.height - logo.height) // 2
-word_y = (banner.height - word.height) // 2 - 2
-banner.alpha_composite(logo, (start_x, logo_y))
-banner.alpha_composite(word, (start_x + logo.width + 30, word_y))
-draw = ImageDraw.Draw(banner)
-line_x = start_x + logo.width + 30
-line_y = min(banner.height - 12, word_y + word.height + 10)
-draw.rounded_rectangle((line_x, line_y, line_x + min(word.width, 150), line_y + 3), radius=1, fill=ACCENT)
+logo.thumbnail((108, 108), Image.Resampling.LANCZOS)
+banner.alpha_composite(logo, ((banner.width - logo.width) // 2,
+                              (banner.height - logo.height) // 2))
 banner.save(out_dir / 'boot-banner.png', format='PNG', optimize=False)
 
 
