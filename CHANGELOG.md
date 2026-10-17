@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.10 — 2026-10-17
+
+- Add an active read-only ext4 EFI filesystem driver to the removable Boot bundle so Boot can read Linux kernels and initrds stored on ext4 instead of seeing only ESP-resident loaders such as `EFI\\ubuntu\\grubx64.efi`.
+- Explicitly scan Linux kernels, fold older kernels behind the current kernel, and prefer a `vmlinuz` EFI-stub entry as the default selection while leaving GRUB discoverable as a fallback during physical qualification.
+- Keep InfiltratorFS disabled for this path; the ext4 driver is the only newly active filesystem driver and its EFI write operation returns `EFI_WRITE_PROTECTED`.
+- Isolate ext4 and InfiltratorFS filesystem-driver object builds so driver-specific compiler flags cannot contaminate one another through shared object filenames.
+- Verify PE32+ x86-64 machine and EFI subsystem contracts for Boot, ext4 and InfiltratorFS build outputs rather than relying on filename or `file` output alone.
+- Preserve the canonical MB Corpo face's actual FreeType glyph advances, side bearings and baseline geometry inside the generated firmware atlas; the runtime now consumes those embedded metrics rather than estimating spacing from glyph ink bounds.
+- Record physical 0.1.9 evidence that Boot's Linux choice still chained through Ubuntu GRUB and that the first proportional-font correction improved readability without yet reproducing the canonical MB typography faithfully enough.
+
 ## 0.1.9 — 2026-10-17
 
 - Replace the inherited pale firmware presentation with a Boot-owned theme generated from the pinned `Infiltrator-Projects/Libraries` `infiltrator-design-v1` night palette, including the canonical `#050608` background, `#2B3137` selection surface and `#00ADEF` neutral accent.
