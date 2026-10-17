@@ -58,10 +58,11 @@ jobs:
           from pathlib import Path
           s = Path('refind/driver_support.c').read_text()
           assert 'static VOID ConnectFilesystemBlockDevices(VOID)' in s
-          assert '!BlockIo->Media->MediaPresent' in s
-          assert 'static VOID ConnectFilesystemBlockDevices(VOID)' in s
-          assert '!BlockIo->Media->LogicalPartition' not in s
-          assert '&gMyEfiSimpleFileSystemProtocolGuid' in s
+          targeted = s[s.index('static VOID ConnectFilesystemBlockDevices(VOID)'):
+                       s.index('} // static VOID ConnectFilesystemBlockDevices()')]
+          assert '!BlockIo->Media->MediaPresent' in targeted
+          assert '!BlockIo->Media->LogicalPartition' not in targeted
+          assert '&gMyEfiSimpleFileSystemProtocolGuid' in targeted
           assert 'if (!EFI_ERROR(Status))\n            NumFound++;' in s
           assert 'GlobalConfig.DriverDirs[0] != 0' in s
           assert 'ConnectAllDriversToAllControllers();\n        else\n            ConnectFilesystemBlockDevices();' in s
