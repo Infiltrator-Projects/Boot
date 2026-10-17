@@ -95,6 +95,14 @@ jobs:
           banner = Image.open(sys.argv[2]).convert('RGBA')
           assert banner.size == (640, 120)
           assert banner.getpixel((0, 0))[:3] == (5, 6, 8)
+          background = banner.getpixel((0, 0))
+          # The InfiltratorOS artwork must replace the wordmark, not sit
+          # beside an additional 'BOOT' text glyph or metric-row artifacts.
+          assert all(banner.getpixel((x, y)) == background
+                     for y in range(120)
+                     for x in list(range(220)) + list(range(420, 640))), 'unexpected banner text outside logo'
+          assert any(banner.getpixel((x, y)) != background
+                     for y in range(120) for x in range(240, 400)), 'missing InfiltratorOS artwork'
           selection = Image.open(sys.argv[3]).convert('RGBA')
           assert selection.size == (288, 288)
           PY
