@@ -37,9 +37,15 @@ jobs:
           grep -q '^selection_big boot-selection-big\.png$' boot.conf
           grep -q '^selection_small boot-selection-small\.png$' boot.conf
           grep -q '^font mb-corpo-s-regular\.png$' boot.conf
+          grep -q '^scan_all_linux_kernels true$' boot.conf
+          grep -q '^fold_linux_kernels true$' boot.conf
+          grep -q '^default_selection vmlinuz$' boot.conf
           grep -q '^hideui badges hints$' boot.conf
           grep -q '^showtools reboot,shutdown,firmware$' boot.conf
+          grep -q 'return EFI_WRITE_PROTECTED;' filesystems/fsw_efi.c
           test -s boot.conf
+          test -s filesystems/ext4_x64.efi
+          test -s filesystems/infiltratorfs_x64.efi
           mkdir -p dist
           bash scripts/build-mb-fonts.sh dist
           test -s dist/mb-corpo-s-regular.png
@@ -72,7 +78,18 @@ jobs:
           from PIL import Image
           font = Image.open(sys.argv[1]).convert('RGBA')
           assert font.width % 96 == 0
-          opaque = [p for p in font.getdata() if p[3] > 16]
+          cell = font.width // 96
+          advances = []
+          for index in range(96):
+              r, g, b, a = font.getpixel((index * cell, 0))
+              assert (g, b, a) == (0x49, 0x42, 255), f'missing IB metric marker at glyph {index}'
+              assert r > 0, f'zero glyph advance at glyph {index}'
+              advances.append(r)
+          assert len(set(advances)) > 8, 'MB proportional advances collapsed toward fixed-width rendering'
+          opaque = [font.getpixel((x, y))
+                    for y in range(1, font.height)
+                    for x in range(font.width)
+                    if font.getpixel((x, y))[3] > 16]
           assert opaque, 'font atlas has no visible glyph pixels'
           assert max(p[0] + p[1] + p[2] for p in opaque) < 96, 'font master must be dark for renderer contrast inversion'
           banner = Image.open(sys.argv[2]).convert('RGBA')
@@ -84,6 +101,7 @@ jobs:
           cp "$icons_dir/os_infiltratoros.png" dist/os_infiltratoros.png
           cp "$icons_dir/ICON_PROVENANCE.txt" dist/ICON_PROVENANCE.txt
           cp refind/refind_x64.efi "dist/Boot-$version-x86_64.efi"
+          cp filesystems/ext4_x64.efi "dist/BootExt4-$version-x86_64.efi"
           cp filesystems/infiltratorfs_x64.efi "dist/InfiltratorFS-$version-x86_64.efi"
           cp boot.conf dist/boot.conf
           bash scripts/build-uefi-bundle.sh dist "$icons_dir" "$version"
@@ -92,6 +110,7 @@ jobs:
           import sys, zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names = set(z.namelist())
+          assert 'EFI/BOOT/drivers_x64/BootExt4_x64.efi' in names
           assert 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi' not in names
           assert 'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi' in names
           assert 'EFI/BOOT/os_infiltratoros.png' in names
@@ -154,7 +173,7 @@ jobs:
             git push origin "refs/tags/$tag"
           fi
           if ! gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"; then
-            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Boot release. GNU-EFI x86-64 compilation and vendored-source identity are verified. Includes a ready-to-copy UEFI bundle containing the Boot EFI application, Boot-owned boot.conf, proportional MB Corpo firmware typography, canonical Infiltrator night-palette theme assets generated from the pinned Libraries design contract, direct runtime icons including product-owned InfiltratorOS artwork, and the separately built InfiltratorFS driver retained under drivers-disabled rather than an auto-loaded driver path. Firmware runtime, Secure Boot, persistent installation and recovery qualification remain separate evidence; no installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
+            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Boot release. GNU-EFI x86-64 compilation and vendored-source identity are verified. The ready-to-copy bundle contains the Boot EFI application, Boot-owned boot.conf, MB Corpo firmware typography with embedded native proportional metrics, canonical Infiltrator night-palette presentation assets, a read-only active ext4 EFI filesystem driver so Boot can discover Linux kernels and initrds outside the FAT ESP, and the separately built InfiltratorFS driver retained under drivers-disabled. GRUB remains discoverable as a fallback while direct Linux kernel handoff is being physically qualified. Firmware runtime, Secure Boot, persistent installation and recovery qualification remain separate evidence; no installer is provided and this workflow never modifies an EFI System Partition or NVRAM."
             gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"
           fi
           draft=$(jq -r .isDraft "$RUNNER_TEMP/release-state")
