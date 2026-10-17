@@ -17,6 +17,10 @@ for required in \
     "$dist/mb-corpo-s-regular.png" \
     "$dist/mb-corpo-s-bold.png" \
     "$dist/mb-corpo-a-cond-regular.png" \
+    "$dist/boot-banner.png" \
+    "$dist/boot-selection-big.png" \
+    "$dist/boot-selection-small.png" \
+    "$dist/THEME_PROVENANCE.txt" \
     "$icons_dir/os_infiltratoros.png"; do
     test -s "$required"
 done
@@ -40,6 +44,10 @@ install -m 0644 "$dist/boot.conf" "$boot_dir/boot.conf"
 install -m 0644 "$dist/mb-corpo-s-regular.png" "$boot_dir/mb-corpo-s-regular.png"
 install -m 0644 "$dist/mb-corpo-s-bold.png" "$boot_dir/mb-corpo-s-bold.png"
 install -m 0644 "$dist/mb-corpo-a-cond-regular.png" "$boot_dir/mb-corpo-a-cond-regular.png"
+install -m 0644 "$dist/boot-banner.png" "$boot_dir/boot-banner.png"
+install -m 0644 "$dist/boot-selection-big.png" "$boot_dir/boot-selection-big.png"
+install -m 0644 "$dist/boot-selection-small.png" "$boot_dir/boot-selection-small.png"
+install -m 0644 "$dist/THEME_PROVENANCE.txt" "$boot_dir/THEME_PROVENANCE.txt"
 
 # Physical Dell firmware successfully loaded direct PNG assets beside
 # BOOTX64.EFI but every inherited icons/<name> lookup fell back to dummy
@@ -69,9 +77,18 @@ required = {
     'EFI/BOOT/mb-corpo-s-regular.png',
     'EFI/BOOT/mb-corpo-s-bold.png',
     'EFI/BOOT/mb-corpo-a-cond-regular.png',
+    'EFI/BOOT/boot-banner.png',
+    'EFI/BOOT/boot-selection-big.png',
+    'EFI/BOOT/boot-selection-small.png',
+    'EFI/BOOT/THEME_PROVENANCE.txt',
     'EFI/BOOT/os_infiltratoros.png',
     'EFI/BOOT/os_infiltrator.png',
     'EFI/BOOT/os_infiltratorboot.png',
+    'EFI/BOOT/func_reset.png',
+    'EFI/BOOT/func_shutdown.png',
+    'EFI/BOOT/func_firmware.png',
+    'EFI/BOOT/os_uefi.png',
+    'EFI/BOOT/os_unknown.png',
     'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi',
 }
 files = sorted(path for path in stage.rglob('*') if path.is_file())
