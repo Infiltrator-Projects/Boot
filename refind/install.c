@@ -309,96 +309,11 @@ static EFI_STATUS CopyDirectory(IN EFI_FILE_PROTOCOL *SourceDirPtr,
     return (Status);
 } // EFI_STATUS CopyDirectory()
 
-// Copy Linux drivers for detected filesystems, but not for undetected filesystems.
-// Note: Does NOT copy HFS+ driver on Apple hardware even if HFS+ is detected;
-// but it DOES copy the HFS+ driver on non-Apple hardware if HFS+ is detected,
-// even though HFS+ is not technically a Linux filesystem, since HFS+ CAN be used
-// as a Linux /boot partition. That's weird, but it does work.
-static EFI_STATUS CopyDrivers(IN EFI_FILE_PROTOCOL *SourceDirPtr,
-                              IN CHAR16 *SourceDirName,
-                              IN EFI_FILE_PROTOCOL *DestDirPtr,
-                              IN CHAR16 *DestDirName) {
-    CHAR16          *DestFileName = NULL, *SourceFileName = NULL;
-    CHAR16          *DriverName = NULL; // Note: Assign to string constants; do not free.
-    EFI_STATUS      Status = EFI_SUCCESS;
-    EFI_STATUS      WorstStatus = EFI_SUCCESS;
-    BOOLEAN         DriverCopied[NUM_FS_TYPES];
-    UINTN           i;
-
-    for (i = 0; i < NUM_FS_TYPES; i++)
-        DriverCopied[i] = FALSE;
-
-    LOG(1, LOG_LINE_NORMAL, L"Scanning %d volumes for identifiable filesystems", VolumesCount);
-    for (i = 0; i < VolumesCount; i++) {
-        LOG(3, LOG_LINE_NORMAL, L"Looking for driver for volume # %d, '%s'", i, Volumes[i]->VolName);
-        DriverName = NULL;
-        switch (Volumes[i]->FSType) {
-
-            case FS_TYPE_BTRFS:
-                if (DriverCopied[FS_TYPE_BTRFS] == FALSE) {
-                    DriverName = L"btrfs";
-                    DriverCopied[FS_TYPE_BTRFS] = TRUE;
-                }
-                break;
-
-            case FS_TYPE_EXT2:
-                if (DriverCopied[FS_TYPE_EXT2] == FALSE) {
-                    DriverName = L"ext2";
-                    DriverCopied[FS_TYPE_EXT2] = TRUE;
-                    DriverCopied[FS_TYPE_EXT3] = TRUE;
-                }
-                break;
-
-            case FS_TYPE_EXT3:
-                if (DriverCopied[FS_TYPE_EXT3] == FALSE) {
-                    DriverName = L"ext2";
-                    DriverCopied[FS_TYPE_EXT2] = TRUE;
-                    DriverCopied[FS_TYPE_EXT3] = TRUE;
-                }
-                break;
-
-            case FS_TYPE_EXT4:
-                if (DriverCopied[FS_TYPE_EXT4] == FALSE) {
-                    DriverName = L"ext4";
-                    DriverCopied[FS_TYPE_EXT4] = TRUE;
-                }
-                break;
-
-            case FS_TYPE_REISERFS:
-                if (DriverCopied[FS_TYPE_REISERFS] == FALSE) {
-                    DriverName = L"reiserfs";
-                    DriverCopied[FS_TYPE_REISERFS] = TRUE;
-                }
-                break;
-
-            case FS_TYPE_HFSPLUS:
-                if ((DriverCopied[FS_TYPE_HFSPLUS] == FALSE) && (!MyStriCmp(L"Apple", ST->FirmwareVendor))) {
-                    DriverName = L"hfs";
-                    DriverCopied[FS_TYPE_HFSPLUS] = TRUE;
-                }
-                break;
-
-        } // switch
-        if (DriverName) {
-            SourceFileName = PoolPrint(L"%s\\%s%s", SourceDirName, DriverName, INST_PLATFORM_EXTENSION);
-            DestFileName = PoolPrint(L"%s\\%s%s", DestDirName, DriverName, INST_PLATFORM_EXTENSION);
-            LOG(1, LOG_LINE_NORMAL, L"Trying to copy driver for %s", DriverName);
-            Status = CopyOneFile(SourceDirPtr, SourceFileName, DestDirPtr, DestFileName);
-            if (EFI_ERROR(Status))
-                WorstStatus = Status;
-            MyFreePool(SourceFileName);
-            MyFreePool(DestFileName);
-        } // if
-    } // for
-
-    return (WorstStatus);
-} // EFI_STATUS CopyDrivers()
-
 // Copy all the files from the source to *TargetDir
 static EFI_STATUS CopyFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
     REFIT_VOLUME    *SourceVolume = NULL; // Do not free
     CHAR16          *SourceFile = NULL, *SourceDir, *ConfFile;
-    CHAR16          *SourceDriversDir, *TargetDriversDir, *RefindName;
+    CHAR16          *RefindName;
     EFI_STATUS      Status;
     EFI_STATUS      WorstStatus = EFI_SUCCESS;
 
@@ -451,16 +366,8 @@ static EFI_STATUS CopyFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
         }
         MyFreePool(SourceFile);
 
-        // Now copy drivers....
-        SourceDriversDir = PoolPrint(L"%s\\%s", SourceDir, INST_DRIVERS_SUBDIR);
-        TargetDriversDir = PoolPrint(L"EFI\\refind\\%s", INST_DRIVERS_SUBDIR);
-        Status = CopyDrivers(SourceVolume->RootDir, SourceDriversDir, TargetDir, TargetDriversDir);
-        if (EFI_ERROR(Status)) {
-            LOG(1, LOG_LINE_NORMAL, L"Error %d copying drivers", Status);
-            WorstStatus = Status;
-        }
-        MyFreePool(SourceDriversDir);
-        MyFreePool(TargetDriversDir);
+        // Filesystem modules are installed independently by Filesystems/Setup.
+        // Installing or updating Boot must not select or replace those modules.
     }
     MyFreePool(SourceDir);
     return (WorstStatus);

@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnu-efi gcc make binutils curl xz-utils python3-pil
-      - name: Verify pinned source and full GNU-EFI build
+      - name: Verify independent Boot GNU-EFI build
         shell: bash
         run: |
           set -euo pipefail
@@ -70,21 +70,9 @@ jobs:
           assert startup.count('ConnectFilesystemBlockDevices();') == 1
           assert 'IsDriver && !EFI_ERROR(Status)' in Path('refind/launch_efi.c').read_text()
           PY_BOOT_DRIVER_BINDING
-          python3 - <<'PY_BOOT_DRIVER_MANIFEST'
-          from pathlib import Path
-          p = Path('filesystems/boot-driver-manifest.tsv')
-          entries = [line.split() for line in p.read_text().splitlines()
-                     if line.strip() and not line.lstrip().startswith('#')]
-          assert entries
-          assert all(len(row) == 3 and row[0] in ('enabled', 'disabled') for row in entries)
-          assert len({row[1] for row in entries}) == len(entries)
-          assert ('enabled', 'BootExt4_x64.efi', 'BootExt4') in [tuple(row) for row in entries]
-          assert not any('InfiltratorFS' in col for row in entries for col in row)
-          assert all(row[0] == 'enabled' for row in entries)
-          bundler = Path('scripts/build-uefi-bundle.sh').read_text()
-          assert 'driver_manifest="$root/filesystems/boot-driver-manifest.tsv"' in bundler
-          assert 'actual_drivers != expected_drivers' in bundler
-          PY_BOOT_DRIVER_MANIFEST
+          # The manager must build with no filesystem implementation checkout.
+          test ! -e filesystems
+          test ! -e scripts/vendor-infiltratorfs.sh
           python3 - <<'PY_BOOT_LINUX_SPLASH'
           from pathlib import Path
           source = Path('refind/config.c').read_text()
@@ -116,13 +104,10 @@ jobs:
           assert 'L"menuentry"' in config and 'L"volume"' in config
           assert 'L"loader"' in config and 'L"initrd"' in config
           assert 'L"options"' in config
-          assert 'menuentry "Linux from OFS SD"' in Path('boot.conf').read_text()
           PY_BOOT_CONFIG_OWNERSHIP
           grep -q '^hideui badges hints$' boot.conf
           grep -q '^showtools reboot,shutdown,firmware$' boot.conf
-          grep -q 'return EFI_WRITE_PROTECTED;' filesystems/fsw_efi.c
           test -s boot.conf
-          test -s filesystems/ext4_x64.efi
           mkdir -p dist
           bash scripts/build-mb-fonts.sh dist
           test -s dist/mb-corpo-s-regular.png
@@ -186,7 +171,6 @@ jobs:
           cp "$icons_dir/os_infiltratoros.png" dist/os_infiltratoros.png
           cp "$icons_dir/ICON_PROVENANCE.txt" dist/ICON_PROVENANCE.txt
           cp refind/refind_x64.efi "dist/Boot-$version-x86_64.efi"
-          cp filesystems/ext4_x64.efi "dist/BootExt4-$version-x86_64.efi"
           cp boot.conf dist/boot.conf
           bash scripts/build-uefi-bundle.sh dist "$icons_dir" "$version"
           bash packaging/build-deb.sh "dist/Boot-$version-x86_64-uefi.zip" "dist/infiltrator-boot_${version}_amd64.deb"
@@ -204,9 +188,8 @@ jobs:
           import sys, zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names = set(z.namelist())
-          assert 'EFI/BOOT/drivers_x64/BootExt4_x64.efi' in names
-          assert 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi' not in names
-          assert not any('InfiltratorFS' in name or 'drivers-disabled/' in name for name in names)
+          assert {name for name in names if name.lower().endswith('.efi')} == {'EFI/BOOT/BOOTX64.EFI'}
+          assert not any('/drivers_' in name or '/drivers-disabled/' in name for name in names)
           assert 'EFI/BOOT/os_infiltratoros.png' in names
           assert 'EFI/BOOT/boot-banner.png' in names
           assert 'EFI/BOOT/boot-selection-big.png' in names
@@ -286,7 +269,7 @@ jobs:
             git push origin "refs/tags/$tag"
           fi
           if ! gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"; then
-            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Infiltrator Boot $version for x86-64 UEFI. Install the verified infiltrator-boot Debian package from the Infiltrator APT repository or download the DEB here. Its payload includes Boot, its configuration template, fonts, artwork and qualified filesystem drivers. APT installs the managed package; activation on an existing EFI System Partition is a deliberate separate operation: sudo infiltrator-boot-deploy --update-existing --confirm. This leaves the existing boot.conf, separately installed drivers and NVRAM unchanged. The EFI bundle and individual build products are validated in CI, not published as duplicate release assets. Physical firmware, Secure Boot and recovery qualification remain separate."
+            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Infiltrator Boot $version for x86-64 UEFI. Install the verified infiltrator-boot Debian package from the Infiltrator APT repository or download the DEB here. Its payload includes Boot, its configuration template, fonts and artwork; filesystem drivers are supplied independently by Filesystems. APT installs the managed package; activation on an existing EFI System Partition is a deliberate separate operation: sudo infiltrator-boot-deploy --update-existing --confirm. This leaves the existing boot.conf, separately installed drivers and NVRAM unchanged. The EFI bundle and individual build products are validated in CI, not published as duplicate release assets. Physical firmware, Secure Boot and recovery qualification remain separate."
             gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"
           fi
           draft=$(jq -r .isDraft "$RUNNER_TEMP/release-state")

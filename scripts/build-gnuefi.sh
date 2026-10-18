@@ -4,48 +4,35 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 test "$(uname -m)" = x86_64
 test -f "$root/Make.common"
-files="$(dpkg -L gnu-efi)"
+gnu_efi_prefix="${GNU_EFI_PREFIX:-/usr}"
+if [[ -n ${GNU_EFI_PREFIX:-} ]]; then
+    files="$(find "$gnu_efi_prefix/lib" -type f -print)"
+else
+    files="$(dpkg -L gnu-efi)"
+fi
 crt="$(grep '/crt0-efi-x86_64\.o$' <<< "$files" | head -n1)"
 efi="$(grep '/libefi\.a$' <<< "$files" | head -n1)"
 gnu="$(grep '/libgnuefi\.a$' <<< "$files" | head -n1)"
 test -f "$crt" && test -f "$efi" && test -f "$gnu"
-options=(ARCH=x86_64 EFIINC=/usr/include/efi
+options=(ARCH=x86_64 "EFIINC=$gnu_efi_prefix/include/efi"
          "EFICRT0=$(dirname "$crt")" "EFILIB=$(dirname "$efi")" "GNUEFILIB=$(dirname "$gnu")")
 
 # Build/link only. Installation, ESP writes and NVRAM mutation are separate.
 make -C "$root" gnuefi "${options[@]}"
 
-# Transitional ext4 reader: retain existing Linux boot discovery until a
-# Filesystems-owned replacement is separately built and qualified.
-rm -f "$root/filesystems"/*.o "$root/filesystems"/*.so "$root/filesystems"/*.efi
-make -C "$root/filesystems" ext4_gnuefi "${options[@]}"
-
 test -s "$root/refind/refind_x64.efi"
-test -s "$root/filesystems/ext4_x64.efi"
-test -s "$root/drivers_x64/ext4_x64.efi"
-file "$root/refind/refind_x64.efi" \
-     "$root/filesystems/ext4_x64.efi"
-
-for shared in "$root/filesystems/ext4_x64.so"; do
-    unresolved="$(nm -u "$shared")"
-    if grep -Eq ' (fopen|open|read|write|lseek|mmap|pthread_[[:alnum:]_]*|dlopen|clock_gettime|gettimeofday|getenv|_Exit|fprintf|fputc|ferror|snprintf|__ctype_b_loc)$' <<< "$unresolved"; then
-        echo "Host runtime dependency in EFI filesystem driver: $shared" >&2
-        exit 1
-    fi
-done
+file "$root/refind/refind_x64.efi"
 
 # Do not rely on `file`'s prose alone. Verify the PE/COFF machine and subsystem
 # contracts Boot and firmware actually consume.
 python3 - \
-    "$root/refind/refind_x64.efi" \
-    "$root/filesystems/ext4_x64.efi" <<'PY'
+    "$root/refind/refind_x64.efi" <<'PY'
 from pathlib import Path
 import struct
 import sys
 
 expected = {
     Path(sys.argv[1]): 10,  # EFI application
-    Path(sys.argv[2]): 11,  # EFI boot-service driver
 }
 for path, subsystem_expected in expected.items():
     data = path.read_bytes()

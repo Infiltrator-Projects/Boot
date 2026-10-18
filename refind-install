@@ -16,9 +16,6 @@
 #           an OS X boot volume. Valid only in OS X.
 #    "--root {dir}" to specify installation using the specified directory
 #           as the system's root
-#    "--alldrivers" to install all drivers along with regular files
-#    "--nodrivers" to suppress driver installation (default in Linux is
-#           driver used on /boot; --nodrivers is OS X default).
 #    "--shim {shimfile}" to install a shim.efi file for Secure Boot. Valid
 #           only under Linux.
 #    "--preloader" is synonymous with "--shim". Valid only under Linux.
@@ -135,10 +132,6 @@ EspGuid="C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
 
 GetParams() {
    InstallToEspOnMac=1
-   # Install the driver required to read Linux /boot, if it's available
-   # Note: Under OS X, this will be installed only if a Linux partition
-   # is detected, in which case the ext4fs driver will be installed.
-   InstallDrivers="boot"
    while [[ $# -gt 0 ]]; do
       case $1 in
          --notesp) InstallToEspOnMac=0
@@ -169,15 +162,11 @@ GetParams() {
               ;;
          --keepname) KeepName=1
               ;;
-         --drivers | --alldrivers) InstallDrivers="all"
-              ;;
-         --nodrivers) InstallDrivers="none"
-              ;;
          --yes) AlwaysYes=1
               ;;
          * ) echo "Usage: $0 [--notesp | --usedefault {device-file} | --root {dir} |"
              echo "                     --ownhfs {device-file} ] [--keepname]"
-             echo "                  [--nodrivers | --alldrivers] [--shim {shimfile}]"
+             echo "                  [--shim {shimfile}]"
              echo "                  [--localkeys [--encryptkeys]] [--keepname] [--yes]"
              exit 1
       esac
@@ -207,17 +196,6 @@ GetParams() {
    if [[ "$KeepName" == 1 && "$TargetDir" == "/EFI/BOOT" ]] ; then
       echo "The --keepname option is incompatible with --usedefault! Aborting!"
       exit 1
-   fi
-   if [[ "$InstallDrivers" == "all" && "$TargetDir" != "/EFI/BOOT" ]] ; then
-      echo "The --alldrivers option is meant for creating USB flash drives with (near-)"
-      echo "universal boot support. Using it on a hard disk partition runs the risk of"
-      echo "creating serious problems, up to and including rendering your computer"
-      echo -n "unbootable. Are you SURE you want to proceed (Y/N)? "
-      ReadYesNo
-      if [[ "$YesNo" != "Y" && "$YesNo" != "y" ]] ; then
-         echo "Aborting installation!"
-         exit 0
-      fi
    fi
    if [[ "$EncryptKeys" == 1 && "$LocalKeys" == 0 ]] ; then
       echo "The --encryptkeys option requires the use of --localkeys! Aborting!"
@@ -572,79 +550,6 @@ DetermineTargetDir() {
    fi # BIOS-mode
 } # DetermineTargetDir()
 
-# Determine (or guess) the filesystem used on the Linux /boot filesystem.
-# Store the result in the BootFS global variable.
-SetBootFS() {
-   BootFS=""
-   case "$OSTYPE" in
-      linux*)
-           if command -v blkid &>/dev/null; then
-              BootPart=$(df "$RootDir"/boot | grep dev | cut -f 1 -d " ")
-              BootFS=$(blkid -o export "$BootPart" 2> /dev/null | grep TYPE= | cut -f 2 -d =)
-              # The above line fails in Ubuntu 22.04, but is OK in 20.10 and 22.10;
-              # the "-o export" option seems to have temporarily disappeared. In case
-              # it fails, try another approach (which I think uses newer grep features,
-              # so don't rely 100% on it, either; but at least it works in Ubuntu
-              # 22.04)....
-              if [[ -z "$BootFS" ]] ; then
-                 BootFS=$(blkid "$BootPart" 2> /dev/null | grep -Po 'TYPE=\"\K[^\"]*')
-              fi
-           fi
-           ;;
-      darwin*)
-           # 0FC63DAF-8483-4772-8E79-3D69D8477DE4 = Linux filesystem
-           # BC13C2FF-59E6-4262-A352-B275FD6F7172 = Freedesktop $boot partition
-           # 933AC7E1-2EB4-4F13-B844-0E14E2AEF915 = Freedesktop Linux /home
-           # E6D6D379-F507-44C2-A23C-238F2A3DF928 = Linux LVM
-           # A19D880F-05FC-4D3B-A006-743F0F84911E = Linux RAID
-           # 0657FD6D-A4AB-43C4-84E5-0933C84B4F4F = Linux swap
-           Temp=$(diskutil list | grep -i '0FC63DAF-8483-4772-8E79-3D69D8477DE4\|BC13C2FF-59E6-4262-A352-B275FD6F7172\|933AC7E1-2EB4-4F13-B844-0E14E2AEF915\|E6D6D379-F507-44C2-A23C-238F2A3DF928\|A19D880F-05FC-4D3B-A006-743F0F84911E\|0657FD6D-A4AB-43C4-84E5-0933C84B4F4F\|Linux')
-           BootFS=""
-           if [[ -n $Temp ]] ; then
-              echo "Found suspected Linux partition(s); installing ext4fs driver."
-              BootFS="ext4"
-           fi
-           ;;
-   esac
-} # SetBootFS()
-
-# Copy drivers from $RefindDir/drivers_$1 to $InstallDir/$TargetDir/drivers_$1,
-# honoring the $InstallDrivers condition. Must be passed a suitable
-# architecture code (ia32 or x64).
-CopyDrivers() {
-   if [[ $InstallDrivers == "all" ]] ; then
-      mkdir -p "$InstallDir/$TargetDir/drivers_$1"
-      cp "$ThisDir"/drivers_"$1"/*_"$1".efi "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
-      cp "$RefindDir"/drivers_"$1"/*_"$1".efi "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
-   elif [[ "$InstallDrivers" == "boot" ]] ; then
-      SetBootFS
-      DriverType=""
-      case $BootFS in
-         ext2 | ext3) DriverType="ext2"
-              # Could use ext4, but that can create unwanted entries from symbolic
-              # links in / to /boot/vmlinuz if a separate /boot partition is used.
-              ;;
-         ext4) DriverType="ext4"
-              ;;
-         reiserfs) DriverType="reiserfs"
-              ;;
-         btrfs) DriverType="btrfs"
-              ;;
-         hfsplus) DriverType="hfs"
-              ;;
-         ntfs) DriverType="ntfs"
-              ;;
-         *) BootFS=""
-      esac
-      if [[ -n $BootFS ]] ; then
-         echo "Installing driver for $BootFS (${DriverType}_$1.efi)"
-         mkdir -p "$InstallDir/$TargetDir/drivers_$1"
-         cp "$ThisDir/drivers_$1/${DriverType}_$1.efi" "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
-         cp "$RefindDir/drivers_$1/${DriverType}_$1.efi" "$InstallDir/$TargetDir/drivers_$1"/ 2> /dev/null
-      fi
-   fi
-} # CopyDrivers()
-
 # Copy tools (currently only gptsync, and that only on Macs) to the EFI/tools
 # directory on the ESP. Must be passed a suitable architecture code (ia32
 # or x64).
@@ -678,11 +583,7 @@ CopyRefindFiles() {
          TargetShim="bootx64.efi"
          CopyShimFiles
       fi
-      if [[ $InstallDrivers == "all" ]] ; then
-         cp -r "$RefindDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
-         cp -r "$ThisDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
-      elif [[ $Upgrade == 1 || $InstallToEspOnMac == 1 ]] ; then
-         CopyDrivers "$Platform"
+      if [[ $Upgrade == 1 || $InstallToEspOnMac == 1 ]] ; then
          CopyTools "$Platform"
       fi
       Refind="boot$Platform.efi"
@@ -691,7 +592,6 @@ CopyRefindFiles() {
       if ! cp "$RefindDir/refind_x64.efi" "$InstallDir/$TargetDir/$TargetX64" ; then
          Problems=1
       fi
-      CopyDrivers x64
       CopyTools x64
       Refind="refind_x64.efi"
       CopyKeys
@@ -721,7 +621,6 @@ CopyRefindFiles() {
             Problems=1
          fi
       fi
-      CopyDrivers $Platform
       CopyTools $Platform
       Refind="refind_$Platform.efi"
       if [[ "$TargetDir" == '/System/Library/CoreServices' ]] ; then

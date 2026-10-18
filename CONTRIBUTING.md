@@ -53,21 +53,9 @@ Failure and recovery behaviour must be designed alongside success behaviour.
 
 Dependencies must have an explicit purpose and contract. Exact immutable source identities are preferred for vendored or release-critical code.
 
-The InfiltratorFS UEFI vendor tree has one generator: `scripts/vendor-infiltratorfs.sh`.
-
-To verify the committed tree without changing it:
-
-```sh
-./scripts/vendor-infiltratorfs.sh --check
-```
-
-To intentionally regenerate the committed vendor tree from the pinned identities:
-
-```sh
-./scripts/vendor-infiltratorfs.sh
-```
-
-Inspect and commit the resulting diff explicitly. CI verifies the tree; CI does not author and push vendor updates automatically.
+Filesystem adapters and their vendor generators belong to Filesystems. Boot
+changes must preserve independent driver loading without introducing filesystem
+source, driver build targets or bundled EFI drivers.
 
 ## Comments
 

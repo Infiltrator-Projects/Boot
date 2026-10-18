@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.20 — 2026-10-19
+
+- Move all firmware filesystem implementations, dormant adapters and pinned vendor source to Filesystems, preserving the code and licences.
+- Build and package Boot independently of every filesystem driver, including ext4. Leave required drivers to independently installed Filesystems components.
+- Remove filesystem build targets, EDK2 components and inherited installer/distribution driver-selection paths. Preserve generic UEFI driver loading and volume discovery.
+- Reject any additional EFI binary or driver payload in Boot runtime bundles and Debian packages.
+
 ## 0.1.16 — 2026-10-18
 
 - Generalise Boot's targeted driver binding from GPT/MBR logical partitions to any present BlockIo volume lacking a filesystem, including native whole-disk layouts that future Amiga RDB drivers may need.

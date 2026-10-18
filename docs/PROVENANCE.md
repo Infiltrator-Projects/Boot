@@ -55,3 +55,13 @@ The product should not be routinely described as though its historical source ba
 Historical file, directory and symbol names may remain while they are part of working technical contracts. Their presence is not a requirement to preserve historical architecture indefinitely.
 
 When code is redesigned or replaced, required authorship and licensing information must remain accurate. When a historical mechanism is removed entirely, obsolete product-facing references to that mechanism should be removed as well rather than preserved as decorative history.
+
+## Filesystem source ownership migration
+
+Boot 0.1.20 removes its filesystem implementation tree and vendor generator.
+The 174 implementation, adapter, test and licence files from Boot commit
+`9043feba1b72e41969dbf26c5a65aedbea0fe0bc` were preserved in Filesystems under
+`firmware/uefi/filesystems/`, with an import digest record and the required
+platform build support. The Boot-only driver packaging manifest was retired.
+The canonical InfiltratorFS project retains ownership of its format and core;
+the pinned historical EFI adapter is preserved as migration source in Filesystems.

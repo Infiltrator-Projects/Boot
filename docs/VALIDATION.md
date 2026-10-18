@@ -14,7 +14,7 @@ This level checks structure, formatting where applicable, dependency identity, g
 
 ### Host build validation
 
-This level proves that the selected firmware toolchain can produce the expected artifacts without unresolved host-runtime dependencies or build errors.
+This level proves that the selected firmware toolchain can produce the Boot application without unresolved host-runtime dependencies or build errors.
 
 A successful host build proves compilation and linkage only. It does not prove firmware runtime behaviour.
 
@@ -35,10 +35,10 @@ Any code capable of modifying NVRAM, boot order, ESP contents, partition metadat
 The maintained development-preview workflow has the following automated coverage:
 
 - building the full GNU-EFI x86-64 program through an explicit toolchain entry point;
-- verifying that Boot does not compile or ship the read-only InfiltratorFS EFI driver;
+- verifying that Boot contains no filesystem implementation directory and compiles no EFI filesystem driver;
 - rejecting unresolved host operating-system/runtime dependencies in the resulting shared object;
-- preserving old pinned driver source in history until Filesystems can independently qualify and release its EFI implementation;
-- verifying the runtime ZIP and DEB contain no InfiltratorFS driver, disabled driver directory or build-only provenance; and
+- preserving driver source and its import provenance in the independent Filesystems repository;
+- verifying the runtime ZIP and DEB contain exactly one EFI application and no driver payload or build-only provenance; and
 - sealing the generated EFI binaries, tracked source archive and source-commit identity together with SHA-256 checksums before publication.
 
 These checks establish source/build evidence and are deliberately not described as complete Boot runtime qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
@@ -120,7 +120,7 @@ A release is not qualified if those questions cannot be answered confidently for
 
 ## Development-preview publication
 
-Root VERSION identifies the development preview; inherited engine/profile versions retain their separate meaning. The current workflow verifies the GNU-EFI x86-64 Boot application and transitional ext4 reader, then publishes only a Debian package and checksum. Its publisher downloads that artifact, verifies the checksum manifest, compares complete remote bytes before and after publication, and publishes the verified release bytes.
+Root VERSION identifies the development preview; inherited engine/profile versions retain their separate meaning. The current workflow verifies the GNU-EFI x86-64 Boot application independently of filesystem driver builds, then publishes only a Debian package and checksum. Its publisher downloads that artifact, verifies the checksum manifest, compares complete remote bytes before and after publication, and publishes the verified release bytes.
 
 The generated EFI files are published for controlled testing because they are the exact artifacts that passed the current host-build checks. Their publication does not elevate host-build evidence into universal firmware-runtime, Secure Boot, installation or recovery qualification. No automatic installation is included, and the workflow must not modify an EFI System Partition or NVRAM.
 
@@ -160,6 +160,17 @@ Startup qualification: verify on actual firmware that Boot discovers the same in
 
 ### Boot 0.1.16 filesystem extension contract
 
-The 0.1.15 optimized binding pass excluded BlockIo handles with `LogicalPartition == FALSE`; this is too restrictive for future native-disk filesystem drivers including Amiga RDB volumes. 0.1.16 includes present whole-disk BlockIo handles while still avoiding unrelated firmware controllers. Drivers must perform their own Supported() probes and return unsupported promptly. Qualified drivers from `filesystems/boot-driver-manifest.tsv` are loaded before volume discovery. The manifest is verified against the physical ZIP inventory, and disabled drivers must never enter Boot distribution at all.
+The 0.1.15 optimized binding pass excluded BlockIo handles with `LogicalPartition == FALSE`; this is too restrictive for future native-disk filesystem drivers including Amiga RDB volumes. 0.1.16 includes present whole-disk BlockIo handles while still avoiding unrelated firmware controllers. Drivers must perform their own Supported() probes and return unsupported promptly. Independently installed drivers are loaded before volume discovery. Driver selection and qualification belong to Filesystems/Setup; Boot packages no drivers.
 
-Boot packages only the transitional qualified ext4 EFI reader. InfiltratorFS is not bundled. Filesystems has an independent OFS EFI driver under qualification; complete end-to-end OFS boot is not yet established. Once an AmigaFS driver is available, qualify whole-disk RDB, common Amiga partitions, mixed GPT and RDB systems, unsupported random disk contents, read-only operation, predictable startup and failure isolation before enabling it in the release manifest.
+Boot packages no filesystem drivers. Filesystems packages the independent ext4 EFI reader; the pinned InfiltratorFS adapter is retained there as migration source. Filesystems has an independent OFS EFI driver under qualification; complete end-to-end OFS boot is not yet established. Once an AmigaFS driver is available, qualify whole-disk RDB, common Amiga partitions, mixed GPT and RDB systems, unsupported random disk contents, read-only operation, predictable startup and failure isolation before enabling it in the release manifest.
+
+## Boot 0.1.20 filesystem ownership boundary
+
+All firmware filesystem implementation source and its vendor generator have
+moved to Filesystems. Boot builds and packages its application independently,
+rejecting any additional EFI binary or driver payload. Filesystems builds the
+preserved ext4 reader and the independent OFS adapter without a Boot checkout.
+The generic UEFI loader and normal read-only volume discovery remain in Boot.
+Removing bundled drivers does not remove drivers independently installed on an
+existing EFI partition. Fresh targets require the selected external modules.
+Build/package validation of this move is not a new physical-firmware boot result.

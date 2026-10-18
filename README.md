@@ -30,7 +30,6 @@ The current major implementation areas are:
 - `refind/` — the present firmware application and boot-flow implementation;
 - `libeg/` — graphics and presentation support;
 - `EfiLib/` — EFI support mechanisms;
-- `filesystems/` — legacy firmware filesystem adapters. Only the qualified ext4 reader is built as a transitional compatibility dependency; Filesystems owns independent EFI driver builds and releases.
 - `mok/` — trust and MOK-related support inherited by the current implementation;
 - `gzip/` — compressed-data support used by the firmware application;
 - `gptsync/` — GPT/MBR synchronisation utility code retained by the current tree;
@@ -63,9 +62,9 @@ The repository contains material under multiple licences inherited from its sour
 
 ## Development preview and qualification
 
-[VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI builds Boot and its transitional ext4 reader, verifies the runtime archive and DEB, and publishes only a DEB and checksum. InfiltratorFS EFI is not built or shipped by Boot.
+[VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI builds Boot alone, verifies the runtime archive and DEB contain only its EFI application and presentation files, and publishes a DEB and checksum. Filesystem implementation source, build tooling and drivers are owned by Filesystems.
 
-Boot does not bundle disabled or experimental filesystem drivers. Filesystems owns the independent InfiltratorFS and OFS EFI reader builds; qualified drivers can be installed alongside Boot without recompiling Boot.
+Boot bundles no filesystem drivers, including ext4. Install the required filesystem modules independently into the driver directory beside the selected Boot executable. Filesystems supplies these EFI modules; adding or updating one never requires rebuilding Boot.
 
 The published EFI files are development artifacts for controlled testing. They are not an installer and publishing them does not claim firmware-runtime, Secure Boot, persistent-installation or recovery qualification. Setup remains responsible for the eventual supported installation transaction.
 
@@ -105,7 +104,7 @@ separately verified and explicitly approved deployment plan.
 Starting with Boot v0.1.19, each GitHub release publishes exactly two
 project-managed assets: `infiltrator-boot_VERSION_amd64.deb` and
 `SHA256SUMS.txt`. GitHub also supplies its own automatic source archives.
-The separately built EFI executable, theme graphics, support drivers, source
+The separately built EFI executable, theme graphics, source
 snapshot and ready-to-copy UEFI ZIP remain verifiable **intermediate CI
 outputs**, not public duplicates of the Debian package. All qualified
 runtime files are contained in the DEB beneath

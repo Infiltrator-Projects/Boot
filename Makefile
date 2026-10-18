@@ -9,7 +9,6 @@ include Make.common
 
 SHELL=/bin/bash
 LOADER_DIR=refind
-FS_DIR=filesystems
 LIBEG_DIR=libeg
 MOK_DIR=mok
 GZIP_DIR=gzip
@@ -26,15 +25,12 @@ THISDIR=$(shell pwd)
 EDK2_BUILDLOC=$(EDK2BASE)/Build/Refind/$(TARGET)_$(TOOL_CHAIN_TAG)/$(UC_ARCH)
 EDK2_PROGRAM_BASENAMES=refind gptsync
 EDK2_PROGRAMS=$(EDK2_PROGRAM_BASENAMES:=.efi)
-EDK2_DRIVER_BASENAMES=btrfs ext4 ext2 hfs iso9660 reiserfs
-EDK2_DRIVERS=$(EDK2_DRIVER_BASENAMES:=.efi)
-EDK2_ALL_BASENAMES=$(EDK2_PROGRAM_BASENAMES) $(EDK2_DRIVER_BASENAMES)
+EDK2_ALL_BASENAMES=$(EDK2_PROGRAM_BASENAMES)
 EDK2_ALL_FILES=$(EDK2_ALL_BASENAMES:=.efi)
 
 # GNU-EFI is the deterministic default. Other toolchains require explicit targets.
-.PHONY: all fs gptsync gnuefi fs_gnuefi all_gnuefi gptsync_gnuefi tiano fs_tiano all_tiano gptsync_tiano edk2 fs_edk2 all_edk2 gptsync_edk2 build_edk2 clean install
+.PHONY: all gptsync gnuefi all_gnuefi gptsync_gnuefi tiano all_tiano gptsync_tiano edk2 all_edk2 gptsync_edk2 build_edk2 clean install
 all: gnuefi
-fs: fs_gnuefi
 gptsync: gptsync_gnuefi
 
 ###########################################################################
@@ -53,13 +49,10 @@ gnuefi:
 	+$(MAKE) MAKEWITH=GNUEFI -C $(LOADER_DIR)
 	+$(MAKE) MAKEWITH=GNUEFI -C $(GPTSYNC_DIR) gnuefi
 
-all_gnuefi: gnuefi fs_gnuefi
+all_gnuefi: gnuefi
 
 gptsync_gnuefi:
 	+$(MAKE) MAKEWITH=GNUEFI -C $(GPTSYNC_DIR) gnuefi
-
-fs_gnuefi:
-	+$(MAKE) MAKEWITH=GNUEFI -C $(FS_DIR) all_gnuefi
 
 ###########################################################################
 #
@@ -81,17 +74,12 @@ tiano:
 ifneq ($(ARCH),aarch64)
 	+$(MAKE) MAKEWITH=TIANO -C $(GPTSYNC_DIR) -f Make.tiano
 endif
-#	+$(MAKE) MAKEWITH=TIANO -C $(FS_DIR)
 
-all_tiano: tiano fs_tiano
+all_tiano: tiano
 
 gptsync_tiano:
 	-include $(TIANOBASE)/Conf/target.txt
 	+$(MAKE) MAKEWITH=TIANO -C $(GPTSYNC_DIR) -f Make.tiano
-
-fs_tiano:
-	-include $(TIANOBASE)/Conf/target.txt
-	+$(MAKE) MAKEWITH=TIANO -C $(FS_DIR)
 
 ###########################################################################
 #
@@ -100,8 +88,8 @@ fs_tiano:
 # AARCH64 unless .inf files are modified to eliminate references to
 # CompilerIntrinsicsLib....
 #
-# NOTE: Unlike other build rules, these build everything (rEFInd, gptsync,
-# and filesystem drivers), even if only one component is requested; but
+# These build the firmware application and gptsync, even if only one
+# component is requested;
 # only the requested components are copied to their final destinations.
 # This is done because of the heavy overhead in building just one
 # component in the TianoCore "build" tool.
@@ -120,33 +108,18 @@ ifneq ($(OMIT_SBAT), 1)
 		--adjust-section-vma .sbat+10000000 ./gptsync/gptsync_$(FILENAME_CODE).efi
 endif
 
-all_edk2: build_edk2 fs_edk2
+all_edk2: build_edk2
 	cp $(EDK2_BUILDLOC)/refind.efi ./refind/refind_$(FILENAME_CODE).efi
 	cp $(EDK2_BUILDLOC)/gptsync.efi ./gptsync/gptsync_$(FILENAME_CODE).efi
 
 gptsync_edk2: build_edk2
 	cp $(EDK2_BUILDLOC)/gptsync.efi ./gptsync/gptsync_$(FILENAME_CODE).efi
 
-fs_edk2: build_edk2
-ifeq ($(OMIT_SBAT), 1)
-	for BASENAME in $(EDK2_DRIVER_BASENAMES) ; do \
-		echo "Copying $$BASENAME""_$(FILENAME_CODE).efi" ; \
-		cp "$(EDK2_BUILDLOC)/$$BASENAME.efi" ./drivers_$(FILENAME_CODE)/$$BASENAME\_$(FILENAME_CODE).efi ; \
-	done
-else
-	for BASENAME in $(EDK2_DRIVER_BASENAMES) ; do \
-		echo "Copying $$BASENAME""_$(FILENAME_CODE).efi" ; \
-		cp "$(EDK2_BUILDLOC)/$$BASENAME.efi" ./drivers_$(FILENAME_CODE)/$$BASENAME\_$(FILENAME_CODE).efi ; \
-		$(OBJCOPY) --set-section-alignment '.sbat=512' --add-section .sbat=$(REFIND_SBAT_CSV) \
-		    --adjust-section-vma .sbat+10000000 ./drivers_$(FILENAME_CODE)/$$BASENAME\_$(FILENAME_CODE).efi ; \
-	done
-endif
 
 build_edk2: $(EDK2BASE)/RefindPkg
 	cd $(EDK2BASE) && \
 	. ./edksetup.sh BaseTools && \
 	build -a $(UC_ARCH) -p RefindPkg/RefindPkg.dsc
-	mkdir -p ./drivers_$(FILENAME_CODE)
 
 $(EDK2BASE)/RefindPkg:
 	ln -s $(THISDIR) $(EDK2BASE)/RefindPkg
@@ -165,10 +138,8 @@ clean:
 	$(MAKE) -C $(GZIP_DIR) clean
 	$(MAKE) -C $(LOADER_DIR) clean
 	$(MAKE) -C $(EFILIB_DIR) clean
-	$(MAKE) -C $(FS_DIR) clean
 	$(MAKE) -C $(GPTSYNC_DIR) clean
 	rm -f include/*~
-	rm -rf drivers_$(FILENAME_CODE)/*
 
 # NOTE TO DISTRIBUTION MAINTAINERS:
 # The "install" target installs the program directly to the ESP

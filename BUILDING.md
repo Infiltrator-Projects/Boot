@@ -1,86 +1,52 @@
 # Building Boot
 
-This is the maintained build entry point for Boot.
+This is the maintained build entry point. `BUILDING.txt` is retained upstream
+history; it does not define current product ownership or release contents.
 
-`BUILDING.txt` is retained historical upstream documentation. It may still contain useful low-level information, but it is not the authority for current Infiltrator engineering policy or qualification claims.
+## GNU-EFI build
 
-## Current build system
-
-The current tree contains three inherited build paths:
-
-- GNU-EFI;
-- older TianoCore/UDK-style make targets; and
-- EDK2-oriented targets and metadata.
-
-The existence of a target does not mean that target is currently release-qualified.
-
-The maintained development-preview workflow builds the complete GNU-EFI x86-64 program and the read-only InfiltratorFS driver, reproduces the pinned vendor tree, and seals the exact generated EFI binaries with the tracked source and commit identity. See `docs/VALIDATION.md` for what that does and does not prove.
-
-## GNU-EFI prerequisites
-
-On the Ubuntu CI path, the build uses:
-
-- `gnu-efi`;
-- `gcc`;
-- `make`; and
-- GNU binutils.
-
-The makefiles allow EFI include/library locations to be overridden for non-default installations.
-
-## Build targets
-
-The historical top-level `Makefile` currently provides targets including:
+The maintained build uses GNU-EFI, GCC, GNU make and binutils on x86-64 Linux:
 
 ```sh
-make gnuefi
-make fs_gnuefi
-make all_gnuefi
+bash scripts/build-gnuefi.sh
 ```
 
-It also contains TianoCore and EDK2 targets retained by the current implementation.
+The script locates the installed GNU-EFI files and builds the Boot application.
+`GNU_EFI_PREFIX` may identify an isolated GNU-EFI SDK instead of `/usr`.
+The build does not fetch, compile, vendor or package filesystem implementations.
+Filesystem source and EFI driver builds are owned by Filesystems, under
+`firmware/uefi/` and the filesystem-specific native adapters in that repository.
 
-Use the narrowest target that matches what is being qualified. A broad build is not automatically stronger evidence if it silently selects a different toolchain based on host state.
+Historical TianoCore/EDK2 application targets remain explicit alternatives;
+their existence is not evidence of current release qualification. Filesystem
+build targets and EDK2 filesystem components have been removed from Boot.
 
-## Determinism
+## Runtime components
 
-The default `make all`, `make fs` and `make gptsync` targets use GNU-EFI deterministically. TianoCore/EDK2 targets remain explicit developer choices. Recursive make calls preserve the selected make executable and flags.
+Boot loads independently installed EFI drivers from the driver directory beside
+its executable and consumes their standard UEFI interfaces. A Boot build and its
+Debian package contain no filesystem driver, including ext4. Firmware-provided
+filesystems remain available; access to other formats requires their separate
+module. Updating a driver does not require rebuilding Boot.
 
-Run `bash scripts/build-gnuefi.sh` on an x86-64 Debian-family build host. It resolves the installed GNU-EFI toolchain and builds without invoking installation. Generic cleanup removes repository outputs; it does not delete an external EDK2 workspace.
+## Packaging and publication
 
-## Vendored InfiltratorFS source
+CI generates the Boot executable, fonts, artwork and default configuration, then
+seals the runtime bundle into `infiltrator-boot_VERSION_amd64.deb`. The public
+release contains that package and `SHA256SUMS.txt`. Additional EFI binaries and
+filesystem driver files are rejected from both the bundle and the DEB.
 
-The Boot Manager contains a pinned, read-only UEFI integration of the portable InfiltratorFS core.
+Filesystems independently builds and packages its EFI module payload. Setup, or
+an explicit local test, selects the modules to deploy to its chosen target.
+The Boot package keeps an empty driver directory for independent modules.
 
-Verify the committed vendor tree:
+## Installation and qualification
 
-```sh
-./scripts/vendor-infiltratorfs.sh --check
-```
+Building and packaging never write to an EFI partition or NVRAM. The historical
+`make install` target invokes the inherited installer and is not a build step.
+The packaged existing-installation updater remains a limited, separately
+invoked operation; Setup owns the future complete installation transaction.
 
-Intentionally regenerate it from the exact pinned commits:
-
-```sh
-./scripts/vendor-infiltratorfs.sh
-```
-
-The generator uses isolated temporary directories, verifies exact commit identities and writes the vendor tree only when invoked in update mode.
-
-## Installation safety
-
-The historical top-level `make install` target calls `refind-install`, which can modify the current machine's EFI System Partition and NVRAM. It is not a build step and must never be used as part of ordinary CI or package compilation.
-
-Treat installation and firmware mutation as separate operations governed by `docs/SAFETY.md`.
-
-## Qualification
-
-After building, apply the evidence rules in `docs/VALIDATION.md`. Compilation proves only that the selected source/toolchain combination produced an artifact. It does not prove runtime boot behaviour, trust handling, persistent-state safety or compatibility on architectures/firmware that were not exercised.
-
-## Product packaging
-
-Boot currently has no qualified Debian package or production-qualified binary release. The imported Debian/RPM package definitions are archived under `docs/provenance/packaging/`; they describe the source project's historical distribution and are not active Boot publishing definitions.
-
-The development-preview workflow publishes the exact GNU-EFI x86-64 Boot application and read-only InfiltratorFS EFI driver that were produced by the successful CI build, alongside source, source-commit identity and SHA-256 checksums. These binaries are intended for controlled testing; the preview does not perform installation and does not modify an EFI System Partition or NVRAM.
-
-A future supported Boot package must use the current Boot identity throughout. Setup will own the graphical installation transaction and the explicit installation of qualified firmware artifacts. Building or packaging Boot must not install it to the developer's EFI partition or alter NVRAM.
-
-The root VERSION identifies development previews independently of inherited engine compatibility. Firmware-runtime, Secure Boot, persistent-installation and recovery qualification remain separate release gates.
+Compilation establishes build/linkage evidence. Runtime, driver interoperability,
+Secure Boot and installation/recovery behaviour require their own evidence under
+`docs/VALIDATION.md`. The root `VERSION` identifies each immutable release.

@@ -46,9 +46,8 @@ Firmware-facing code owns UEFI protocols, handles, variables, memory and platfor
 
 Filesystem drivers and adapters expose bounded read access required for discovery and loading. The default product contract is read-only. Filesystem policy belongs to the filesystem integration boundary, not to presentation or boot selection code.
 
-The runtime filesystem extension contract is EFI Driver Binding + EFI Simple File System, **not** a named filesystem embedded in Boot's OS scanner. Boot loads all enabled qualified drivers in `drivers_x64` before scanning volumes, and asks firmware to bind them only to present BlockIo handles lacking SimpleFileSystem. This includes logical partitions **and native whole-disk layouts**; requiring `LogicalPartition` would rule out future Amiga RDB probing. Each driver must reject unsupported formats quickly through its EFI driver binding interface. Boot then rescans volumes and discovers boot files using the standard EFI file APIs. It does not parse ext, AmigaFS or another format in its UI or kernel handoff.
+The runtime filesystem extension contract is EFI Driver Binding + EFI Simple File System, **not** a named filesystem embedded in Boot's OS scanner. Boot loads independently installed drivers in `drivers_x64` before scanning volumes, and asks firmware to bind them only to present BlockIo handles lacking SimpleFileSystem. This includes logical partitions **and native whole-disk layouts**; requiring `LogicalPartition` would rule out future Amiga RDB probing. Each driver must reject unsupported formats quickly through its EFI driver binding interface. Boot then rescans volumes and discovers boot files using the standard EFI file APIs. It does not parse ext, AmigaFS or another format in its UI or kernel handoff.
 
-`filesystems/boot-driver-manifest.tsv` is the release packaging policy for each qualified driver: `enabled filename_x64.efi ReleaseArtifactPrefix` auto-loads, `disabled filename_x64.efi ReleaseArtifactPrefix` ships without executing. Release artifacts follow `ReleaseArtifactPrefix-VERSION-x86_64.efi`. An entry is valid only when the independently built, versioned driver exists and has passed qualification. New filesystem support must be introduced via an independently compiled EFI driver (including read-only semantics and format probing), an artifact-copy build step, and an explicit manifest entry. The manifest does not claim that an unimplemented AmigaFS driver exists. Disabled and enabled plugin inventories are verified exactly in the ZIP.
 
 Driver startup must not reconnect every firmware device merely because a filesystem module was added. Broad controller binding is reserved for explicit custom non-filesystem driver paths or interactive rescans.
 
@@ -75,7 +74,7 @@ The current implementation retains historical structure while ownership is progr
 - `refind/` currently contains the principal firmware application, including substantial boot-flow, configuration, scanning and presentation logic.
 - `libeg/` provides graphics and related presentation mechanisms.
 - `EfiLib/` contains EFI support code and firmware-facing mechanisms.
-- `filesystems/` contains legacy firmware filesystem adapters. Boot builds only a transitional qualified ext4 reader. Filesystems owns builds, qualification and distribution of independent EFI drivers, including InfiltratorFS and OFS; Boot loads those drivers through the EFI protocol.
+- Filesystem implementation source and driver builds reside in Filesystems, including the migrated firmware adapters under `firmware/uefi/`. Boot has no filesystem implementation directory, bundled driver or filesystem build target. Its generic loader consumes independently installed modules through UEFI interfaces.
 - `mok/` contains MOK/trust-related support used by the current implementation.
 - `gzip/` contains compression support required by current firmware paths.
 - `gptsync/` contains GPT/MBR synchronisation functionality. Because it can affect persistent disk state, it is conceptually separate from ordinary boot discovery even where historical build machinery groups it with the boot manager.
@@ -93,7 +92,7 @@ Renaming them is justified when it accompanies a coherent boundary change, elimi
 
 A dependency is acceptable when its contract is stronger than a local reimplementation and its role is explicit. Product semantics remain product-owned.
 
-Vendored dependencies must remain pinned and licensed. The legacy InfiltratorFS EFI adapter is retained as migration source but is no longer built or distributed by Boot.
+Vendored dependencies must remain pinned and licensed. All firmware filesystem adapters and their pinned portable source are maintained in Filesystems; Boot has no vendored filesystem core.
 
 Firmware code must not accidentally acquire operating-system runtime dependencies. EFI-specific CI therefore treats unresolved host-runtime symbols as a qualification failure.
 
@@ -133,6 +132,6 @@ The end state is a boot manager whose architecture can be explained in product t
 
 ## Build and source-preview ownership
 
-The default GNU-EFI targets are explicit and independent of ambient EDK2/TianoCore installations. The product-owned build script locates GNU-EFI and compiles the Boot executable plus the transitional ext4 reader only. Make recursion preserves the chosen executable and flags. Generic cleanup owns repository outputs only.
+The default GNU-EFI targets are explicit and independent of ambient EDK2/TianoCore installations. The product-owned build script locates GNU-EFI and compiles the Boot executable without compiling or fetching any filesystem driver. Make recursion preserves the chosen executable and flags. Generic cleanup owns repository outputs only.
 
-Root VERSION owns source-preview identity; inherited engine versions remain separate. The single source workflow owns vendor verification, compilation and exact source artifacts. Publication promotes that sealed source as a prerelease. Binary release eligibility still belongs to firmware/runtime, trust and installation/recovery qualification.
+Root VERSION owns source-preview identity; inherited engine versions remain separate. The single source workflow owns vendor verification, compilation and exact source artifacts. Publication promotes the exact verified Debian package and checksum under a new immutable version. Binary release eligibility still belongs to firmware/runtime, trust and installation/recovery qualification.

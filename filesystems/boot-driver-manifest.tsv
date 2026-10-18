@@ -1,5 +1,0 @@
-# Transitional Boot EFI driver inventory. Filesystems owns future driver builds.
-# state    EFI filename         CI artifact prefix
-# Boot packages must never include unqualified or disabled drivers.
-# Keep ext4 until Filesystems provides a qualified replacement.
-enabled    BootExt4_x64.efi     BootExt4

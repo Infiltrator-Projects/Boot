@@ -13,7 +13,7 @@ test ! -e "$output"
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 pkg="$work/pkg"
-mkdir -p "$pkg/DEBIAN" "$pkg/usr/lib/infiltrator-boot" "$pkg/usr/sbin"
+mkdir -p "$pkg/DEBIAN" "$pkg/usr/lib/infiltrator-boot/EFI/BOOT/drivers_x64" "$pkg/usr/sbin"
 python3 - "$bundle" "$pkg/usr/lib/infiltrator-boot" <<'PY'
 from pathlib import Path
 import sys, zipfile
@@ -27,10 +27,10 @@ with zipfile.ZipFile(bundle) as z:
         raise SystemExit(f'provenance metadata must not ship in a DEB: {leaked}')
     assert 'EFI/BOOT/BOOTX64.EFI' in names
     assert 'EFI/BOOT/boot.conf' in names
-    assert 'EFI/BOOT/drivers_x64/BootExt4_x64.efi' in names
-    forbidden = [name for name in names if 'InfiltratorFS_x64.efi' in name or '/drivers-disabled/' in name]
+    assert {name for name in names if name.lower().endswith('.efi')} == {'EFI/BOOT/BOOTX64.EFI'}
+    forbidden = [name for name in names if '/drivers_' in name or '/drivers-disabled/' in name]
     if forbidden:
-        raise SystemExit(f'unqualified EFI driver shipped in Boot DEB: {forbidden}')
+        raise SystemExit(f'independently owned EFI driver shipped in Boot DEB: {forbidden}')
     for item in items:
         p = Path(item.filename)
         if (p.is_absolute() or '..' in p.parts or

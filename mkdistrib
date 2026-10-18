@@ -71,7 +71,7 @@ MakeTarball() {
     cp --preserve=timestamps icons/*png icons/README "$TargetDir"/refind-"$Version"/icons/
     cp --preserve=timestamps -r icons/licenses/* "$TargetDir"/refind-"$Version"/icons/licenses/
     cp --preserve=timestamps -r icons/svg/* "$TargetDir"/refind-"$Version"/icons/svg/
-    cp -a debian docs images keys fonts banners include EfiLib libeg gzip mok net refind filesystems \
+    cp -a debian docs images keys fonts banners include EfiLib libeg gzip mok net refind \
         gptsync refind.spec refind-install refind-mkdefault mkrlconf \
 	mvrefind refind-sb-healthcheck mountesp CREDITS.txt \
         NEWS.txt BUILDING.txt COPYING.txt LICENSE.txt README.txt refind.inf gptsync.inf \
@@ -98,10 +98,6 @@ MakeZipBinary() {
     cd "$TargetDir"/refind-"$Version"
     # Build the ARM64 binaries
     ARCH=aarch64 make -j1
-    ARCH=aarch64 make fs
-    mkdir -p refind-bin-"$Version"/refind/drivers_aa64
-    cp --preserve=timestamps drivers_aa64/*_aa64.efi refind-bin-"$Version"/refind/drivers_aa64/
-    cp --preserve=timestamps filesystems/LICENSE*txt refind-bin-"$Version"/refind/drivers_aa64/
     cp refind/refind_aa64.efi refind-bin-"$Version"/refind/refind_aa64.efi
     cp refind/refind_aa64.efi "$StartDir"/
     mkdir -p refind-bin-"$Version"/refind/tools_aa64
@@ -111,10 +107,6 @@ MakeZipBinary() {
     # Build the IA32 binaries
     make clean
     ARCH=ia32 make -j1
-    ARCH=ia32 make fs
-    mkdir -p refind-bin-"$Version"/refind/drivers_ia32
-    cp --preserve=timestamps drivers_ia32/*_ia32.efi refind-bin-"$Version"/refind/drivers_ia32/
-    cp --preserve=timestamps filesystems/LICENSE*txt refind-bin-"$Version"/refind/drivers_ia32/
     cp refind/refind_ia32.efi refind-bin-"$Version"/refind/refind_ia32.efi
     cp refind/refind_ia32.efi "$StartDir"/
     mkdir -p refind-bin-"$Version"/refind/tools_ia32
@@ -123,18 +115,7 @@ MakeZipBinary() {
     # Build the X64 binaries
     make clean
     make -j1
-    make fs
-    mkdir -p refind-bin-"$Version"/refind/drivers_x64
     cp -a icons refind-bin-"$Version"/refind/
-    if [[ $SignIt == 1 ]] ; then
-        for File in drivers_x64/*_x64.efi ; do
-            $SBSign --key "$KeysDir"/refind.key --cert "$KeysDir"/refind.crt \
-                    --output refind-bin-"$Version"/refind/"$File" "$File"
-        done
-    else
-        cp --preserve=timestamps drivers_x64/*_x64.efi refind-bin-"$Version"/refind/drivers_x64/
-    fi
-    cp --preserve=timestamps filesystems/LICENSE*txt refind-bin-"$Version"/refind/drivers_x64/
     cp --preserve=timestamps refind.conf-sample refind-bin-"$Version"/refind/
     if [[ $SignIt == 1 ]] ; then
         "$SBSign" --key "$KeysDir"/refind.key --cert "$KeysDir"/refind.crt \

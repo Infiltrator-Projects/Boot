@@ -74,7 +74,7 @@ Firmware filesystem support exists to locate and read boot material. It is not a
 
 Read-only access is the default because it sharply reduces failure and corruption modes. A writable firmware filesystem path would require a separate product requirement and safety design before implementation.
 
-The InfiltratorFS integration must continue to use a pinned, reproducible portable core and must remain free of accidental host operating-system dependencies.
+Filesystem implementations and their platform dependencies are maintained in Filesystems. Boot consumes their UEFI protocols and does not embed their portable cores or implement filesystem directory traversal and file reads.
 
 ## Compatibility design
 

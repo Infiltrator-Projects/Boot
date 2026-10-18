@@ -47,19 +47,7 @@ mkdir icons
 cd icons || exit
 ln ../../../refind/icons/* ./
 )
-mkdir drivers_x64
-(
-cd drivers_x64 || exit
-ln ../../../refind/drivers_x64/* ./
-)
-mkdir drivers_ia32
-cd drivers_ia32 || exit
-ln ../../../refind/drivers_ia32/* ./
-cd ..
-mkdir drivers_aa64
-cd drivers_aa64 || exit
-ln ../../../refind/drivers_aa64/* ./
-cd ../.. || exit
+cd .. || exit
 
 # Copy stuff to the EFI/tools directory
 mkdir tools
