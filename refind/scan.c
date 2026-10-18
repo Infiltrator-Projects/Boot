@@ -368,7 +368,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
         } // if diagnostics entry found
 
     } else if (Entry->OSType == 'L') {   // entries for Linux kernels with EFI stub loaders
-        File = ReadLinuxOptionsFile(Entry->LoaderPath, Volume);
+        File = GenerateLinuxOptions(Volume);
         if (File != NULL) {
             InitrdName =  FindInitrd(Entry->LoaderPath, Volume);
             TokenCount = ReadTokenLine(File, &TokenList);
@@ -396,6 +396,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             } // while
             MyFreePool(KernelVersion);
             MyFreePool(InitrdName);
+            MyFreePool(File->Buffer);
             MyFreePool(File);
         } // if
 

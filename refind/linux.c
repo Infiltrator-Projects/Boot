@@ -151,7 +151,7 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
 
 // Adds InitrdPath to Options, but only if Options doesn't already include an
 // initrd= line or a `%v` variable. Done to enable overriding the default initrd
-// selection in a refind_linux.conf file's options list.
+// selection from Boot's automatically discovered or explicit Linux options.
 // If a `%v` substring/variable is found in Options, it is replaced with the
 // initrd version string. This is available to allow for more complex customization
 // of initrd options.
@@ -177,13 +177,12 @@ CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
     return NewOptions;
 } // CHAR16 *AddInitrdToOptions()
 
-// Returns options for a Linux kernel. Reads them from an options file in the
-// kernel's directory; and if present, adds an initrd= option for an initial
-// RAM disk file with the same version number as the kernel file.
+// Returns Linux options derived from system metadata and adds any matching
+// initrd= option for an automatically discovered kernel.
 CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume) {
     CHAR16 *Options = NULL, *InitrdName, *FullOptions = NULL, *KernelVersion;
 
-    Options = GetFirstOptionsFromFile(LoaderPath, Volume);
+    Options = GetFirstLinuxOptions(Volume);
     InitrdName = FindInitrd(LoaderPath, Volume);
     KernelVersion = FindNumbers(InitrdName);
     ReplaceSubstring(&Options, KERNEL_VERSION, KernelVersion);
@@ -245,7 +244,7 @@ VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOL
     LOADER_ENTRY        *SubEntry;
     UINTN               TokenCount;
 
-    File = ReadLinuxOptionsFile(TargetLoader->LoaderPath, Volume);
+    File = GenerateLinuxOptions(Volume);
     if (File != NULL) {
         SubScreen = TargetLoader->me.SubScreen;
         InitrdName = FindInitrd(FileName, Volume);
@@ -273,6 +272,7 @@ VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOL
         MyFreePool(Path);
         MyFreePool(SubmenuName);
         MyFreePool(InitrdName);
+        MyFreePool(File->Buffer);
         MyFreePool(File);
         MyFreePool(KernelVersion);
     } // if

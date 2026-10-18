@@ -94,6 +94,30 @@ jobs:
           assert r'L"\\usr\\sbin\\plymouthd"' in source
           assert '"ro root=%s single' in source
           PY_BOOT_LINUX_SPLASH
+          python3 - <<'PY_BOOT_CONFIG_OWNERSHIP'
+          from pathlib import Path
+          config = Path('refind/config.c').read_text()
+          linux = Path('refind/linux.c').read_text()
+          scan = Path('refind/scan.c').read_text()
+          header = Path('refind/config.h').read_text()
+          combined = config + linux + scan + header
+          for stale in ('refind_linux.conf', 'refind-linux.conf',
+                        'ReadLinuxOptionsFile', 'GetFirstOptionsFromFile',
+                        'LINUX_OPTIONS_FILENAMES'):
+              assert stale not in combined, f'inherited Linux configuration remains: {stale}'
+          assert 'GenerateLinuxOptions(IN REFIT_VOLUME *Volume)' in config
+          assert 'GenerateOptionsFromEtcFstab(Volume)' in config
+          assert 'GenerateOptionsFromPartTypes()' in config
+          assert 'GetFirstLinuxOptions(Volume)' in linux
+          assert 'GenerateLinuxOptions(Volume)' in linux
+          assert 'GenerateLinuxOptions(Volume)' in scan
+          assert 'Entry->Enabled = FALSE;' in config
+          assert 'GenerateSubScreen(Entry, Entry->Volume, TRUE)' in config
+          assert 'L"menuentry"' in config and 'L"volume"' in config
+          assert 'L"loader"' in config and 'L"initrd"' in config
+          assert 'L"options"' in config
+          assert 'menuentry "Linux from OFS SD"' in Path('boot.conf').read_text()
+          PY_BOOT_CONFIG_OWNERSHIP
           grep -q '^hideui badges hints$' boot.conf
           grep -q '^showtools reboot,shutdown,firmware$' boot.conf
           grep -q 'return EFI_WRITE_PROTECTED;' filesystems/fsw_efi.c

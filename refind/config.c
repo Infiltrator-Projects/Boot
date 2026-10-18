@@ -71,7 +71,6 @@
 
 // constants
 
-#define LINUX_OPTIONS_FILENAMES  L"refind_linux.conf,refind-linux.conf"
 #define MAXCONFIGFILESIZE        (128*1024)
 
 #define ENCODING_ISO8859_1  (0)
@@ -944,7 +943,7 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
     Entry->me.SubScreen = SubScreen;
 } // VOID AddSubmenu()
 
-// Adds the options from a SINGLE refind.conf stanza to a new loader entry and returns
+// Adds a single boot.conf menuentry stanza to a new loader entry and returns
 // that entry. The calling function is then responsible for adding the entry to the
 // list of entries.
 static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, CHAR16 *Title) {
@@ -982,18 +981,20 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
 
         } else if (MyStriCmp(TokenList[0], L"volume") && (TokenCount > 1)) {
             PreviousVolume = CurrentVolume;
-            if (FindVolume(&CurrentVolume, TokenList[1])) {
-                if ((CurrentVolume != NULL) && (CurrentVolume->IsReadable) && (CurrentVolume->RootDir)) {
-                    MyFreePool(Entry->me.Title);
-                    Entry->me.Title        = PoolPrint(L"Boot %s from %s",
-                                                       (Title != NULL) ? Title : L"Unknown",
-                                                       CurrentVolume->VolName);
-                    Entry->me.BadgeImage   = CurrentVolume->VolBadgeImage;
-                    Entry->Volume          = CurrentVolume;
-                } else { // It won't work out; reset to previous working volume....
-                    CurrentVolume = PreviousVolume;
-                } // if/else volume is readable
-            } // if match found
+            if (FindVolume(&CurrentVolume, TokenList[1]) &&
+                CurrentVolume != NULL && CurrentVolume->IsReadable && CurrentVolume->RootDir) {
+                MyFreePool(Entry->me.Title);
+                Entry->me.Title      = PoolPrint(L"Boot %s from %s",
+                                                 (Title != NULL) ? Title : L"Unknown",
+                                                 CurrentVolume->VolName);
+                Entry->me.BadgeImage = CurrentVolume->VolBadgeImage;
+                Entry->Volume        = CurrentVolume;
+            } else {
+                // Never silently redirect an explicit loader to Boot's own volume.
+                CurrentVolume = PreviousVolume;
+                Entry->Enabled = FALSE;
+                LOG(1, LOG_LINE_NORMAL, L"Manual boot volume not found or not readable: %s", TokenList[1]);
+            }
 
         } else if (MyStriCmp(TokenList[0], L"icon") && (TokenCount > 1)) {
             MyFreePool(Entry->me.Image);
@@ -1057,7 +1058,7 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
     return(Entry);
 } // static VOID AddStanzaEntries()
 
-// Read the user-configured menu entries from refind.conf and add or delete
+// Read the user-configured menu entries from boot.conf and add or delete
 // entries based on the contents of that file....
 VOID ScanUserConfigured(CHAR16 *FileName)
 {
@@ -1081,7 +1082,7 @@ VOID ScanUserConfigured(CHAR16 *FileName)
                 Entry = AddStanzaEntries(&File, Volume, TokenList[1]);
                 if ((Entry) && (Entry->Enabled)) {
                     if (Entry->me.SubScreen == NULL)
-                        GenerateSubScreen(Entry, Volume, TRUE);
+                        GenerateSubScreen(Entry, Entry->Volume, TRUE);
                     AddPreparedLoaderEntry(Entry);
                 } else {
                     MyFreePool(Entry);
@@ -1104,7 +1105,7 @@ VOID ScanUserConfigured(CHAR16 *FileName)
 // "quiet splash" when Plymouth is installed) and the other of which boots
 // with "ro root={rootfs} single". The root identifier comes from /etc/fstab.
 // The graphical flags apply only to automatically generated normal entries;
-// explicit Linux options files and recovery entries remain authoritative.
+// explicit boot.conf menu entries and recovery entries remain authoritative.
 static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
     UINTN        TokenCount, i;
     REFIT_FILE   *Options = NULL, *Fstab = NULL;
@@ -1215,71 +1216,30 @@ static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
     return Options;
 } // REFIT_FILE * GenerateOptionsFromPartTypes()
 
-// Read a Linux kernel options file for a Linux boot loader into memory. The LoaderPath
-// and Volume variables identify the location of the options file, but not its name --
-// you pass this function the filename of the Linux kernel, initial RAM disk, or other
-// file in the target directory, and this function finds the file with a name in the
-// comma-delimited list of names specified by LINUX_OPTIONS_FILENAMES within that
-// directory and loads it. If a rEFInd options file can't be found, try to generate
-// minimal options from /etc/fstab on the same volume as the kernel. This typically
-// works only if the kernel is being read from the Linux root filesystem.
-//
-// The return value is a pointer to the REFIT_FILE handle for the file, or NULL if
-// it wasn't found.
-REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
-    CHAR16       *OptionsFilename, *FullFilename;
-    BOOLEAN      GoOn = TRUE, FileFound = FALSE;
-    UINTN        i = 0, size;
-    REFIT_FILE   *File = NULL;
-    EFI_STATUS   Status;
+// Generate options for automatic Linux discovery from normal system metadata.
+// Device-specific kernel arguments are configured solely in Boot's boot.conf.
+REFIT_FILE * GenerateLinuxOptions(IN REFIT_VOLUME *Volume) {
+    REFIT_FILE *Options = GenerateOptionsFromEtcFstab(Volume);
+    if (Options == NULL)
+        Options = GenerateOptionsFromPartTypes();
+    return Options;
+}
 
-    do {
-        OptionsFilename = FindCommaDelimited(LINUX_OPTIONS_FILENAMES, i++);
-        FullFilename = FindPath(LoaderPath);
-        if ((OptionsFilename != NULL) && (FullFilename != NULL)) {
-            MergeStrings(&FullFilename, OptionsFilename, '\\');
-            if (FileExists(Volume->RootDir, FullFilename)) {
-                File = AllocateZeroPool(sizeof(REFIT_FILE));
-                Status = ReadFile(Volume->RootDir, FullFilename, File, &size);
-                if (CheckError(Status, L"while loading the Linux options file")) {
-                    MyFreePool(File);
-                    File = NULL;
-                } else {
-                    GoOn = FALSE;
-                    FileFound = TRUE;
-                } // if/else error
-            } // if file exists
-        } else { // a filename string is NULL
-            GoOn = FALSE;
-        } // if/else
-        MyFreePool(OptionsFilename);
-        MyFreePool(FullFilename);
-        OptionsFilename = FullFilename = NULL;
-    } while (GoOn);
-    if (!FileFound) {
-        // No refind_linux.conf file; look for /etc/fstab and try to pull values from there....
-        File = GenerateOptionsFromEtcFstab(Volume);
-        // If still no joy, try to use Freedesktop.org Discoverable Partitions Spec....
-        if (!File)
-            File = GenerateOptionsFromPartTypes();
-    } // if
-    return (File);
-} // static REFIT_FILE * ReadLinuxOptionsFile()
-
-// Retrieve a single line of options from a Linux kernel options file
-CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
+// Retrieve the default options for an automatically discovered Linux kernel.
+CHAR16 * GetFirstLinuxOptions(IN REFIT_VOLUME *Volume) {
     UINTN        TokenCount;
     CHAR16       *Options = NULL;
     CHAR16       **TokenList;
     REFIT_FILE   *File;
 
-    File = ReadLinuxOptionsFile(LoaderPath, Volume);
+    File = GenerateLinuxOptions(Volume);
     if (File != NULL) {
         TokenCount = ReadTokenLine(File, &TokenList);
         if (TokenCount > 1)
             Options = StrDuplicate(TokenList[1]);
         FreeTokenLine(&TokenList, &TokenCount);
+        MyFreePool(File->Buffer);
         MyFreePool(File);
     } // if
     return Options;
-} // static CHAR16 * GetOptionsFile()
+} // CHAR16 * GetFirstLinuxOptions()
