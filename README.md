@@ -30,7 +30,7 @@ The current major implementation areas are:
 - `refind/` — the present firmware application and boot-flow implementation;
 - `libeg/` — graphics and presentation support;
 - `EfiLib/` — EFI support mechanisms;
-- `filesystems/` — firmware filesystem drivers and adapters, including the read-only InfiltratorFS integration;
+- `filesystems/` — legacy firmware filesystem adapters. Only the qualified ext4 reader is built as a transitional compatibility dependency; Filesystems owns independent EFI driver builds and releases.
 - `mok/` — trust and MOK-related support inherited by the current implementation;
 - `gzip/` — compressed-data support used by the firmware application;
 - `gptsync/` — GPT/MBR synchronisation utility code retained by the current tree;
@@ -63,9 +63,9 @@ The repository contains material under multiple licences inherited from its sour
 
 ## Development preview and qualification
 
-[VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI compiles the full GNU-EFI x86-64 program and read-only InfiltratorFS driver, reproduces pinned vendor source, and publishes the exact generated EFI binaries together with exact tracked source, source-commit identity and SHA-256 checksums.
+[VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI builds Boot and its transitional ext4 reader, verifies the runtime archive and DEB, and publishes only a DEB and checksum. InfiltratorFS EFI is not built or shipped by Boot.
 
-The ready-to-copy Boot bundle is deliberately a Boot test surface rather than an assertion that every separately built firmware component is needed for ordinary OS handoff. The InfiltratorFS EFI driver remains available in the bundle under `EFI/BOOT/drivers-disabled/`; it is not placed in Boot's auto-loaded driver path unless a future qualified boot scenario actually requires it.
+Boot does not bundle disabled or experimental filesystem drivers. Filesystems owns the independent InfiltratorFS and OFS EFI reader builds; qualified drivers can be installed alongside Boot without recompiling Boot.
 
 The published EFI files are development artifacts for controlled testing. They are not an installer and publishing them does not claim firmware-runtime, Secure Boot, persistent-installation or recovery qualification. Setup remains responsible for the eventual supported installation transaction.
 
@@ -95,7 +95,7 @@ The deploy command requires a mounted FAT EFI System Partition at
 `/boot/efi/EFI/InfiltratorBoot/BOOTX64.EFI`. It refuses new destinations,
 backs up the previous binary under a version-labelled name, installs a
 checked replacement atomically in the same directory, and leaves
-`boot.conf`, `drivers_x64/` and `drivers-disabled/` unchanged.
+`boot.conf` and independently installed filesystem drivers unchanged.
 This is not an automatic first-install firmware provisioning mechanism.
 For other ESP layouts, preserve the package's staged payload and use a
 separately verified and explicitly approved deployment plan.
