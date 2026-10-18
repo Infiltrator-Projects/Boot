@@ -1,0 +1,70 @@
+name: OFS EFI experimental build
+
+on:
+  pull_request:
+    paths:
+      - 'filesystems/fsw_ofs.c'
+      - 'filesystems/fsw_ofs.h'
+      - 'filesystems/ofs/**'
+      - 'filesystems/Makefile'
+      - 'filesystems/Make.gnuefi'
+      - '.github/workflows/ofs-efi-experimental.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ofs-efi:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Install GNU-EFI toolchain
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnu-efi gcc make binutils file
+      - name: Compile test-only OFS driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          files="$(dpkg -L gnu-efi)"
+          crt="$(grep '/crt0-efi-x86_64\.o$' <<< "$files" | head -n1)"
+          efi="$(grep '/libefi\.a$' <<< "$files" | head -n1)"
+          gnu="$(grep '/libgnuefi\.a$' <<< "$files" | head -n1)"
+          test -f "$crt" && test -f "$efi" && test -f "$gnu"
+          options=(ARCH=x86_64 EFIINC=/usr/include/efi
+                   "EFICRT0=$(dirname "$crt")"
+                   "EFILIB=$(dirname "$efi")"
+                   "GNUEFILIB=$(dirname "$gnu")")
+          make -C filesystems ofs_gnuefi "${options[@]}"
+          test -s filesystems/ofs_x64.efi
+          file filesystems/ofs_x64.efi
+      - name: Check freestanding symbols and PE/COFF
+        shell: bash
+        run: |
+          set -euo pipefail
+          unresolved="$(nm -u filesystems/ofs_x64.so)"
+          if grep -Eq ' (fopen|open|read|write|lseek|mmap|pthread_[[:alnum:]_]*|dlopen|clock_gettime|gettimeofday|getenv|_Exit|fprintf|fputc|ferror|snprintf|__ctype_b_loc)$' <<< "$unresolved"; then
+            echo "Host runtime dependency leaked into firmware module" >&2
+            exit 1
+          fi
+          python3 - <<'PY_CHECK'
+          from pathlib import Path
+          import struct
+          p = Path('filesystems/ofs_x64.efi')
+          data = p.read_bytes()
+          assert len(data) > 0x100 and data[:2] == b'MZ'
+          pe = struct.unpack_from('<I', data, 0x3c)[0]
+          assert pe + 96 < len(data) and data[pe:pe+4] == b'PE\0\0'
+          assert struct.unpack_from('<H', data, pe + 4)[0] == 0x8664
+          assert struct.unpack_from('<H', data, pe + 24)[0] == 0x20b
+          assert struct.unpack_from('<H', data, pe + 24 + 68)[0] == 11
+          print('OFS: PE32+ x86-64 EFI boot-service driver')
+          PY_CHECK
+      - name: Store test-only unsigned EFI artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ofs-efi-unqualified-${{ github.sha }}
+          path: filesystems/ofs_x64.efi
+          retention-days: 7
+          if-no-files-found: error
