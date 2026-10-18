@@ -21,6 +21,10 @@ bundle, root = Path(sys.argv[1]), Path(sys.argv[2])
 with zipfile.ZipFile(bundle) as z:
     items = [f for f in z.infolist() if not f.is_dir()]
     names = {f.filename for f in items}
+    # The public package must never inherit source-theme/font/icon build records.
+    leaked = sorted(name for name in names if name.endswith('_PROVENANCE.txt'))
+    if leaked:
+        raise SystemExit(f'provenance metadata must not ship in a DEB: {leaked}')
     assert 'EFI/BOOT/BOOTX64.EFI' in names
     assert 'EFI/BOOT/boot.conf' in names
     assert 'EFI/BOOT/drivers_x64/BootExt4_x64.efi' in names

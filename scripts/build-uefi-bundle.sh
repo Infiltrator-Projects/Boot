@@ -20,7 +20,6 @@ for required in \
     "$dist/boot-banner.png" \
     "$dist/boot-selection-big.png" \
     "$dist/boot-selection-small.png" \
-    "$dist/THEME_PROVENANCE.txt" \
     "$icons_dir/os_infiltratoros.png"; do
     test -s "$required"
 done
@@ -87,7 +86,6 @@ install -m 0644 "$dist/mb-corpo-a-cond-regular.png" "$boot_dir/mb-corpo-a-cond-r
 install -m 0644 "$dist/boot-banner.png" "$boot_dir/boot-banner.png"
 install -m 0644 "$dist/boot-selection-big.png" "$boot_dir/boot-selection-big.png"
 install -m 0644 "$dist/boot-selection-small.png" "$boot_dir/boot-selection-small.png"
-install -m 0644 "$dist/THEME_PROVENANCE.txt" "$boot_dir/THEME_PROVENANCE.txt"
 
 # Physical Dell firmware successfully loaded direct PNG assets beside
 # BOOTX64.EFI but inherited icons/<name> lookups fell back to dummy graphics.
@@ -98,6 +96,8 @@ while IFS= read -r -d '' icon; do
     install -m 0644 "$icon" "$boot_dir/$(basename "$icon")"
 done
 cp -R "$icons_dir/." "$boot_dir/icons/"
+# Provenance manifests belong to the build evidence, not the EFI runtime.
+rm -f -- "$boot_dir/icons/ICON_PROVENANCE.txt"
 
 # Write the ZIP deterministically: sorted paths, fixed timestamps and stable
 # permissions. This makes the ready-to-copy UEFI bundle an exact release input.
@@ -119,7 +119,6 @@ required = {
     'EFI/BOOT/boot-banner.png',
     'EFI/BOOT/boot-selection-big.png',
     'EFI/BOOT/boot-selection-small.png',
-    'EFI/BOOT/THEME_PROVENANCE.txt',
     'EFI/BOOT/os_infiltratoros.png',
     'EFI/BOOT/os_infiltrator.png',
     'EFI/BOOT/os_infiltratorboot.png',
@@ -131,6 +130,10 @@ required = {
 }
 files = sorted(path for path in stage.rglob('*') if path.is_file())
 relative = {path.relative_to(stage).as_posix() for path in files}
+# All three provenance manifests are useful to CI but never to the firmware.
+provenance = sorted(name for name in relative if name.endswith('_PROVENANCE.txt'))
+if provenance:
+    raise SystemExit(f'build metadata leaked into runtime bundle: {provenance}')
 missing = required - relative
 if missing:
     raise SystemExit(f'bundle is missing required files: {sorted(missing)}')
