@@ -41,6 +41,15 @@ ifeq ($(DRIVERNAME),infiltratorfs)
          arithmetic.o core.o lz4.o
 endif
 
+# Experimental AmigaDOS OFS driver: explicitly built, never auto-loaded.
+ifeq ($(DRIVERNAME),ofs)
+  VPATH = $(SRCDIR):ofs/vendor/efi:ofs/vendor/core
+  LOCAL_GNUEFI_CFLAGS += -Iofs/vendor/efi -Iofs/vendor/core \
+                         -ffreestanding -fno-builtin
+  OBJS = fsw_core.o fsw_efi.o fsw_efi_lib.o fsw_lib.o fsw_ofs.o \
+         reader.o ofs_core.o ofs_primitives.o
+endif
+
 TARGET          = $(DRIVERNAME)_$(FILENAME_CODE).efi
 
 include $(SRCDIR)/../Make.common
