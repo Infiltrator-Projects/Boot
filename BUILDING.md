@@ -36,6 +36,10 @@ seals the runtime bundle into `infiltrator-boot_VERSION_amd64.deb`. The public
 release contains that package and `SHA256SUMS.txt`. Additional EFI binaries and
 filesystem driver files are rejected from both the bundle and the DEB.
 
+PNG graphics ship once, directly beside `BOOTX64.EFI`, matching `icons_dir .`
+in `boot.conf`. The `icons/` directory retains artwork attribution and licences
+only. Both the bundle and package reject PNGs in subdirectories.
+
 Filesystems independently builds and packages its EFI module payload. Setup, or
 an explicit local test, selects the modules to deploy to its chosen target.
 The Boot package keeps an empty driver directory for independent modules.

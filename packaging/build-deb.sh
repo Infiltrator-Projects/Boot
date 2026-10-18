@@ -27,6 +27,11 @@ with zipfile.ZipFile(bundle) as z:
         raise SystemExit(f'provenance metadata must not ship in a DEB: {leaked}')
     assert 'EFI/BOOT/BOOTX64.EFI' in names
     assert 'EFI/BOOT/boot.conf' in names
+    misplaced_pngs = sorted(name for name in names
+                            if name.lower().endswith('.png')
+                            and Path(name).parent != Path('EFI/BOOT'))
+    if misplaced_pngs:
+        raise SystemExit(f'PNG assets must ship only beside BOOTX64.EFI: {misplaced_pngs}')
     assert {name for name in names if name.lower().endswith('.efi')} == {'EFI/BOOT/BOOTX64.EFI'}
     forbidden = [name for name in names if '/drivers_' in name or '/drivers-disabled/' in name]
     if forbidden:

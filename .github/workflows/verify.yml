@@ -184,10 +184,19 @@ jobs:
           grep -q 'infiltrator-boot-deploy' packaging/infiltrator-boot-deploy
           bash -n packaging/build-deb.sh packaging/infiltrator-boot-deploy
           test -s "dist/Boot-$version-x86_64-uefi.zip"
-          python3 - "dist/Boot-$version-x86_64-uefi.zip" <<'PY'
-          import sys, zipfile
+          python3 - "dist/Boot-$version-x86_64-uefi.zip" "dist/infiltrator-boot_${version}_amd64.deb" <<'PY'
+          from pathlib import PurePosixPath
+          import io, subprocess, sys, tarfile, zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names = set(z.namelist())
+              graphics = {name: z.read(name) for name in names if name.lower().endswith('.png')}
+          assert graphics
+          assert all(PurePosixPath(name).parent == PurePosixPath('EFI/BOOT') for name in graphics), 'PNG assets must exist only beside BOOTX64.EFI'
+          with tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['dpkg-deb', '--fsys-tarfile', sys.argv[2]]))) as package:
+              packaged_graphics = {entry.name.removeprefix('./'): package.extractfile(entry).read()
+                                   for entry in package.getmembers()
+                                   if entry.isfile() and entry.name.lower().endswith('.png')}
+          assert packaged_graphics == {'usr/lib/infiltrator-boot/' + name: data for name, data in graphics.items()}, 'DEB graphics differ from the verified single-location bundle'
           assert {name for name in names if name.lower().endswith('.efi')} == {'EFI/BOOT/BOOTX64.EFI'}
           assert not any('/drivers_' in name or '/drivers-disabled/' in name for name in names)
           assert 'EFI/BOOT/os_infiltratoros.png' in names

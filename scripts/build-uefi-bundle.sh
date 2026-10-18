@@ -40,17 +40,17 @@ install -m 0644 "$dist/boot-banner.png" "$boot_dir/boot-banner.png"
 install -m 0644 "$dist/boot-selection-big.png" "$boot_dir/boot-selection-big.png"
 install -m 0644 "$dist/boot-selection-small.png" "$boot_dir/boot-selection-small.png"
 
-# Physical Dell firmware successfully loaded direct PNG assets beside
-# BOOTX64.EFI but inherited icons/<name> lookups fell back to dummy graphics.
-# Keep the runtime lookup deterministic and retain icons/ as provenance/licence
-# material for the shipped artwork.
+# The icon-path bug was fixed by loading PNG assets beside BOOTX64.EFI.
+# Ship graphics only at that working location, matching icons_dir . in boot.conf.
 find "$icons_dir" -maxdepth 1 -type f -name '*.png' -print0 |
 while IFS= read -r -d '' icon; do
     install -m 0644 "$icon" "$boot_dir/$(basename "$icon")"
 done
-cp -R "$icons_dir/." "$boot_dir/icons/"
-# Provenance manifests belong to the build evidence, not the EFI runtime.
-rm -f -- "$boot_dir/icons/ICON_PROVENANCE.txt"
+# Retain artwork attribution and licences without a second copy of the graphics.
+install -m 0644 "$icons_dir/README" "$boot_dir/icons/README"
+if [[ -d "$icons_dir/licenses" ]]; then
+    cp -R "$icons_dir/licenses" "$boot_dir/icons/licenses"
+fi
 
 # Write the ZIP deterministically: sorted paths, fixed timestamps and stable
 # permissions. This makes the ready-to-copy UEFI bundle an exact release input.
@@ -82,6 +82,11 @@ required = {
 }
 files = sorted(path for path in stage.rglob('*') if path.is_file())
 relative = {path.relative_to(stage).as_posix() for path in files}
+misplaced_pngs = sorted(name for name in relative
+                        if name.lower().endswith('.png')
+                        and Path(name).parent != Path('EFI/BOOT'))
+if misplaced_pngs:
+    raise SystemExit(f'PNG assets must ship only beside BOOTX64.EFI: {misplaced_pngs}')
 # All three provenance manifests are useful to CI but never to the firmware.
 provenance = sorted(name for name in relative if name.endswith('_PROVENANCE.txt'))
 if provenance:
