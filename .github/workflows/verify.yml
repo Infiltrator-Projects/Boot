@@ -27,11 +27,13 @@ jobs:
           bash -n scripts/build-icons.sh
           bash -n scripts/build-theme.sh
           bash -n scripts/build-uefi-bundle.sh
+          bash -n tests/run-icon-directory-test.sh
           bash scripts/build-gnuefi.sh
+          bash tests/run-icon-directory-test.sh
           version=$(tr -d '\r\n' < VERSION)
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           grep -q '#define CONFIG_FILE_NAME[[:space:]]*L"boot.conf"' refind/config.h
-          grep -q '^icons_dir \.$' boot.conf
+          grep -q '^icons_dir icons$' boot.conf
           grep -q '^banner boot-banner\.png$' boot.conf
           grep -q '^selection_big boot-selection-big\.png$' boot.conf
           grep -q '^selection_small boot-selection-small\.png$' boot.conf
@@ -191,7 +193,8 @@ jobs:
               names = set(z.namelist())
               graphics = {name: z.read(name) for name in names if name.lower().endswith('.png')}
           assert graphics
-          assert all(PurePosixPath(name).parent == PurePosixPath('EFI/BOOT') for name in graphics), 'PNG assets must exist only beside BOOTX64.EFI'
+          assert all(PurePosixPath(name).parent in {PurePosixPath('EFI/BOOT'), PurePosixPath('EFI/BOOT/icons')} for name in graphics), 'unexpected graphics directory'
+          assert len({PurePosixPath(name).name for name in graphics}) == len(graphics), 'graphics must ship once'
           with tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['dpkg-deb', '--fsys-tarfile', sys.argv[2]]))) as package:
               packaged_graphics = {entry.name.removeprefix('./'): package.extractfile(entry).read()
                                    for entry in package.getmembers()
@@ -199,14 +202,14 @@ jobs:
           assert packaged_graphics == {'usr/lib/infiltrator-boot/' + name: data for name, data in graphics.items()}, 'DEB graphics differ from the verified single-location bundle'
           assert {name for name in names if name.lower().endswith('.efi')} == {'EFI/BOOT/BOOTX64.EFI'}
           assert not any('/drivers_' in name or '/drivers-disabled/' in name for name in names)
-          assert 'EFI/BOOT/os_infiltratoros.png' in names
+          assert 'EFI/BOOT/icons/os_infiltratoros.png' in names
           assert 'EFI/BOOT/boot-banner.png' in names
           assert 'EFI/BOOT/boot-selection-big.png' in names
           assert 'EFI/BOOT/boot-selection-small.png' in names
           assert not any(name.endswith('_PROVENANCE.txt') for name in names), 'build-only provenance leaked into EFI bundle'
-          assert 'EFI/BOOT/func_reset.png' in names
-          assert 'EFI/BOOT/func_shutdown.png' in names
-          assert 'EFI/BOOT/func_firmware.png' in names
+          assert 'EFI/BOOT/icons/func_reset.png' in names
+          assert 'EFI/BOOT/icons/func_shutdown.png' in names
+          assert 'EFI/BOOT/icons/func_firmware.png' in names
           PY
           # Keep intermediate images, themes and the EFI test bundle in CI only.
           # A Debian product release contains exactly the installable package

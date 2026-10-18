@@ -174,3 +174,25 @@ The generic UEFI loader and normal read-only volume discovery remain in Boot.
 Removing bundled drivers does not remove drivers independently installed on an
 existing EFI partition. Fresh targets require the selected external modules.
 Build/package validation of this move is not a new physical-firmware boot result.
+
+## Boot 0.1.22 icon directory loading
+
+The icon reader now opens the configured directory first and reads leaf
+filenames through that handle. Empty and dot directory names retain the caller's
+base directory; the former empty-directory path incorrectly acquired a leading
+backslash and selected the volume root. Directory opens use the same bounded
+transient-error retries as icon reads. The reader closes the directory handles
+it opens and leaves the caller's base handle open.
+
+The package stores OS, utility and volume icons once under `icons/`, with
+`icons_dir icons` in its default configuration. Font atlases, banner and selection
+graphics retain their existing configured locations beside the executable.
+
+The host regression test compiles the production reader and image decoders,
+loads a real PNG through mocked EFI protocols, and deliberately rejects combined
+directory/file paths. It covers configured and custom directories, empty/dot
+paths, fallback, missing files, transient directory/file failures, short reads
+and handle ownership. This establishes behaviour under that failure model; the
+exact cause of the original physical icon failure is not established by a mock.
+Cold and warm physical-firmware qualification of the new directory layout
+remains outstanding.

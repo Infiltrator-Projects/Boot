@@ -494,26 +494,57 @@ EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN I
 // Returns an icon of any type from the specified subdirectory using the specified
 // base name. All directory references are relative to BaseDir. For instance, if
 // SubdirName is "myicons" and BaseName is "os_linux", this function will return
-// an image based on "myicons/os_linux.icns" or "myicons/os_linux.png", in that
+// an image based on "myicons/os_linux.png" or "myicons/os_linux.icns", in that
 // order of preference. Returns NULL if no such file is a valid icon file.
 EG_IMAGE * egLoadIconAnyType(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *SubdirName, IN CHAR16 *BaseName, IN UINTN IconSize) {
     EG_IMAGE *Image = NULL;
+    EFI_FILE_PROTOCOL *IconDir = BaseDir;
+    EFI_STATUS Status;
     CHAR16 *Extension;
     CHAR16 *FileName;
-    UINTN i = 0;
+    UINTN Attempt, i = 0;
+    BOOLEAN OpenedDir = FALSE;
 
-    while (((Extension = FindCommaDelimited(ICON_EXTENSIONS, i++)) != NULL) && (Image == NULL)) {
-        // A literal dot component can be rejected by a cold-start EFI driver.
-        if (SubdirName != NULL && SubdirName[0] == L'.' && SubdirName[1] == 0)
-            FileName = PoolPrint(L"%s.%s", BaseName, Extension);
-        else
-            FileName = PoolPrint(L"%s\\%s.%s", SubdirName, BaseName, Extension);
-        Image = egLoadIcon(BaseDir, FileName, IconSize);
+    if (BaseDir == NULL || BaseName == NULL || BaseName[0] == 0)
+        return NULL;
+
+    // Resolve the directory once. File opens below then use leaf names from
+    // that handle instead of asking firmware to parse directory/file paths.
+    // Empty and dot directories both mean BaseDir, never the volume root.
+    if (SubdirName != NULL && SubdirName[0] != 0 &&
+        !(SubdirName[0] == L'.' && SubdirName[1] == 0)) {
+        IconDir = NULL;
+        for (Attempt = 0; Attempt <= BOOT_ICON_MAX_RETRIES; Attempt++) {
+            Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &IconDir,
+                                        SubdirName, EFI_FILE_MODE_READ, 0);
+            if (!EFI_ERROR(Status)) {
+                if (Attempt > 0)
+                    BootIconRecovered++;
+                break;
+            }
+            egRecordIconReadError(SubdirName, Status);
+            if (Attempt == BOOT_ICON_MAX_RETRIES ||
+                !egIsTransientIconReadFailure(Status))
+                return NULL;
+            refit_call1_wrapper(BS->Stall, BOOT_ICON_RETRY_DELAY_US);
+        }
+        if (IconDir == NULL) {
+            egRecordIconReadError(SubdirName, EFI_LOAD_ERROR);
+            return NULL;
+        }
+        OpenedDir = TRUE;
+    }
+
+    while ((Image == NULL) && ((Extension = FindCommaDelimited(ICON_EXTENSIONS, i++)) != NULL)) {
+        FileName = PoolPrint(L"%s.%s", BaseName, Extension);
+        Image = egLoadIcon(IconDir, FileName, IconSize);
         LOG(4, LOG_LINE_NORMAL, L"Have loaded Image in egLoadIconAnyType()");
         MyFreePool(Extension);
         MyFreePool(FileName);
     } // while()
 
+    if (OpenedDir)
+        refit_call1_wrapper(IconDir->Close, IconDir);
     return Image;
 } // EG_IMAGE *egLoadIconAnyType()
 

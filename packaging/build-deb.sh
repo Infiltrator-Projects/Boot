@@ -27,11 +27,17 @@ with zipfile.ZipFile(bundle) as z:
         raise SystemExit(f'provenance metadata must not ship in a DEB: {leaked}')
     assert 'EFI/BOOT/BOOTX64.EFI' in names
     assert 'EFI/BOOT/boot.conf' in names
-    misplaced_pngs = sorted(name for name in names
-                            if name.lower().endswith('.png')
-                            and Path(name).parent != Path('EFI/BOOT'))
+    root_graphics = {'mb-corpo-s-regular.png', 'mb-corpo-s-bold.png',
+                     'mb-corpo-a-cond-regular.png', 'boot-banner.png',
+                     'boot-selection-big.png', 'boot-selection-small.png'}
+    graphics = {name for name in names if name.lower().endswith('.png')}
+    misplaced_pngs = sorted(name for name in graphics
+                            if Path(name).parent != Path('EFI/BOOT/icons')
+                            and name not in {'EFI/BOOT/' + asset for asset in root_graphics})
     if misplaced_pngs:
-        raise SystemExit(f'PNG assets must ship only beside BOOTX64.EFI: {misplaced_pngs}')
+        raise SystemExit(f'icons must ship only in icons/: {misplaced_pngs}')
+    if len({Path(name).name for name in graphics}) != len(graphics):
+        raise SystemExit('duplicate graphics filenames in the Boot DEB')
     assert {name for name in names if name.lower().endswith('.efi')} == {'EFI/BOOT/BOOTX64.EFI'}
     forbidden = [name for name in names if '/drivers_' in name or '/drivers-disabled/' in name]
     if forbidden:

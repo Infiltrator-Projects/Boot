@@ -40,11 +40,11 @@ install -m 0644 "$dist/boot-banner.png" "$boot_dir/boot-banner.png"
 install -m 0644 "$dist/boot-selection-big.png" "$boot_dir/boot-selection-big.png"
 install -m 0644 "$dist/boot-selection-small.png" "$boot_dir/boot-selection-small.png"
 
-# The icon-path bug was fixed by loading PNG assets beside BOOTX64.EFI.
-# Ship graphics only at that working location, matching icons_dir . in boot.conf.
+# The reader opens icons/ and reads leaf filenames through its directory handle.
+# Ship one copy of each icon in that directory, matching boot.conf.
 find "$icons_dir" -maxdepth 1 -type f -name '*.png' -print0 |
 while IFS= read -r -d '' icon; do
-    install -m 0644 "$icon" "$boot_dir/$(basename "$icon")"
+    install -m 0644 "$icon" "$boot_dir/icons/$(basename "$icon")"
 done
 # Retain artwork attribution and licences without a second copy of the graphics.
 install -m 0644 "$icons_dir/README" "$boot_dir/icons/README"
@@ -71,22 +71,27 @@ required = {
     'EFI/BOOT/boot-banner.png',
     'EFI/BOOT/boot-selection-big.png',
     'EFI/BOOT/boot-selection-small.png',
-    'EFI/BOOT/os_infiltratoros.png',
-    'EFI/BOOT/os_infiltrator.png',
-    'EFI/BOOT/os_infiltratorboot.png',
-    'EFI/BOOT/func_reset.png',
-    'EFI/BOOT/func_shutdown.png',
-    'EFI/BOOT/func_firmware.png',
-    'EFI/BOOT/os_uefi.png',
-    'EFI/BOOT/os_unknown.png',
+    'EFI/BOOT/icons/os_infiltratoros.png',
+    'EFI/BOOT/icons/os_infiltrator.png',
+    'EFI/BOOT/icons/os_infiltratorboot.png',
+    'EFI/BOOT/icons/func_reset.png',
+    'EFI/BOOT/icons/func_shutdown.png',
+    'EFI/BOOT/icons/func_firmware.png',
+    'EFI/BOOT/icons/os_uefi.png',
+    'EFI/BOOT/icons/os_unknown.png',
 }
 files = sorted(path for path in stage.rglob('*') if path.is_file())
 relative = {path.relative_to(stage).as_posix() for path in files}
-misplaced_pngs = sorted(name for name in relative
-                        if name.lower().endswith('.png')
-                        and Path(name).parent != Path('EFI/BOOT'))
+root_graphics = {name for name in required
+                 if name.endswith('.png') and Path(name).parent == Path('EFI/BOOT')}
+graphics = {name for name in relative if name.lower().endswith('.png')}
+misplaced_pngs = sorted(name for name in graphics
+                        if name not in root_graphics
+                        and Path(name).parent != Path('EFI/BOOT/icons'))
 if misplaced_pngs:
-    raise SystemExit(f'PNG assets must ship only beside BOOTX64.EFI: {misplaced_pngs}')
+    raise SystemExit(f'icons must ship only in icons/: {misplaced_pngs}')
+if len({Path(name).name for name in graphics}) != len(graphics):
+    raise SystemExit('duplicate graphics filenames in the Boot bundle')
 # All three provenance manifests are useful to CI but never to the firmware.
 provenance = sorted(name for name in relative if name.endswith('_PROVENANCE.txt'))
 if provenance:

@@ -17,6 +17,11 @@ The build does not fetch, compile, vendor or package filesystem implementations.
 Filesystem source and EFI driver builds are owned by Filesystems, under
 `firmware/uefi/` and the filesystem-specific native adapters in that repository.
 
+`bash tests/run-icon-directory-test.sh` builds the production image reader and
+decoders into a host regression test using the same GNU-EFI SDK. It exercises
+directory handles, real PNG loading, relative paths, retries and cleanup without
+requiring a firmware boot.
+
 Historical TianoCore/EDK2 application targets remain explicit alternatives;
 their existence is not evidence of current release qualification. Filesystem
 build targets and EDK2 filesystem components have been removed from Boot.
@@ -36,9 +41,11 @@ seals the runtime bundle into `infiltrator-boot_VERSION_amd64.deb`. The public
 release contains that package and `SHA256SUMS.txt`. Additional EFI binaries and
 filesystem driver files are rejected from both the bundle and the DEB.
 
-PNG graphics ship once, directly beside `BOOTX64.EFI`, matching `icons_dir .`
-in `boot.conf`. The `icons/` directory retains artwork attribution and licences
-only. Both the bundle and package reject PNGs in subdirectories.
+OS, utility and volume icons ship once under `icons/`, matching `icons_dir icons`
+in `boot.conf`. The reader opens that directory and loads leaf filenames from
+its handle. Font atlases, the banner and selection graphics remain beside the
+executable at their configured paths. Artwork attribution and licences remain
+under `icons/`. The bundle and DEB reject misplaced or duplicated graphics.
 
 Filesystems independently builds and packages its EFI module payload. Setup, or
 an explicit local test, selects the modules to deploy to its chosen target.
