@@ -30,14 +30,13 @@ test ! -e "$icons_dir/os_refit.png"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 boot_dir="$stage/EFI/BOOT"
-mkdir -p "$boot_dir/drivers_x64" "$boot_dir/drivers-disabled" "$boot_dir/icons"
+mkdir -p "$boot_dir/drivers_x64" "$boot_dir/icons"
 
 install -m 0644 "$boot_efi" "$boot_dir/BOOTX64.EFI"
 
-# Enable only explicitly qualified filesystem drivers. The manifest is the
-# single staging authority; adding AmigaFS or further modules does not require
-# modifying Boot's loader. Disabled drivers are shipped separately and cannot
-# auto-load. Dist artifact names are derived from the same public version.
+# Stage only currently qualified filesystem drivers. Disabled and experimental
+# filesystem drivers are not Boot runtime resources. Other drivers are built
+# and distributed separately by Filesystems; Boot can dynamically load them.
 python3 - "$driver_manifest" "$dist" "$boot_dir" "$version" <<'PY_DRIVERS'
 from pathlib import Path
 import re
@@ -58,8 +57,8 @@ for lineno, raw in enumerate(manifest.read_text(encoding="utf-8").splitlines(), 
     if len(parts) != 3:
         raise SystemExit(f"bad driver manifest line {lineno}: expected state, EFI filename, artifact prefix")
     state, dest_name, prefix = parts
-    if state not in {"enabled", "disabled"}:
-        raise SystemExit(f"invalid driver state {state!r} on line {lineno}")
+    if state != "enabled":
+        raise SystemExit(f"Boot may package only enabled qualified drivers (line {lineno})")
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*_x64[.]efi", dest_name):
         raise SystemExit(f"invalid driver filename on line {lineno}")
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", prefix):
@@ -70,13 +69,11 @@ for lineno, raw in enumerate(manifest.read_text(encoding="utf-8").splitlines(), 
     source = dist / f"{prefix}-{version}-x86_64.efi"
     if not source.is_file() or source.stat().st_size == 0:
         raise SystemExit(f"missing or empty qualified driver: {source}")
-    dest_dir = "drivers_x64" if state == "enabled" else "drivers-disabled"
-    shutil.copyfile(source, boot_dir / dest_dir / dest_name)
-    if state == "enabled":
-        enabled += 1
+    shutil.copyfile(source, boot_dir / "drivers_x64" / dest_name)
+    enabled += 1
 if not enabled:
     raise SystemExit("no enabled filesystem drivers")
-print(f"Staged {enabled} enabled and {len(loaded) - enabled} disabled EFI drivers")
+print(f"Staged {enabled} qualified EFI driver(s) and no disabled drivers")
 PY_DRIVERS
 
 install -m 0644 "$dist/boot.conf" "$boot_dir/boot.conf"
@@ -144,13 +141,16 @@ for raw in manifest.read_text(encoding="utf-8").splitlines():
     if not entry or entry.startswith("#"):
         continue
     state, dest_name, prefix = entry.split()
-    target = 'drivers_x64' if state == 'enabled' else 'drivers-disabled'
-    expected_drivers.add(f'EFI/BOOT/{target}/{dest_name}')
+    if state != 'enabled':
+        raise SystemExit('disabled EFI driver in Boot package manifest')
+    expected_drivers.add(f'EFI/BOOT/drivers_x64/{dest_name}')
 actual_drivers = {name for name in relative
                   if name.startswith('EFI/BOOT/drivers_x64/') or
                      name.startswith('EFI/BOOT/drivers-disabled/')}
 if actual_drivers != expected_drivers:
     raise SystemExit(f'driver manifest/staging mismatch: expected {sorted(expected_drivers)}, got {sorted(actual_drivers)}')
+if any('InfiltratorFS_x64.efi' in name or 'drivers-disabled/' in name for name in relative):
+    raise SystemExit('unqualified EFI driver leaked into Boot bundle')
 required.update(expected_drivers)
 
 for historical in (
@@ -180,6 +180,8 @@ with zipfile.ZipFile(output, 'r') as archive:
                          name.startswith('EFI/BOOT/drivers-disabled/')}
     if actual_drivers != expected_drivers:
         raise SystemExit('written bundle driver inventory does not match the manifest')
+    if any('InfiltratorFS_x64.efi' in name or 'drivers-disabled/' in name for name in names):
+        raise SystemExit('unqualified EFI driver leaked into Boot ZIP')
     bad = archive.testzip()
     if bad is not None:
         raise SystemExit(f'ZIP integrity failure at {bad}')
