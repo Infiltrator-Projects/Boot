@@ -75,7 +75,7 @@ The current implementation retains historical structure while ownership is progr
 - `refind/` currently contains the principal firmware application, including substantial boot-flow, configuration, scanning and presentation logic.
 - `libeg/` provides graphics and related presentation mechanisms.
 - `EfiLib/` contains EFI support code and firmware-facing mechanisms.
-- `filesystems/` contains firmware filesystem drivers and adapters. The InfiltratorFS path vendors an exact portable core and exposes it through a read-only EFI integration.
+- `filesystems/` contains legacy firmware filesystem adapters. Boot builds only a transitional qualified ext4 reader. Filesystems owns builds, qualification and distribution of independent EFI drivers, including InfiltratorFS and OFS; Boot loads those drivers through the EFI protocol.
 - `mok/` contains MOK/trust-related support used by the current implementation.
 - `gzip/` contains compression support required by current firmware paths.
 - `gptsync/` contains GPT/MBR synchronisation functionality. Because it can affect persistent disk state, it is conceptually separate from ordinary boot discovery even where historical build machinery groups it with the boot manager.
@@ -93,7 +93,7 @@ Renaming them is justified when it accompanies a coherent boundary change, elimi
 
 A dependency is acceptable when its contract is stronger than a local reimplementation and its role is explicit. Product semantics remain product-owned.
 
-Vendored dependencies must be pinned to exact source identities, carry applicable licensing, and have a reproducible generation/verification path. The InfiltratorFS UEFI integration follows this rule through `scripts/vendor-infiltratorfs.sh` and the corresponding CI verification workflow.
+Vendored dependencies must remain pinned and licensed. The legacy InfiltratorFS EFI adapter is retained as migration source but is no longer built or distributed by Boot.
 
 Firmware code must not accidentally acquire operating-system runtime dependencies. EFI-specific CI therefore treats unresolved host-runtime symbols as a qualification failure.
 
@@ -133,6 +133,6 @@ The end state is a boot manager whose architecture can be explained in product t
 
 ## Build and source-preview ownership
 
-The default GNU-EFI targets are explicit and independent of ambient EDK2/TianoCore installations. The product-owned build script locates GNU-EFI and compiles the full program and read-only InfiltratorFS driver. Make recursion preserves the chosen executable and flags. Generic cleanup owns repository outputs only.
+The default GNU-EFI targets are explicit and independent of ambient EDK2/TianoCore installations. The product-owned build script locates GNU-EFI and compiles the Boot executable plus the transitional ext4 reader only. Make recursion preserves the chosen executable and flags. Generic cleanup owns repository outputs only.
 
 Root VERSION owns source-preview identity; inherited engine versions remain separate. The single source workflow owns vendor verification, compilation and exact source artifacts. Publication promotes that sealed source as a prerelease. Binary release eligibility still belongs to firmware/runtime, trust and installation/recovery qualification.
