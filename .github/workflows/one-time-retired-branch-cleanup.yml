@@ -1,0 +1,41 @@
+name: One-time retired branch archive and cleanup
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-time-retired-branch-cleanup.yml'
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    if: github.repository == 'Infiltrator-Projects/Boot'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Preserve abandoned OFS prototype and remove retired branches
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+          branch="work/ofs-uefi-adapter"
+          pinned="5569661bbccce1970ea30ee164cc8f427be0fea4"
+          actual="$(gh api "repos/$repo/git/ref/heads/$branch" --jq '.object.sha')"
+          test "$actual" = "$pinned"
+          archive="archive/2026-10-18/boot-ofs-uefi-adapter"
+          existing="$(gh api "repos/$repo/git/ref/tags/$archive" --jq '.object.sha' 2>/dev/null || true)"
+          if test -z "$existing"; then
+            gh api -X POST "repos/$repo/git/refs" -f "ref=refs/tags/$archive" -f "sha=$pinned" >/dev/null
+          else
+            test "$existing" = "$pinned"
+          fi
+          test "$(gh api "repos/$repo/git/ref/tags/$archive" --jq '.object.sha')" = "$pinned"
+          gh api -X DELETE "repos/$repo/git/refs/heads/$branch"
+          branch="feature/ofs-efi-live-integration-0.1.17"
+          pinned="717523040527f8e7e13a4728b044b47223c5f62c"
+          test "$(gh api "repos/$repo/git/ref/heads/$branch" --jq '.object.sha')" = "$pinned"
+          gh api -X DELETE "repos/$repo/git/refs/heads/$branch"
+          actual="$(gh api "repos/$repo/branches?per_page=100" --jq '.[].name')"
+          test "$actual" = "main"
+          echo "Boot now has only main; retired experimental source preserved under archive tag."
