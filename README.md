@@ -99,3 +99,16 @@ checked replacement atomically in the same directory, and leaves
 This is not an automatic first-install firmware provisioning mechanism.
 For other ESP layouts, preserve the package's staged payload and use a
 separately verified and explicitly approved deployment plan.
+
+## Public release asset policy
+
+Starting with Boot v0.1.19, each GitHub release publishes exactly two
+project-managed assets: `infiltrator-boot_VERSION_amd64.deb` and
+`SHA256SUMS.txt`. GitHub also supplies its own automatic source archives.
+The separately built EFI executable, theme graphics, support drivers, source
+snapshot and ready-to-copy UEFI ZIP remain verifiable **intermediate CI
+outputs**, not public duplicates of the Debian package. All qualified
+runtime files are contained in the DEB beneath
+`/usr/lib/infiltrator-boot/EFI/BOOT/` and deployed only by the explicit
+existing-installation helper. A release guard checks the exact two-asset
+inventory before upload and validates the downloaded public bytes.
