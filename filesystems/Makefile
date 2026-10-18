@@ -90,6 +90,11 @@ infiltratorfs_gnuefi:
 	rm -f fsw_efi.o
 	+make DRIVERNAME=infiltratorfs -f Make.gnuefi
 
+# Experimental project-authored Amiga OFS EFI module (not in default list).
+ofs_gnuefi:
+	rm -f *.o
+	+make DRIVERNAME=ofs -f Make.gnuefi
+
 # Compiling filesystem drivers in parallel with GNU-EFI can cause build errors
 # and frozen systems on boot with drivers that do build OK, so disallow this....
 .NOTPARALLEL:
