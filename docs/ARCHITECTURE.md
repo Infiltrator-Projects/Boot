@@ -52,6 +52,10 @@ The runtime filesystem extension contract is EFI Driver Binding + EFI Simple Fil
 
 Driver startup must not reconnect every firmware device merely because a filesystem module was added. Broad controller binding is reserved for explicit custom non-filesystem driver paths or interactive rescans.
 
+The cross-project [Bootable Filesystem Integration Contract](https://github.com/Infiltrator-Projects/Filesystems/blob/main/docs/BOOTABLE_FILESYSTEM_CONTRACT.md) is the agreed integration and phased-test reference. **Boot's readable kernel-source filesystem need not be the running OS's root filesystem.** Loading a Linux EFI-stub kernel and initramfs from Amiga OFS is an earlier, independent test from mounting an Amiga OFS Linux root. After handoff the runtime OS uses its own module ABI and filesystem drivers; Boot's EFI readers cannot replace Linux `.ko` modules. Future native InfiltratorOS may use a different kernel and payload protocol.
+
+Filesystem capabilities and installation policies are supplied by Filesystems/Setup, not guessed by Boot's loader. Boot must not emulate missing filesystem semantics beyond the validated EFI read interface. Root suitability, POSIX capabilities and fail-closed installer adaptation are outside Boot's firmware stage.
+
 ### Trust and verification
 
 Trust-sensitive mechanisms own signature, Secure Boot, MOK and related decisions where applicable. Trust state must be explicit and must not be reduced to a cosmetic warning after a decision has already been made.

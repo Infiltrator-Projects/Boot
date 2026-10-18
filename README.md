@@ -38,6 +38,8 @@ The current major implementation areas are:
 
 The authoritative architectural interpretation of those areas is `docs/ARCHITECTURE.md`.
 
+The shared [Bootable Filesystem Integration Contract](https://github.com/Infiltrator-Projects/Filesystems/blob/main/docs/BOOTABLE_FILESYSTEM_CONTRACT.md) records how independent EFI filesystem readers, modular kernel-side filesystem modules and the future Setup installer cooperate. The first AmigaDOS milestone is to **load a Linux EFI-stub kernel stored on OFS**, with Linux's root remaining on a separately supported filesystem; that is not yet an OFS root installation.
+
 ## Maintained documentation
 
 The maintained project documentation is intentionally separated by concern:
