@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Explicitly update an existing Infiltrator Boot executable in its verified ESP.
+# No new EFI tree, NVRAM mutation, boot order change or configuration replacement.
+set -euo pipefail
+if [[ $# -ne 2 || $1 != --update-existing || $2 != --confirm ]]; then
+    echo 'usage: sudo infiltrator-boot-deploy --update-existing --confirm' >&2
+    exit 2
+fi
+if [[ ${EUID} -ne 0 ]]; then
+    echo 'Run as root; the EFI System Partition is privileged storage.' >&2
+    exit 1
+fi
+payload=/usr/lib/infiltrator-boot/EFI/BOOT/BOOTX64.EFI
+version_file=/usr/lib/infiltrator-boot/VERSION
+esp=/boot/efi
+target=$esp/EFI/InfiltratorBoot/BOOTX64.EFI
+dir=${target%/*}
+[[ -f "$payload" && ! -L "$payload" && -s "$payload" ]] || {
+    echo "Staged Boot payload missing: $payload" >&2
+    exit 1
+}
+[[ -f "$version_file" && ! -L "$version_file" ]] || exit 1
+version="$(tr -d '\r\n' < "$version_file")"
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+[[ "$(findmnt -rnM "$esp" -o FSTYPE)" == vfat ]] || {
+    echo "EFI System Partition is not mounted as vfat at $esp; refusing write." >&2
+    exit 1
+}
+[[ -d "$dir" && ! -L "$dir" && -f "$target" && ! -L "$target" ]] || {
+    echo "Expected existing Boot installation not found: $target" >&2
+    exit 1
+}
+if cmp -s "$payload" "$target"; then
+    echo "Boot $version is already deployed at $target"
+    exit 0
+fi
+backup="$target.before-$version"
+[[ ! -e "$backup" && ! -L "$backup" ]] || {
+    echo "Refusing to overwrite existing backup: $backup" >&2
+    exit 1
+}
+temp="$(mktemp "$dir/.BOOTX64.EFI.pending.XXXXXX")"
+trap 'rm -f -- "$temp"' EXIT
+install -m 0644 "$payload" "$temp"
+cmp "$payload" "$temp"
+cp -p "$target" "$backup"
+cmp "$target" "$backup"
+mv -f -- "$temp" "$target"
+cmp "$payload" "$target"
+sync -f "$target"
+echo "Updated $target to Infiltrator Boot $version"
+echo "Backup: $backup"
+echo 'boot.conf, EFI filesystem drivers and NVRAM were left unchanged.'

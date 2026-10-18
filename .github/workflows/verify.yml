@@ -191,6 +191,12 @@ jobs:
           cp filesystems/infiltratorfs_x64.efi "dist/InfiltratorFS-$version-x86_64.efi"
           cp boot.conf dist/boot.conf
           bash scripts/build-uefi-bundle.sh dist "$icons_dir" "$version"
+          bash packaging/build-deb.sh "dist/Boot-$version-x86_64-uefi.zip" "dist/infiltrator-boot_${version}_amd64.deb"
+          test "$(dpkg-deb -f "dist/infiltrator-boot_${version}_amd64.deb" Package)" = infiltrator-boot
+          test "$(dpkg-deb -f "dist/infiltrator-boot_${version}_amd64.deb" Version)" = "$version"
+          test "$(dpkg-deb -f "dist/infiltrator-boot_${version}_amd64.deb" Architecture)" = amd64
+          grep -q 'infiltrator-boot-deploy' packaging/infiltrator-boot-deploy
+          bash -n packaging/build-deb.sh packaging/infiltrator-boot-deploy
           test -s "dist/Boot-$version-x86_64-uefi.zip"
           python3 - "dist/Boot-$version-x86_64-uefi.zip" <<'PY'
           import sys, zipfile
@@ -210,7 +216,7 @@ jobs:
           PY
           git archive --format=zip --prefix="Boot-$version/" HEAD > "dist/Boot-$version-source.zip"
           printf '%s\n' "$GITHUB_SHA" > dist/SOURCE_COMMIT
-          (cd dist && sha256sum *.efi *.conf *.png *.txt *.zip SOURCE_COMMIT > SHA256SUMS.txt)
+          (cd dist && sha256sum *.deb *.efi *.conf *.png *.txt *.zip SOURCE_COMMIT > SHA256SUMS.txt)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: boot-release-${{ github.sha }}

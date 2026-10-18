@@ -68,3 +68,34 @@ The repository contains material under multiple licences inherited from its sour
 The ready-to-copy Boot bundle is deliberately a Boot test surface rather than an assertion that every separately built firmware component is needed for ordinary OS handoff. The InfiltratorFS EFI driver remains available in the bundle under `EFI/BOOT/drivers-disabled/`; it is not placed in Boot's auto-loaded driver path unless a future qualified boot scenario actually requires it.
 
 The published EFI files are development artifacts for controlled testing. They are not an installer and publishing them does not claim firmware-runtime, Secure Boot, persistent-installation or recovery qualification. Setup remains responsible for the eventual supported installation transaction.
+
+## Debian package and deliberate EFI deployment
+
+Boot releases from v0.1.18 include `infiltrator-boot_VERSION_amd64.deb`,
+built from the exact same verified UEFI ZIP bundle as the release executable.
+The central Infiltrator APT repository can install and update this package.
+The package owns its immutable EFI payload under
+`/usr/lib/infiltrator-boot/EFI/BOOT/`, and the deploy helper at
+`/usr/sbin/infiltrator-boot-deploy`.
+
+Installing or upgrading the DEB **does not silently write to the EFI System
+Partition**, install firmware variables, change BootOrder, or replace an
+existing user `boot.conf` or independently installed filesystem drivers.
+The currently qualified explicit upgrade path is for the existing Dell test
+layout:
+
+```sh
+sudo apt update
+sudo apt install infiltrator-boot
+sudo infiltrator-boot-deploy --update-existing --confirm
+```
+
+The deploy command requires a mounted FAT EFI System Partition at
+`/boot/efi` and an existing regular
+`/boot/efi/EFI/InfiltratorBoot/BOOTX64.EFI`. It refuses new destinations,
+backs up the previous binary under a version-labelled name, installs a
+checked replacement atomically in the same directory, and leaves
+`boot.conf`, `drivers_x64/` and `drivers-disabled/` unchanged.
+This is not an automatic first-install firmware provisioning mechanism.
+For other ESP layouts, preserve the package's staged payload and use a
+separately verified and explicitly approved deployment plan.
