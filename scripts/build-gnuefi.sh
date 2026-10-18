@@ -15,40 +15,18 @@ options=(ARCH=x86_64 EFIINC=/usr/include/efi
 # Build/link only. Installation, ESP writes and NVRAM mutation are separate.
 make -C "$root" gnuefi "${options[@]}"
 
-# Filesystem-driver builds share object names even though their compile flags are
-# not identical. Isolate the ext4 and InfiltratorFS builds so one driver's object
-# cache cannot silently contaminate the other.
-fswork="$(mktemp -d)"
-trap 'rm -rf "$fswork"' EXIT
-reset_fsw_objects() {
-    rm -f "$root/filesystems"/*.o \
-          "$root/filesystems"/*.so \
-          "$root/filesystems"/*.efi
-}
-
-reset_fsw_objects
+# Transitional ext4 reader: retain existing Linux boot discovery until a
+# Filesystems-owned replacement is separately built and qualified.
+rm -f "$root/filesystems"/*.o "$root/filesystems"/*.so "$root/filesystems"/*.efi
 make -C "$root/filesystems" ext4_gnuefi "${options[@]}"
-cp "$root/filesystems/ext4_x64.efi" "$fswork/ext4_x64.efi"
-cp "$root/filesystems/ext4_x64.so" "$fswork/ext4_x64.so"
-
-reset_fsw_objects
-make -C "$root/filesystems" infiltratorfs_gnuefi "${options[@]}"
-
-# Restore the independently built ext4 artifacts beside the InfiltratorFS
-# artifacts for release verification and packaging. The build target has already
-# copied ext4_x64.efi into drivers_x64 as Boot's active read-only Linux-root reader.
-cp "$fswork/ext4_x64.efi" "$root/filesystems/ext4_x64.efi"
-cp "$fswork/ext4_x64.so" "$root/filesystems/ext4_x64.so"
 
 test -s "$root/refind/refind_x64.efi"
 test -s "$root/filesystems/ext4_x64.efi"
-test -s "$root/filesystems/infiltratorfs_x64.efi"
 test -s "$root/drivers_x64/ext4_x64.efi"
 file "$root/refind/refind_x64.efi" \
-     "$root/filesystems/ext4_x64.efi" \
-     "$root/filesystems/infiltratorfs_x64.efi"
+     "$root/filesystems/ext4_x64.efi"
 
-for shared in "$root/filesystems/ext4_x64.so" "$root/filesystems/infiltratorfs_x64.so"; do
+for shared in "$root/filesystems/ext4_x64.so"; do
     unresolved="$(nm -u "$shared")"
     if grep -Eq ' (fopen|open|read|write|lseek|mmap|pthread_[[:alnum:]_]*|dlopen|clock_gettime|gettimeofday|getenv|_Exit|fprintf|fputc|ferror|snprintf|__ctype_b_loc)$' <<< "$unresolved"; then
         echo "Host runtime dependency in EFI filesystem driver: $shared" >&2
@@ -60,8 +38,7 @@ done
 # contracts Boot and firmware actually consume.
 python3 - \
     "$root/refind/refind_x64.efi" \
-    "$root/filesystems/ext4_x64.efi" \
-    "$root/filesystems/infiltratorfs_x64.efi" <<'PY'
+    "$root/filesystems/ext4_x64.efi" <<'PY'
 from pathlib import Path
 import struct
 import sys
@@ -69,7 +46,6 @@ import sys
 expected = {
     Path(sys.argv[1]): 10,  # EFI application
     Path(sys.argv[2]): 11,  # EFI boot-service driver
-    Path(sys.argv[3]): 11,
 }
 for path, subsystem_expected in expected.items():
     data = path.read_bytes()
