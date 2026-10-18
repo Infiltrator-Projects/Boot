@@ -28,6 +28,9 @@ with zipfile.ZipFile(bundle) as z:
     assert 'EFI/BOOT/BOOTX64.EFI' in names
     assert 'EFI/BOOT/boot.conf' in names
     assert 'EFI/BOOT/drivers_x64/BootExt4_x64.efi' in names
+    forbidden = [name for name in names if 'InfiltratorFS_x64.efi' in name or '/drivers-disabled/' in name]
+    if forbidden:
+        raise SystemExit(f'unqualified EFI driver shipped in Boot DEB: {forbidden}')
     for item in items:
         p = Path(item.filename)
         if (p.is_absolute() or '..' in p.parts or
