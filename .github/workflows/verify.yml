@@ -22,7 +22,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/vendor-infiltratorfs.sh --check
           bash -n scripts/build-gnuefi.sh
           bash -n scripts/build-mb-fonts.sh
           bash -n scripts/build-icons.sh
@@ -80,7 +79,8 @@ jobs:
           assert all(len(row) == 3 and row[0] in ('enabled', 'disabled') for row in entries)
           assert len({row[1] for row in entries}) == len(entries)
           assert ('enabled', 'BootExt4_x64.efi', 'BootExt4') in [tuple(row) for row in entries]
-          assert ('disabled', 'InfiltratorFS_x64.efi', 'InfiltratorFS') in [tuple(row) for row in entries]
+          assert not any('InfiltratorFS' in col for row in entries for col in row)
+          assert all(row[0] == 'enabled' for row in entries)
           bundler = Path('scripts/build-uefi-bundle.sh').read_text()
           assert 'driver_manifest="$root/filesystems/boot-driver-manifest.tsv"' in bundler
           assert 'actual_drivers != expected_drivers' in bundler
@@ -123,7 +123,6 @@ jobs:
           grep -q 'return EFI_WRITE_PROTECTED;' filesystems/fsw_efi.c
           test -s boot.conf
           test -s filesystems/ext4_x64.efi
-          test -s filesystems/infiltratorfs_x64.efi
           mkdir -p dist
           bash scripts/build-mb-fonts.sh dist
           test -s dist/mb-corpo-s-regular.png
@@ -188,15 +187,14 @@ jobs:
           cp "$icons_dir/ICON_PROVENANCE.txt" dist/ICON_PROVENANCE.txt
           cp refind/refind_x64.efi "dist/Boot-$version-x86_64.efi"
           cp filesystems/ext4_x64.efi "dist/BootExt4-$version-x86_64.efi"
-          cp filesystems/infiltratorfs_x64.efi "dist/InfiltratorFS-$version-x86_64.efi"
           cp boot.conf dist/boot.conf
           bash scripts/build-uefi-bundle.sh dist "$icons_dir" "$version"
           bash packaging/build-deb.sh "dist/Boot-$version-x86_64-uefi.zip" "dist/infiltrator-boot_${version}_amd64.deb"
           test "$(dpkg-deb -f "dist/infiltrator-boot_${version}_amd64.deb" Package)" = infiltrator-boot
           test "$(dpkg-deb -f "dist/infiltrator-boot_${version}_amd64.deb" Version)" = "$version"
           test "$(dpkg-deb -f "dist/infiltrator-boot_${version}_amd64.deb" Architecture)" = amd64
-          if dpkg-deb --contents "dist/infiltrator-boot_${version}_amd64.deb" | grep -qE '(THEME|FONT|ICON)_PROVENANCE[.]txt'; then
-            echo "Build-only provenance must not be shipped in the Boot DEB." >&2
+          if dpkg-deb --contents "dist/infiltrator-boot_${version}_amd64.deb" | grep -qE '(THEME|FONT|ICON)_PROVENANCE[.]txt|InfiltratorFS.*[.]efi|drivers-disabled/'; then
+            echo "Build-only provenance or unqualified EFI driver shipped in Boot DEB." >&2
             exit 1
           fi
           grep -q 'infiltrator-boot-deploy' packaging/infiltrator-boot-deploy
@@ -208,7 +206,7 @@ jobs:
               names = set(z.namelist())
           assert 'EFI/BOOT/drivers_x64/BootExt4_x64.efi' in names
           assert 'EFI/BOOT/drivers_x64/InfiltratorFS_x64.efi' not in names
-          assert 'EFI/BOOT/drivers-disabled/InfiltratorFS_x64.efi' in names
+          assert not any('InfiltratorFS' in name or 'drivers-disabled/' in name for name in names)
           assert 'EFI/BOOT/os_infiltratoros.png' in names
           assert 'EFI/BOOT/boot-banner.png' in names
           assert 'EFI/BOOT/boot-selection-big.png' in names
