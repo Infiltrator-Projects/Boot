@@ -22,6 +22,7 @@ jobs:
           branch="work/ofs-uefi-adapter"
           pinned="5569661bbccce1970ea30ee164cc8f427be0fea4"
           actual="$(gh api "repos/$repo/git/ref/heads/$branch" --jq '.object.sha')"
+          echo "Boot initial ref: repo=$repo expected=$pinned actual=$actual"
           test "$actual" = "$pinned"
           archive="archive/2026-10-18/boot-ofs-uefi-adapter"
           existing="$(gh api "repos/$repo/git/ref/tags/$archive" --jq '.object.sha' 2>/dev/null || true)"
