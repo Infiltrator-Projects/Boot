@@ -35,10 +35,10 @@ Any code capable of modifying NVRAM, boot order, ESP contents, partition metadat
 The maintained development-preview workflow has the following automated coverage:
 
 - building the full GNU-EFI x86-64 program through an explicit toolchain entry point;
-- building the read-only InfiltratorFS EFI driver with GNU-EFI on x86-64;
+- verifying that Boot does not compile or ship the read-only InfiltratorFS EFI driver;
 - rejecting unresolved host operating-system/runtime dependencies in the resulting shared object;
-- verifying that the committed vendored InfiltratorFS/Common/LZ4 tree matches the exact pinned source generator;
-- verifying that the removable Boot bundle keeps the optional InfiltratorFS driver outside the auto-loaded driver path; and
+- preserving old pinned driver source in history until Filesystems can independently qualify and release its EFI implementation;
+- verifying the runtime ZIP and DEB contain no InfiltratorFS driver, disabled driver directory or build-only provenance; and
 - sealing the generated EFI binaries, tracked source archive and source-commit identity together with SHA-256 checksums before publication.
 
 These checks establish source/build evidence and are deliberately not described as complete Boot runtime qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
@@ -58,7 +58,7 @@ The first presentation test identified defects rather than boot-handoff defects:
 
 A second physical test with Boot 0.1.8 confirmed that the inherited banner was no longer visible, direct self-directory PNG lookup worked for recognised Windows/Ubuntu and utility artwork, the optional InfiltratorFS driver was absent from the active driver path, and the menu remained functional. It also showed that the presentation still did not meet the product-quality target: the inherited pale menu surface and grey selection treatment dominated the screen, volume badges and instructional hints added clutter, mixed inherited chrome remained visible, and the MB Corpo face appeared unnaturally widely tracked and low-contrast. Source review then identified two renderer-contract causes for the typography result: the proportional MB face was being forced into fixed-width cell advances, and the generated external atlas used a light master even though the renderer expects a dark master and performs its own inversion on dark backgrounds. Those observations are evidence for the 0.1.9 theme and proportional-font changes; they are not proof that the revised presentation is correct until 0.1.9 is retested on the same hardware.
 
-InfiltratorFS was not required for the successful Linux handoff. The separately built InfiltratorFS EFI driver therefore remains outside the default auto-loaded driver path in the removable Boot bundle until a boot scenario that actually requires that driver is deliberately qualified.
+InfiltratorFS was not required for the successful Linux handoff. Boot no longer publishes or stages this experimental driver; Filesystems owns its qualification and release before independent installation.
 
 ## Required change evidence
 
@@ -120,7 +120,7 @@ A release is not qualified if those questions cannot be answered confidently for
 
 ## Development-preview publication
 
-Root VERSION identifies the development preview; inherited engine/profile versions retain their separate meaning. The same successful workflow seals the generated GNU-EFI x86-64 Boot application, read-only InfiltratorFS EFI driver, tracked Git source and source-commit identity with SHA-256. Its publisher downloads that artifact, verifies the checksum manifest, compares complete remote bytes before and after publication, and publishes the verified release bytes.
+Root VERSION identifies the development preview; inherited engine/profile versions retain their separate meaning. The current workflow verifies the GNU-EFI x86-64 Boot application and transitional ext4 reader, then publishes only a Debian package and checksum. Its publisher downloads that artifact, verifies the checksum manifest, compares complete remote bytes before and after publication, and publishes the verified release bytes.
 
 The generated EFI files are published for controlled testing because they are the exact artifacts that passed the current host-build checks. Their publication does not elevate host-build evidence into universal firmware-runtime, Secure Boot, installation or recovery qualification. No automatic installation is included, and the workflow must not modify an EFI System Partition or NVRAM.
 
@@ -160,6 +160,6 @@ Startup qualification: verify on actual firmware that Boot discovers the same in
 
 ### Boot 0.1.16 filesystem extension contract
 
-The 0.1.15 optimized binding pass excluded BlockIo handles with `LogicalPartition == FALSE`; this is too restrictive for future native-disk filesystem drivers including Amiga RDB volumes. 0.1.16 includes present whole-disk BlockIo handles while still avoiding unrelated firmware controllers. Drivers must perform their own Supported() probes and return unsupported promptly. Qualified drivers from `filesystems/boot-driver-manifest.tsv` are loaded before volume discovery. The manifest is verified against the physical ZIP inventory, and disabled drivers must never enter `drivers_x64`.
+The 0.1.15 optimized binding pass excluded BlockIo handles with `LogicalPartition == FALSE`; this is too restrictive for future native-disk filesystem drivers including Amiga RDB volumes. 0.1.16 includes present whole-disk BlockIo handles while still avoiding unrelated firmware controllers. Drivers must perform their own Supported() probes and return unsupported promptly. Qualified drivers from `filesystems/boot-driver-manifest.tsv` are loaded before volume discovery. The manifest is verified against the physical ZIP inventory, and disabled drivers must never enter Boot distribution at all.
 
-Current qualification stays unchanged: the ext4 EFI driver is enabled to load Mint's kernel and initrd; InfiltratorFS is disabled. AmigaFS is not yet built, enabled or claimed to work. Once an AmigaFS driver is available, qualify whole-disk RDB, common Amiga partitions, mixed GPT and RDB systems, unsupported random disk contents, read-only operation, predictable startup and failure isolation before enabling it in the release manifest.
+Boot packages only the transitional qualified ext4 EFI reader. InfiltratorFS is not bundled. Filesystems has an independent OFS EFI driver under qualification; complete end-to-end OFS boot is not yet established. Once an AmigaFS driver is available, qualify whole-disk RDB, common Amiga partitions, mixed GPT and RDB systems, unsupported random disk contents, read-only operation, predictable startup and failure isolation before enabling it in the release manifest.
