@@ -56,7 +56,10 @@ The Boot package keeps an empty driver directory for independent modules.
 Building and packaging never write to an EFI partition or NVRAM. The historical
 `make install` target invokes the inherited installer and is not a build step.
 The packaged existing-installation updater remains a limited, separately
-invoked operation; Setup owns the future complete installation transaction.
+invoked operation. It replaces only `BOOTX64.EFI`; configuration, icons, fonts
+and external filesystem drivers retain their existing deployed state. It does
+not migrate an ESP to the layout of a newly staged DEB. Setup owns the future
+complete installation and resource-migration transaction.
 
 Compilation establishes build/linkage evidence. Runtime, driver interoperability,
 Secure Boot and installation/recovery behaviour require their own evidence under

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.22 — 2026-10-19
+
+- Open the configured icon directory and read leaf filenames through its EFI handle. Preserve bounded transient retries and caller handle ownership.
+- Correct empty-directory icon lookup so it remains relative to the supplied base directory.
+- Place all 78 runtime icons once under `icons/`, with `icons_dir icons` in the default configuration. Font and theme graphics retain their configured paths.
+- Add host regression tests using the production reader and real PNG decoders. The full GNU-EFI build and package checks pass; physical boot verification of the new directory layout remains outstanding.
+
+## 0.1.21 — 2026-10-19
+
+- Remove 78 mirrored PNG copies while preserving the then-working direct lookup layout, artwork attribution and licences. Reduce the DEB from 172 files to 94.
+- Add bundle and package checks against misplaced graphics; 0.1.22 subsequently moves the icons into their directory and rejects duplicate graphics filenames.
+
 ## 0.1.20 — 2026-10-19
 
 - Move all firmware filesystem implementations, dormant adapters and pinned vendor source to Filesystems, preserving the code and licences.

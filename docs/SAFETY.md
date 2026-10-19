@@ -39,7 +39,11 @@ Firmware filesystem access is read-only by default. The boot manager needs to di
 
 Filesystem parsers operate on untrusted on-disk structures. They must bound lengths, counts, offsets, recursion, decompression and allocation. Corrupt metadata must produce explicit failure rather than unchecked pointer arithmetic or unbounded traversal.
 
-The InfiltratorFS UEFI integration is intentionally read-only and is built from pinned portable source. It must remain independent of host operating-system runtime services.
+Filesystems owns EFI filesystem implementations, their pinned source and parser
+qualification. Boot owns safe use of the exposed EFI protocols, including
+bounded reads and path/handle ownership. Importing a format implementation into
+Boot to serve a local test would cross this boundary. Firmware readers remain
+independent of host operating-system runtime services.
 
 ## Configuration and external data
 

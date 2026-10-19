@@ -37,9 +37,9 @@ The maintained development-preview workflow has the following automated coverage
 - building the full GNU-EFI x86-64 program through an explicit toolchain entry point;
 - verifying that Boot contains no filesystem implementation directory and compiles no EFI filesystem driver;
 - rejecting unresolved host operating-system/runtime dependencies in the resulting shared object;
-- preserving driver source and its import provenance in the independent Filesystems repository;
-- verifying the runtime ZIP and DEB contain exactly one EFI application and no driver payload or build-only provenance; and
-- sealing the generated EFI binaries, tracked source archive and source-commit identity together with SHA-256 checksums before publication.
+- exercising the production icon reader and image decoders against mocked EFI protocols, including directory ownership, retries and short reads;
+- verifying the runtime ZIP and DEB contain exactly one EFI application, correctly placed graphics without duplicate filenames, and no driver payload or build-only provenance; and
+- publishing the exact CI-verified DEB and checksum, then comparing the complete downloaded release bytes before and after publication.
 
 These checks establish source/build evidence and are deliberately not described as complete Boot runtime qualification. The presence of older GNU-EFI, TianoCore and EDK2 build paths in the repository does not make all of them release-qualified automatically.
 

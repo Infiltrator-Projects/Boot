@@ -3,7 +3,7 @@
 Boot is the firmware-stage boot manager for InfiltratorOS. It is an Infiltrator project and is engineered under the canonical Infiltrator Engineering Philosophy.
 
 The component name is **Boot**. The operating system is **InfiltratorOS**;
-**Filesystems** provides filesystem capability information, and **Setup** is the
+**Filesystems** owns filesystem implementations and drivers, and **Setup** is the
 name reserved for the future installer. **InfiltratorFS** remains the name of the
 filesystem format.
 
@@ -49,6 +49,7 @@ The maintained project documentation is intentionally separated by concern:
 - `docs/PRODUCT-QUALITY.md` — acceptance standard and craftsmanship requirements;
 - `docs/SAFETY.md` — firmware, persistence and trust-boundary safety rules;
 - `docs/VALIDATION.md` — qualification and release evidence;
+- [docs/LESSONS.md](docs/LESSONS.md) — lessons from component, packaging and icon-loading changes;
 - `docs/PROVENANCE.md` — historical source and licensing provenance;
 - `BUILDING.md` — current build entry point;
 - `CONTRIBUTING.md` — change discipline;
@@ -80,8 +81,7 @@ The package owns its immutable EFI payload under
 Installing or upgrading the DEB **does not silently write to the EFI System
 Partition**, install firmware variables, change BootOrder, or replace an
 existing user `boot.conf` or independently installed filesystem drivers.
-The currently qualified explicit upgrade path is for the existing Dell test
-layout:
+The existing-installation helper currently supports the Dell test layout:
 
 ```sh
 sudo apt update
@@ -94,7 +94,10 @@ The deploy command requires a mounted FAT EFI System Partition at
 `/boot/efi/EFI/InfiltratorBoot/BOOTX64.EFI`. It refuses new destinations,
 backs up the previous binary under a version-labelled name, installs a
 checked replacement atomically in the same directory, and leaves
-`boot.conf` and independently installed filesystem drivers unchanged.
+`boot.conf`, artwork and independently installed filesystem drivers unchanged.
+It replaces only the EFI executable; it does not deploy the package's icons,
+fonts or default configuration. A new packaged resource layout therefore does
+not migrate an existing ESP installation.
 This is not an automatic first-install firmware provisioning mechanism.
 For other ESP layouts, preserve the package's staged payload and use a
 separately verified and explicitly approved deployment plan.
@@ -106,8 +109,9 @@ project-managed assets: `infiltrator-boot_VERSION_amd64.deb` and
 `SHA256SUMS.txt`. GitHub also supplies its own automatic source archives.
 The separately built EFI executable, theme graphics, source
 snapshot and ready-to-copy UEFI ZIP remain verifiable **intermediate CI
-outputs**, not public duplicates of the Debian package. All qualified
-runtime files are contained in the DEB beneath
-`/usr/lib/infiltrator-boot/EFI/BOOT/` and deployed only by the explicit
-existing-installation helper. A release guard checks the exact two-asset
+outputs**, not public duplicates of the Debian package. The packaged
+runtime files are staged beneath
+`/usr/lib/infiltrator-boot/EFI/BOOT/`. The existing-installation helper updates
+only the EFI executable; full resource deployment and migration belong to the
+future Setup installation transaction. A release guard checks the exact two-asset
 inventory before upload and validates the downloaded public bytes.

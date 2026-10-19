@@ -16,6 +16,11 @@ Read, as applicable:
 - `docs/VALIDATION.md`; and
 - `docs/PROVENANCE.md` when touching inherited or licensed material.
 
+For filesystem ownership, runtime file layouts, packaging or deployment, also
+read [the integration lessons](docs/LESSONS.md). Preserve the distinction
+between product responsibilities, local test arrangements and the evidence
+available for the exact artifact being changed.
+
 A meaningful change should identify the product problem, the owning concern, the relevant failure modes, compatibility implications and the evidence required to validate it.
 
 ## Ownership first
