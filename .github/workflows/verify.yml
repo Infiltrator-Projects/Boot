@@ -30,6 +30,7 @@ jobs:
           bash -n tests/run-icon-directory-test.sh
           bash scripts/build-gnuefi.sh
           bash tests/run-icon-directory-test.sh
+          python3 tests/verify-driver-diagnostics.py
           version=$(tr -d '\r\n' < VERSION)
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           grep -q '#define CONFIG_FILE_NAME[[:space:]]*L"boot.conf"' refind/config.h

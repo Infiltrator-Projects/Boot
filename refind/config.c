@@ -627,6 +627,9 @@ VOID ReadConfig(CHAR16 *FileName)
         } else if (MyStriCmp(TokenList[0], L"log_level") && (TokenCount == 2)) {
             HandleInt(TokenList, TokenCount, &(GlobalConfig.LogLevel));
 
+        } else if (MyStriCmp(TokenList[0], L"driver_diagnostics")) {
+            GlobalConfig.DriverDiagnostics = HandleBoolean(TokenList, TokenCount);
+
         } else if (MyStriCmp(TokenList[0], L"also_scan_dirs")) {
              HandleStrings(TokenList, TokenCount, &(GlobalConfig.AlsoScan));
 

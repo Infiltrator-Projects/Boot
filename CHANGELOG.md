@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.23 — 2026-10-20
+
+- Add opt-in, RAM-only filesystem-driver diagnostics to Boot's existing UEFI loading and binding path, controlled by `driver_diagnostics true` in the installed `boot.conf`. Disabled by default.
+- Report begin/completion stages for EFI image validation/loading, `StartImage`, targeted controller binding, inherited DiskIo compatibility binding, and volume rescan. Distinguish firmware `ConnectController` completion from an actual newly exposed Simple File System protocol.
+- Present concise driver and readable-volume counts with the last stage in Boot's graphical menu; output optional per-volume evidence to the firmware console without saving ESP logs or updating NVRAM.
+- Add source-contract verification to CI and document the limits of console visibility and hardware qualification. Preserve Filesystems as the sole owner of ext4, OFS and other external driver implementations.
+
+
 ## 0.1.22 — 2026-10-19
 
 - Open the configured icon directory and read leaf filenames through its EFI handle. Preserve bounded transient retries and caller handle ownership.

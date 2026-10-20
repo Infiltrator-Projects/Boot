@@ -59,6 +59,7 @@
 #include "screen.h"
 #include "lib.h"
 #include "log.h"
+#include "driver_support.h"
 #include "menu.h"
 #include "config.h"
 #include "libeg.h"
@@ -1140,6 +1141,23 @@ static VOID PaintAll(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN
                     DrawTextWithTransparency(Timing, (UGAWidth - Width) / 2,
                                              UGAHeight - Height * (9 - Line));
                 MyFreePool(Timing);
+            }
+        }
+    }
+
+    // The opt-in firmware trace uses the same volatile menu surface as the
+    // startup timings. It never persists device details or boot state.
+    if (GlobalConfig.DriverDiagnostics) {
+        UINTN Line;
+        for (Line = 0; Line < 2; ++Line) {
+            CHAR16 *Diagnostic = BootGetDriverDiagnosticLine(Line);
+            if (Diagnostic != NULL) {
+                UINTN Width = egComputeTextWidth(Diagnostic);
+                UINTN Height = egGetFontHeight();
+                if (Height > 0 && UGAHeight > Height * 8 && Width < UGAWidth)
+                    DrawTextWithTransparency(Diagnostic, (UGAWidth - Width) / 2,
+                                             UGAHeight - Height * (7 - Line));
+                MyFreePool(Diagnostic);
             }
         }
     }

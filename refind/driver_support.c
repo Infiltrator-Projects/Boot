@@ -77,6 +77,72 @@
 #include "log.h"
 #include "../include/refit_call_wrapper.h"
 
+/* Firmware-driver progress is Boot-owned and RAM-only. A live marker precedes
+ * each potentially blocking UEFI operation; the graphical summary is shown
+ * if startup reaches the menu. Console output may be hidden by firmware, and
+ * no trace survives a reset. Neither ESP nor NVRAM is written. */
+static UINTN DiagDriverAttempts, DiagDriverLoaded, DiagBindAttempts;
+static UINTN DiagNewFilesystems, DiagReadableVolumes;
+static EFI_STATUS DiagLastStatus = EFI_SUCCESS;
+static BOOLEAN DiagLastFinished;
+static CHAR16 DiagLastName[64];
+static CHAR16 *DiagLastStage = L"not started";
+
+VOID BootDriverDiagnosticProgress(IN CHAR16 *Stage, IN CHAR16 *Name,
+                                  IN BOOLEAN Finished, IN EFI_STATUS Status) {
+    UINTN i = 0;
+    if (!GlobalConfig.DriverDiagnostics)
+        return;
+    DiagLastStage = Stage ? Stage : L"unknown";
+    if (Name != NULL) {
+        while (Name[i] && i + 1 < sizeof(DiagLastName) / sizeof(CHAR16)) {
+            DiagLastName[i] = Name[i];
+            ++i;
+        }
+        DiagLastName[i] = 0;
+    }
+    DiagLastFinished = Finished;
+    DiagLastStatus = Status;
+    if (Finished)
+        Print(L"[Boot EFI] %s: %s returned %r\n", DiagLastName, DiagLastStage, Status);
+    else
+        Print(L"[Boot EFI] %s: %s begin\n", DiagLastName, DiagLastStage);
+}
+
+VOID BootDriverDiagnosticVolumes(VOID) {
+    UINTN Index;
+    if (!GlobalConfig.DriverDiagnostics)
+        return;
+    DiagReadableVolumes = 0;
+    for (Index = 0; Index < VolumesCount; ++Index)
+        if (Volumes[Index] != NULL && Volumes[Index]->IsReadable) {
+            ++DiagReadableVolumes;
+            if (Index < 32)
+                Print(L"[Boot EFI] volume %d: %s | filesystem %s | readable\\n",
+                      Index, Volumes[Index]->VolName ? Volumes[Index]->VolName : L"unnamed",
+                      Volumes[Index]->FsName ? Volumes[Index]->FsName : L"unspecified");
+        }
+    BootDriverDiagnosticProgress(L"volume rescan", L"all volumes", TRUE, EFI_SUCCESS);
+}
+
+CHAR16 *BootGetDriverDiagnosticLine(IN UINTN Line) {
+    if (!GlobalConfig.DriverDiagnostics)
+        return NULL;
+    if (Line == 0)
+        return PoolPrint(L"EFI: drivers %d/%d | connect %d | new filesystems %d | readable volumes %d",
+                         DiagDriverLoaded, DiagDriverAttempts, DiagBindAttempts,
+                         DiagNewFilesystems, DiagReadableVolumes);
+    if (Line == 1) {
+        if (DiagLastFinished)
+            return PoolPrint(L"EFI last: %s | %s = %r",
+                             DiagLastName, DiagLastStage, DiagLastStatus);
+        return PoolPrint(L"EFI last: %s | %s (no completion yet)",
+                         DiagLastName, DiagLastStage);
+    }
+    return NULL;
+}
+
+
 #if defined (EFIX64)
 #define DRIVER_DIRS             L"drivers,drivers_x64"
 #elif defined (EFI32)
@@ -518,17 +584,25 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
         DriverHandleList[1] = NULL;
         for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
             if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
+                BootDriverDiagnosticProgress(L"compat DisconnectController",
+                                             L"DiskIo partition", FALSE, EFI_SUCCESS);
                 Status = refit_call3_wrapper(gBS->DisconnectController,
                                              Handles[Index],
                                              OpenInfo[OpenInfoIndex].AgentHandle,
                                              NULL);
+                BootDriverDiagnosticProgress(L"compat DisconnectController",
+                                             L"DiskIo partition", TRUE, Status);
                 if (!(EFI_ERROR(Status))) {
                     DriverHandleList[0] = DriverHandle;
-                    refit_call4_wrapper(gBS->ConnectController,
-                                        Handles[Index],
-                                        DriverHandleList,
-                                        NULL,
-                                        FALSE);
+                    BootDriverDiagnosticProgress(L"compat ConnectController",
+                                                 L"DiskIo partition", FALSE, EFI_SUCCESS);
+                    Status = refit_call4_wrapper(gBS->ConnectController,
+                                                 Handles[Index],
+                                                 DriverHandleList,
+                                                 NULL,
+                                                 FALSE);
+                    BootDriverDiagnosticProgress(L"compat ConnectController",
+                                                 L"DiskIo partition", TRUE, Status);
                 } // if
             } // if
         } // for
@@ -555,8 +629,11 @@ static VOID ConnectFilesystemBlockDevices(VOID) {
     Status = refit_call5_wrapper(gBS->LocateHandleBuffer, ByProtocol,
                                  &gMyEfiBlockIoProtocolGuid, NULL,
                                  &Count, &Handles);
-    if (EFI_ERROR(Status))
+    if (EFI_ERROR(Status)) {
+        BootDriverDiagnosticProgress(L"locate BlockIo", L"all controllers", TRUE, Status);
         return;
+    }
+    BootDriverDiagnosticProgress(L"locate BlockIo", L"all controllers", TRUE, EFI_SUCCESS);
 
     for (Index = 0; Index < Count; Index++) {
         BlockIo = NULL;
@@ -575,10 +652,24 @@ static VOID ConnectFilesystemBlockDevices(VOID) {
             continue; // Already mounted by firmware or another driver.
 
         Attempted++;
+        if (GlobalConfig.DriverDiagnostics) {
+            ++DiagBindAttempts;
+            BootDriverDiagnosticProgress(L"ConnectController", L"BlockIo handle", FALSE, EFI_SUCCESS);
+        }
         Status = refit_call4_wrapper(gBS->ConnectController, Handles[Index],
                                      NULL, NULL, FALSE);
         if (!EFI_ERROR(Status))
             Connected++;
+        if (GlobalConfig.DriverDiagnostics) {
+            EFI_STATUS FsStatus;
+            Fs = NULL;
+            FsStatus = refit_call3_wrapper(gBS->HandleProtocol, Handles[Index],
+                                         &gMyEfiSimpleFileSystemProtocolGuid,
+                                         (VOID **)&Fs);
+            if (!EFI_ERROR(FsStatus))
+                ++DiagNewFilesystems;
+            BootDriverDiagnosticProgress(L"ConnectController", L"BlockIo handle", TRUE, Status);
+        }
     }
 
     MyFreePool(Handles);
@@ -605,9 +696,17 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
             continue;   // skip this
 
         FileName = PoolPrint(L"%s\\%s", Path, DirEntry->FileName);
+        if (GlobalConfig.DriverDiagnostics) {
+            ++DiagDriverAttempts;
+            BootDriverDiagnosticProgress(L"load driver", DirEntry->FileName, FALSE, EFI_SUCCESS);
+        }
         Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE);
-        if (!EFI_ERROR(Status))
+        if (!EFI_ERROR(Status)) {
             NumFound++;
+            if (GlobalConfig.DriverDiagnostics)
+                ++DiagDriverLoaded;
+        }
+        BootDriverDiagnosticProgress(L"load driver", DirEntry->FileName, TRUE, Status);
         MyFreePool(DirEntry);
         MyFreePool(FileName);
     } // while
@@ -631,6 +730,7 @@ BOOLEAN LoadDrivers(VOID) {
     UINTN         i = 0, Length, NumFound = 0;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Loading drivers");
+    BootDriverDiagnosticProgress(L"driver directory discovery", L"external drivers", FALSE, EFI_SUCCESS);
     // load drivers from the subdirectories of rEFInd's home directory specified
     // in the DRIVER_DIRS constant.
     while ((Directory = FindCommaDelimited(DRIVER_DIRS, i++)) != NULL) {
@@ -663,5 +763,6 @@ BOOLEAN LoadDrivers(VOID) {
         else
             ConnectFilesystemBlockDevices();
     }
+    BootDriverDiagnosticProgress(L"driver directory discovery", L"external drivers", TRUE, EFI_SUCCESS);
     return (NumFound > 0);
 } /* BOOLEAN LoadDrivers() */

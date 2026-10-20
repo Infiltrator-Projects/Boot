@@ -126,6 +126,7 @@ REFIT_CONFIG GlobalConfig = { /* TextOnly = */ FALSE,
                                                   DEFAULT_MOUSE_SIZE },
                               /* BannerScale = */ BANNER_NOSCALE,
                               /* LogLevel = */ 0,
+                              /* DriverDiagnostics = */ FALSE,
                               /* *DiscoveredRoot = */ NULL,
                               /* *SelfDevicePath = */ NULL,
                               /* *BannerFileName = */ NULL,
@@ -572,9 +573,15 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     BootMarkStartup(2);
     if (LoadDrivers()) {
         BootMarkStartup(3);
+        if (GlobalConfig.DriverDiagnostics)
+            BootDriverDiagnosticProgress(L"volume rescan", L"all volumes", FALSE, EFI_SUCCESS);
         ScanVolumes();
+        if (GlobalConfig.DriverDiagnostics)
+            BootDriverDiagnosticVolumes();
     } else {
         BootMarkStartup(3);
+        if (GlobalConfig.DriverDiagnostics)
+            BootDriverDiagnosticVolumes();
     }
     BootMarkStartup(4);
 

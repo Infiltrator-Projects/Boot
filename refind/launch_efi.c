@@ -64,6 +64,7 @@
 #include "../include/refit_call_wrapper.h"
 #include "launch_efi.h"
 #include "log.h"
+#include "driver_support.h"
 #include "scan.h"
 
 //
@@ -226,7 +227,12 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     // Some EFIs crash if attempting to load driver for invalid architecture, so
     // protect for this condition; but sometimes Volume comes back NULL, so provide
     // an exception. (TODO: Handle this special condition better.)
+    if (IsDriver)
+        BootDriverDiagnosticProgress(L"verify EFI image", ImageTitle, FALSE, EFI_SUCCESS);
     LoaderType = IsValidLoader(Volume->RootDir, Filename);
+    if (IsDriver)
+        BootDriverDiagnosticProgress(L"verify EFI image", ImageTitle, TRUE,
+                                      LoaderType == LOADER_TYPE_EFI ? EFI_SUCCESS : EFI_UNSUPPORTED);
     if ((LoaderType == LOADER_TYPE_EFI) || (LoaderType == LOADER_TYPE_GZIP)) {
         DevicePath = FileDevicePath(Volume->DeviceHandle, Filename);
         // OS loaders stay path-backed because some kernels require the firmware
@@ -239,8 +245,10 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                 if (!EFI_ERROR(Status)) {
                     LOG(2, LOG_LINE_NORMAL, L"Loading driver '%s' from a %llu-byte memory buffer",
                         ImageTitle, (UINT64) ImageSize);
+                    BootDriverDiagnosticProgress(L"LoadImage", ImageTitle, FALSE, EFI_SUCCESS);
                     ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, NULL,
                                                                 ImageData, ImageSize, &ChildImageHandle);
+                    BootDriverDiagnosticProgress(L"LoadImage", ImageTitle, TRUE, Status);
                 } else {
                     ReturnStatus = Status;
                 }
@@ -330,7 +338,11 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     UninitRefitLib();
 
     // Actually launch the program....
+    if (IsDriver)
+        BootDriverDiagnosticProgress(L"StartImage", ImageTitle, FALSE, EFI_SUCCESS);
     ReturnStatus = Status = refit_call3_wrapper(BS->StartImage, ChildImageHandle, NULL, NULL);
+    if (IsDriver)
+        BootDriverDiagnosticProgress(L"StartImage", ImageTitle, TRUE, Status);
 
     // control returns here when the child image calls Exit()
     ErrorInfo = PoolPrint(L"returned from %s", ImageTitle);
@@ -341,7 +353,9 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
         // Below should have no effect on most systems, but works
         // around bug with some EFIs that prevents filesystem drivers
         // from binding to partitions.
+        BootDriverDiagnosticProgress(L"compatibility binding", ImageTitle, FALSE, EFI_SUCCESS);
         ConnectFilesystemDriver(ChildImageHandle);
+        BootDriverDiagnosticProgress(L"compatibility binding", ImageTitle, TRUE, EFI_SUCCESS);
     }
 
     // re-open file handles

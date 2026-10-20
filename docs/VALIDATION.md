@@ -30,6 +30,19 @@ This level verifies the product contract: discovery, ordering, configuration, in
 
 Any code capable of modifying NVRAM, boot order, ESP contents, partition metadata or other durable state requires dedicated tests for preconditions, interruption, verification and recovery. These paths must not be inferred safe from read-only discovery tests.
 
+## External EFI-driver diagnostics
+
+The opt-in `driver_diagnostics true` setting exposes firmware loading,
+controller binding and rescanned-volume evidence without persistent logging.
+The live pre-call marker and corresponding completion marker distinguish where
+a call did not return, provided the firmware console remains visible. The
+graphical menu retains a RAM-only summary when startup completes.
+
+Automated verification builds the real GNU-EFI application and asserts the
+instrumentation exists at the relevant boundaries. It does not establish
+the visibility of firmware console output or prove driver binding on a
+specific Dell SD-controller. See [DRIVER-DIAGNOSTICS.md](DRIVER-DIAGNOSTICS.md).
+
 ## Current automated qualification
 
 The maintained development-preview workflow has the following automated coverage:

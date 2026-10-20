@@ -366,6 +366,7 @@ typedef struct {
    UINTN            IconSizes[4];
    UINTN            BannerScale;
    UINTN            LogLevel;
+   BOOLEAN          DriverDiagnostics; // opt-in volatile UEFI driver progress
    REFIT_VOLUME     *DiscoveredRoot;
    EFI_DEVICE_PATH  *SelfDevicePath;
    CHAR16           *BannerFileName;

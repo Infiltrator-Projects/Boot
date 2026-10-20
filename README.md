@@ -49,6 +49,7 @@ The maintained project documentation is intentionally separated by concern:
 - `docs/PRODUCT-QUALITY.md` — acceptance standard and craftsmanship requirements;
 - `docs/SAFETY.md` — firmware, persistence and trust-boundary safety rules;
 - `docs/VALIDATION.md` — qualification and release evidence;
+- `docs/DRIVER-DIAGNOSTICS.md` — opt-in physical firmware driver tracing and recovery;
 - [docs/LESSONS.md](docs/LESSONS.md) — lessons from component, packaging and icon-loading changes;
 - `docs/PROVENANCE.md` — historical source and licensing provenance;
 - `BUILDING.md` — current build entry point;

@@ -56,4 +56,10 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID);
 VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle);
 BOOLEAN LoadDrivers(VOID);
 
+/* Opt-in, RAM-only driver progress. No disk logging or EFI variable writes. */
+VOID BootDriverDiagnosticProgress(IN CHAR16 *Stage, IN CHAR16 *Name,
+                                  IN BOOLEAN Finished, IN EFI_STATUS Status);
+VOID BootDriverDiagnosticVolumes(VOID);
+CHAR16 *BootGetDriverDiagnosticLine(IN UINTN Line);
+
 #endif
