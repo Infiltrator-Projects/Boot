@@ -38,6 +38,29 @@ assert 'DiagNewFilesystems' in drivers and '&gMyEfiSimpleFileSystemProtocolGuid'
 assert "BootDriverDiagnosticVolumes()" in main
 assert "BootGetDriverDiagnosticLine(Line)" in menu
 assert "GlobalConfig.DriverDiagnostics" in menu
+assert "TAG_DRIVER_DIAGNOSTICS" in global_header
+assert "case TAG_DRIVER_DIAGNOSTICS:" in main
+assert "ShowBootDiagnostics();" in main
+assert "VOID ShowBootDiagnostics(VOID)" in menu
+assert "TempMenuEntry->Tag = TAG_DRIVER_DIAGNOSTICS;" in Path("refind/scan.c").read_text()
+assert "if (GlobalConfig.DriverDiagnostics)" in Path("refind/scan.c").read_text()
+assert "BootGetStartupTimingLine(Line)" in menu
+
+# Neither the startup timing nor the driver diagnostics may paint into the
+# graphical main-menu footer: both belong to the separately laid-out screen.
+main_paint = menu[menu.index("static VOID PaintAll("):
+                  menu.index("} // static VOID PaintAll()")]
+assert "BootGetDriverDiagnosticLine(" not in main_paint
+assert "BootGetStartupTimingLine(" not in main_paint
+detail = menu[menu.index("VOID ShowBootDiagnostics(VOID)"):
+              menu.index("} // VOID ShowBootDiagnostics(")] if "} // VOID ShowBootDiagnostics(" in menu else menu[menu.index("VOID ShowBootDiagnostics(VOID)"):menu.index("// Check each filename in FilenameList")]
+assert "RunMenu(&Diagnostics, NULL);" in detail
+assert "FreeList((VOID ***)&Diagnostics.InfoLines" in detail
+assert "MyFreePool(Diagnostics.Entries)" in detail
+
+# Keep page rows concise rather than smuggling a status bar back in.
+assert "Line >= 15" in drivers
+assert "Result[50] = 0" in drivers
 
 diagnostic_functions = drivers[drivers.index("static UINTN DiagDriverAttempts"):
                                drivers.index("EFI_GUID gMyEfiLoadedImageProtocolGuid")]

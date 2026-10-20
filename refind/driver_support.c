@@ -125,23 +125,53 @@ VOID BootDriverDiagnosticVolumes(VOID) {
     BootDriverDiagnosticProgress(L"volume rescan", L"all volumes", TRUE, EFI_SUCCESS);
 }
 
+/* The diagnostic page owns layout; deliver short lines, never a sprawling
+ * status bar. Volumes are firmware-discovered, format-neutral evidence and
+ * are deliberately not called 'OFS mounted' solely from driver presence. */
 CHAR16 *BootGetDriverDiagnosticLine(IN UINTN Line) {
+    UINTN Index, Seen = 0;
+    CHAR16 *Result;
     if (!GlobalConfig.DriverDiagnostics)
         return NULL;
-    if (Line == 0)
-        return PoolPrint(L"EFI: drivers %d/%d | connect %d | new filesystems %d | readable volumes %d",
-                         DiagDriverLoaded, DiagDriverAttempts, DiagBindAttempts,
-                         DiagNewFilesystems, DiagReadableVolumes);
-    if (Line == 1) {
-        if (DiagLastFinished)
-            return PoolPrint(L"EFI last: %s | %s = %r",
-                             DiagLastName, DiagLastStage, DiagLastStatus);
-        return PoolPrint(L"EFI last: %s | %s (no completion yet)",
-                         DiagLastName, DiagLastStage);
+    switch (Line) {
+        case 0:
+            return PoolPrint(L"External drivers started: %d of %d",
+                             DiagDriverLoaded, DiagDriverAttempts);
+        case 1:
+            return PoolPrint(L"Controller connects attempted: %d", DiagBindAttempts);
+        case 2:
+            return PoolPrint(L"New EFI filesystem protocols: %d", DiagNewFilesystems);
+        case 3:
+            return PoolPrint(L"Readable volumes after rescan: %d", DiagReadableVolumes);
+        case 4:
+            return PoolPrint(L"Last stage: %s", DiagLastStage);
+        case 5:
+            return PoolPrint(L"Last image/device: %s", DiagLastName);
+        case 6:
+            if (DiagLastFinished)
+                return PoolPrint(L"Last result: %r", DiagLastStatus);
+            return PoolPrint(L"Last result: operation did not complete");
+        default:
+            break;
+    }
+    /* A bounded sample of readable volumes. No disk I/O occurs here; this
+     * only presents the volume information already collected by Boot. */
+    if (Line < 7 || Line >= 15)
+        return NULL;
+    for (Index = 0; Index < VolumesCount; ++Index) {
+        if (Volumes[Index] == NULL || !Volumes[Index]->IsReadable)
+            continue;
+        if (Seen++ == Line - 7) {
+            Result = PoolPrint(L"Volume %d: %s", Index,
+                               Volumes[Index]->VolName ?
+                               Volumes[Index]->VolName : L"(unnamed)");
+            if (Result != NULL && StrLen(Result) > 50)
+                Result[50] = 0;
+            return Result;
+        }
     }
     return NULL;
 }
-
 
 #if defined (EFIX64)
 #define DRIVER_DIRS             L"drivers,drivers_x64"

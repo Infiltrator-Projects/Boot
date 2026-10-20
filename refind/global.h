@@ -79,6 +79,7 @@
 #define TAG_HIDDEN           (21)
 #define TAG_INSTALL          (22)
 #define TAG_BOOTORDER        (23)
+#define TAG_DRIVER_DIAGNOSTICS (24)
 #define NUM_TOOLS            (24)
 
 #define NUM_SCAN_OPTIONS 11

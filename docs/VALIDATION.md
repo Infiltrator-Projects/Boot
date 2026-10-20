@@ -35,8 +35,11 @@ Any code capable of modifying NVRAM, boot order, ESP contents, partition metadat
 The opt-in `driver_diagnostics true` setting exposes firmware loading,
 controller binding and rescanned-volume evidence without persistent logging.
 The live pre-call marker and corresponding completion marker distinguish where
-a call did not return, provided the firmware console remains visible. The
-graphical menu retains a RAM-only summary when startup completes.
+a call did not return, provided the firmware console remains visible. After startup, an opt-in EFI Diagnostics menu item presents a separate,
+readable RAM-only screen. Physical validation on the Dell Latitude 5550 found
+the earlier inline status and startup-timing text cramped and overlapping the
+main menu; those overlays have been removed. The separate diagnostic screen
+still requires on-device visual qualification after deployment.
 
 Automated verification builds the real GNU-EFI application and asserts the
 instrumentation exists at the relevant boundaries. It does not establish

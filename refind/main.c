@@ -521,12 +521,16 @@ CHAR16 *BootGetStartupTimingLine(IN UINTN Line) {
     Loaders = BootStartupDeciseconds(5, 7);
     Total   = BootStartupDeciseconds(0, 7);
     if (Line == 0)
-        return PoolPrint(L"Startup: disks %d.%ds | config %d.%ds | drivers %d.%ds | re-scan %d.%ds",
-                         Disks / 10, Disks % 10, Config / 10, Config % 10,
-                         Drivers / 10, Drivers % 10, Rescan / 10, Rescan % 10);
+        return PoolPrint(L"Disks %d.%ds | config %d.%ds",
+                         Disks / 10, Disks % 10, Config / 10, Config % 10);
     if (Line == 1)
-        return PoolPrint(L"Startup: graphics %d.%ds | OS discovery %d.%ds | total %d.%ds",
-                         Screen / 10, Screen % 10, Loaders / 10, Loaders % 10,
+        return PoolPrint(L"Drivers %d.%ds | rescan %d.%ds",
+                         Drivers / 10, Drivers % 10, Rescan / 10, Rescan % 10);
+    if (Line == 2)
+        return PoolPrint(L"Graphics %d.%ds | OS scan %d.%ds",
+                         Screen / 10, Screen % 10, Loaders / 10, Loaders % 10);
+    if (Line == 3)
+        return PoolPrint(L"Total pre-menu %d.%ds",
                          Total / 10, Total % 10);
     return NULL;
 }
@@ -664,6 +668,10 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
             case TAG_ABOUT:    // About rEFInd
                 AboutrEFInd();
+                break;
+
+            case TAG_DRIVER_DIAGNOSTICS:
+                ShowBootDiagnostics();
                 break;
 
             case TAG_LOADER:   // Boot OS via .EFI loader

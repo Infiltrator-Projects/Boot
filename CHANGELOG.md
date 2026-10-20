@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.24 — 2026-10-20
+
+- Remove overlapping driver-status and timing text from the graphical boot-selection menu after real Dell Latitude 5550 testing revealed that the overlay was unreadable.
+- Present optional diagnostics in a dedicated, keyboard- and pointer-accessible EFI Diagnostics tool. Show concise driver and controller counts, firmware filesystem bindings, readable volume names and startup-stage timings with bounded text lengths.
+- Use Boot's existing menu renderer and transient in-memory records; add no alternate filesystem code, ESP log writes, firmware-variable writes or background services.
+- Extend source-contract regression checks to reject a return to main-menu diagnostic overlays. Compiled firmware operation and actual UI spacing still require physical validation.
+
+
 ## 0.1.23 — 2026-10-20
 
 - Add opt-in, RAM-only filesystem-driver diagnostics to Boot's existing UEFI loading and binding path, controlled by `driver_diagnostics true` in the installed `boot.conf`. Disabled by default.

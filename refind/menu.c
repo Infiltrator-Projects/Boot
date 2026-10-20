@@ -1128,40 +1128,6 @@ static VOID PaintAll(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN
                                  UGAHeight - (egGetFontHeight() * 2));
     } // if
 
-    // Two volatile pre-menu startup timings. Measurement ends before the
-    // user can wait at the menu, so countdowns never inflate these figures.
-    {
-        UINTN Line;
-        for (Line = 0; Line < 2; Line++) {
-            CHAR16 *Timing = BootGetStartupTimingLine(Line);
-            if (Timing != NULL) {
-                UINTN Width = egComputeTextWidth(Timing);
-                UINTN Height = egGetFontHeight();
-                if (Height > 0 && UGAHeight > Height * 10 && Width < UGAWidth)
-                    DrawTextWithTransparency(Timing, (UGAWidth - Width) / 2,
-                                             UGAHeight - Height * (9 - Line));
-                MyFreePool(Timing);
-            }
-        }
-    }
-
-    // The opt-in firmware trace uses the same volatile menu surface as the
-    // startup timings. It never persists device details or boot state.
-    if (GlobalConfig.DriverDiagnostics) {
-        UINTN Line;
-        for (Line = 0; Line < 2; ++Line) {
-            CHAR16 *Diagnostic = BootGetDriverDiagnosticLine(Line);
-            if (Diagnostic != NULL) {
-                UINTN Width = egComputeTextWidth(Diagnostic);
-                UINTN Height = egGetFontHeight();
-                if (Height > 0 && UGAHeight > Height * 8 && Width < UGAWidth)
-                    DrawTextWithTransparency(Diagnostic, (UGAWidth - Width) / 2,
-                                             UGAHeight - Height * (7 - Line));
-                MyFreePool(Diagnostic);
-            }
-        }
-    }
-
     // On-screen, RAM-only evidence when firmware icon reads fail.
     {
         CHAR16 *Diagnostic = egGetIconDiagnosticText();
@@ -1516,6 +1482,42 @@ VOID DisplaySimpleMessage(CHAR16* Title, CHAR16 *Message) {
     RunGenericMenu(&HideItemMenu, Style, &DefaultEntry, &ChosenOption);
     LOG(1, LOG_LINE_NORMAL, L"%s - %s", Title, Message);
 } // VOID DisplaySimpleMessage()
+
+/* Diagnostics are an opt-in, ordinary graphical submenu, rather than
+ * unbounded strings superimposed on the boot selection surface. Boot's normal
+ * menu remains visually quiet. The existing screen painter manages positioning
+ * and selection; this function owns only the transient diagnostic text. */
+VOID ShowBootDiagnostics(VOID) {
+    REFIT_MENU_SCREEN Diagnostics = {
+        L"EFI Driver Diagnostics", NULL, 0, NULL, 0, NULL, 0, NULL,
+        L"Press Enter or Esc to return", L""
+    };
+    UINTN Line;
+    CHAR16 *Text;
+    if (!GlobalConfig.DriverDiagnostics)
+        return;
+
+    AddMenuInfoLine(&Diagnostics, StrDuplicate(L"External driver state"));
+    for (Line = 0; Line < 15; ++Line) {
+        Text = BootGetDriverDiagnosticLine(Line);
+        if (Text != NULL)
+            AddMenuInfoLine(&Diagnostics, Text);
+    }
+    AddMenuInfoLine(&Diagnostics, StrDuplicate(L""));
+    AddMenuInfoLine(&Diagnostics, StrDuplicate(L"Startup timing"));
+    for (Line = 0; Line < 4; ++Line) {
+        Text = BootGetStartupTimingLine(Line);
+        if (Text != NULL)
+            AddMenuInfoLine(&Diagnostics, Text);
+    }
+    AddMenuEntry(&Diagnostics, &MenuEntryReturn);
+    RunMenu(&Diagnostics, NULL);
+
+    /* Free only dynamically allocated info strings. The return entry and
+     * its title are static, shared by other menus, and not owned here. */
+    FreeList((VOID ***)&Diagnostics.InfoLines, &Diagnostics.InfoLineCount);
+    MyFreePool(Diagnostics.Entries);
+}
 
 // Check each filename in FilenameList to be sure it refers to a valid file. If
 // not, delete it. This works only on filenames that are complete, with volume,

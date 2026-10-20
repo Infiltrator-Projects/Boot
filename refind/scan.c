@@ -1678,5 +1678,18 @@ VOID ScanForTools(VOID) {
         } // switch()
     } // for
     MyFreePool(AllToolLocations);
+    /* The diagnostic view is visible only during an explicitly configured
+     * firmware test. It reuses an existing tool icon, not a new subsystem. */
+    if (GlobalConfig.DriverDiagnostics) {
+        TempMenuEntry = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));
+        if (TempMenuEntry != NULL) {
+            TempMenuEntry->Title = StrDuplicate(L"EFI Diagnostics");
+            TempMenuEntry->Tag = TAG_DRIVER_DIAGNOSTICS;
+            TempMenuEntry->Row = 1;
+            TempMenuEntry->ShortcutLetter = 'D';
+            TempMenuEntry->Image = BuiltinIcon(BUILTIN_ICON_FUNC_ABOUT);
+            AddMenuEntry(&MainMenu, TempMenuEntry);
+        }
+    }
     LOG(2, LOG_LINE_NORMAL, L"Done scanning for tools");
 } // VOID ScanForTools

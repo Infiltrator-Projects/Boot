@@ -35,13 +35,19 @@ diagnostic separately checks whether `EFI_SIMPLE_FILE_SYSTEM_PROTOCOL` became
 available on that controller.
 
 After the rescan, Boot reports up to 32 readable volumes by firmware-discovered
-name and filesystem label on the console. The graphical main menu displays
-two short lines containing the count of started external drivers, attempted
-controller connections, newly available SimpleFileSystem protocols, readable
-volumes and the last recorded stage.
+name and filesystem label on the console. In diagnostic mode a fourth tool,
+**EFI Diagnostics**, appears on Boot's normal graphical menu (or press **D**
+to select it). Open it to view a dedicated, readable screen with driver and
+controller counts, newly exposed SimpleFileSystem protocols, the most recent
+stage, up to eight readable volume names, and separately laid-out startup
+timings. The main boot menu is not covered with diagnostic overlays.
 
-The graphical summary is **volatile**; it appears only if Boot reaches the
-menu. A marker before a blocked UEFI call may appear on the console, but
+The diagnostic screen is **volatile**; it can be opened only if Boot reaches
+the menu. The displayed volume names are generic firmware-discovery evidence:
+the appearance of the OFS partition's own volume name provides better
+evidence than a successful reboot, but does not independently prove reading a
+kernel or other target file. A marker before a blocked UEFI call may appear on
+the console, but
 some firmware hides pre-graphics console output or does not flush it. There is
 **no guaranteed diagnostic persistence across a hang or reset**. Capture a
 photograph of the visible stage if testing a firmware that stalls.

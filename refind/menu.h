@@ -115,6 +115,8 @@ UINTN ComputeRow0PosY(VOID);
 VOID MainMenuStyle(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN Function, IN CHAR16 *ParamText);
 UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry);
 VOID DisplaySimpleMessage(CHAR16 *Title, CHAR16 *Message);
+/* Opt-in firmware diagnostics as a proper, separately laid-out submenu. */
+VOID ShowBootDiagnostics(VOID);
 VOID TextMenuStyle(IN REFIT_MENU_SCREEN *Screen,
                    IN SCROLL_STATE *State,
                    IN UINTN Function,
