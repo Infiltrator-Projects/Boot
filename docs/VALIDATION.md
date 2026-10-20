@@ -46,6 +46,38 @@ instrumentation exists at the relevant boundaries. It does not establish
 the visibility of firmware console output or prove driver binding on a
 specific Dell SD-controller. See [DRIVER-DIAGNOSTICS.md](DRIVER-DIAGNOSTICS.md).
 
+## Linux EFI-stub image loading from external firmware filesystems
+
+Physical Dell Latitude 5550 testing on 20 October 2026, with Boot 0.1.24 and
+Filesystems OFS 0.5.46, established that Boot discovers the OFSBOOT partition
+and `vmlinuz` and `initrd.img` stored there, but selecting the explicit
+Linux-on-OFS menu entry reported `Not Found while loading vmlinuz`.
+This occurred before Linux or the initramfs began executing, so it does not
+indicate a root filesystem failure. Copy verification succeeded in Linux but
+does not alone prove that firmware can read the complete payload.
+
+Ordinary EFI-stub launches ask firmware to locate the selected image by device
+path. Some firmware cannot resolve a path hosted by a separately installed EFI
+Simple File System driver even though Boot can read that file. If and only if
+the firmware call returns EFI_NOT_FOUND for a Linux EFI-stub image, Boot now
+attempts a bounded read through the already-open EFI filesystem and retries
+firmware LoadImage with **both** the original device path and the complete
+memory image. The original device path is retained so the loaded Linux image
+can still identify its boot volume and locate `initrd=` on the same volume.
+
+Memory fallback refuses zero-length files and files over 256 MiB, requires
+the read length to match the preflight filesystem size, and propagates
+read failures. Other EFI loader classes and filesystem-driver launching
+remain unchanged; secure-boot checks and firmware image authorization are
+neither disabled nor intercepted. The image buffer remains owned by Boot
+until the firmware operation is finished or the loader returns.
+
+CI checks the fallback's source contract and builds the real EFI application.
+**Firmware support for memory-backed Linux LoadImage, Linux EFI stub initrd
+access on OFS, and end-to-end boot remain unverified until a physical retest.**
+The Dell's GRUB boot entry must remain the default and all OFS trials must
+use a one-shot BootNext entry.
+
 ## Current automated qualification
 
 The maintained development-preview workflow has the following automated coverage:

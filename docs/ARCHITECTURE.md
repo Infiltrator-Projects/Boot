@@ -49,6 +49,15 @@ Filesystem drivers and adapters expose bounded read access required for discover
 The runtime filesystem extension contract is EFI Driver Binding + EFI Simple File System, **not** a named filesystem embedded in Boot's OS scanner. Boot loads independently installed drivers in `drivers_x64` before scanning volumes, and asks firmware to bind them only to present BlockIo handles lacking SimpleFileSystem. This includes logical partitions **and native whole-disk layouts**; requiring `LogicalPartition` would rule out future Amiga RDB probing. Each driver must reject unsupported formats quickly through its EFI driver binding interface. Boot then rescans volumes and discovers boot files using the standard EFI file APIs. It does not parse ext, AmigaFS or another format in its UI or kernel handoff.
 
 
+A Linux EFI-stub image normally uses UEFI `LoadImage` with a device path.
+When firmware cannot resolve a kernel path exposed by an external EFI filesystem
+driver but Boot's EFI file protocol can still read it, Boot makes a bounded
+Linux-only memory-backed retry after `EFI_NOT_FOUND`. Boot passes the original
+device path alongside the memory bytes: the path remains authoritative for
+kernel/initramfs filesystem context, and the firmware remains responsible for
+PE/COFF validation, policy enforcement and image execution. No OFS-specific
+path rules or filesystem parsers are added to Boot.
+
 Driver startup must not reconnect every firmware device merely because a filesystem module was added. Broad controller binding is reserved for explicit custom non-filesystem driver paths or interactive rescans.
 
 The cross-project [Bootable Filesystem Integration Contract](https://github.com/Infiltrator-Projects/Filesystems/blob/main/docs/BOOTABLE_FILESYSTEM_CONTRACT.md) is the agreed integration and phased-test reference. **Boot's readable kernel-source filesystem need not be the running OS's root filesystem.** Loading a Linux EFI-stub kernel and initramfs from Amiga OFS is an earlier, independent test from mounting an Amiga OFS Linux root. After handoff the runtime OS uses its own module ABI and filesystem drivers; Boot's EFI readers cannot replace Linux `.ko` modules. Future native InfiltratorOS may use a different kernel and payload protocol.

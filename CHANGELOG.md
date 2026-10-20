@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.25 — 2026-10-20
+
+- Respond to physical Dell Latitude 5550 evidence: Boot 0.1.24 and OFS 0.5.46 discovered a 17 MiB Linux kernel and 86 MiB initramfs on OFSBOOT, but UEFI path-backed `LoadImage` returned `EFI_NOT_FOUND` for the selected `vmlinuz` EFI-stub loader before Linux started.
+- On Linux EFI-stub entries only, retry that specific firmware lookup failure by reading the complete kernel through the already bound standard EFI filesystem protocol and calling firmware `LoadImage` with both the original device path and the memory image.
+- Reject zero-length/oversized (greater than 256 MiB) images, read errors and size changes; retain normal firmware validation, secure-boot handling, memory ownership, external-driver boundaries and all other loaders.
+- Add source-contract CI checks and document that loading, initramfs resolution and complete Linux boot from OFS remain unverified pending a physical Dell test. No OFS media changes or firmware boot-order changes are part of this release.
+
+
 ## 0.1.24 — 2026-10-20
 
 - Remove overlapping driver-status and timing text from the graphical boot-selection menu after real Dell Latitude 5550 testing revealed that the overlay was unreadable.

@@ -183,6 +183,68 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     return LoaderType;
 } // UINTN IsValidLoader()
 
+/* Some firmware cannot resolve the device path of an image exposed by
+ * a third-party EFI Simple File System driver, even though Boot can read it.
+ * Preserve ordinary path-backed loading first. Only an EFI_NOT_FOUND result
+ * for a Linux EFI-stub candidate permits the bounded, memory-backed retry.
+ *
+ * Supplying the original device path together with SourceBuffer preserves
+ * loaded-image filesystem context (including the kernel's initrd= path);
+ * passing a NULL path here would lose that context. Firmware still validates
+ * the EFI image and applies its normal image security policy.
+ *
+ * The caller owns *ImageData until firmware has finished loading the image,
+ * then releases it on every return path through StartEFIImage(). */
+#define BOOT_MAX_KERNEL_SOURCE_BYTES (256U * 1024U * 1024U)
+
+static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
+                                       IN CHAR16 *Filename,
+                                       IN EFI_DEVICE_PATH *DevicePath,
+                                       IN BOOLEAN Verbose,
+                                       OUT UINT8 **ImageData,
+                                       OUT EFI_HANDLE *ImageHandle)
+{
+    EFI_STATUS Status;
+    EFI_FILE_HANDLE FileHandle;
+    EFI_FILE_INFO *Info;
+    UINTN ImageSize = 0;
+    UINT64 ExpectedSize;
+
+    Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
+                                DevicePath, NULL, 0, ImageHandle);
+    if (Status != EFI_NOT_FOUND || RootDir == NULL || DevicePath == NULL)
+        return Status;
+
+    /* A missing firmware path is not evidence of a missing file: check the
+     * same source directly before allocating memory or retrying LoadImage. */
+    Status = refit_call5_wrapper(RootDir->Open, RootDir, &FileHandle,
+                                Filename, EFI_FILE_MODE_READ, 0);
+    if (EFI_ERROR(Status))
+        return Status;
+    Info = LibFileInfo(FileHandle);
+    refit_call1_wrapper(FileHandle->Close, FileHandle);
+    if (Info == NULL)
+        return EFI_DEVICE_ERROR;
+    ExpectedSize = Info->FileSize;
+    MyFreePool(Info);
+    if (ExpectedSize == 0 || ExpectedSize > BOOT_MAX_KERNEL_SOURCE_BYTES)
+        return EFI_BAD_BUFFER_SIZE;
+
+    Status = egLoadFile(RootDir, Filename, ImageData, &ImageSize);
+    if (EFI_ERROR(Status))
+        return Status;
+    if ((UINT64)ImageSize != ExpectedSize)
+        return EFI_DEVICE_ERROR;
+
+    LOG(1, LOG_LINE_NORMAL, L"Firmware path lookup failed for '%s'; retrying %llu EFI bytes from its filesystem",
+        Filename, (UINT64)ImageSize);
+    if (Verbose)
+        Print(L"Firmware could not resolve kernel path; retrying the verified EFI file bytes\n");
+
+    return refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
+                              DevicePath, *ImageData, ImageSize, ImageHandle);
+}
+
 // Launch an EFI binary.
 EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR16 *Filename,
@@ -252,6 +314,9 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                 } else {
                     ReturnStatus = Status;
                 }
+            } else if (OSType == 'L') {
+                ReturnStatus = Status = LoadLinuxKernelImage(Volume->RootDir, Filename, DevicePath,
+                                                             Verbose, &ImageData, &ChildImageHandle);
             } else {
                 ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
                                                             NULL, 0, &ChildImageHandle);
