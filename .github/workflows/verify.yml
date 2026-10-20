@@ -65,7 +65,7 @@ jobs:
           assert '!BlockIo->Media->MediaPresent' in targeted
           assert '!BlockIo->Media->LogicalPartition' not in targeted
           assert '&gMyEfiSimpleFileSystemProtocolGuid' in targeted
-          assert 'if (!EFI_ERROR(Status))\n            NumFound++;' in s
+          assert 'if (!EFI_ERROR(Status)) {\n            NumFound++;' in s
           assert 'GlobalConfig.DriverDirs[0] != 0' in s
           assert 'ConnectAllDriversToAllControllers();\n        else\n            ConnectFilesystemBlockDevices();' in s
           startup = s[s.index('BOOLEAN LoadDrivers(VOID)'):]
