@@ -271,3 +271,26 @@ image. Security, invalid-image and resource failures do not become retry
 triggers. This change does not establish that firmware OFS file reads succeed,
 that firmware accepts the memory-backed image, or that the Linux EFI stub can
 retrieve its initramfs. Those remain physical tests.
+
+
+### OFS EFI full-kernel read failure and bounded transfer instrumentation
+
+Boot 0.1.27, paired with OFS EFI 0.5.48, reached the Dell firmware's
+`EFI_NOT_FOUND` result for path-backed `LoadImage`, then opened and
+examined the `vmlinuz` source through the OFS EFI driver. The subsequent
+full-file `EFI_FILE_PROTOCOL.Read` returned `EFI_DEVICE_ERROR`, before
+the memory-backed firmware image load was attempted. The interface did not
+report the first failing file offset. This does **not** establish that an
+individual data block is corrupt; the same data had passed complete
+read-only checks through the canonical host reader.
+
+Boot 0.1.28 retains one bounded image allocation and reads it in 64 KiB
+EFI file-protocol transfers, accepting positive partial successful reads,
+rejecting zero-length premature success and over-reporting, and reporting
+the byte offset and status of the first failed transfer. It also shows
+coarse progress every 4 MiB without issuing filesystem-specific disk
+commands. On any failure, the file is closed and the image buffer is
+released. This may accommodate EFI implementations that cannot service
+a very large single file read, but **is not a confirmed fix** for a
+physical DiskIo transport failure. The first firmware fault location and
+the kernel handoff still require another physical test.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.28 — 2026-10-21
+
+- Respond to real Dell Latitude 5550 evidence: Boot 0.1.27 reached `OFSBOOT`, discovered the kernel, but the complete 17 MiB EFI file read failed with `EFI_DEVICE_ERROR` before the firmware memory-load retry.
+- Replace the single large `EFI_FILE_PROTOCOL.Read` with bounded 64 KiB transfers into the same capped kernel-image allocation, preserving positive partial reads, explicit end-of-file and error handling, file closure, buffer ownership, and all firmware image security checks.
+- Display the first failing file byte offset and occasional progress through the EFI file interface; do not add filesystem parsing or media writes to Boot.
+- Automated source/build validation cannot prove full-kernel reads on the Dell SD controller. OFS kernel and initramfs boot remain unverified.
+
+
 ## 0.1.27 — 2026-10-21
 
 - Resolve the next physical Dell Latitude 5550 OFS boot failure boundary: Boot 0.1.26 recognised OFSBOOT, selected `vmlinuz`, passed EFI loader-header checks and displayed `EFI_DEVICE_ERROR` during initial path-backed firmware `LoadImage`. Linux did not begin execution.

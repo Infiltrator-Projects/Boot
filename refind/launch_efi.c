@@ -210,10 +210,11 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
                                        OUT UINT8 **ImageData,
                                        OUT EFI_HANDLE *ImageHandle)
 {
-    EFI_STATUS Status;
+    EFI_STATUS Status, CloseStatus;
     EFI_FILE_HANDLE FileHandle;
     EFI_FILE_INFO *Info;
     UINTN ImageSize = 0;
+    UINTN ReadSize, RequestedSize;
     UINT64 ExpectedSize;
 
     Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
@@ -222,9 +223,9 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
         RootDir == NULL || DevicePath == NULL)
         return Status;
 
-    /* The firmware's path-load status does not establish whether the EFI
-     * filesystem can read the source. Check independently before retrying;
-     * no bypass is permitted if the source is unreadable. */
+    /* A failed firmware path load does not establish that the file is
+     * unreadable through its EFI Simple File System protocol. The full
+     * source must be read successfully before retrying image validation. */
     LOG(1, LOG_LINE_NORMAL, L"Linux firmware path LoadImage failed: %r", Status);
     if (Verbose)
         Print(L"Firmware kernel path load returned %r; checking direct file access\n", Status);
@@ -235,29 +236,62 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
             Print(L"Direct kernel file open failed: %r\n", Status);
         return Status;
     }
+
     Info = LibFileInfo(FileHandle);
-    refit_call1_wrapper(FileHandle->Close, FileHandle);
     if (Info == NULL) {
+        Status = EFI_DEVICE_ERROR;
         if (Verbose)
             Print(L"Direct kernel file information could not be read\n");
-        return EFI_DEVICE_ERROR;
+        goto close_file;
     }
     ExpectedSize = Info->FileSize;
     MyFreePool(Info);
-    if (ExpectedSize == 0 || ExpectedSize > BOOT_MAX_KERNEL_SOURCE_BYTES)
-        return EFI_BAD_BUFFER_SIZE;
-
-    Status = egLoadFile(RootDir, Filename, ImageData, &ImageSize);
-    if (EFI_ERROR(Status)) {
-        if (Verbose)
-            Print(L"Complete kernel file read failed: %r\n", Status);
-        return Status;
+    if (ExpectedSize == 0 || ExpectedSize > BOOT_MAX_KERNEL_SOURCE_BYTES) {
+        Status = EFI_BAD_BUFFER_SIZE;
+        goto close_file;
     }
-    if ((UINT64)ImageSize != ExpectedSize) {
-        if (Verbose)
-            Print(L"Kernel file read length mismatch: %llu / %llu bytes\n",
+
+    *ImageData = AllocatePool((UINTN)ExpectedSize);
+    if (*ImageData == NULL) {
+        Status = EFI_OUT_OF_RESOURCES;
+        goto close_file;
+    }
+
+    /* A single EFI_FILE.Read of a 17 MiB kernel hides tens of thousands of
+     * sector operations behind one status. Bound each transfer to 64 KiB so
+     * failures identify their file offset and partial successful reads are
+     * handled exactly. The EFI driver remains the sole filesystem authority. */
+    while (ImageSize < (UINTN)ExpectedSize) {
+        RequestedSize = (UINTN)ExpectedSize - ImageSize;
+        if (RequestedSize > 64U * 1024U)
+            RequestedSize = 64U * 1024U;
+        ReadSize = RequestedSize;
+        Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &ReadSize,
+                                    *ImageData + ImageSize);
+        if (EFI_ERROR(Status) || ReadSize == 0 || ReadSize > RequestedSize) {
+            if (Verbose)
+                Print(L"Kernel EFI file read failed at byte %llu of %llu: %r\n",
+                      (UINT64)ImageSize, ExpectedSize,
+                      EFI_ERROR(Status) ? Status : EFI_DEVICE_ERROR);
+            if (!EFI_ERROR(Status))
+                Status = EFI_DEVICE_ERROR;
+            goto close_file;
+        }
+        ImageSize += ReadSize;
+        if (Verbose && ImageSize % (4U * 1024U * 1024U) == 0)
+            Print(L"Kernel file read: %llu / %llu bytes\n",
                   (UINT64)ImageSize, ExpectedSize);
-        return EFI_DEVICE_ERROR;
+    }
+    Status = EFI_SUCCESS;
+
+close_file:
+    CloseStatus = refit_call1_wrapper(FileHandle->Close, FileHandle);
+    if (!EFI_ERROR(Status) && EFI_ERROR(CloseStatus))
+        Status = CloseStatus;
+    if (EFI_ERROR(Status)) {
+        MyFreePool(*ImageData);
+        *ImageData = NULL;
+        return Status;
     }
 
     LOG(1, LOG_LINE_NORMAL, L"Complete kernel file read: '%s', %llu bytes; retrying firmware LoadImage",
@@ -265,7 +299,6 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
     if (Verbose)
         Print(L"Complete kernel file read: %llu bytes; retrying EFI image load\n",
               (UINT64)ImageSize);
-
     Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
                                 DevicePath, *ImageData, ImageSize, ImageHandle);
     LOG(1, LOG_LINE_NORMAL, L"Memory-backed Linux LoadImage returned: %r", Status);

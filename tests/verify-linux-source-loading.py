@@ -17,13 +17,20 @@ assert "DevicePath, NULL, 0, ImageHandle" in fallback
 assert "(Status != EFI_NOT_FOUND && Status != EFI_DEVICE_ERROR)" in fallback
 assert "RootDir == NULL || DevicePath == NULL" in fallback
 assert "Status = refit_call5_wrapper(RootDir->Open" in fallback
-assert "Complete kernel file read failed: %r" in fallback
+assert "Kernel EFI file read failed at byte %llu of %llu: %r" in fallback
 assert "Memory-backed kernel LoadImage failed: %r" in fallback
 assert "EFI_FILE_MODE_READ, 0" in fallback
 assert "Info = LibFileInfo(FileHandle);" in fallback
 assert "ExpectedSize == 0 || ExpectedSize > BOOT_MAX_KERNEL_SOURCE_BYTES" in fallback
-assert "Status = egLoadFile(RootDir, Filename, ImageData, &ImageSize)" in fallback
-assert "(UINT64)ImageSize != ExpectedSize" in fallback
+assert "*ImageData = AllocatePool((UINTN)ExpectedSize)" in fallback
+assert "while (ImageSize < (UINTN)ExpectedSize)" in fallback
+assert "RequestedSize > 64U * 1024U" in fallback
+assert "FileHandle->Read, FileHandle, &ReadSize," in fallback
+assert "ReadSize == 0 || ReadSize > RequestedSize" in fallback
+assert "ImageSize += ReadSize;" in fallback
+assert "MyFreePool(*ImageData);" in fallback
+assert "*ImageData = NULL;" in fallback
+assert "CloseStatus = refit_call1_wrapper(FileHandle->Close, FileHandle);" in fallback
 assert "DevicePath, *ImageData, ImageSize, ImageHandle" in fallback
 assert "SecureBoot" not in fallback and "SetVariable" not in fallback
 
