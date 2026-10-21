@@ -244,3 +244,9 @@ and handle ownership. This establishes behaviour under that failure model; the
 exact cause of the original physical icon failure is not established by a mock.
 Cold and warm physical-firmware qualification of the new directory layout
 remains outstanding.
+
+## Dell Linux-from-OFS handoff evidence, 21 October 2026
+
+On a Dell Latitude 5550 with Boot 0.1.25 and Filesystems OFS EFI driver 0.5.48, Boot displayed the readable OFSBOOT volume and an explicit Linux EFI-stub menu entry. Selecting that entry did not demonstrate successful Linux boot from OFS. GRUB subsequently started Mint with BOOT_IMAGE and quiet/splash options from its normal configuration, even though BootCurrent remained the Infiltrator Boot firmware entry (0007). The exact failed stage is unknown.
+
+Review confirms that reported EFI launch errors already pause in CheckError(). Boot 0.1.26 additionally pauses if a Linux EFI image returns a non-error result instead of handing over control. This does not catch firmware resets or a Linux kernel that resets the machine after StartImage, and is not evidence of successful boot. The firmware boot order and ordinary GRUB path must remain intact; use a one-shot test only after deploying a CI-verified binary.

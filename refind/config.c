@@ -962,7 +962,6 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
         return NULL;
 
     Entry->Title           = StrDuplicate(Title);
-    Entry->me.Title        = AllocateZeroPool(256 * sizeof(CHAR16));
     Entry->me.Title        = PoolPrint(L"Boot %s from %s",
                                        (Title != NULL) ? Title : L"Unknown",
                                        CurrentVolume->VolName);

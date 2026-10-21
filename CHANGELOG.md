@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.26 — 2026-10-21
+
+- Make clean returns from selected Linux EFI-stub images visible and require acknowledgement. Errors already pause in the existing firmware error handler; Secure Boot policy, firmware loader APIs, and the OFS driver are unchanged.
+- Correct EFI loader-header allocation ownership and bound the PE-offset and gzip-signature reads after short EFI I/O.
+- Remove an overwritten title allocation when creating manual boot entries.
+- Dell OFSBOOT volume discovery is established with Boot 0.1.25 and OFS 0.5.48, but successful direct Linux boot and the cause of the subsequent GRUB startup are still unverified. Physical firmware qualification is outstanding.
+
+
 ## 0.1.25 — 2026-10-20
 
 - Respond to physical Dell Latitude 5550 evidence: Boot 0.1.24 and OFS 0.5.46 discovered a 17 MiB Linux kernel and 86 MiB initramfs on OFSBOOT, but UEFI path-backed `LoadImage` returned `EFI_NOT_FOUND` for the selected `vmlinuz` EFI-stub loader before Linux started.

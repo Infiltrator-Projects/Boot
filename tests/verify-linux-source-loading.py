@@ -34,3 +34,17 @@ assert "WarnSecureBootError" in launcher
 assert "MyFreePool(ImageData);" in launcher
 
 print("Linux EFI-stub external-filesystem LoadImage fallback contract passed")
+
+# EFI header validation and handoff must fail visibly and free owned buffers.
+header = source.split('UINTN IsValidLoader(', 1)[1].split('} // UINTN IsValidLoader()', 1)[0]
+loader = source.split('VOID StartLoader(', 1)[1].split('} // VOID StartLoader()', 1)[0]
+assert header.index('if ((RootDir == NULL) || (FileName == NULL))') < header.index('Header = AllocateZeroPool')
+assert 'MyFreePool(Header);\n        return LOADER_TYPE_INVALID;' in header
+assert 'if (LoadedSize >= 0x40)' in header
+assert 'MyCopyMem(&SignaturePos, &Header[0x3c], sizeof(SignaturePos));' in header
+assert 'LoadedSize >= 2' in header
+assert 'Status = StartEFIImage(' in loader
+assert "Entry->OSType == 'L' && !EFI_ERROR(Status)" in loader
+assert 'PauseForKey();' in loader
+manual = Path('refind/config.c').read_text().split('static LOADER_ENTRY * AddStanzaEntries(', 1)[1].split('} // static VOID AddStanzaEntries()', 1)[0]
+assert 'Entry->me.Title        = AllocateZeroPool' not in manual

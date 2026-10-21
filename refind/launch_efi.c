@@ -130,23 +130,23 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     CHAR8           *Header;
     CHAR16          *TypeDesc = L"a valid";
     UINTN           LoadedSize = EFI_HEADER_SIZE;
-    UINTN           SignaturePos;
+    UINT32          SignaturePos = 0;
 
-    Header = AllocatePool(EFI_HEADER_SIZE);
+    if ((RootDir == NULL) || (FileName == NULL)) {
+        // Preserve FireWire compatibility without allocating an unreadable buffer.
+        return LOADER_TYPE_EFI;
+    }
+    Header = AllocateZeroPool(EFI_HEADER_SIZE);
     if (!Header) {
         LOG(1, LOG_LINE_NORMAL, L"Unable to allocate memory in IsValidLoader()!");
         return LOADER_TYPE_INVALID;
     }
-    if ((RootDir == NULL) || (FileName == NULL)) {
-        // Assume valid here, because Macs produce NULL RootDir (& maybe FileName)
-        // when launching from a Firewire drive. This should be handled better, but
-        // fix would have to be in StartEFIImage() and/or in FindVolumeAndFilename().
-        return LOADER_TYPE_EFI;
-    } // if
 
     Status = refit_call5_wrapper(RootDir->Open, RootDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
-    if (EFI_ERROR(Status))
+    if (EFI_ERROR(Status)) {
+        MyFreePool(Header);
         return LOADER_TYPE_INVALID;
+    }
 
     Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &LoadedSize, Header);
     refit_call1_wrapper(FileHandle->Close, FileHandle);
@@ -156,7 +156,10 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
         LOG(1, LOG_LINE_NORMAL, L"Error reading %s to determine if it's a valid loader!", FileName);
         return LOADER_TYPE_INVALID;
     }
-    SignaturePos = *(UINT32 *)&Header[0x3c];
+    // The PE header offset is valid only after the complete DOS offset field
+    // is read. Copying avoids unaligned access and reads of undefined bytes.
+    if (LoadedSize >= 0x40)
+        MyCopyMem(&SignaturePos, &Header[0x3c], sizeof(SignaturePos));
     LOG(4, LOG_LINE_NORMAL, L"In IsValidLoader(), LoadedSize is %llu, SignaturePos is %llu",
         (UINT64) LoadedSize, (UINT64) SignaturePos);
     // Search for the normal signatures for an EFI binary....
@@ -169,7 +172,8 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
         // Search for indications that this is a gzipped file. Note, however,
         // that we don't dig deeper into gzipped files, so some invalid
         // gzipped files could be called valid.
-        if ((Header[0] == (CHAR8) 0x1F && Header[1] == (CHAR8) 0x8B) && GlobalConfig.GzippedLoaders) {
+        if (LoadedSize >= 2 && (Header[0] == (CHAR8) 0x1F &&
+                                 Header[1] == (CHAR8) 0x8B) && GlobalConfig.GzippedLoaders) {
             LoaderType = LOADER_TYPE_GZIP;
             TypeDesc = L"a gzipped";
         } else {
@@ -520,6 +524,7 @@ static VOID DoEnableAndLockVMX(VOID) {
 // Directly launch an EFI boot loader (or similar program)
 VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
     CHAR16 *LoaderPath;
+    EFI_STATUS Status;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Launching '%s'", SelectionName);
     if (GlobalConfig.EnableAndLockVMX) {
@@ -529,8 +534,16 @@ VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
     LoaderPath = Basename(Entry->LoaderPath);
     BeginExternalScreen(Entry->UseGraphicsMode, L"Booting OS");
     StoreLoaderName(SelectionName);
-    StartEFIImage(Entry->Volume, Entry->LoaderPath, Entry->LoadOptions,
-                  LoaderPath, Entry->OSType, !Entry->UseGraphicsMode, FALSE);
+    Status = StartEFIImage(Entry->Volume, Entry->LoaderPath, Entry->LoadOptions,
+                           LoaderPath, Entry->OSType, !Entry->UseGraphicsMode, FALSE);
+    // An EFI stub normally does not return. CheckError() already pauses on
+    // reported failures; also make a clean but unexpected return observable.
+    if (Entry->OSType == 'L' && !EFI_ERROR(Status)) {
+        BeginExternalScreen(FALSE, L"Linux loader returned");
+        Print(L"Linux EFI image returned to Boot without completing startup.\n");
+        PauseForKey();
+        FinishExternalScreen();
+    }
     MyFreePool(LoaderPath);
 } // VOID StartLoader()
 
