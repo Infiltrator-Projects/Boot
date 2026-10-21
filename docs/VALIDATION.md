@@ -58,9 +58,10 @@ does not alone prove that firmware can read the complete payload.
 
 Ordinary EFI-stub launches ask firmware to locate the selected image by device
 path. Some firmware cannot resolve a path hosted by a separately installed EFI
-Simple File System driver even though Boot can read that file. If and only if
-the firmware call returns EFI_NOT_FOUND for a Linux EFI-stub image, Boot now
-attempts a bounded read through the already-open EFI filesystem and retries
+Simple File System driver even though Boot can read that file. If the firmware
+call returns EFI_NOT_FOUND or EFI_DEVICE_ERROR for a Linux EFI-stub image, Boot
+first attempts a bounded, independent read through the already-open EFI
+filesystem. Only after obtaining the entire expected file does it retry
 firmware LoadImage with **both** the original device path and the complete
 memory image. The original device path is retained so the loaded Linux image
 can still identify its boot volume and locate `initrd=` on the same volume.
@@ -250,3 +251,23 @@ remains outstanding.
 On a Dell Latitude 5550 with Boot 0.1.25 and Filesystems OFS EFI driver 0.5.48, Boot displayed the readable OFSBOOT volume and an explicit Linux EFI-stub menu entry. Selecting that entry did not demonstrate successful Linux boot from OFS. GRUB subsequently started Mint with BOOT_IMAGE and quiet/splash options from its normal configuration, even though BootCurrent remained the Infiltrator Boot firmware entry (0007). The exact failed stage is unknown.
 
 Review confirms that reported EFI launch errors already pause in CheckError(). Boot 0.1.26 additionally pauses if a Linux EFI image returns a non-error result instead of handing over control. This does not catch firmware resets or a Linux kernel that resets the machine after StartImage, and is not evidence of successful boot. The firmware boot order and ordinary GRUB path must remain intact; use a one-shot test only after deploying a CI-verified binary.
+
+
+### Physical OFS LoadImage device error — Boot 0.1.26, Filesystems 0.5.48
+
+A second controlled physical boot displayed `Starting vmlinuz` and the
+explicit `root=UUID=... ro initrd=\\initrd.img` options, then paused at
+`Error: Device Error while loading vmlinuz`. The selected Linux EFI stub
+passed Boot's header validation; the normal firmware path-backed
+`LoadImage` returned `EFI_DEVICE_ERROR`, which 0.1.26 did not retry.
+No Linux execution or initramfs access was demonstrated in this test.
+
+Boot 0.1.27 permits a second, memory-backed `LoadImage` for this specific
+firmware status only after opening the same source through its existing EFI
+filesystem driver, obtaining a bounded size, reading all expected bytes and
+checking the read length. Human-visible phase messages distinguish failed
+direct file access, a failed full-file read and rejection of the memory-backed
+image. Security, invalid-image and resource failures do not become retry
+triggers. This change does not establish that firmware OFS file reads succeed,
+that firmware accepts the memory-backed image, or that the Linux EFI stub can
+retrieve its initramfs. Those remain physical tests.

@@ -14,7 +14,11 @@ launcher = source[end:source.index("} /* EFI_STATUS StartEFIImage() */", end)]
 
 assert "#define BOOT_MAX_KERNEL_SOURCE_BYTES (256U * 1024U * 1024U)" in source
 assert "DevicePath, NULL, 0, ImageHandle" in fallback
-assert "Status != EFI_NOT_FOUND || RootDir == NULL || DevicePath == NULL" in fallback
+assert "(Status != EFI_NOT_FOUND && Status != EFI_DEVICE_ERROR)" in fallback
+assert "RootDir == NULL || DevicePath == NULL" in fallback
+assert "Status = refit_call5_wrapper(RootDir->Open" in fallback
+assert "Complete kernel file read failed: %r" in fallback
+assert "Memory-backed kernel LoadImage failed: %r" in fallback
 assert "EFI_FILE_MODE_READ, 0" in fallback
 assert "Info = LibFileInfo(FileHandle);" in fallback
 assert "ExpectedSize == 0 || ExpectedSize > BOOT_MAX_KERNEL_SOURCE_BYTES" in fallback
@@ -23,8 +27,9 @@ assert "(UINT64)ImageSize != ExpectedSize" in fallback
 assert "DevicePath, *ImageData, ImageSize, ImageHandle" in fallback
 assert "SecureBoot" not in fallback and "SetVariable" not in fallback
 
-# The normal path is still first and is not retried for security or format
-# errors. Other EFI loaders and drivers retain their prior loading modes.
+# Only path-loading NOT_FOUND and DEVICE_ERROR reach the independent full-read
+# gate. Security, invalid-image and resource errors never trigger a retry.
+# Other EFI loaders and drivers retain their prior loading modes.
 assert "else if (OSType == 'L')" in launcher
 assert "LoadLinuxKernelImage(Volume->RootDir, Filename, DevicePath" in launcher
 assert "BS->LoadImage, FALSE, SelfImageHandle, NULL," in launcher

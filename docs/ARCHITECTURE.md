@@ -52,7 +52,10 @@ The runtime filesystem extension contract is EFI Driver Binding + EFI Simple Fil
 A Linux EFI-stub image normally uses UEFI `LoadImage` with a device path.
 When firmware cannot resolve a kernel path exposed by an external EFI filesystem
 driver but Boot's EFI file protocol can still read it, Boot makes a bounded
-Linux-only memory-backed retry after `EFI_NOT_FOUND`. Boot passes the original
+Linux-only memory-backed retry after `EFI_NOT_FOUND` or `EFI_DEVICE_ERROR`,
+and only after the complete file is read with the expected size through the
+existing EFI file protocol. Security, invalid-image and other firmware errors
+are not retried. Boot passes the original
 device path alongside the memory bytes: the path remains authoritative for
 kernel/initramfs filesystem context, and the firmware remains responsible for
 PE/COFF validation, policy enforcement and image execution. No OFS-specific

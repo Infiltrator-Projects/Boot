@@ -187,10 +187,12 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     return LoaderType;
 } // UINTN IsValidLoader()
 
-/* Some firmware cannot resolve the device path of an image exposed by
- * a third-party EFI Simple File System driver, even though Boot can read it.
- * Preserve ordinary path-backed loading first. Only an EFI_NOT_FOUND result
- * for a Linux EFI-stub candidate permits the bounded, memory-backed retry.
+/* Some firmware fails to load an EFI image through a third-party Simple File
+ * System protocol despite the file being readable through that same protocol.
+ * Preserve the path-backed launch first. An EFI_NOT_FOUND or EFI_DEVICE_ERROR
+ * result permits a bounded, Linux-only memory-backed retry, but only after
+ * the complete source file is independently read. Never reinterpret security,
+ * invalid-image, or resource failures as permission to retry.
  *
  * Supplying the original device path together with SourceBuffer preserves
  * loaded-image filesystem context (including the kernel's initrd= path);
@@ -216,37 +218,60 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
 
     Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
                                 DevicePath, NULL, 0, ImageHandle);
-    if (Status != EFI_NOT_FOUND || RootDir == NULL || DevicePath == NULL)
+    if ((Status != EFI_NOT_FOUND && Status != EFI_DEVICE_ERROR) ||
+        RootDir == NULL || DevicePath == NULL)
         return Status;
 
-    /* A missing firmware path is not evidence of a missing file: check the
-     * same source directly before allocating memory or retrying LoadImage. */
+    /* The firmware's path-load status does not establish whether the EFI
+     * filesystem can read the source. Check independently before retrying;
+     * no bypass is permitted if the source is unreadable. */
+    LOG(1, LOG_LINE_NORMAL, L"Linux firmware path LoadImage failed: %r", Status);
+    if (Verbose)
+        Print(L"Firmware kernel path load returned %r; checking direct file access\n", Status);
     Status = refit_call5_wrapper(RootDir->Open, RootDir, &FileHandle,
                                 Filename, EFI_FILE_MODE_READ, 0);
-    if (EFI_ERROR(Status))
+    if (EFI_ERROR(Status)) {
+        if (Verbose)
+            Print(L"Direct kernel file open failed: %r\n", Status);
         return Status;
+    }
     Info = LibFileInfo(FileHandle);
     refit_call1_wrapper(FileHandle->Close, FileHandle);
-    if (Info == NULL)
+    if (Info == NULL) {
+        if (Verbose)
+            Print(L"Direct kernel file information could not be read\n");
         return EFI_DEVICE_ERROR;
+    }
     ExpectedSize = Info->FileSize;
     MyFreePool(Info);
     if (ExpectedSize == 0 || ExpectedSize > BOOT_MAX_KERNEL_SOURCE_BYTES)
         return EFI_BAD_BUFFER_SIZE;
 
     Status = egLoadFile(RootDir, Filename, ImageData, &ImageSize);
-    if (EFI_ERROR(Status))
+    if (EFI_ERROR(Status)) {
+        if (Verbose)
+            Print(L"Complete kernel file read failed: %r\n", Status);
         return Status;
-    if ((UINT64)ImageSize != ExpectedSize)
+    }
+    if ((UINT64)ImageSize != ExpectedSize) {
+        if (Verbose)
+            Print(L"Kernel file read length mismatch: %llu / %llu bytes\n",
+                  (UINT64)ImageSize, ExpectedSize);
         return EFI_DEVICE_ERROR;
+    }
 
-    LOG(1, LOG_LINE_NORMAL, L"Firmware path lookup failed for '%s'; retrying %llu EFI bytes from its filesystem",
+    LOG(1, LOG_LINE_NORMAL, L"Complete kernel file read: '%s', %llu bytes; retrying firmware LoadImage",
         Filename, (UINT64)ImageSize);
     if (Verbose)
-        Print(L"Firmware could not resolve kernel path; retrying the verified EFI file bytes\n");
+        Print(L"Complete kernel file read: %llu bytes; retrying EFI image load\n",
+              (UINT64)ImageSize);
 
-    return refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
-                              DevicePath, *ImageData, ImageSize, ImageHandle);
+    Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
+                                DevicePath, *ImageData, ImageSize, ImageHandle);
+    LOG(1, LOG_LINE_NORMAL, L"Memory-backed Linux LoadImage returned: %r", Status);
+    if (Verbose && EFI_ERROR(Status))
+        Print(L"Memory-backed kernel LoadImage failed: %r\n", Status);
+    return Status;
 }
 
 // Launch an EFI binary.

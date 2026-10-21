@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.27 — 2026-10-21
+
+- Resolve the next physical Dell Latitude 5550 OFS boot failure boundary: Boot 0.1.26 recognised OFSBOOT, selected `vmlinuz`, passed EFI loader-header checks and displayed `EFI_DEVICE_ERROR` during initial path-backed firmware `LoadImage`. Linux did not begin execution.
+- Permit the existing Linux-only, 256 MiB-bounded memory-image retry after either firmware `EFI_NOT_FOUND` or `EFI_DEVICE_ERROR`, but only when the same EFI filesystem fully reads the candidate and its byte count equals the reported file length.
+- Add immediate, human-visible diagnostics for direct filesystem open, file-info, complete-file read and memory-backed firmware load failures. Preserve firmware validation, security errors, other loaders, drivers, filesystem ownership and boot state.
+- Extend the source contract and documentation. **A successful Dell Linux-from-OFS boot remains unverified** until a new physical test establishes the outcome.
+
+
 ## 0.1.26 — 2026-10-21
 
 - Make clean returns from selected Linux EFI-stub images visible and require acknowledgement. Errors already pause in the existing firmware error handler; Secure Boot policy, firmware loader APIs, and the OFS driver are unchanged.
