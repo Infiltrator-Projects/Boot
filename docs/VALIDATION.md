@@ -349,3 +349,22 @@ Boot 0.1.31 reports the first successful 64 KiB EFI read, then at least every
 256 KiB and at EOF, while retaining the 20-segment bar. It also marks the
 start of the first synchronous read. Those markers are diagnostic only:
 firmware calls cannot be interrupted or timed out by progress reporting.
+
+
+### Dell physical test — Boot 0.1.31 and Filesystems 0.5.51
+
+The Dell Latitude 5550 read multiple verified EFI kernel chunks from OFSBOOT,
+reporting the last progress update at 1280 of 16630 KiB. The next failed
+64 KiB file request began at byte 1,441,792 of the 17,029,512-byte kernel;
+the external OFS driver reported firmware `EFI_DEVICE_ERROR` at
+partition-relative sector 125093997. This does not establish a corrupted
+OFS block, bad card or defective Dell firmware individually: earlier tests
+reported failures at other sectors. Firmware did not load the Linux image.
+
+Boot 0.1.32 adds approximate elapsed seconds, confirmed average throughput
+and an estimate of remaining seconds on successful read-progress updates,
+plus elapsed time at failure. The measurements use the same read-only EFI
+Runtime GetTime source as pre-menu diagnostics; low-resolution firmware RTC
+and changed clocks may limit accuracy. No continuous timer is possible while
+a synchronous firmware BlockIo/file Read call has not returned. This is
+observability only, not an I/O recovery mechanism.

@@ -205,13 +205,44 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
 #define BOOT_KERNEL_PROGRESS_SEGMENTS 20U
 #define BOOT_KERNEL_PROGRESS_BYTES (256U * 1024U)
 
-/* Report confirmed EFI filesystem transfers; synchronous firmware calls
- * cannot invoke callbacks while blocked, so no live heartbeat is possible.
- * This is a Boot UI helper, not a second filesystem implementation. */
-static VOID PrintLinuxKernelReadProgress(IN UINTN Completed, IN UINT64 Total)
+/* Only sample the RTC on completed transfers: the firmware can block inside
+ * a synchronous EFI read, so a screen-side timer cannot run independently.
+ * This is diagnostic wall time, not a clock for deadlines or policy. */
+static BOOLEAN BootKernelClockSeconds(OUT UINT32 *Seconds)
+{
+    EFI_TIME Now;
+    EFI_STATUS Status;
+
+    if (Seconds == NULL)
+        return FALSE;
+    Status = refit_call2_wrapper(RT->GetTime, &Now, NULL);
+    if (EFI_ERROR(Status) || Now.Hour >= 24 || Now.Minute >= 60 ||
+        Now.Second >= 60)
+        return FALSE;
+    *Seconds = ((UINT32)Now.Hour * 60U + Now.Minute) * 60U + Now.Second;
+    return TRUE;
+}
+
+static BOOLEAN BootKernelElapsedSeconds(IN UINT32 Started, OUT UINT32 *Elapsed)
+{
+    UINT32 Now;
+
+    if (Elapsed == NULL || !BootKernelClockSeconds(&Now))
+        return FALSE;
+    *Elapsed = (Now >= Started ? Now - Started : 86400U - Started + Now);
+    /* Reject discontinuous RTC reports rather than manufacture an ETA. */
+    return *Elapsed <= 21600U;
+}
+
+/* Display confirmed transfers. The RTC provides approximate elapsed time
+ * and mean throughput, sampled after each completed read; no claimed live
+ * progress or remaining time is emitted while firmware is blocked. */
+static VOID PrintLinuxKernelReadProgress(IN UINTN Completed, IN UINT64 Total,
+                                         IN BOOLEAN HaveStart, IN UINT32 Started)
 {
     CHAR16 Bar[BOOT_KERNEL_PROGRESS_SEGMENTS + 1U];
     UINTN Percent, Filled, Index;
+    UINT32 Elapsed;
 
     if (Total == 0U)
         return;
@@ -220,8 +251,22 @@ static VOID PrintLinuxKernelReadProgress(IN UINTN Completed, IN UINT64 Total)
     for (Index = 0U; Index < BOOT_KERNEL_PROGRESS_SEGMENTS; ++Index)
         Bar[Index] = Index < Filled ? L'=' : L'.';
     Bar[BOOT_KERNEL_PROGRESS_SEGMENTS] = 0;
-    Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB)\n",
-          Bar, Percent, (UINT64)(Completed / 1024U), Total / 1024ULL);
+    if (HaveStart && BootKernelElapsedSeconds(Started, &Elapsed)) {
+        if (Elapsed >= 2U && Completed >= BOOT_KERNEL_PROGRESS_BYTES) {
+            UINT64 AverageKiB = ((UINT64)Completed / 1024ULL) / Elapsed;
+            UINT64 RemainingSeconds = ((Total - Completed) * Elapsed) / Completed;
+            Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB) | elapsed %u s | avg %llu KiB/s | ETA %llu s\n",
+                  Bar, Percent, (UINT64)(Completed / 1024U),
+                  Total / 1024ULL, Elapsed, AverageKiB, RemainingSeconds);
+        } else {
+            Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB) | elapsed %u s\n",
+                  Bar, Percent, (UINT64)(Completed / 1024U),
+                  Total / 1024ULL, Elapsed);
+        }
+    } else {
+        Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB)\n",
+              Bar, Percent, (UINT64)(Completed / 1024U), Total / 1024ULL);
+    }
 }
 
 
@@ -239,6 +284,8 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
     UINTN ImageSize = 0;
     UINTN ReadSize, RequestedSize, ProgressStep = 0;
     UINT64 ExpectedSize;
+    UINT32 ReadStarted = 0U;
+    BOOLEAN HaveReadStart = FALSE;
 
     if (!MemoryFirst) {
         if (Verbose)
@@ -296,8 +343,9 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
      * failures identify their file offset and partial successful reads are
      * handled exactly. The EFI driver remains the sole filesystem authority. */
     if (Verbose) {
+        HaveReadStart = BootKernelClockSeconds(&ReadStarted);
         Print(L"Kernel phase 2/4: EFI filesystem read, 64 KiB per read\n");
-        PrintLinuxKernelReadProgress(0U, ExpectedSize);
+        PrintLinuxKernelReadProgress(0U, ExpectedSize, HaveReadStart, ReadStarted);
     }
     while (ImageSize < (UINTN)ExpectedSize) {
         RequestedSize = (UINTN)ExpectedSize - ImageSize;
@@ -310,10 +358,16 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
         Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &ReadSize,
                                     *ImageData + ImageSize);
         if (EFI_ERROR(Status) || ReadSize == 0 || ReadSize > RequestedSize) {
-            if (Verbose)
+            if (Verbose) {
+                UINT32 Elapsed;
                 Print(L"Kernel EFI file read failed at byte %llu of %llu: %r\n",
                       (UINT64)ImageSize, ExpectedSize,
                       EFI_ERROR(Status) ? Status : EFI_DEVICE_ERROR);
+                if (HaveReadStart &&
+                    BootKernelElapsedSeconds(ReadStarted, &Elapsed))
+                    Print(L"Kernel EFI read: %llu confirmed KiB in %u s before failure\n",
+                          (UINT64)(ImageSize / 1024U), Elapsed);
+            }
             if (!EFI_ERROR(Status))
                 Status = EFI_DEVICE_ERROR;
             goto close_file;
@@ -326,7 +380,7 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
             if (ImageSize == ReadSize || NextStep > ProgressStep ||
                 ImageSize == (UINTN)ExpectedSize) {
                 ProgressStep = NextStep;
-                PrintLinuxKernelReadProgress(ImageSize, ExpectedSize);
+                PrintLinuxKernelReadProgress(ImageSize, ExpectedSize, HaveReadStart, ReadStarted);
             }
         }
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.32 — 2026-10-22
+
+- Show approximate elapsed time since the first OFS/Linux EFI file read, average confirmed KiB/s and estimated seconds remaining when enough bytes and time have accrued. Read-only RTC sampling occurs after completed EFI reads, without a watchdog, background timer or firmware-state writes.
+- On a failed file transfer, show elapsed time and verified bytes before leaving through the existing error path. Guard invalid RTC readings and discontinuities rather than claiming precise timing or live updates during a blocked firmware call.
+- Record the physical Dell Latitude 5550 OFSBOOT test using Boot 0.1.31 and Filesystems 0.5.51: the external EFI driver returned Device Error at partition-relative sector 125093997, after 1,441,792 bytes were successfully read. Actual handoff remains unverified.
+
+
 ## 0.1.31 — 2026-10-22
 
 - Respond to the Dell's memory-first OFS test remaining at 0%: report the first completed 64 KiB EFI file read, subsequent completed progress at 256 KiB intervals, and EOF, rather than hiding transfers until five percent.

@@ -18,6 +18,8 @@ assert "(Status != EFI_NOT_FOUND && Status != EFI_DEVICE_ERROR)" in fallback
 assert "RootDir == NULL || DevicePath == NULL" in fallback
 assert "Status = refit_call5_wrapper(RootDir->Open" in fallback
 assert "Kernel EFI file read failed at byte %llu of %llu: %r" in fallback
+assert "BootKernelElapsedSeconds(ReadStarted, &Elapsed)" in fallback
+assert "Kernel EFI read: %llu confirmed KiB in %u s before failure" in fallback
 assert "#define BOOT_KERNEL_PROGRESS_SEGMENTS 20U" in source
 assert "Kernel phase 1/4: firmware device-path load" in fallback
 assert "Kernel phase 1/4: memory-first; skipping firmware path load" in fallback
@@ -34,11 +36,16 @@ assert "FALSE, TRUE, FALSE);" in Path("refind/driver_support.c").read_text()
 assert "Kernel phase 2/4: EFI filesystem read" in fallback
 assert "Kernel phase 3/4: read %llu bytes" in fallback
 assert "Kernel phase 4/4: starting Linux EFI image" in launcher
-assert "PrintLinuxKernelReadProgress(0U, ExpectedSize)" in fallback
+assert "HaveReadStart = BootKernelClockSeconds(&ReadStarted)" in fallback
+assert "PrintLinuxKernelReadProgress(0U, ExpectedSize, HaveReadStart, ReadStarted)" in fallback
+assert "PrintLinuxKernelReadProgress(ImageSize, ExpectedSize, HaveReadStart, ReadStarted)" in fallback
+assert "elapsed %u s" in fallback
+assert "avg %llu KiB/s" in fallback
+assert "ETA %llu s" in fallback
 assert "if (ImageSize == ReadSize || NextStep > ProgressStep ||" in fallback
 assert "#define BOOT_KERNEL_PROGRESS_BYTES (256U * 1024U)" in source
 assert "first EFI file read beginning at byte 0" in fallback
-assert fallback.index("ImageSize += ReadSize;") < fallback.index("PrintLinuxKernelReadProgress(ImageSize, ExpectedSize);")
+assert fallback.index("ImageSize += ReadSize;") < fallback.index("PrintLinuxKernelReadProgress(ImageSize, ExpectedSize, HaveReadStart, ReadStarted);")
 assert "if (Verbose && !IsDriver && OSType == 'L')" in launcher
 assert "Memory-backed kernel LoadImage failed: %r" in fallback
 assert "EFI_FILE_MODE_READ, 0" in fallback
