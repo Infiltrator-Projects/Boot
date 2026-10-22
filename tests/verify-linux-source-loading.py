@@ -39,9 +39,10 @@ assert "Kernel phase 4/4: starting Linux EFI image" in launcher
 assert "HaveReadStart = BootKernelClockSeconds(&ReadStarted)" in fallback
 assert "PrintLinuxKernelReadProgress(0U, ExpectedSize, HaveReadStart, ReadStarted)" in fallback
 assert "PrintLinuxKernelReadProgress(ImageSize, ExpectedSize, HaveReadStart, ReadStarted)" in fallback
-assert "elapsed %u s" in fallback
-assert "avg %llu KiB/s" in fallback
-assert "ETA %llu s" in fallback
+assert "elapsed %us" in source
+assert "| %us | %lluKiB/s | ETA %llus" in source
+assert "BootKernelClockSeconds(" in source
+assert "BootKernelElapsedSeconds(" in source
 assert "if (ImageSize == ReadSize || NextStep > ProgressStep ||" in fallback
 assert "#define BOOT_KERNEL_PROGRESS_BYTES (256U * 1024U)" in source
 assert "first EFI file read beginning at byte 0" in fallback

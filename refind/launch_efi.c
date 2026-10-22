@@ -255,11 +255,11 @@ static VOID PrintLinuxKernelReadProgress(IN UINTN Completed, IN UINT64 Total,
         if (Elapsed >= 2U && Completed >= BOOT_KERNEL_PROGRESS_BYTES) {
             UINT64 AverageKiB = ((UINT64)Completed / 1024ULL) / Elapsed;
             UINT64 RemainingSeconds = ((Total - Completed) * Elapsed) / Completed;
-            Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB) | elapsed %u s | avg %llu KiB/s | ETA %llu s\n",
+            Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB) | %us | %lluKiB/s | ETA %llus\n",
                   Bar, Percent, (UINT64)(Completed / 1024U),
                   Total / 1024ULL, Elapsed, AverageKiB, RemainingSeconds);
         } else {
-            Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB) | elapsed %u s\n",
+            Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB) | elapsed %us\n",
                   Bar, Percent, (UINT64)(Completed / 1024U),
                   Total / 1024ULL, Elapsed);
         }
