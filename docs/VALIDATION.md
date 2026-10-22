@@ -294,3 +294,22 @@ released. This may accommodate EFI implementations that cannot service
 a very large single file read, but **is not a confirmed fix** for a
 physical DiskIo transport failure. The first firmware fault location and
 the kernel handoff still require another physical test.
+
+
+### Linux EFI kernel progress — Boot 0.1.29
+
+Dell Latitude 5550 Boot 0.1.28 with OFS driver 0.5.50 reached the
+`Starting vmlinuz` screen without feedback during path-backed firmware
+`LoadImage`. A photograph of that screen does not establish whether the
+firmware operation is slow or has stalled.
+
+Version 0.1.29 labels each Linux EFI load phase. For fallback EFI filesystem
+reads, it displays a 20-segment bar, updated at most 20 times after confirmed
+64 KiB file-protocol transfer successes. When a read fails, the previous
+reported percentage represents completed reads; the original byte-offset and
+firmware sector diagnostics remain visible. Firmware path loading, firmware
+memory-image validation and Linux handoff are synchronous and provide no
+progress callback or reliable wall-clock timeout. A stationary display
+therefore does not prove a hang. There is no persistent logging, NVRAM update,
+driver-specific filesystem implementation or change to normal boot order.
+End-to-end Dell boot remains unverified pending physical qualification.

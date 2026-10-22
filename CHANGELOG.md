@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.29 — 2026-10-22
+
+- Show explicit firmware device-path loading, EFI filesystem fallback, memory-image loading, and Linux handoff phases.
+- Add a 20-segment Linux kernel progress bar updated after successful 64 KiB EFI file reads, once per additional five percent. Report confirmed progress and retain failed offset diagnostics, without claiming progress during synchronous firmware calls.
+- Preserve filesystem/driver ownership, security policy, boot ordering, read-only behaviour, and existing loaders. Dell Latitude 5550 direct OFS kernel boot remains unverified.
+
+
 ## 0.1.28 — 2026-10-21
 
 - Respond to real Dell Latitude 5550 evidence: Boot 0.1.27 reached `OFSBOOT`, discovered the kernel, but the complete 17 MiB EFI file read failed with `EFI_DEVICE_ERROR` before the firmware memory-load retry.

@@ -18,6 +18,15 @@ assert "(Status != EFI_NOT_FOUND && Status != EFI_DEVICE_ERROR)" in fallback
 assert "RootDir == NULL || DevicePath == NULL" in fallback
 assert "Status = refit_call5_wrapper(RootDir->Open" in fallback
 assert "Kernel EFI file read failed at byte %llu of %llu: %r" in fallback
+assert "#define BOOT_KERNEL_PROGRESS_SEGMENTS 20U" in source
+assert "Kernel phase 1/4: firmware device-path load" in fallback
+assert "Kernel phase 2/4: EFI filesystem fallback" in fallback
+assert "Kernel phase 3/4: read %llu bytes" in fallback
+assert "Kernel phase 4/4: starting Linux EFI image" in launcher
+assert "PrintLinuxKernelReadProgress(0U, ExpectedSize)" in fallback
+assert "if (NextSegment > ProgressSegment)" in fallback
+assert fallback.index("ImageSize += ReadSize;") < fallback.index("PrintLinuxKernelReadProgress(ImageSize, ExpectedSize);")
+assert "if (Verbose && !IsDriver && OSType == 'L')" in launcher
 assert "Memory-backed kernel LoadImage failed: %r" in fallback
 assert "EFI_FILE_MODE_READ, 0" in fallback
 assert "Info = LibFileInfo(FileHandle);" in fallback

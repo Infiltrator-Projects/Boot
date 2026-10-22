@@ -202,6 +202,27 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
  * The caller owns *ImageData until firmware has finished loading the image,
  * then releases it on every return path through StartEFIImage(). */
 #define BOOT_MAX_KERNEL_SOURCE_BYTES (256U * 1024U * 1024U)
+#define BOOT_KERNEL_PROGRESS_SEGMENTS 20U
+
+/* Report confirmed EFI filesystem transfers; synchronous firmware calls
+ * cannot invoke callbacks while blocked, so no live heartbeat is possible.
+ * This is a Boot UI helper, not a second filesystem implementation. */
+static VOID PrintLinuxKernelReadProgress(IN UINTN Completed, IN UINT64 Total)
+{
+    CHAR16 Bar[BOOT_KERNEL_PROGRESS_SEGMENTS + 1U];
+    UINTN Percent, Filled, Index;
+
+    if (Total == 0U)
+        return;
+    Percent = (UINTN)(((UINT64)Completed * 100ULL) / Total);
+    Filled = (Percent * BOOT_KERNEL_PROGRESS_SEGMENTS) / 100U;
+    for (Index = 0U; Index < BOOT_KERNEL_PROGRESS_SEGMENTS; ++Index)
+        Bar[Index] = Index < Filled ? L'=' : L'.';
+    Bar[BOOT_KERNEL_PROGRESS_SEGMENTS] = 0;
+    Print(L"Kernel phase 2/4: OFS read [%s] %d%% (%llu/%llu KiB)\n",
+          Bar, Percent, (UINT64)(Completed / 1024U), Total / 1024ULL);
+}
+
 
 static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
                                        IN CHAR16 *Filename,
@@ -214,9 +235,11 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
     EFI_FILE_HANDLE FileHandle;
     EFI_FILE_INFO *Info;
     UINTN ImageSize = 0;
-    UINTN ReadSize, RequestedSize;
+    UINTN ReadSize, RequestedSize, ProgressSegment = 0;
     UINT64 ExpectedSize;
 
+    if (Verbose)
+        Print(L"Kernel phase 1/4: firmware device-path load (no live progress available)\n");
     Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
                                 DevicePath, NULL, 0, ImageHandle);
     if ((Status != EFI_NOT_FOUND && Status != EFI_DEVICE_ERROR) ||
@@ -261,6 +284,10 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
      * sector operations behind one status. Bound each transfer to 64 KiB so
      * failures identify their file offset and partial successful reads are
      * handled exactly. The EFI driver remains the sole filesystem authority. */
+    if (Verbose) {
+        Print(L"Kernel phase 2/4: EFI filesystem fallback, 64 KiB per read\n");
+        PrintLinuxKernelReadProgress(0U, ExpectedSize);
+    }
     while (ImageSize < (UINTN)ExpectedSize) {
         RequestedSize = (UINTN)ExpectedSize - ImageSize;
         if (RequestedSize > 64U * 1024U)
@@ -278,9 +305,16 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
             goto close_file;
         }
         ImageSize += ReadSize;
-        if (Verbose && ImageSize % (4U * 1024U * 1024U) == 0)
-            Print(L"Kernel file read: %llu / %llu bytes\n",
-                  (UINT64)ImageSize, ExpectedSize);
+        /* Update only after a successful transfer. The last displayed
+         * percentage is confirmed work, not a prediction or time estimate. */
+        if (Verbose) {
+            UINTN NextSegment = (UINTN)(((UINT64)ImageSize *
+                                 BOOT_KERNEL_PROGRESS_SEGMENTS) / ExpectedSize);
+            if (NextSegment > ProgressSegment) {
+                ProgressSegment = NextSegment;
+                PrintLinuxKernelReadProgress(ImageSize, ExpectedSize);
+            }
+        }
     }
     Status = EFI_SUCCESS;
 
@@ -297,7 +331,7 @@ close_file:
     LOG(1, LOG_LINE_NORMAL, L"Complete kernel file read: '%s', %llu bytes; retrying firmware LoadImage",
         Filename, (UINT64)ImageSize);
     if (Verbose)
-        Print(L"Complete kernel file read: %llu bytes; retrying EFI image load\n",
+        Print(L"Kernel phase 3/4: read %llu bytes; firmware memory-image load (no live progress)\n",
               (UINT64)ImageSize);
     Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
                                 DevicePath, *ImageData, ImageSize, ImageHandle);
@@ -462,6 +496,8 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
 
     // close open file handles
     LOG(1, LOG_LINE_NORMAL, L"Launching '%s'", ImageTitle);
+    if (Verbose && !IsDriver && OSType == 'L')
+        Print(L"Kernel phase 4/4: starting Linux EFI image (handoff; no progress callbacks)\n");
     UninitRefitLib();
 
     // Actually launch the program....
