@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.33 — 2026-10-22
+
+- Correct and subdivide startup diagnostics without changing boot search policy. The old 'Graphics' time included screen setup and icon loading, while its 'OS scan' time combined bootloader discovery, tool discovery and final menu setup.
+- The same four diagnostic rows now distinguish UI/icons, loader scan and tools/menu using existing RTC marks. This identifies which portion of the observed 151-second pre-menu delay actually blocked.
+- Preserve boot entries, automatic discovery, volume protocols, firmware variables, graphics behaviour and EFI file loading. Physical timings and the Linux OFS handoff remain unverified for this build.
+
+
 ## 0.1.32 — 2026-10-22
 
 - Show approximate elapsed time since the first OFS/Linux EFI file read, average confirmed KiB/s and estimated seconds remaining when enough bytes and time have accrued. Read-only RTC sampling occurs after completed EFI reads, without a watchdog, background timer or firmware-state writes.

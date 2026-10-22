@@ -368,3 +368,24 @@ Runtime GetTime source as pre-menu diagnostics; low-resolution firmware RTC
 and changed clocks may limit accuracy. No continuous timer is possible while
 a synchronous firmware BlockIo/file Read call has not returned. This is
 observability only, not an I/O recovery mechanism.
+
+
+### Dell OFS 0.5.52 timing regression and Boot 0.1.33 diagnosis
+
+The 22 October 2026 Dell Latitude 5550 test with Boot 0.1.32 and OFS EFI
+0.5.52 reported 8-, 4- and 2-sector speculative BlockIo DEVICE_ERROR
+failures and ultimately returned to single-sector reading. The 55% kernel
+point rose from 573 to 959 seconds. Long pauses continued after prefetch
+was disabled. The loader has previously completed 17,029,512 bytes from OFS
+in 1,091 seconds, but the Linux stub's following initramfs access and handoff
+are not yet qualified. Filesystems 0.5.53 removes this failed speculative
+path and measures slow individual physical-sector calls.
+
+The Boot 0.1.32 diagnostic screenshot showed 151 seconds before the menu,
+including 'Graphics 30s' and 'OS scan 120s'. These labels were misleading:
+the graphics stage includes UI initialization and SetVolumeIcons(), while
+the OS scan stage combined ScanForBootloaders(), ScanForTools() and final
+menu setup. Version 0.1.33 splits the existing marks 5/6/7 in the same four
+rows and relabels these stages without adding firmware work or changing
+which volumes are scanned. A future physical test can distinguish the
+loader-discovery stall from tool/menu work rather than assuming the former.

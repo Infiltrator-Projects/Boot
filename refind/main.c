@@ -508,7 +508,7 @@ static UINTN BootStartupDeciseconds(IN UINTN First, IN UINTN Last) {
 // are modified. The final timestamp is taken before opening the menu.
 CHAR16 *BootGetStartupTimingLine(IN UINTN Line) {
     UINTN i;
-    UINTN Disks, Config, Drivers, Rescan, Screen, Loaders, Total;
+    UINTN Disks, Config, Drivers, Rescan, Screen, Loaders, Tools, Total;
     for (i = 0; i < BOOT_STARTUP_MARKS; i++)
         if (!BootStartupValid[i])
             return NULL;
@@ -518,7 +518,8 @@ CHAR16 *BootGetStartupTimingLine(IN UINTN Line) {
     Drivers = BootStartupDeciseconds(2, 3);
     Rescan  = BootStartupDeciseconds(3, 4);
     Screen  = BootStartupDeciseconds(4, 5);
-    Loaders = BootStartupDeciseconds(5, 7);
+    Loaders = BootStartupDeciseconds(5, 6);
+    Tools   = BootStartupDeciseconds(6, 7);
     Total   = BootStartupDeciseconds(0, 7);
     if (Line == 0)
         return PoolPrint(L"Disks %d.%ds | config %d.%ds",
@@ -527,11 +528,11 @@ CHAR16 *BootGetStartupTimingLine(IN UINTN Line) {
         return PoolPrint(L"Drivers %d.%ds | rescan %d.%ds",
                          Drivers / 10, Drivers % 10, Rescan / 10, Rescan % 10);
     if (Line == 2)
-        return PoolPrint(L"Graphics %d.%ds | OS scan %d.%ds",
+        return PoolPrint(L"UI/icons %d.%ds | loader scan %d.%ds",
                          Screen / 10, Screen % 10, Loaders / 10, Loaders % 10);
     if (Line == 3)
-        return PoolPrint(L"Total pre-menu %d.%ds",
-                         Total / 10, Total % 10);
+        return PoolPrint(L"Tools/menu %d.%ds | total %d.%ds",
+                         Tools / 10, Tools % 10, Total / 10, Total % 10);
     return NULL;
 }
 
