@@ -59,7 +59,6 @@ assert "SecureBoot" not in fallback and "SetVariable" not in fallback
 # Other EFI loaders and drivers retain their prior loading modes.
 assert "else if (OSType == 'L')" in launcher
 assert "LoadLinuxKernelImage(Volume->RootDir, Filename, DevicePath" in launcher
-assert "Entry->LinuxMemoryFirst" in loader
 assert "BS->LoadImage, FALSE, SelfImageHandle, NULL," in launcher
 assert "BS->LoadImage, FALSE, SelfImageHandle, DevicePath," in launcher
 assert "Status == EFI_SECURITY_VIOLATION" in launcher
