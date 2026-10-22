@@ -35,7 +35,9 @@ assert "Kernel phase 2/4: EFI filesystem read" in fallback
 assert "Kernel phase 3/4: read %llu bytes" in fallback
 assert "Kernel phase 4/4: starting Linux EFI image" in launcher
 assert "PrintLinuxKernelReadProgress(0U, ExpectedSize)" in fallback
-assert "if (NextSegment > ProgressSegment)" in fallback
+assert "if (ImageSize == ReadSize || NextStep > ProgressStep ||" in fallback
+assert "#define BOOT_KERNEL_PROGRESS_BYTES (256U * 1024U)" in source
+assert "first EFI file read beginning at byte 0" in fallback
 assert fallback.index("ImageSize += ReadSize;") < fallback.index("PrintLinuxKernelReadProgress(ImageSize, ExpectedSize);")
 assert "if (Verbose && !IsDriver && OSType == 'L')" in launcher
 assert "Memory-backed kernel LoadImage failed: %r" in fallback

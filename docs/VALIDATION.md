@@ -334,3 +334,18 @@ for kernel/initramfs volume context. The default for auto-discovered Linux
 entries, other bootloaders, EFI drivers and standard GRUB is unchanged.
 The image buffer is still freed on unsuccessful handoff. Successful OFS
 kernel/image loading and initramfs access require physical retesting.
+
+
+### Dell physical test — Boot 0.1.30 memory-first reader, 22 October 2026
+
+The Dell Latitude 5550 reached the memory-first OFS EFI file-read stage and
+reported 0 of 16,630 KiB on the 20-segment display. It remained at 0% during
+the observed test. In 0.1.30 the bar updates only every 5% (about 832 KiB),
+so the display does not establish whether individual 64 KiB reads completed
+or whether firmware blocked within one read. Successful kernel execution
+remains unverified.
+
+Boot 0.1.31 reports the first successful 64 KiB EFI read, then at least every
+256 KiB and at EOF, while retaining the 20-segment bar. It also marks the
+start of the first synchronous read. Those markers are diagnostic only:
+firmware calls cannot be interrupted or timed out by progress reporting.

@@ -203,6 +203,7 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
  * then releases it on every return path through StartEFIImage(). */
 #define BOOT_MAX_KERNEL_SOURCE_BYTES (256U * 1024U * 1024U)
 #define BOOT_KERNEL_PROGRESS_SEGMENTS 20U
+#define BOOT_KERNEL_PROGRESS_BYTES (256U * 1024U)
 
 /* Report confirmed EFI filesystem transfers; synchronous firmware calls
  * cannot invoke callbacks while blocked, so no live heartbeat is possible.
@@ -236,7 +237,7 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
     EFI_FILE_HANDLE FileHandle;
     EFI_FILE_INFO *Info;
     UINTN ImageSize = 0;
-    UINTN ReadSize, RequestedSize, ProgressSegment = 0;
+    UINTN ReadSize, RequestedSize, ProgressStep = 0;
     UINT64 ExpectedSize;
 
     if (!MemoryFirst) {
@@ -303,6 +304,9 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
         if (RequestedSize > 64U * 1024U)
             RequestedSize = 64U * 1024U;
         ReadSize = RequestedSize;
+        if (Verbose && ImageSize == 0U)
+            Print(L"Kernel phase 2/4: first EFI file read beginning at byte 0 (%u KiB requested)\n",
+                  RequestedSize / 1024U);
         Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &ReadSize,
                                     *ImageData + ImageSize);
         if (EFI_ERROR(Status) || ReadSize == 0 || ReadSize > RequestedSize) {
@@ -315,13 +319,13 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
             goto close_file;
         }
         ImageSize += ReadSize;
-        /* Update only after a successful transfer. The last displayed
-         * percentage is confirmed work, not a prediction or time estimate. */
+        /* Show the first completed read, then every 256 KiB and at EOF.
+         * Only completed bytes count; no claim is made while firmware blocks. */
         if (Verbose) {
-            UINTN NextSegment = (UINTN)(((UINT64)ImageSize *
-                                 BOOT_KERNEL_PROGRESS_SEGMENTS) / ExpectedSize);
-            if (NextSegment > ProgressSegment) {
-                ProgressSegment = NextSegment;
+            UINTN NextStep = ImageSize / BOOT_KERNEL_PROGRESS_BYTES;
+            if (ImageSize == ReadSize || NextStep > ProgressStep ||
+                ImageSize == (UINTN)ExpectedSize) {
+                ProgressStep = NextStep;
                 PrintLinuxKernelReadProgress(ImageSize, ExpectedSize);
             }
         }

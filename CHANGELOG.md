@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.31 — 2026-10-22
+
+- Respond to the Dell's memory-first OFS test remaining at 0%: report the first completed 64 KiB EFI file read, subsequent completed progress at 256 KiB intervals, and EOF, rather than hiding transfers until five percent.
+- Mark entry into the initial synchronous EFI file read so a blocked first call can be distinguished from later transfers. Preserve firmware loading, validation, EFI ownership and error handling unchanged.
+- The physical Dell OFS kernel handoff remains unverified; diagnostic display changes do not imply a firmware-I/O fix.
+
 ## 0.1.30 — 2026-10-22
 
 - Add `linux_load memory` for explicitly configured manual Linux EFI-stub menu entries; default `linux_load path` stays unchanged for every other loader.
