@@ -313,3 +313,24 @@ progress callback or reliable wall-clock timeout. A stationary display
 therefore does not prove a hang. There is no persistent logging, NVRAM update,
 driver-specific filesystem implementation or change to normal boot order.
 End-to-end Dell boot remains unverified pending physical qualification.
+
+
+### Memory-first EFI Linux boot mode — Boot 0.1.30
+
+The Dell Latitude 5550 shows successful OFS EFI binding/volume discovery,
+but Boot 0.1.29 reached `Kernel phase 1/4: firmware device-path load`
+without reaching its filesystem-read progress. The firmware call is
+synchronous; the photographs do not prove a permanent hang or the exact
+read operation involved.
+
+For the explicit `Linux kernel from OFS` menu entry, the user can add
+`linux_load memory` to its existing `boot.conf` stanza. That change
+bypasses the initial firmware device-path LoadImage only for the selected
+manual Linux entry; Boot immediately reads the kernel in bounded 64 KiB
+chunks using its existing EFI filesystem interface and displays confirmed
+byte progress before a standard firmware memory-backed LoadImage.
+Firmware validates the executable and the original device path is retained
+for kernel/initramfs volume context. The default for auto-discovered Linux
+entries, other bootloaders, EFI drivers and standard GRUB is unchanged.
+The image buffer is still freed on unsuccessful handoff. Successful OFS
+kernel/image loading and initramfs access require physical retesting.

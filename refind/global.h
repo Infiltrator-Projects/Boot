@@ -321,6 +321,7 @@ typedef struct {
    REFIT_VOLUME     *Volume;
    BOOLEAN          UseGraphicsMode;
    BOOLEAN          Enabled;
+   BOOLEAN          LinuxMemoryFirst; // Explicit manual Linux EFI-stub loading policy
    CHAR16           *LoadOptions;
    CHAR16           *InitrdPath; // Linux stub loader only
    CHAR8            OSType;

@@ -730,7 +730,7 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
             ++DiagDriverAttempts;
             BootDriverDiagnosticProgress(L"load driver", DirEntry->FileName, FALSE, EFI_SUCCESS);
         }
-        Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE);
+        Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE, FALSE);
         if (!EFI_ERROR(Status)) {
             NumFound++;
             if (GlobalConfig.DriverDiagnostics)

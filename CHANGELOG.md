@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.30 — 2026-10-22
+
+- Add `linux_load memory` for explicitly configured manual Linux EFI-stub menu entries; default `linux_load path` stays unchanged for every other loader.
+- When selected, read the complete kernel from the selected EFI filesystem through verified 64 KiB chunks and report progress *before* calling firmware memory-backed `LoadImage`. Avoid the potentially blocked first firmware device-path LoadImage observed on a Dell Latitude 5550 with OFSBOOT.
+- Retain the original device path for Linux `initrd=` access and standard firmware image/security validation. Fail closed for invalid manual modes and non-Linux targets; maintain entry/submenu policy, independent filesystem drivers and normal boot order.
+- Full physical Dell OFS boot remains unverified.
+
+
 ## 0.1.29 — 2026-10-22
 
 - Show explicit firmware device-path loading, EFI filesystem fallback, memory-image loading, and Linux handoff phases.

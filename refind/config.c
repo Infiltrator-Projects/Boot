@@ -924,6 +924,14 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
         } else if (MyStriCmp(TokenList[0], L"add_options") && (TokenCount > 1)) {
             MergeStrings(&SubEntry->LoadOptions, TokenList[1], L' ');
 
+        } else if (MyStriCmp(TokenList[0], L"linux_load")) {
+            if (TokenCount == 2 && MyStriCmp(TokenList[1], L"memory"))
+                SubEntry->LinuxMemoryFirst = TRUE;
+            else if (TokenCount == 2 && MyStriCmp(TokenList[1], L"path"))
+                SubEntry->LinuxMemoryFirst = FALSE;
+            else
+                SubEntry->Enabled = FALSE;
+
         } else if (MyStriCmp(TokenList[0], L"graphics") && (TokenCount > 1)) {
             SubEntry->UseGraphicsMode = MyStriCmp(TokenList[1], L"on");
 
@@ -940,6 +948,8 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
         MyFreePool(SubEntry->InitrdPath);
         SubEntry->InitrdPath = NULL;
     } // if
+    if (SubEntry->LinuxMemoryFirst && SubEntry->OSType != 'L')
+        SubEntry->Enabled = FALSE;
     if (SubEntry->Enabled == TRUE) {
         AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
     }
@@ -1018,6 +1028,18 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
                 Entry->OSType = TokenList[1][0];
             }
 
+        } else if (MyStriCmp(TokenList[0], L"linux_load")) {
+            /* Only a deliberate manual Linux EFI-stub entry can bypass an
+             * unobservable firmware device-path load. Invalid modes fail closed. */
+            if (TokenCount == 2 && MyStriCmp(TokenList[1], L"memory"))
+                Entry->LinuxMemoryFirst = TRUE;
+            else if (TokenCount == 2 && MyStriCmp(TokenList[1], L"path"))
+                Entry->LinuxMemoryFirst = FALSE;
+            else {
+                Entry->Enabled = FALSE;
+                LOG(1, LOG_LINE_NORMAL, L"Invalid linux_load mode in manual boot entry");
+            }
+
         } else if (MyStriCmp(TokenList[0], L"graphics") && (TokenCount > 1)) {
             Entry->UseGraphicsMode = MyStriCmp(TokenList[1], L"on");
 
@@ -1055,6 +1077,11 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
     if (!DefaultsSet) {
         // user included no "loader" line; use bogus one
         SetLoaderDefaults(Entry, L"\\EFI\\BOOT\\nemo.efi", CurrentVolume);
+    }
+
+    if (Entry->LinuxMemoryFirst && Entry->OSType != 'L') {
+        Entry->Enabled = FALSE;
+        LOG(1, LOG_LINE_NORMAL, L"linux_load memory requires a Linux EFI-stub loader");
     }
 
     return(Entry);

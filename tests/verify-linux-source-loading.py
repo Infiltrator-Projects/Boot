@@ -20,7 +20,18 @@ assert "Status = refit_call5_wrapper(RootDir->Open" in fallback
 assert "Kernel EFI file read failed at byte %llu of %llu: %r" in fallback
 assert "#define BOOT_KERNEL_PROGRESS_SEGMENTS 20U" in source
 assert "Kernel phase 1/4: firmware device-path load" in fallback
-assert "Kernel phase 2/4: EFI filesystem fallback" in fallback
+assert "Kernel phase 1/4: memory-first; skipping firmware path load" in fallback
+assert "if (!MemoryFirst)" in fallback
+assert "RootDir == NULL || DevicePath == NULL" in fallback
+assert "IN BOOLEAN MemoryFirst," in source
+assert "Verbose, LinuxMemoryFirst," in launcher
+assert "Entry->LinuxMemoryFirst" in source
+assert "MyStriCmp(TokenList[0], L\"linux_load\")" in Path("refind/config.c").read_text()
+assert "Entry->LinuxMemoryFirst && Entry->OSType != 'L'" in Path("refind/config.c").read_text()
+assert "NewEntry->LinuxMemoryFirst = Entry->LinuxMemoryFirst" in Path("refind/scan.c").read_text()
+assert "IN BOOLEAN LinuxMemoryFirst);" in Path("refind/launch_efi.h").read_text()
+assert "FALSE, TRUE, FALSE);" in Path("refind/driver_support.c").read_text()
+assert "Kernel phase 2/4: EFI filesystem read" in fallback
 assert "Kernel phase 3/4: read %llu bytes" in fallback
 assert "Kernel phase 4/4: starting Linux EFI image" in launcher
 assert "PrintLinuxKernelReadProgress(0U, ExpectedSize)" in fallback
@@ -48,6 +59,7 @@ assert "SecureBoot" not in fallback and "SetVariable" not in fallback
 # Other EFI loaders and drivers retain their prior loading modes.
 assert "else if (OSType == 'L')" in launcher
 assert "LoadLinuxKernelImage(Volume->RootDir, Filename, DevicePath" in launcher
+assert "Entry->LinuxMemoryFirst" in loader
 assert "BS->LoadImage, FALSE, SelfImageHandle, NULL," in launcher
 assert "BS->LoadImage, FALSE, SelfImageHandle, DevicePath," in launcher
 assert "Status == EFI_SECURITY_VIOLATION" in launcher

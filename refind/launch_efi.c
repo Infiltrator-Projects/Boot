@@ -219,7 +219,7 @@ static VOID PrintLinuxKernelReadProgress(IN UINTN Completed, IN UINT64 Total)
     for (Index = 0U; Index < BOOT_KERNEL_PROGRESS_SEGMENTS; ++Index)
         Bar[Index] = Index < Filled ? L'=' : L'.';
     Bar[BOOT_KERNEL_PROGRESS_SEGMENTS] = 0;
-    Print(L"Kernel phase 2/4: OFS read [%s] %d%% (%llu/%llu KiB)\n",
+    Print(L"Kernel phase 2/4: EFI read [%s] %d%% (%llu/%llu KiB)\n",
           Bar, Percent, (UINT64)(Completed / 1024U), Total / 1024ULL);
 }
 
@@ -228,6 +228,7 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
                                        IN CHAR16 *Filename,
                                        IN EFI_DEVICE_PATH *DevicePath,
                                        IN BOOLEAN Verbose,
+                                       IN BOOLEAN MemoryFirst,
                                        OUT UINT8 **ImageData,
                                        OUT EFI_HANDLE *ImageHandle)
 {
@@ -238,20 +239,29 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
     UINTN ReadSize, RequestedSize, ProgressSegment = 0;
     UINT64 ExpectedSize;
 
-    if (Verbose)
-        Print(L"Kernel phase 1/4: firmware device-path load (no live progress available)\n");
-    Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
-                                DevicePath, NULL, 0, ImageHandle);
-    if ((Status != EFI_NOT_FOUND && Status != EFI_DEVICE_ERROR) ||
-        RootDir == NULL || DevicePath == NULL)
-        return Status;
+    if (!MemoryFirst) {
+        if (Verbose)
+            Print(L"Kernel phase 1/4: firmware device-path load (no live progress available)\n");
+        Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle,
+                                    DevicePath, NULL, 0, ImageHandle);
+        if ((Status != EFI_NOT_FOUND && Status != EFI_DEVICE_ERROR) ||
+            RootDir == NULL || DevicePath == NULL)
+            return Status;
 
-    /* A failed firmware path load does not establish that the file is
-     * unreadable through its EFI Simple File System protocol. The full
-     * source must be read successfully before retrying image validation. */
-    LOG(1, LOG_LINE_NORMAL, L"Linux firmware path LoadImage failed: %r", Status);
-    if (Verbose)
-        Print(L"Firmware kernel path load returned %r; checking direct file access\n", Status);
+        /* Retry only a permitted path failure, after independently reading
+         * and verifying the complete source via the selected EFI filesystem. */
+        LOG(1, LOG_LINE_NORMAL, L"Linux firmware path LoadImage failed: %r", Status);
+        if (Verbose)
+            Print(L"Firmware kernel path load returned %r; checking direct file access\n", Status);
+    } else {
+        /* Explicit manual memory-first loading avoids firmware's initial
+         * unobservable path load but retains firmware image validation and
+         * the source volume device path for initrd access. */
+        if (RootDir == NULL || DevicePath == NULL)
+            return EFI_NOT_FOUND;
+        if (Verbose)
+            Print(L"Kernel phase 1/4: memory-first; skipping firmware path load\n");
+    }
     Status = refit_call5_wrapper(RootDir->Open, RootDir, &FileHandle,
                                 Filename, EFI_FILE_MODE_READ, 0);
     if (EFI_ERROR(Status)) {
@@ -285,7 +295,7 @@ static EFI_STATUS LoadLinuxKernelImage(IN EFI_FILE_PROTOCOL *RootDir,
      * failures identify their file offset and partial successful reads are
      * handled exactly. The EFI driver remains the sole filesystem authority. */
     if (Verbose) {
-        Print(L"Kernel phase 2/4: EFI filesystem fallback, 64 KiB per read\n");
+        Print(L"Kernel phase 2/4: EFI filesystem read, 64 KiB per read\n");
         PrintLinuxKernelReadProgress(0U, ExpectedSize);
     }
     while (ImageSize < (UINTN)ExpectedSize) {
@@ -348,7 +358,8 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR16 *ImageTitle,
                          IN CHAR8 OSType,
                          IN BOOLEAN Verbose,
-                         IN BOOLEAN IsDriver)
+                         IN BOOLEAN IsDriver,
+                         IN BOOLEAN LinuxMemoryFirst)
 {
     EFI_STATUS              Status, ReturnStatus;
     EFI_HANDLE              ChildImageHandle, ChildImageHandle2;
@@ -412,7 +423,8 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                 }
             } else if (OSType == 'L') {
                 ReturnStatus = Status = LoadLinuxKernelImage(Volume->RootDir, Filename, DevicePath,
-                                                             Verbose, &ImageData, &ChildImageHandle);
+                                                             Verbose, LinuxMemoryFirst,
+                                                             &ImageData, &ChildImageHandle);
             } else {
                 ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
                                                             NULL, 0, &ChildImageHandle);
@@ -629,7 +641,8 @@ VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
     BeginExternalScreen(Entry->UseGraphicsMode, L"Booting OS");
     StoreLoaderName(SelectionName);
     Status = StartEFIImage(Entry->Volume, Entry->LoaderPath, Entry->LoadOptions,
-                           LoaderPath, Entry->OSType, !Entry->UseGraphicsMode, FALSE);
+                           LoaderPath, Entry->OSType, !Entry->UseGraphicsMode, FALSE,
+                           Entry->LinuxMemoryFirst);
     // An EFI stub normally does not return. CheckError() already pauses on
     // reported failures; also make a clean but unexpected return observable.
     if (Entry->OSType == 'L' && !EFI_ERROR(Status)) {
@@ -650,6 +663,6 @@ VOID StartTool(IN LOADER_ENTRY *Entry) {
     StoreLoaderName(Entry->me.Title);
     LoaderPath = Basename(Entry->LoaderPath);
     StartEFIImage(Entry->Volume, Entry->LoaderPath, Entry->LoadOptions,
-                  LoaderPath, Entry->OSType, TRUE, FALSE);
+                  LoaderPath, Entry->OSType, TRUE, FALSE, FALSE);
     MyFreePool(LoaderPath);
 } /* VOID StartTool() */

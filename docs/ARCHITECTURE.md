@@ -147,3 +147,18 @@ The end state is a boot manager whose architecture can be explained in product t
 The default GNU-EFI targets are explicit and independent of ambient EDK2/TianoCore installations. The product-owned build script locates GNU-EFI and compiles the Boot executable without compiling or fetching any filesystem driver. Make recursion preserves the chosen executable and flags. Generic cleanup owns repository outputs only.
 
 Root VERSION owns source-preview identity; inherited engine versions remain separate. The single source workflow owns vendor verification, compilation and exact source artifacts. Publication promotes the exact verified Debian package and checksum under a new immutable version. Binary release eligibility still belongs to firmware/runtime, trust and installation/recovery qualification.
+
+
+### Opt-in manual memory-first Linux EFI-stub loading
+
+Only a manual `menuentry` can request `linux_load memory`; otherwise the
+Linux kernel path remains the existing device-path-first firmware load
+(`linux_load path`). Memory-first reads bounded, verified 64 KiB chunks
+through the EFI Simple File System protocol of the explicitly selected volume,
+shows confirmed progress, and calls firmware LoadImage once with both the
+complete memory buffer and the **original device path**. This retains source
+filesystem context for `initrd=` and firmware image security validation.
+Unknown modes disable the manual entry; the memory option on a non-Linux
+target also disables it. Neither the independent filesystem drivers nor other
+loaders change. A blocked synchronous `EFI_FILE_PROTOCOL.Read` cannot
+provide heartbeat callbacks or be interrupted by the Boot UI.
