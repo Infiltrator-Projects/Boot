@@ -31,8 +31,9 @@ assert "Entry->LinuxMemoryFirst" in source
 assert "MyStriCmp(TokenList[0], L\"linux_load\")" in Path("refind/config.c").read_text()
 assert "Entry->LinuxMemoryFirst && Entry->OSType != 'L'" in Path("refind/config.c").read_text()
 assert "NewEntry->LinuxMemoryFirst = Entry->LinuxMemoryFirst" in Path("refind/scan.c").read_text()
-assert "IN BOOLEAN LinuxMemoryFirst);" in Path("refind/launch_efi.h").read_text()
-assert "FALSE, TRUE, FALSE);" in Path("refind/driver_support.c").read_text()
+assert "IN BOOLEAN LinuxMemoryFirst," in Path("refind/launch_efi.h").read_text()
+assert "IN BOOLEAN StorageDriver);" in Path("refind/launch_efi.h").read_text()
+assert "FALSE, TRUE, FALSE, StorageProvider);" in Path("refind/driver_support.c").read_text()
 assert "Kernel phase 2/4: EFI filesystem read" in fallback
 assert "Kernel phase 3/4: read %llu bytes" in fallback
 assert "Kernel phase 4/4: starting Linux EFI image" in launcher
