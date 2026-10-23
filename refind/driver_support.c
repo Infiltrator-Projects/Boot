@@ -710,7 +710,7 @@ static VOID ConnectFilesystemBlockDevices(VOID) {
 
 // Scan a directory for drivers.
 // Originally from rEFIt's main.c (BSD), but modified since then (GPLv3).
-static UINTN ScanDriverDir(IN CHAR16 *Path)
+static UINTN ScanDriverDir(IN CHAR16 *Path, IN BOOLEAN StorageProvider)
 {
     EFI_STATUS              Status;
     REFIT_DIR_ITER          DirIter;
@@ -730,7 +730,7 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
             ++DiagDriverAttempts;
             BootDriverDiagnosticProgress(L"load driver", DirEntry->FileName, FALSE, EFI_SUCCESS);
         }
-        Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE, FALSE);
+        Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE, FALSE, StorageProvider);
         if (!EFI_ERROR(Status)) {
             NumFound++;
             if (GlobalConfig.DriverDiagnostics)
@@ -757,7 +757,7 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
 // Returns TRUE if any drivers are loaded, FALSE otherwise.
 BOOLEAN LoadDrivers(VOID) {
     CHAR16        *Directory, *SelfDirectory;
-    UINTN         i = 0, Length, NumFound = 0;
+    UINTN         i = 0, Length, NumFound = 0, NumStorage = 0;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Loading drivers");
     BootDriverDiagnosticProgress(L"driver directory discovery", L"external drivers", FALSE, EFI_SUCCESS);
@@ -769,14 +769,15 @@ BOOLEAN LoadDrivers(VOID) {
     SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
     CleanUpPathNameSlashes(SelfDirectory);
     MergeStrings(&SelfDirectory, L"storage_x64", L'\\');
-    NumFound += ScanDriverDir(SelfDirectory);
+    NumStorage += ScanDriverDir(SelfDirectory, TRUE);
     MyFreePool(SelfDirectory);
 
     /* Legacy EFI storage plugin directory, also opt-in and vendor neutral. */
     SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
     CleanUpPathNameSlashes(SelfDirectory);
     MergeStrings(&SelfDirectory, L"storage", L'\\');
-    NumFound += ScanDriverDir(SelfDirectory);
+    NumStorage += ScanDriverDir(SelfDirectory, TRUE);
+    NumFound += NumStorage;
     MyFreePool(SelfDirectory);
 
     /* Filesystem drivers remain device-agnostic; each one consumes standard
@@ -787,7 +788,7 @@ BOOLEAN LoadDrivers(VOID) {
         SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
         CleanUpPathNameSlashes(SelfDirectory);
         MergeStrings(&SelfDirectory, Directory, L'\\');
-        NumFound += ScanDriverDir(SelfDirectory);
+        NumFound += ScanDriverDir(SelfDirectory, FALSE);
         MyFreePool(Directory);
         MyFreePool(SelfDirectory);
     }
@@ -798,7 +799,7 @@ BOOLEAN LoadDrivers(VOID) {
         CleanUpPathNameSlashes(Directory);
         Length = StrLen(Directory);
         if (Length > 0) {
-            NumFound += ScanDriverDir(Directory);
+            NumFound += ScanDriverDir(Directory, FALSE);
         } // if
         MyFreePool(Directory);
     } // while
@@ -810,8 +811,14 @@ BOOLEAN LoadDrivers(VOID) {
     if (NumFound > 0) {
         if (GlobalConfig.DriverDirs != NULL && GlobalConfig.DriverDirs[0] != 0)
             ConnectAllDriversToAllControllers();
-        else
+        else {
             ConnectFilesystemBlockDevices();
+            /* Re-enumerate new partition children created when explicitly
+             * installed native storage providers publish whole-disk BlockIo.
+             * Normal computers never perform the extra pass. */
+            if (NumStorage > 0U)
+                ConnectFilesystemBlockDevices();
+        }
     }
     BootDriverDiagnosticProgress(L"driver directory discovery", L"external drivers", TRUE, EFI_SUCCESS);
     return (NumFound > 0);

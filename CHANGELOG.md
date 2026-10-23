@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.35 — 2026-10-23
+
+- Keep the new hardware-provider storage stage separate from filesystem compatibility logic: native storage drivers no longer invoke `ConnectFilesystemDriver` and cannot trigger its DiskIo driver disconnection loop.
+- Pass an explicit storage-driver flag through Boot's common EFI launcher, preserve existing operating-system and tool entrypoints, and use a bounded second partition enumeration only when an opt-in storage provider was successfully loaded.
+- Extend source regression guards. No unqualified Realtek hardware driver is shipped or installed; Dell hardware transport correction is not yet physically qualified.
+
 ## 0.1.34 — 2026-10-23
 
 - Add opt-in `storage_x64/` and `storage/` UEFI storage-provider loading before the filesystem `drivers_x64/` stage; missing directories change nothing on normal computers.

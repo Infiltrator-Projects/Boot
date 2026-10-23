@@ -187,3 +187,12 @@ seconds cannot be interrupted by a filesystem-level timeout.
 This is an architectural separation and loading-order correction, **not**
 a claim that a native Dell RTS525A transport exists or that the physical
 OFS SD timeout has been resolved.
+
+Boot 0.1.35 additionally separates storage providers from the inherited
+filesystem-only DiskIo compatibility rebinding hook. A storage provider's
+EFI launch never invokes `ConnectFilesystemDriver`, which can disconnect
+partition users on firmware with unusual protocol ownership. The
+optional provider stage gets a bounded second BlockIo enumeration so
+new partition children created from whole-disk storage handles can
+receive filesystem drivers, without changing normal boot discovery
+when no storage provider is installed.

@@ -417,7 +417,8 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR8 OSType,
                          IN BOOLEAN Verbose,
                          IN BOOLEAN IsDriver,
-                         IN BOOLEAN LinuxMemoryFirst)
+                         IN BOOLEAN LinuxMemoryFirst,
+                         IN BOOLEAN StorageDriver)
 {
     EFI_STATUS              Status, ReturnStatus;
     EFI_HANDLE              ChildImageHandle, ChildImageHandle2;
@@ -581,8 +582,9 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     ErrorInfo = PoolPrint(L"returned from %s", ImageTitle);
     CheckError(Status, ErrorInfo);
     MyFreePool(ErrorInfo);
-    if (IsDriver && !EFI_ERROR(Status)) {
-        // Only attempt binding after a driver starts successfully.
+    if (IsDriver && !StorageDriver && !EFI_ERROR(Status)) {
+        // Only filesystem drivers receive DiskIo compatibility rebinding;
+        // storage providers self-bind without disconnecting other devices.
         // Below should have no effect on most systems, but works
         // around bug with some EFIs that prevents filesystem drivers
         // from binding to partitions.
@@ -700,7 +702,7 @@ VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
     StoreLoaderName(SelectionName);
     Status = StartEFIImage(Entry->Volume, Entry->LoaderPath, Entry->LoadOptions,
                            LoaderPath, Entry->OSType, !Entry->UseGraphicsMode, FALSE,
-                           Entry->LinuxMemoryFirst);
+                           Entry->LinuxMemoryFirst, FALSE);
     // An EFI stub normally does not return. CheckError() already pauses on
     // reported failures; also make a clean but unexpected return observable.
     if (Entry->OSType == 'L' && !EFI_ERROR(Status)) {
@@ -721,6 +723,6 @@ VOID StartTool(IN LOADER_ENTRY *Entry) {
     StoreLoaderName(Entry->me.Title);
     LoaderPath = Basename(Entry->LoaderPath);
     StartEFIImage(Entry->Volume, Entry->LoaderPath, Entry->LoadOptions,
-                  LoaderPath, Entry->OSType, TRUE, FALSE, FALSE);
+                  LoaderPath, Entry->OSType, TRUE, FALSE, FALSE, FALSE);
     MyFreePool(LoaderPath);
 } /* VOID StartTool() */
