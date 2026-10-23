@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.34 — 2026-10-23
+
+- Add opt-in `storage_x64/` and `storage/` UEFI storage-provider loading before the filesystem `drivers_x64/` stage; missing directories change nothing on normal computers.
+- Keep Boot filesystem-neutral and PCI-controller-neutral: native storage drivers self-bind to matching devices and expose standard EFI BlockIo handles; OFS and other filesystem drivers continue consuming standard EFI protocols.
+- Do not ship or automatically install an unqualified Realtek driver. The Dell RTS525A 30-second firmware failure remains open pending a real controller driver and physical qualification.
+
 ## 0.1.33 — 2026-10-22
 
 - Correct and subdivide startup diagnostics without changing boot search policy. The old 'Graphics' time included screen setup and icon loading, while its 'OS scan' time combined bootloader discovery, tool discovery and final menu setup.

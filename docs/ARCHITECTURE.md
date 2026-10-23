@@ -162,3 +162,28 @@ Unknown modes disable the manual entry; the memory option on a non-Linux
 target also disables it. Neither the independent filesystem drivers nor other
 loaders change. A blocked synchronous `EFI_FILE_PROTOCOL.Read` cannot
 provide heartbeat callbacks or be interrupted by the Boot UI.
+
+## Portable storage-controller driver stage — 0.1.34
+
+Boot loads optional standalone UEFI storage transport drivers in
+`storage_x64/` (or legacy `storage/`) **before** loading filesystem drivers
+from `drivers_x64/`. All paths are relative to the currently running Boot
+executable. Missing storage directories are a no-op: Boot retains the
+firmware-provided EFI BlockIo/DiskIo stack on ordinary computers.
+
+A native storage transport driver must opt into the system using standard
+UEFI Driver Binding and publish standard block-device handles so the
+existing filesystem parsers can consume them unchanged. Because Boot's
+general filesystem-connect pass intentionally does not enumerate and
+reconnect unrelated PCI controllers, a standalone native provider is
+responsible for binding its **own matching controller** before returning
+success from its EFI entry point. Boot does not embed Realtek/Intel
+device IDs, perform PCI configuration writes, or silently replace firmware
+storage drivers. Every hardware-specific transport driver requires
+independent physical and regression qualification before automatic
+deployment. A firmware BlockIo implementation which pauses for 30
+seconds cannot be interrupted by a filesystem-level timeout.
+
+This is an architectural separation and loading-order correction, **not**
+a claim that a native Dell RTS525A transport exists or that the physical
+OFS SD timeout has been resolved.

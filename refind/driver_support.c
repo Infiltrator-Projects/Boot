@@ -761,6 +761,26 @@ BOOLEAN LoadDrivers(VOID) {
 
     LOG(1, LOG_LINE_SEPARATOR, L"Loading drivers");
     BootDriverDiagnosticProgress(L"driver directory discovery", L"external drivers", FALSE, EFI_SUCCESS);
+    /* Hardware transport plugins are separate from filesystem parsers.
+     * They run first, so self-binding native BlockIo providers can publish
+     * partition handles before OFS/ext4/etc bind as SimpleFileSystem.
+     * Absent directories have no effect on other computers. Never load
+     * unknown native providers implicitly or mutate PCI hardware here. */
+    SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
+    CleanUpPathNameSlashes(SelfDirectory);
+    MergeStrings(&SelfDirectory, L"storage_x64", L'\\');
+    NumFound += ScanDriverDir(SelfDirectory);
+    MyFreePool(SelfDirectory);
+
+    /* Legacy EFI storage plugin directory, also opt-in and vendor neutral. */
+    SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
+    CleanUpPathNameSlashes(SelfDirectory);
+    MergeStrings(&SelfDirectory, L"storage", L'\\');
+    NumFound += ScanDriverDir(SelfDirectory);
+    MyFreePool(SelfDirectory);
+
+    /* Filesystem drivers remain device-agnostic; each one consumes standard
+     * EFI BlockIo/DiskIo and publishes standard EFI SimpleFileSystem. */
     // load drivers from the subdirectories of rEFInd's home directory specified
     // in the DRIVER_DIRS constant.
     while ((Directory = FindCommaDelimited(DRIVER_DIRS, i++)) != NULL) {
