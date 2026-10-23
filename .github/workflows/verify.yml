@@ -69,11 +69,12 @@ jobs:
           assert '&gMyEfiSimpleFileSystemProtocolGuid' in targeted
           assert 'if (!EFI_ERROR(Status)) {\n            NumFound++;' in s
           assert 'GlobalConfig.DriverDirs[0] != 0' in s
-          assert 'ConnectAllDriversToAllControllers();\n        else\n            ConnectFilesystemBlockDevices();' in s
+          assert 'ConnectAllDriversToAllControllers();\n        else {' in s
           startup = s[s.index('BOOLEAN LoadDrivers(VOID)'):]
           assert startup.count('ConnectAllDriversToAllControllers();') == 1
-          assert startup.count('ConnectFilesystemBlockDevices();') == 1
-          assert 'IsDriver && !EFI_ERROR(Status)' in Path('refind/launch_efi.c').read_text()
+          assert startup.count('ConnectFilesystemBlockDevices();') == 2
+          assert 'if (NumStorage > 0U)' in startup
+          assert 'IsDriver && !StorageDriver && !EFI_ERROR(Status)' in Path('refind/launch_efi.c').read_text()
           PY_BOOT_DRIVER_BINDING
           # The manager must build with no filesystem implementation checkout.
           test ! -e filesystems
