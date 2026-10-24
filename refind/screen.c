@@ -81,7 +81,8 @@ BOOLEAN AllowGraphicsMode;
 BOOLEAN HaveResized = FALSE;
 
 EG_PIXEL StdBackgroundPixel  = { 0xbf, 0xbf, 0xbf, 0 };
-EG_PIXEL MenuBackgroundPixel = { 0xbf, 0xbf, 0xbf, 0 };
+// Default to Infiltrator's dark background even if boot.conf is incomplete.
+EG_PIXEL MenuBackgroundPixel = { 0x08, 0x06, 0x05, 0 };
 EG_PIXEL DarkBackgroundPixel = { 0x0, 0x0, 0x0, 0 };
 
 static BOOLEAN GraphicsScreenDirty;
@@ -444,7 +445,9 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
         if (Banner == NULL) {
             if (GlobalConfig.BannerFileName)
                 Banner = egLoadImage(SelfDir, GlobalConfig.BannerFileName, FALSE);
-            // A missing product banner stays blank; never display inherited branding.
+            if (Banner == NULL)
+                Banner = egLoadImage(SelfDir, L"boot-banner.png", FALSE);
+            // Never fall back to the embedded upstream rEFInd banner.
         }
 
         if (Banner) {
