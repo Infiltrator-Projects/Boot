@@ -54,6 +54,8 @@ jobs:
           screen = Path('refind/screen.c').read_text()
           assert 'Print(L"Infiltrator Boot - %s", Title)' in screen
           assert 'egemb_refind_banner' not in screen
+          assert 'egLoadImage(SelfDir, L"boot-banner.png", FALSE)' in screen
+          assert 'EG_PIXEL MenuBackgroundPixel = { 0x08, 0x06, 0x05, 0 };' in screen
           main = Path('refind/main.c').read_text()
           assert 'Infiltrator Boot Version %s' in main
           assert 'case TAG_INSTALL:\n                DisplaySimpleMessage(' in main
