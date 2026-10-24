@@ -92,7 +92,7 @@ static REFIT_VOLUME *PickOneESP(ESP_LIST *AllESPs) {
     INTN                DefaultEntry = 0, MenuExit = MENU_EXIT_ESCAPE, i = 1;
     MENU_STYLE_FUNC     Style = TextMenuStyle;
     REFIT_MENU_ENTRY    *ChosenOption, *MenuEntryItem = NULL;
-    REFIT_MENU_SCREEN   InstallMenu = { L"Install rEFInd", NULL, 0, NULL, 0, NULL, 0, NULL,
+    REFIT_MENU_SCREEN   InstallMenu = { L"Legacy installer (unsupported)", NULL, 0, NULL, 0, NULL, 0, NULL,
                                         L"Select a destination and press Enter or",
                                         L"press Esc to return to main menu without changes" };
 
@@ -102,7 +102,7 @@ static REFIT_VOLUME *PickOneESP(ESP_LIST *AllESPs) {
 
     if (AllESPs) {
         CurrentESP = AllESPs;
-        AddMenuInfoLine(&InstallMenu, L"Select a partition and press Enter to install rEFInd");
+        AddMenuInfoLine(&InstallMenu, L"Legacy installer is unsupported; return without changes");
         while (CurrentESP != NULL) {
             MenuEntryItem = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));
             GuidStr = GuidAsString(&(CurrentESP->Volume->PartGuid));
@@ -326,7 +326,7 @@ static EFI_STATUS CopyFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
     MyFreePool(SourceFile);
     MyFreePool(RefindName);
     if (EFI_ERROR(Status)) {
-        LOG(1, LOG_LINE_NORMAL, L"Error copying rEFInd binary; installation has failed");
+        LOG(1, LOG_LINE_NORMAL, L"Error copying legacy binary; installation has failed");
         Status = WorstStatus = EFI_ABORTED;
     }
 
@@ -383,7 +383,7 @@ static VOID CreateFallbackCSV(IN EFI_FILE_PROTOCOL *TargetDir) {
     Status = refit_call5_wrapper(TargetDir->Open, TargetDir, &FilePtr, L"\\EFI\\refind\\BOOT.CSV",
                                  EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0);
     if (Status == EFI_SUCCESS) {
-        Contents = PoolPrint(L"%s,rEFInd Boot Manager,,This is the boot entry for rEFInd\n",
+        Contents = PoolPrint(L"%s,Legacy Boot Manager,,Legacy boot entry\n",
                              INST_REFIND_NAME);
         if (Contents) {
             FileSize = StrSize(Contents);
@@ -574,7 +574,7 @@ static EFI_STATUS CreateNvramEntry(EFI_HANDLE DeviceHandle) {
 
     ProgName = PoolPrint(L"\\EFI\\refind\\%s", INST_REFIND_NAME);
     Status = ConstructBootEntry(DeviceHandle, ProgName,
-                                L"rEFInd Boot Manager", (CHAR8**) &Entry, &Size);
+                                L"Legacy Boot Manager", (CHAR8**) &Entry, &Size);
     MyFreePool(ProgName);
     if (Status == EFI_SUCCESS)
         BootNum = FindBootNum(Entry, Size, &AlreadyExists);
@@ -605,7 +605,7 @@ VOID InstallRefind(VOID) {
     REFIT_VOLUME  *SelectedESP; // Do not free
     UINTN         Status;
 
-    LOG(1, LOG_LINE_THIN_SEP, L"Installing rEFInd to an ESP");
+    LOG(1, LOG_LINE_THIN_SEP, L"Legacy installer invoked");
     AllESPs = FindAllESPs();
     SelectedESP = PickOneESP(AllESPs);
     if (SelectedESP) {
@@ -614,12 +614,12 @@ VOID InstallRefind(VOID) {
             Status = CreateNvramEntry(SelectedESP->DeviceHandle);
         DeleteESPList(AllESPs);
         if (Status == EFI_SUCCESS) {
-            DisplaySimpleMessage(L"Information", L"rEFInd successfully installed");
+            DisplaySimpleMessage(L"Information", L"Legacy installation completed");
         } else {
             DisplaySimpleMessage(L"Warning", L"Problems encountered during installation");
         } // if/else
     } // if
-    LOG(1, LOG_LINE_THIN_SEP, L"Done installing rEFInd to an ESP");
+    LOG(1, LOG_LINE_THIN_SEP, L"Legacy installation completed");
 } // VOID InstallRefind()
 
 /***********************

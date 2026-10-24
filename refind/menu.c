@@ -1797,7 +1797,7 @@ static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
                 RescanAll(FALSE, FALSE);
             } else {
                 DisplaySimpleMessage(L"Cannot Hide Entry for Manual Boot Stanza",
-                                     L"You must edit refind.conf to remove this entry.");
+                                     L"You must edit boot.conf to remove this entry.");
             }
             break;
         case TAG_LEGACY:
@@ -1820,7 +1820,7 @@ static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
         case TAG_INSTALL:
         case TAG_HIDDEN:
             DisplaySimpleMessage(L"Unable to Comply",
-                                 L"To hide an internal tool, edit the 'showtools' line in refind.conf");
+                                 L"To hide an internal tool, edit the 'showtools' line in boot.conf");
             break;
         case TAG_TOOL:
             HideItemMenu.Title = L"Hide Tool Tag";

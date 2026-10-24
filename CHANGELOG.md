@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.36 — 2026-10-24
+
+- Replace inherited rEFInd text headers, About/menu labels, startup logging and user-facing configuration guidance with Infiltrator Boot branding; show the product release version.
+- Remove the embedded legacy rEFInd banner fallback. If packaged product artwork is unavailable, do not display the unrelated artwork.
+- Block the inherited in-firmware installer action, which still targets legacy paths; Boot installation remains owned by Setup and the verified host-side deployment process.
+- Add source-level release checks preventing these user-visible branding regressions. EFI behaviour on the Dell Latitude 5550 requires physical validation after installation.
+
 ## 0.1.35 — 2026-10-23
 
 - Keep the new hardware-provider storage stage separate from filesystem compatibility logic: native storage drivers no longer invoke `ConnectFilesystemDriver` and cannot trigger its DiskIo driver disconnection loop.

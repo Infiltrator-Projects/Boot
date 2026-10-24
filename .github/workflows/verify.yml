@@ -36,6 +36,29 @@ jobs:
           version=$(tr -d '\r\n' < VERSION)
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           grep -q '#define CONFIG_FILE_NAME[[:space:]]*L"boot.conf"' refind/config.h
+          python3 - <<'PY_BOOT_BRANDING'
+          from pathlib import Path
+          import re
+          version = Path('VERSION').read_text().strip()
+          vheader = Path('include/version.h').read_text()
+          assert f'#define BOOT_PRODUCT_VERSION L"{version}"' in vheader
+          ui_files = (
+              'refind/screen.c', 'refind/main.c', 'refind/scan.c',
+              'refind/menu.c', 'refind/launch_efi.c',
+              'refind/launch_legacy.c', 'refind/install.c'
+          )
+          for name in ui_files:
+              source = Path(name).read_text()
+              # Legacy code identifiers and historical attribution stay intact.
+              assert not re.search(r'L"[^"\n]*rEFInd[^"\n]*"', source), name
+          screen = Path('refind/screen.c').read_text()
+          assert 'Print(L"Infiltrator Boot - %s", Title)' in screen
+          assert 'egemb_refind_banner' not in screen
+          main = Path('refind/main.c').read_text()
+          assert 'Infiltrator Boot Version %s' in main
+          assert 'case TAG_INSTALL:\n                DisplaySimpleMessage(' in main
+          assert 'case TAG_INSTALL:\n                InstallRefind();' not in main
+          PY_BOOT_BRANDING
           grep -q '^icons_dir icons$' boot.conf
           grep -q '^banner boot-banner\.png$' boot.conf
           grep -q '^selection_big boot-selection-big\.png$' boot.conf

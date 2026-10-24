@@ -14,5 +14,7 @@
 #define __VERSION_H
 
 #define REFIND_VERSION L"0.14.2"
+// Public product identity. Keep this synchronized with the release VERSION file.
+#define BOOT_PRODUCT_VERSION L"0.1.36"
 
 #endif

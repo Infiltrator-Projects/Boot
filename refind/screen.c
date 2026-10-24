@@ -65,7 +65,7 @@
 #include "log.h"
 #include "../include/refit_call_wrapper.h"
 
-#include "../include/egemb_refind_banner.h"
+// The package supplies product artwork; do not embed a competing legacy banner.
 
 // Console defines and variables
 
@@ -292,7 +292,7 @@ VOID DrawScreenHeader(IN CHAR16 *Title)
 
     // print header text
     refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, 1);
-    Print(L"rEFInd - %s", Title);
+    Print(L"Infiltrator Boot - %s", Title);
 
     // reposition cursor
     refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
@@ -444,8 +444,7 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
         if (Banner == NULL) {
             if (GlobalConfig.BannerFileName)
                 Banner = egLoadImage(SelfDir, GlobalConfig.BannerFileName, FALSE);
-            if (Banner == NULL)
-                Banner = egPrepareEmbeddedImage(&egemb_refind_banner, FALSE);
+            // A missing product banner stays blank; never display inherited branding.
         }
 
         if (Banner) {

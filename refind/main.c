@@ -174,7 +174,7 @@ VOID AboutrEFInd(VOID)
     LOG(1, LOG_LINE_SEPARATOR, L"Displaying About/Info screen");
     if (AboutMenu.EntryCount == 0) {
         AboutMenu.TitleImage = BuiltinIcon(BUILTIN_ICON_FUNC_ABOUT);
-        AddMenuInfoLine(&AboutMenu, PoolPrint(L"rEFInd Version %s", REFIND_VERSION));
+        AddMenuInfoLine(&AboutMenu, PoolPrint(L"Infiltrator Boot Version %s", BOOT_PRODUCT_VERSION));
         AddMenuInfoLine(&AboutMenu, L"");
         AddMenuInfoLine(&AboutMenu, L"Copyright (c) 2006-2010 Christoph Pfisterer");
         AddMenuInfoLine(&AboutMenu, L"Copyright (c) 2012-2024 Roderick W. Smith");
@@ -217,8 +217,8 @@ VOID AboutrEFInd(VOID)
         AddMenuInfoLine(&AboutMenu, L"Built with TianoCore EDK2");
 #endif
         AddMenuInfoLine(&AboutMenu, L"");
-        AddMenuInfoLine(&AboutMenu, L"For more information, see the rEFInd Web site:");
-        AddMenuInfoLine(&AboutMenu, L"http://www.rodsbooks.com/refind/");
+        AddMenuInfoLine(&AboutMenu, L"Infiltrator Boot project:");
+        AddMenuInfoLine(&AboutMenu, L"https://github.com/Infiltrator-Projects/Boot");
         AddMenuEntry(&AboutMenu, &MenuEntryReturn);
         MyFreePool(FirmwareVendor);
     }
@@ -338,7 +338,7 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
             if (FileExists(SelfDir, FileName)) {
                 GlobalConfig.ConfigFilename = FileName;
             } else {
-                Print(L"Specified configuration file (%s) doesn't exist; using\n'refind.conf' default\n", FileName);
+                Print(L"Specified configuration file (%s) doesn't exist; using\n'boot.conf' default\n", FileName);
                 MyFreePool(FileName);
             } // if/else
         } // if
@@ -387,12 +387,12 @@ VOID LogBasicInfo(VOID) {
 
     LOG(1, LOG_LINE_SEPARATOR, L"System information");
 #if defined(__MAKEWITH_GNUEFI)
-    LOG(1, LOG_LINE_NORMAL, L"rEFInd %s built with GNU-EFI", REFIND_VERSION);
+    LOG(1, LOG_LINE_NORMAL, L"Infiltrator Boot %s built with GNU-EFI", BOOT_PRODUCT_VERSION);
 #else
-    LOG(1, LOG_LINE_NORMAL, L"rEFInd %s built with TianoCore EDK2", REFIND_VERSION);
+    LOG(1, LOG_LINE_NORMAL, L"Infiltrator Boot %s built with TianoCore EDK2", BOOT_PRODUCT_VERSION);
 #endif
     TempStr = GuidAsString(&(SelfVolume->PartGuid));
-    LOG(1, LOG_LINE_NORMAL, L"rEFInd boot partition GUID: %s", TempStr);
+    LOG(1, LOG_LINE_NORMAL, L"Infiltrator Boot partition GUID: %s", TempStr);
     MyFreePool(TempStr);
 #if defined(EFI32)
     LOG(1, LOG_LINE_NORMAL, L"Platform: x86/IA32/i386 (32-bit)");
@@ -717,7 +717,8 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
                 break;
 
             case TAG_INSTALL:
-                InstallRefind();
+                DisplaySimpleMessage(L"Installation unavailable",
+                                     L"In-firmware installation is unsupported; use Setup.");
                 break;
 
             case TAG_BOOTORDER:

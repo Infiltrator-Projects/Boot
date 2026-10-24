@@ -805,8 +805,8 @@ VOID WarnIfLegacyProblems(VOID) {
         } while ((i < NUM_SCAN_OPTIONS) && (!found));
 
         if (found) {
-            LOG(1, LOG_LINE_NORMAL, L"BIOS/CSM/legacy support enabled in rEFInd but unavailable in EFI!");
-            Print(L"NOTE: refind.conf's 'scanfor' line specifies scanning for one or more legacy\n");
+            LOG(1, LOG_LINE_NORMAL, L"BIOS/CSM/legacy boot requested but unavailable in EFI!");
+            Print(L"NOTE: boot.conf's 'scanfor' line specifies scanning for one or more legacy\n");
             Print(L"(BIOS) boot options; however, this is not possible because your computer lacks\n");
             Print(L"the necessary Compatibility Support Module (CSM) support or that support is\n");
             Print(L"disabled in your firmware.\n");

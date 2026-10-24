@@ -109,7 +109,7 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
         Print(L"   %s has already been signed.\n", Name);
         Print(L" * Use a MOK utility to register %s (\"enroll its hash\") without\n", Name);
         Print(L"   signing it.\n");
-        Print(L"\nSee http://www.rodsbooks.com/refind/secureboot.html for more information\n");
+        Print(L"\nConsult your firmware Secure Boot documentation for more information.\n");
         PauseForKey();
     } // if
 } // VOID WarnSecureBootError()
