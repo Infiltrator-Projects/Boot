@@ -3,7 +3,7 @@
 ## 0.1.36 — 2026-10-24
 
 - Replace inherited rEFInd text headers, About/menu labels, startup logging and user-facing configuration guidance with Infiltrator Boot branding; show the product release version.
-- Remove the embedded legacy rEFInd banner fallback. If packaged product artwork is unavailable, do not display the unrelated artwork.
+- Replace the embedded legacy rEFInd banner fallback with the packaged Infiltrator banner, and make the default backdrop dark even when `boot.conf` omits theme directives. Missing artwork never displays upstream branding.
 - Block the inherited in-firmware installer action, which still targets legacy paths; Boot installation remains owned by Setup and the verified host-side deployment process.
 - Add source-level release checks preventing these user-visible branding regressions. EFI behaviour on the Dell Latitude 5550 requires physical validation after installation.
 
