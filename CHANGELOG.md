@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.37 — 2026-10-24
+
+- Keep the dark Infiltrator background and load the packaged Infiltrator banner even when a previously customised `boot.conf` omits presentation directives. Never render the inherited upstream banner.
+- Guard branded theme fallback in the build checks. This release supersedes the already-published 0.1.36 branding-only package.
+
 ## 0.1.36 — 2026-10-24
 
 - Replace inherited rEFInd text headers, About/menu labels, startup logging and user-facing configuration guidance with Infiltrator Boot branding; show the product release version.
