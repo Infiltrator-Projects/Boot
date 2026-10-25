@@ -369,6 +369,7 @@ typedef struct {
    UINTN            BannerScale;
    UINTN            LogLevel;
    BOOLEAN          DriverDiagnostics; // opt-in volatile UEFI driver progress
+   BOOLEAN          HandoffTiming;     // opt-in Linux EFI handoff RTC marker
    REFIT_VOLUME     *DiscoveredRoot;
    EFI_DEVICE_PATH  *SelfDevicePath;
    CHAR16           *BannerFileName;
