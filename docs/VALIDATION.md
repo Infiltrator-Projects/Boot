@@ -296,6 +296,24 @@ physical DiskIo transport failure. The first firmware fault location and
 the kernel handoff still require another physical test.
 
 
+### Opt-in Linux EFI handoff timestamp (development branch)
+
+`handoff_timing true` captures UEFI RTC seconds-of-day as close as possible to
+`StartImage()` and appends `infiltrator_handoff_rtc_sod=NNN` to Linux
+load options **only for direct Linux entries**, including automatically
+discovered kernels. The option defaults to off. EFI variables, the original
+kernel file, filesystem drivers, and other bootloaders are not modified.
+
+A minimal Linux root logger can obtain the marker from `/proc/cmdline`,
+read its current RTC-derived UTC time and `/proc/uptime`, and estimate the
+pre-kernel interval. The estimate must be rejected when the firmware RTC and
+Linux clock use different time bases (UTC vs local time), after midnight
+ambiguity or clock adjustments, or if the marker is absent. The raw marker
+must remain in the log for independent verification. This does **not** trace
+individual EFI-stub reads of the initramfs or provide live byte progress
+during `StartImage()`. Boot binary CI and real-firmware qualification are
+required before enabling the feature on physical hardware.
+
 ### Linux EFI kernel progress — Boot 0.1.29
 
 Dell Latitude 5550 Boot 0.1.28 with OFS driver 0.5.50 reached the
