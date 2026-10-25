@@ -430,6 +430,8 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     UINT8                   *gzData, *ImageData = NULL;
     UINTN                   gzSize, ImageSize;
     UINTN                   LoaderType;
+    UINT32                  HandoffRtcSeconds = 0U;
+    CHAR16                  *HandoffOption = NULL;
     int                     gzStatus;
     long                    ReadSize = 0;
     EFI_GUID                SystemdGuid = SYSTEMD_GUID_VALUE;
@@ -570,6 +572,31 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     if (Verbose && !IsDriver && OSType == 'L')
         Print(L"Kernel phase 4/4: starting Linux EFI image (handoff; no progress callbacks)\n");
     UninitRefitLib();
+
+    /*
+     * Opt-in, RAM-only handoff marker. Capture firmware RTC seconds-of-day
+     * immediately before StartImage(), and pass it to the Linux EFI stub
+     * through the standard UTF-16 load options. The initramfs can compare
+     * this with Linux wall-clock time and /proc/uptime to estimate the
+     * previously invisible EFI-stub interval. RTC granularity is usually
+     * one second; do not claim millisecond precision or an EFI file-read
+     * breakdown. The raw value is preserved for clock-consistency checks.
+     *
+     * This does not set an EFI variable, alter the original kernel image
+     * or change any EFI filesystem loading path.
+     */
+    if (GlobalConfig.HandoffTiming && OSType == 'L' && !IsDriver &&
+        BootKernelClockSeconds(&HandoffRtcSeconds)) {
+        HandoffOption = PoolPrint(L"infiltrator_handoff_rtc_sod=%u",
+                                  HandoffRtcSeconds);
+        if (HandoffOption != NULL) {
+            MergeStrings(&FullLoadOptions, HandoffOption, L' ');
+            ChildLoadedImage->LoadOptions = (VOID *)FullLoadOptions;
+            ChildLoadedImage->LoadOptionsSize =
+                FullLoadOptions ? ((UINT32)StrLen(FullLoadOptions) + 1U) * sizeof(CHAR16) : 0;
+            MyFreePool(HandoffOption);
+        }
+    }
 
     // Actually launch the program....
     if (IsDriver)
