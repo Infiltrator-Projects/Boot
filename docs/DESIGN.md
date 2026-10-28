@@ -1,5 +1,7 @@
 # Design
 
+**Filesystem direction:** one authoritative per-format `.so` for BOOT, kernel and applications; BOOT owns the generic UEFI adapter, not a separate filesystem engine. See [loader contract](FILESYSTEM_SO_LOADER_CONTRACT.md). Firmware defaults to read-only boot access; this does not limit the shared engine's read/write functionality for other consumers.
+
 ## Product intent
 
 Boot should make firmware-stage boot selection feel deliberate, calm and dependable. The user should see the smallest amount of information necessary to understand what can be booted, what is selected, and what went wrong when boot cannot proceed.

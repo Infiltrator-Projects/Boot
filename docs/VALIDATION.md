@@ -1,5 +1,7 @@
 # Validation and Qualification
 
+**Future acceptance gate:** the single-filesystem-`.so` loader is **not yet qualified**. [The target loader contract](FILESYSTEM_SO_LOADER_CONTRACT.md) requires OVMF testing of BOOT loading the **same module bytes** as applications, independent FAT images, invalid/foreign module rejection, kernel file reads and firmware handoff. Existing `.efi` tests remain transitional evidence and are not proof of this capability.
+
 ## Purpose
 
 Validation establishes what the project actually knows about a change. It must not overstate support merely because source compiles or one automated job is green.
