@@ -1,5 +1,7 @@
 # EFI filesystem-driver diagnostics
 
+**Scope:** these diagnostics currently concern legacy UEFI driver loading. The [single-`.so` BOOT loader](FILESYSTEM_SO_LOADER_CONTRACT.md) is the future model; it must report module validation, adapter binding, trust failures and fallbacks separately. No universal loader is claimed as shipped.
+
 Boot owns driver discovery and firmware controller connection. Filesystems owns
 independently built EFI drivers. This diagnostic mode inspects Boot's real
 UEFI Driver Binding workflow and does not embed or emulate OFS, ext4 or any

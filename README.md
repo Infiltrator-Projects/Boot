@@ -1,5 +1,7 @@
 # Boot
 
+**Target design:** [BOOT is the universal HAL for filesystem `.so` modules](docs/FILESYSTEM_SO_LOADER_CONTRACT.md). One filesystem = one distributed `.so`, used by BOOT, the OS kernel and applications through generic adapters; no permanent per-format `.efi` products. The existing `drivers_x64` EFI path is transitional until the common module loader passes real UEFI tests.
+
 Boot is the firmware-stage boot manager for InfiltratorOS. It is an Infiltrator project and is engineered under the canonical Infiltrator Engineering Philosophy.
 
 The component name is **Boot**. The operating system is **InfiltratorOS**;
@@ -66,7 +68,7 @@ The repository contains material under multiple licences inherited from its sour
 
 [VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI builds Boot alone, verifies the runtime archive and DEB contain only its EFI application and presentation files, and publishes a DEB and checksum. Filesystem implementation source, build tooling and drivers are owned by Filesystems.
 
-Boot bundles no filesystem drivers, including ext4. Install the required filesystem modules independently into the driver directory beside the selected Boot executable. Filesystems supplies these EFI modules; adding or updating one never requires rebuilding Boot.
+Boot bundles no filesystem-specific parsers, including ext4. **Today**, tested legacy UEFI readers are separately staged beside BOOT and loaded from `drivers_x64`; this is transitional. **The target** is that BOOT's generic loader consumes the same trusted filesystem `.so` used by Filesystems, Defragmenter and the kernel, without per-format `.efi` products. BOOT may need an identical, verified module copy on a firmware-readable ESP to bootstrap the first reader.
 
 The published EFI files are development artifacts for controlled testing. They are not an installer and publishing them does not claim firmware-runtime, Secure Boot, persistent-installation or recovery qualification. Setup remains responsible for the eventual supported installation transaction.
 
