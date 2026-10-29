@@ -66,6 +66,8 @@
 #include "log.h"
 #include "driver_support.h"
 #include "scan.h"
+#include "so_uefi.h"
+#include "menu.h"
 
 //
 // constants
@@ -691,6 +693,13 @@ static VOID DoEnableAndLockVMX(VOID) {
 VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
     CHAR16 *LoaderPath;
     EFI_STATUS Status;
+
+    if (Entry->RequiredFilesystemModule[0] &&
+        !BootSoHandleMatches(Entry->Volume->DeviceHandle,Entry->RequiredFilesystemModule)) {
+        DisplaySimpleMessage(L"Filesystem module unavailable",
+                             L"The required module is not bound to this boot volume.");
+        return;
+    }
 
     LOG(1, LOG_LINE_SEPARATOR, L"Launching '%s'", SelectionName);
     if (GlobalConfig.EnableAndLockVMX) {

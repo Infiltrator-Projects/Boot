@@ -70,6 +70,7 @@
  */
 
 #include "driver_support.h"
+#include "so_uefi.h"
 #include "lib.h"
 #include "mystrings.h"
 #include "screen.h"
@@ -778,6 +779,15 @@ BOOLEAN LoadDrivers(VOID) {
     MergeStrings(&SelfDirectory, L"storage", L'\\');
     NumStorage += ScanDriverDir(SelfDirectory, TRUE);
     NumFound += NumStorage;
+    MyFreePool(SelfDirectory);
+
+    /* The generic bridge loads the same ELF module installed for applications.
+     * Bootstrap bytes come from Boot's already readable source volume. */
+    SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
+    CleanUpPathNameSlashes(SelfDirectory);
+    MergeStrings(&SelfDirectory, L"filesystems_x64", L'\\');
+    NumFound += BootSoLoadDirectory(SelfImageHandle, SelfRootDir, SelfDirectory,
+                                    GlobalConfig.DriverDiagnostics);
     MyFreePool(SelfDirectory);
 
     /* Filesystem drivers remain device-agnostic; each one consumes standard

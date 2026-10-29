@@ -17,7 +17,13 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnu-efi gcc make binutils curl xz-utils python3-pil
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnu-efi gcc make binutils curl xz-utils python3-pil qemu-system-x86 ovmf dosfstools mtools busybox-static
+      - name: Check out the canonical FAT16 SO implementation for integration tests
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: Infiltrator-Projects/Filesystem-FAT16
+          ref: 26a216757127c7dde1a9bc34530a2852703f57a8
+          path: .qualification/FAT16
       - name: Verify independent Boot GNU-EFI build
         shell: bash
         run: |
@@ -254,6 +260,42 @@ jobs:
           expected = {sys.argv[2], "SHA256SUMS.txt"}
           assert names == expected, f"Unexpected public Boot assets: {names ^ expected}"
           PY_PUBLIC_RELEASE
+      - name: Exercise identical application SO bytes through Boot and Linux handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          fs="$GITHUB_WORKSPACE/.qualification/FAT16"
+          make -C "$fs" check
+          bash tests/run-so-tests.sh "$fs/build/FAT16.so" "$fs"
+          IFS_SO_SANITIZE=1 bash tests/run-so-tests.sh "$fs/build/FAT16.so" "$fs"
+          python3 "$fs/standalone/build.py" --profile aggressive --output "$fs/build-native/FAT16.so" --check
+          bash tests/run-so-tests.sh "$fs/build-native/FAT16.so" "$fs"
+          kernel_work="$RUNNER_TEMP/boot-so-kernel"
+          mkdir -p "$kernel_work"
+          kernel_package=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ { sub("linux-image-", "linux-image-unsigned-", $2); print $2; exit }')
+          test -n "$kernel_package"
+          # Download and extract only: do not install a host kernel or run
+          # maintainer scripts against the runner's boot configuration.
+          (cd "$kernel_work" && apt-get download "$kernel_package")
+          for deb in "$kernel_work"/*.deb; do dpkg-deb -x "$deb" "$kernel_work/root"; done
+          kernel=$(find "$kernel_work/root/boot" -name 'vmlinuz-*' -type f -print -quit)
+          test -s "$kernel"
+          for profile in build build-native; do
+            python3 tests/test_so_boot.py --boot refind/refind_x64.efi \
+              --module "$fs/$profile/FAT16.so" --kernel "$kernel" \
+              --output "$RUNNER_TEMP/boot-so-$profile"
+          done
+          python3 tests/test_so_boot.py --boot refind/refind_x64.efi \
+            --module "$fs/build/FAT16.so" --kernel "$kernel" --reject-module \
+            --output "$RUNNER_TEMP/boot-so-invalid"
+      - name: Retain SO firmware evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: boot-so-firmware-${{ github.sha }}
+          path: ${{ runner.temp }}/boot-so-*/serial.log
+          if-no-files-found: ignore
+          retention-days: 14
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: boot-release-${{ github.sha }}

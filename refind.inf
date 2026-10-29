@@ -42,6 +42,8 @@
   refind/config.c
   refind/crc32.c
   refind/driver_support.c
+  refind/so_elf.c
+  refind/so_uefi.c
   refind/gpt.c
   refind/icns.c
   refind/install.c

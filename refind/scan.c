@@ -219,6 +219,8 @@ LOADER_ENTRY *InitializeLoaderEntry(IN LOADER_ENTRY *Entry) {
             NewEntry->UseGraphicsMode = Entry->UseGraphicsMode;
             NewEntry->OSType          = Entry->OSType;
             NewEntry->LinuxMemoryFirst = Entry->LinuxMemoryFirst;
+            MyCopyMem(NewEntry->RequiredFilesystemModule, Entry->RequiredFilesystemModule,
+                      sizeof(NewEntry->RequiredFilesystemModule));
             NewEntry->LoadOptions     = (Entry->LoadOptions) ? StrDuplicate(Entry->LoadOptions) : NULL;
             NewEntry->InitrdPath      = (Entry->InitrdPath) ? StrDuplicate(Entry->InitrdPath) : NULL;
             NewEntry->EfiLoaderPath   = (Entry->EfiLoaderPath) ? DuplicateDevicePath(Entry->EfiLoaderPath) : NULL;

@@ -8,6 +8,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 SRCDIR = .
+.DEFAULT_GOAL := all
 
 VPATH = $(SRCDIR)
 
@@ -39,9 +40,14 @@ LOCAL_LIBS      = -leg -lmok -lEfiLib -lgzip
 OBJS            = apple.o config.o crc32.o driver_support.o gpt.o icns.o \
                   install.o launch_efi.o launch_legacy.o lib.o line_edit.o \
                   linux.o log.o main.o menu.o mystrings.o pointer.o scan.o \
-                  screen.o
+                  screen.o so_elf.o so_uefi.o
 
 include $(SRCDIR)/../Make.common
+
+$(OBJS): global.h
+so_elf.o: so_elf.h ../include/ifs_boot_module.h
+so_uefi.o: so_uefi.h so_elf.h ../include/ifs_boot_module.h
+config.o driver_support.o launch_efi.o lib.o: so_uefi.h
 
 all: $(TARGET)
 

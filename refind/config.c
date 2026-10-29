@@ -66,6 +66,7 @@
 #include "apple.h"
 #include "mystrings.h"
 #include "scan.h"
+#include "so_uefi.h"
 #include "../include/refit_call_wrapper.h"
 #include "../mok/mok.h"
 
@@ -873,6 +874,18 @@ VOID ReadConfig(CHAR16 *FileName)
     }
 } /* VOID ReadConfig() */
 
+static VOID SetRequiredFilesystemModule(LOADER_ENTRY *Entry, CHAR16 **Tokens, UINTN Count) {
+    UINTN length=Count==2?StrLen(Tokens[1]):0;
+    if(!length || length>=16u) { Entry->Enabled=FALSE; return; }
+    for(UINTN i=0;i<length;++i) {
+        CHAR16 c=Tokens[1][i];
+        if(!((c>=L'a' && c<=L'z') || (c>=L'0' && c<=L'9') || c==L'_' || c==L'-')) {
+            Entry->Enabled=FALSE; return;
+        }
+    }
+    StrCpy(Entry->RequiredFilesystemModule,Tokens[1]);
+}
+
 static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volume, CHAR16 *Title) {
     REFIT_MENU_SCREEN  *SubScreen;
     LOADER_ENTRY       *SubEntry;
@@ -923,6 +936,9 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
 
         } else if (MyStriCmp(TokenList[0], L"add_options") && (TokenCount > 1)) {
             MergeStrings(&SubEntry->LoadOptions, TokenList[1], L' ');
+
+        } else if (MyStriCmp(TokenList[0], L"filesystem_module")) {
+            SetRequiredFilesystemModule(SubEntry,TokenList,TokenCount);
 
         } else if (MyStriCmp(TokenList[0], L"linux_load")) {
             if (TokenCount == 2 && MyStriCmp(TokenList[1], L"memory"))
@@ -1028,6 +1044,9 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
                 Entry->OSType = TokenList[1][0];
             }
 
+        } else if (MyStriCmp(TokenList[0], L"filesystem_module")) {
+            SetRequiredFilesystemModule(Entry,TokenList,TokenCount);
+
         } else if (MyStriCmp(TokenList[0], L"linux_load")) {
             /* Only a deliberate manual Linux EFI-stub entry can bypass an
              * unobservable firmware device-path load. Invalid modes fail closed. */
@@ -1084,6 +1103,26 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
         LOG(1, LOG_LINE_NORMAL, L"linux_load memory requires a Linux EFI-stub loader");
     }
 
+    if (Entry->RequiredFilesystemModule[0]) {
+        if (Entry->me.Tag == TAG_FIRMWARE_LOADER ||
+            !BootSoHandleMatches(Entry->Volume->DeviceHandle,Entry->RequiredFilesystemModule)) {
+            Entry->Enabled=FALSE;
+            LOG(1, LOG_LINE_NORMAL, L"Required filesystem module is not bound to the manual boot volume");
+        }
+        /* Configuration order must not let an earlier submenu bypass its
+         * parent's explicit module requirement. Launch revalidates the handle. */
+        if (Entry->me.SubScreen) {
+            for (UINTN i=0;i<Entry->me.SubScreen->EntryCount;++i) {
+                REFIT_MENU_ENTRY *child=Entry->me.SubScreen->Entries[i];
+                if(child->Tag==TAG_LOADER) {
+                    LOADER_ENTRY *sub=(LOADER_ENTRY *)child;
+                    if(!sub->RequiredFilesystemModule[0])
+                        MyCopyMem(sub->RequiredFilesystemModule,Entry->RequiredFilesystemModule,
+                                  sizeof(sub->RequiredFilesystemModule));
+                }
+            }
+        }
+    }
     return(Entry);
 } // static VOID AddStanzaEntries()
 

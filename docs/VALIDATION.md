@@ -1,6 +1,6 @@
 # Validation and Qualification
 
-**Future acceptance gate:** the single-filesystem-`.so` loader is **not yet qualified**. [The target loader contract](FILESYSTEM_SO_LOADER_CONTRACT.md) requires OVMF testing of BOOT loading the **same module bytes** as applications, independent FAT images, invalid/foreign module rejection, kernel file reads and firmware handoff. Existing `.efi` tests remain transitional evidence and are not proof of this capability.
+**Shared-object loader:** [the implemented contract](FILESYSTEM_SO_LOADER_CONTRACT.md) is exercised with the actual application-facing FAT16.so, production Boot EFI and a genuine Linux EFI-stub kernel/initramfs in OVMF. Host tests cover ELF rejection and the UEFI file boundary; Defragmenter tests cover its unchanged ABI and mutation/recovery. Physical Dell, signed modules and kernel-side SO root mounting remain unqualified. Historical EFI-driver evidence below retains its original scope.
 
 ## Purpose
 

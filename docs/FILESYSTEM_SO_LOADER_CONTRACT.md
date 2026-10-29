@@ -1,27 +1,106 @@
-# BOOT: universal filesystem `.so` loader — target contract
+# BOOT filesystem shared-object loader
 
-**This is the intended final architecture, not a claim that the current BOOT executable implements it.** The authority is [Filesystems' unified module contract](https://github.com/Infiltrator-Projects/Filesystems/blob/main/docs/UNIFIED_FILESYSTEM_MODULE_ARCHITECTURE.md).
+BOOT loads the **same `FAT16.so` bytes** used by Defragmenter and the application
+filesystem interfaces. The x86-64 GNU-EFI implementation is in
+`refind/so_elf.c` and `refind/so_uefi.c`. The loader contains no FAT reader or writer.
+The per-format repository owns the engine; Boot owns ELF loading, host services,
+UEFI protocols, discovery and OS handoff.
 
-BOOT is the **firmware-facing HAL and generic loader** for one installed filesystem `.so` per format. It does not own or rewrite FAT, EXT, OFS or any other filesystem's interpretation. The filesystem module itself is the driver. The BOOT loader translates between the verified module ABI and UEFI's Block I/O, Driver Binding/Simple File System and boot-file services. The same module is consumed by applications and, with a separate generic bridge, the future kernel.
+## Module and bootstrap contract
 
-## Required loading pathway
+Stage an identical copy of `/System/Filesystems/FAT16.so` under
+`filesystems_x64/FAT16.so` beside Boot's EFI executable, on an already readable
+bootstrap volume. The copy is needed to obtain the first filesystem reader.
+It is the application-facing shared object, not a rebuilt firmware variant.
+Boot packages no filesystem module and does not create or update this staging
+copy. Selected component deployment remains a separate operation.
 
-1. Start BOOT as a firmware-supported UEFI application. Obtain read access to a trusted source of module bytes; initially this may be a verified identical staging copy of the filesystem's `.so` on a UEFI-readable ESP, because BOOT cannot read an inaccessible filesystem to obtain its first reader.
-2. Validate the module without executing it: immutable format ID, version, architecture, ABI profile, section bounds, permissions/relocations, imports, digest/signature and local Secure Boot policy. Do not trust a `.so` filename alone.
-3. Load the **one** format engine under a restricted shared execution profile or a well-specified internal module payload. BOOT provides generic memory, logging, bounded block I/O, cancellation and read-only boot-file callbacks. A standard Linux/glibc ELF shared object is *not* directly executable by UEFI `LoadImage`; a BOOT-owned loader/ABI is required.
-4. Adapt validated read-only filesystem functions to UEFI protocols; bind to the appropriate BlockIo handles only, reject foreign formats before any write, and rescan without destructive global reconnects.
-5. Locate, read and launch the kernel/initramfs using the selected module, verify handoff and preserve firmware trust; if the operating system requires this module for its root, ensure the OS's generic bridge and exact module are available in early boot.
-6. Rollback on invalid/incompatible/failed module; preserve existing verified `.efi` driver loading as a **transition fallback** until replacement has equivalent tests.
+The shared C contract is `include/ifs_boot_module.h`, mirrored verbatim from
+`Filesystem-FAT16/native/include/infiltratr/fs/boot_module.h`; integration tests
+compare the files. The module exports `infiltrator_filesystem_boot_v1` and a
+fixed `.ifsboot` manifest. The profile is little-endian x86-64 ELF ET_DYN,
+SysV function and callback calls, no red zone, constructors, TLS, imports or
+host libc, and relative relocations only. Defragmenter's existing host table
+and V1/V3/V4 filesystem exports remain in that same object, untouched in layout.
 
-## Invariants
+Boot validates program/section tables, file and virtual ranges, non-overlapping
+segments, declared permissions, format/ABI identity, dynamic metadata, symbols
+and relocation destinations/addends before allocation or execution. Limits are
+16 MiB of input, 32 MiB per loaded image, 16 load segments, 8 staged modules,
+256 directory entries/device handles considered and 32 mounted volumes.
+Each mount receives a separate relocated image because the engine owns one
+active mount per image. File contexts are bounded to 16 KiB each.
 
-- **One filesystem-specific distributed driver is the `.so`.** No separately installed `.efi` per filesystem is required in the final architecture. Loader/EFI executable and host services remain generic BOOT infrastructure.
-- Do not maintain or bundle independent filesystem-specific parsing, FAT mutation, EFI filesystem cores or alternative definitions in BOOT.
-- BOOT needs only bounded read capability for boot-file discovery by default, even though the same engine provides read/write/format/recovery/defrag to suitably authorised OS/app consumers.
-- A Linux kernel module cannot be substituted for a UEFI executable; BOOT bridges the module semantics through a verified compatible mechanism, not by renaming binaries.
-- Never silently modify firmware NVRAM, ESP, BootOrder, disk metadata or Secure Boot state to make integration appear successful.
-- Preserve the distinction between loading a kernel **from** a filesystem and mounting that filesystem as the operating system's **root**.
+## Read-only UEFI adaptation
 
-## Qualification gates
+The generic adapter supplies bounded, media-ID-checked BlockIo reads with an
+aligned 64 KiB bounce buffer. It publishes a child handle containing read-only
+BlockIo, SimpleFileSystem and a distinct device path. The module owns path
+lookup, directory enumeration, file data and volume-label interpretation.
+Boot owns UTF-16/UTF-8 conversion, volume-relative path normalisation, EFI file
+positions/information and protocol lifetimes.
 
-Build a real restricted module that is byte-identical to the application-facing installed `.so`, run it under BOOT in OVMF against independently created FAT12/FAT16 images, prove correct detection, rejection, read/seek and kernel/initramfs integrity. Test malformed/truncated/malicious modules and firmware binding failures. Then verify secure-boot policy and supported physical UEFI systems. Root mounting and runtime read/write require independent kernel-side evidence. Until these gates pass, current `drivers_x64` UEFI drivers are a temporary tested mechanism, not a finished universal-loader implementation.
+Firmware's original handles and protocols remain installed. Boot's own volume
+scan selects the SO child instead of its parent, avoiding duplicate candidates.
+The bootstrap volume is retained on its original reader. Module images and
+published protocols remain alive through Linux EFI-stub initramfs loading;
+closing Boot's menu handles must not unload them before ExitBootServices.
+Media errors remain errors; this adapter never retries through another parser.
+
+An explicit test or deployment entry can require the actual module binding:
+
+```text
+menuentry "Linux through FAT16" {
+    volume YOUR_VOLUME_LABEL
+    filesystem_module fat16
+    loader \\vmlinuz
+    initrd \\initrd.img
+    linux_load memory
+    ostype Linux
+    options "YOUR_EXISTING_LINUX_OPTIONS"
+}
+```
+
+`filesystem_module` matches the bound module's immutable format ID. Missing,
+foreign or rejected modules disable the entry; launch checks the handle again.
+Submenu copies retain the requirement. Existing entries without this directive
+retain their normal behavior. Volume labels are preserved, not renamed to make
+the experiment pass. Existing independently installed EFI drivers remain a
+transitional compatibility path for other volumes.
+
+## Trust and permissions
+
+Unsigned ELF loading is allowed only when SecureBoot is disabled or the
+firmware reports that the variable is absent. An enabled value, malformed
+value or read error rejects modules before execution. This is not a Secure
+Boot signature-verification implementation. Kernel EFI image authentication
+continues through the existing firmware handoff.
+
+The ELF reader always rejects writable executable segments and executable
+stacks. When UEFI's Memory Attribute Protocol is available, Boot applies
+read-only/code/data execution permissions and refuses a reported protection
+failure. Older firmware without that protocol is supported without claiming
+hardware page-permission enforcement. A loaded filesystem module is trusted
+privileged code, not a sandbox. See UEFI 2.10/2.11 section 37.7.1.
+
+No module scan or boot test changes host NVRAM, an ESP, BootOrder or filesystem
+metadata. Firmware read-only access does not remove the module's application
+write, format, defragmentation or recovery functionality.
+
+## Established evidence and remaining scope
+
+`tests/run-so-tests.sh` exercises the production ELF loader and UEFI adapter
+against independently formatted media: nested files, long/Unicode paths,
+directory buffers, seek/EOF, read-only refusal, media/range errors, SecureBoot
+policy and malformed ELF rejection. The host applies actual page permissions.
+
+`tests/test_so_boot.py` boots the production Boot EFI in OVMF, reads a genuine
+Linux EFI-stub kernel and initramfs from FAT16 through the exact module and
+reaches an initramfs marker. It checks byte-for-byte media non-mutation. A
+rejected-module run must fail to boot even though native firmware FAT support
+is still available. Defragmenter compatibility separately exercises the same
+module through its unchanged production host, including write/recovery tests.
+
+This qualifies the tested x86-64 GNU-EFI/OVMF path. Physical Dell qualification,
+signed-module loading and a kernel-side SO bridge remain separate work. Booting
+a kernel from FAT16 does not establish Linux root mounting through the SO.

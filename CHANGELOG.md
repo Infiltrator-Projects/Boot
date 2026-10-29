@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.38 — 2026-10-29
+
+- Load the application-facing filesystem SO with a bounded, no-import x86-64 ELF loader and a generic read-only UEFI filesystem bridge. No FAT implementation is embedded in Boot.
+- Exercise identical portable and native FAT16.so bytes through real Linux kernel/initramfs handoff in OVMF while retaining Defragmenter's existing write and recovery ABI.
+- Preserve original firmware protocols and volume labels; use module child handles for Boot discovery. Explicit `filesystem_module fat16` entries reject native-reader fallback when the requested SO is unavailable.
+- Reject malformed modules and enabled/uncertain SecureBoot policy before execution. Apply page permissions when supported. Physical firmware, signed modules and kernel-side SO root mounting remain separate work.
+
 ## 0.1.37 — 2026-10-24
 
 - Keep the dark Infiltrator background and load the packaged Infiltrator banner even when a previously customised `boot.conf` omits presentation directives. Never render the inherited upstream banner.

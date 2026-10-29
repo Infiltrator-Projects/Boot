@@ -1,6 +1,6 @@
 # Architecture
 
-**Authoritative destination:** [BOOT loads the same filesystem `.so` as all other consumers](FILESYSTEM_SO_LOADER_CONTRACT.md). Existing separate UEFI drivers below are the **current transitional** mechanism, not the permanent filesystem-driver product model.
+**Filesystem loading:** [BOOT loads the same filesystem `.so` as applications](FILESYSTEM_SO_LOADER_CONTRACT.md). The generic x86-64 loader and read-only UEFI bridge are implemented and exercised with FAT16 in OVMF. Separate UEFI drivers remain transitional compatibility mechanisms for other formats; kernel SO integration remains separate.
 
 ## Purpose
 

@@ -65,6 +65,7 @@
 #include "gpt.h"
 #include "config.h"
 #include "driver_support.h"
+#include "so_uefi.h"
 #include "log.h"
 #include "mystrings.h"
 
@@ -1310,6 +1311,10 @@ VOID ScanVolumes(VOID)
 
     // first pass: collect information about all handles
     for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
+        /* A module child supplies the selected reader; retain the firmware
+         * parent's protocols intact for other EFI clients and recovery. */
+        if (BootSoOwnsParent(Handles[HandleIndex]))
+            continue;
         Volume = AllocateZeroPool(sizeof(REFIT_VOLUME));
         Volume->DeviceHandle = Handles[HandleIndex];
         AddPartitionTable(Volume);
