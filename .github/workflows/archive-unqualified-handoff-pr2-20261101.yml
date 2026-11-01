@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Archive deferred Boot handoff timing experiment
+on:
+  push:
+    paths:
+      - '.github/workflows/archive-unqualified-handoff-pr2-20261101.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: read
+  issues: read
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Archive exact experiment without deploying firmware
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="feature/linux-efi-handoff-timing-20261025"
+          expected="c95354c35fdae9150ab2e41ea80b02939b47db96"
+          tag="archive/2026-11-01/deferred/boot-handoff-pr2-${expected:0:12}"
+          state=$(gh api "repos/$GH_REPO/pulls/2" --jq .state)
+          [[ "$state" == "closed" ]] || { echo "PR #2 still open"; exit 1; }
+          issue_state=$(gh api "repos/$GH_REPO/issues/4" --jq .state)
+          [[ "$issue_state" == "open" ]] || { echo "Follow-on issue missing"; exit 1; }
+          open_heads=$(gh api --paginate "repos/$GH_REPO/pulls?state=open&per_page=100" --jq '.[].head.ref')
+          if grep -Fxq -- "$branch" <<<"$open_heads"; then echo "Open PR uses branch"; exit 1; fi
+          current=$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq .object.sha 2>/dev/null) || {
+            echo "Branch absent; nothing to prune"; exit 0;
+          }
+          [[ "$current" == "$expected" ]] || { echo "Branch has new commits"; exit 1; }
+          archived=$(gh api "repos/$GH_REPO/git/ref/tags/$tag" --jq .object.sha 2>/dev/null) || archived=""
+          if [[ -z "$archived" ]]; then
+            gh api -X POST "repos/$GH_REPO/git/refs" -f ref="refs/tags/$tag" -f sha="$expected" >/dev/null
+            archived=$(gh api "repos/$GH_REPO/git/ref/tags/$tag" --jq .object.sha)
+          fi
+          [[ "$archived" == "$expected" ]] || { echo "Tag SHA mismatch"; exit 1; }
+          still=$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq .object.sha)
+          [[ "$still" == "$expected" ]] || { echo "Branch moved after archive"; exit 1; }
+          gh api -X DELETE "repos/$GH_REPO/git/refs/heads/$branch"
+          echo "Archived original deferred firmware experiment to refs/tags/$tag"
