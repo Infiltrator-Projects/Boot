@@ -77,6 +77,23 @@ Trust-sensitive mechanisms own signature, Secure Boot, MOK and related decisions
 
 Operations that can alter NVRAM, boot order, ESP contents, partition metadata or other durable state are a separate authority from discovery. They require explicit preconditions, bounded effects, verification and recovery semantics.
 
+### Explicit deployment boundary
+
+The Debian package stages complete BOOT firmware resources in a package-owned
+location and never modifies an ESP. The separately invoked, root-checked
+`infiltrator-boot-deploy` wrapper requires an exact vfat ESP mount at
+`/boot/efi` and delegates file operations to a testable private core.
+
+An explicit first install creates `EFI/InfiltratorBoot`, including the EFI
+image, configuration, fonts, art, icons and empty directories for independent
+drivers and filesystem SO modules. An explicit update stages a whole candidate,
+verifies every packaged file, retains existing configuration and independent
+modules, and swaps the destination directory while retaining its previous tree
+for operator-requested recovery. This is a **directory-swap transaction with
+a power-loss window**, not an atomic firmware installation primitive. Firmware
+registration, BootOrder and whole-system install remain Setup-owned; an intact
+existing alternative boot route is essential until hardware qualification.
+
 ### Build and qualification
 
 Build orchestration owns how source becomes firmware artifacts. Qualification owns the evidence required to call an artifact acceptable. A build target existing in the repository does not by itself mean that target is release-qualified.
