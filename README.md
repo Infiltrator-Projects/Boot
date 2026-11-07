@@ -74,36 +74,59 @@ The published EFI files are development artifacts for controlled testing. They a
 
 ## Debian package and deliberate EFI deployment
 
-Boot releases from v0.1.18 include `infiltrator-boot_VERSION_amd64.deb`,
-built from the exact same verified UEFI ZIP bundle as the release executable.
-The central Infiltrator APT repository can install and update this package.
-The package owns its immutable EFI payload under
-`/usr/lib/infiltrator-boot/EFI/BOOT/`, and the deploy helper at
-`/usr/sbin/infiltrator-boot-deploy`.
+Boot releases contain one independently installable
+`infiltrator-boot_VERSION_amd64.deb` and `SHA256SUMS.txt`. The Debian
+package owns the complete EFI payload beneath
+`/usr/lib/infiltrator-boot/EFI/BOOT/`, the privileged command
+`/usr/sbin/infiltrator-boot-deploy` and its internal deployment engine.
+**Installing or upgrading the DEB never writes to an EFI System Partition
+or changes firmware variables or BootOrder.**
 
-Installing or upgrading the DEB **does not silently write to the EFI System
-Partition**, install firmware variables, change BootOrder, or replace an
-existing user `boot.conf` or independently installed filesystem drivers.
-The existing-installation helper currently supports the Dell test layout:
+On a machine with a verified vfat ESP mounted at `/boot/efi`, the operator
+can explicitly choose one operation:
 
 ```sh
-sudo apt update
 sudo apt install infiltrator-boot
+sudo infiltrator-boot-deploy --install-new --confirm
+# For an existing /EFI/InfiltratorBoot installation instead:
 sudo infiltrator-boot-deploy --update-existing --confirm
+# Revert a completed or interrupted update using the previous full copy:
+sudo infiltrator-boot-deploy --recover --confirm
 ```
 
-The deploy command requires a mounted FAT EFI System Partition at
-`/boot/efi` and an existing regular
-`/boot/efi/EFI/InfiltratorBoot/BOOTX64.EFI`. It refuses new destinations,
-backs up the previous binary under a version-labelled name, installs a
-checked replacement atomically in the same directory, and leaves
-`boot.conf`, artwork and independently installed filesystem drivers unchanged.
-It replaces only the EFI executable; it does not deploy the package's icons,
-fonts or default configuration. A new packaged resource layout therefore does
-not migrate an existing ESP installation.
-This is not an automatic first-install firmware provisioning mechanism.
-For other ESP layouts, preserve the package's staged payload and use a
-separately verified and explicitly approved deployment plan.
+A **new** installation creates `/boot/efi/EFI/InfiltratorBoot/` with
+`BOOTX64.EFI`, the default `boot.conf`, fonts, graphical resources,
+`icons/`, and empty `drivers_x64/` and `filesystems_x64/` directories.
+It never overwrites an existing installation or any other EFI loader.
+A firmware boot entry is **not** created. Use the firmware's Boot from File
+feature or a separately approved and verified firmware-entry step to select
+the installed executable. Copying files is not proof of a successful UEFI boot.
+
+An **update** builds and byte-verifies a complete candidate under a sibling
+directory on the same ESP. It replaces the BOOT executable and package-owned
+graphics together while preserving an existing user `boot.conf`, custom
+artwork, separately installed EFI drivers and filesystem SOs. The packaged
+default configuration is available as `boot.conf.package-default` for
+comparison; it is not silently activated. The previous complete installation
+remains under `EFI/.InfiltratorBoot.rollback` and can be restored with
+`--recover --confirm`. An older rollback copy is displaced only after the
+new candidate has been staged and checked.
+
+A directory swap on a FAT ESP requires two renames and **cannot be perfectly
+atomic across sudden power loss**. If interrupted between those renames, the
+previous directory remains at `EFI/.InfiltratorBoot.rollback`; the recovery
+command restores the normal EFI path. The deployment engine attempts automatic
+rollback on ordinary script failures. Keep the separately verified original OS
+boot path intact during qualification. The public wrapper requires root, a
+mounted vfat ESP at exactly `/boot/efi`, and explicit confirmation. It does
+not alter NVRAM or unrelated EFI directories.
+
+`bash tests/check-boot-deploy.sh` runs host-level tests using disposable
+directory trees. Those tests cover first installation, upgrades, preservation
+of independent resources, bad input, simulated promotion failure and
+interrupted-swap recovery. They do not replace physical firmware, ESP
+power-loss or Secure Boot qualification. Setup remains the owner of the future
+system-wide installation and firmware-entry workflow.
 
 ## Public release asset policy
 
@@ -114,7 +137,6 @@ The separately built EFI executable, theme graphics, source
 snapshot and ready-to-copy UEFI ZIP remain verifiable **intermediate CI
 outputs**, not public duplicates of the Debian package. The packaged
 runtime files are staged beneath
-`/usr/lib/infiltrator-boot/EFI/BOOT/`. The existing-installation helper updates
-only the EFI executable; full resource deployment and migration belong to the
-future Setup installation transaction. A release guard checks the exact two-asset
+`/usr/lib/infiltrator-boot/EFI/BOOT/`. The opt-in deployment command installs or updates full managed BOOT resources;
+future Setup owns firmware registration and whole-system installation. A release guard checks the exact two-asset
 inventory before upload and validates the downloaded public bytes.
