@@ -32,6 +32,27 @@ This level verifies the product contract: discovery, ordering, configuration, in
 
 Any code capable of modifying NVRAM, boot order, ESP contents, partition metadata or other durable state requires dedicated tests for preconditions, interruption, verification and recovery. These paths must not be inferred safe from read-only discovery tests.
 
+## EFI installation and resource migration
+
+The opted-in host-side deployment command is separate from Debian package
+installation: the package neither writes to the ESP nor registers firmware
+entries. A privileged wrapper admits only an explicitly mounted vfat ESP at
+`/boot/efi`; the deployment core stages and byte-verifies executable,
+configuration and package-owned graphics in disposable/sibling directories.
+Fresh installation refuses existing BOOT installations. Updates preserve the
+existing configuration, independent EFI drivers, filesystem SO modules and
+non-package artwork, and retain a complete rollback directory. An explicitly
+requested recovery restores the old tree after an interrupted or failed swap.
+
+`bash tests/check-boot-deploy.sh` exercises first installation, repeat-install
+refusal, updates and retained data, recovery, malformed input and symlinks,
+a simulated failed directory promotion, and a blank ESP tree. These are host
+regression tests: a real vfat filesystem, sudden loss of power during one of
+the two directory renames, physical firmware selection and Secure Boot remain
+unqualified. BOOT never writes another bootloader, NVRAM, BootOrder or Linux
+boot settings. A newly copied `EFI/InfiltratorBoot/BOOTX64.EFI` is not
+automatically a registered or boot-qualified firmware entry.
+
 ## External EFI-driver diagnostics
 
 The opt-in `driver_diagnostics true` setting exposes firmware loading,
