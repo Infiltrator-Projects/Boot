@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.39 — 2026-11-07
+
+- Add an explicitly confirmed first-install deployment path for the full UEFI BOOT executable, default configuration, fonts, icons and artwork on a mounted vfat ESP.
+- Make upgrades stage and verify full managed resources while preserving existing user `boot.conf`, custom artwork, independent filesystem drivers and filesystem SO modules. Keep the packaged default configuration for manual comparison.
+- Retain the previous complete installation as a recoverable rollback tree; add an explicit recovery command and best-effort restoration after deployment failure. Never mutate NVRAM, BootOrder or unrelated EFI loaders.
+- Include the deployment engine in the Debian package and qualify fresh installs, upgrades, rejection paths and simulated interrupted swaps with disposable-tree regression tests. Real power-loss, firmware and Secure Boot qualification remain outstanding.
+
+
 ## 0.1.38 — 2026-10-29
 
 - Load the application-facing filesystem SO with a bounded, no-import x86-64 ELF loader and a generic read-only UEFI filesystem bridge. No FAT implementation is embedded in Boot.
