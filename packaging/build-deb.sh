@@ -54,6 +54,7 @@ with zipfile.ZipFile(bundle) as z:
         target.chmod(0o644)
 PY
 install -m 0755 "$root/packaging/infiltrator-boot-deploy" "$pkg/usr/sbin/infiltrator-boot-deploy"
+install -m 0644 "$root/packaging/infiltrator-boot-deploy-core" "$pkg/usr/lib/infiltrator-boot/deploy-core"
 printf '%s\n' "$version" > "$pkg/usr/lib/infiltrator-boot/VERSION"
 cat > "$pkg/DEBIAN/control" <<CONTROL
 Package: infiltrator-boot
@@ -62,10 +63,12 @@ Section: admin
 Priority: optional
 Architecture: amd64
 Maintainer: Infiltrator Projects
-Depends: bash, coreutils, util-linux
+Depends: bash, coreutils, findutils, util-linux
 Description: InfiltratorOS UEFI boot manager and explicitly deployed firmware payload
  This package stages the verified EFI boot manager and support files.
- To update an existing /boot/efi/EFI/InfiltratorBoot installation, run
+ To provision a fresh /boot/efi/EFI/InfiltratorBoot installation, run
+ infiltrator-boot-deploy --install-new --confirm as root.
+ To update an existing installation and all managed graphics, run
  infiltrator-boot-deploy --update-existing --confirm as root.
  Installing the Debian package itself never modifies the ESP or firmware.
 CONTROL
@@ -79,4 +82,6 @@ check="$work/check"
 mkdir -p "$check"
 dpkg-deb -x "$output" "$check"
 cmp "$pkg/usr/lib/infiltrator-boot/EFI/BOOT/BOOTX64.EFI" "$check/usr/lib/infiltrator-boot/EFI/BOOT/BOOTX64.EFI"
+cmp "$root/packaging/infiltrator-boot-deploy-core" "$check/usr/lib/infiltrator-boot/deploy-core"
+cmp "$root/packaging/infiltrator-boot-deploy" "$check/usr/sbin/infiltrator-boot-deploy"
 echo "Built independently installable $output with no ESP mutation."
