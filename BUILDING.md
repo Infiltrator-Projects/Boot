@@ -55,11 +55,21 @@ The Boot package keeps an empty driver directory for independent modules.
 
 Building and packaging never write to an EFI partition or NVRAM. The historical
 `make install` target invokes the inherited installer and is not a build step.
-The packaged existing-installation updater remains a limited, separately
-invoked operation. It replaces only `BOOTX64.EFI`; configuration, icons, fonts
-and external filesystem drivers retain their existing deployed state. It does
-not migrate an ESP to the layout of a newly staged DEB. Setup owns the future
-complete installation and resource-migration transaction.
+The packaged `infiltrator-boot-deploy` command supports explicit
+`--install-new --confirm`, `--update-existing --confirm`, and
+`--recover --confirm` operations on a mounted vfat ESP at `/boot/efi`.
+The first-install operation lays out the executable, configuration and all
+graphics/resources without changing NVRAM. The updater stages and verifies a
+complete replacement directory, preserving the current user `boot.conf`,
+external `drivers_x64/`, independent `filesystems_x64/` and custom art.
+A copy of the prior tree is retained for rollback. Firmware entry registration
+remains Setup-owned and the host's existing boot path is not changed.
+
+`bash tests/check-boot-deploy.sh` checks the unprivileged deployment core
+against disposable directory trees. CI additionally compares the core and
+privileged wrapper in the built DEB to their authoritative sources. Directory
+renaming on a FAT volume has a power-loss window; explicit recovery and
+physical hardware qualification remain necessary.
 
 Compilation establishes build/linkage evidence. Runtime, driver interoperability,
 Secure Boot and installation/recovery behaviour require their own evidence under
