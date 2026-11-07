@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Unprivileged, filesystem-only deployment engine. The public wrapper alone
+# chooses the real ESP and enforces root/mount policy. No NVRAM operations.
+set -euo pipefail
+
+fail() { printf 'Boot deployment: ERROR: %s\n' "$*" >&2; exit 1; }
+log() { printf 'Boot deployment: %s\n' "$*"; }
+[[ $# == 3 ]] || fail 'Internal usage: MODE STAGED-EFI-DIRECTORY ESP-MOUNT'
+mode=$1 payload=$2 esp=$3
+case "$mode" in --install-new|--update-existing|--recover) ;; *) fail 'Invalid deployment mode' ;; esac
+[[ -d "$esp" && ! -L "$esp" && ! -L "$esp/EFI" ]] || fail 'ESP missing or unsafe'
+if [[ ! -d "$esp/EFI" ]]; then
+    [[ $mode == --install-new && ! -e "$esp/EFI" ]] || fail 'ESP/EFI is missing'
+    mkdir -- "$esp/EFI"
+fi
+parent="$esp/EFI"
+target="$parent/InfiltratorBoot"
+backup="$parent/.InfiltratorBoot.rollback"
+stage=
+promoted=0
+
+# A staged directory swap has only two non-atomic renames. On an interrupted
+# update the previous full installation remains under .InfiltratorBoot.rollback
+# and can be reinstated explicitly with --recover. No other bootloader is touched.
+cleanup() {
+    local status=$?
+    trap - EXIT
+    if (( status != 0 )); then
+        if [[ $mode == --update-existing && -d "$backup" && ! -L "$backup" ]]; then
+            if (( promoted )) && [[ -d "$target" && ! -L "$target" ]]; then
+                if [[ -n $stage && ! -e $stage ]]; then
+                    mv -T -- "$target" "$stage" || true
+                fi
+            fi
+            if [[ ! -e "$target" && ! -L "$target" ]]; then
+                if mv -T -- "$backup" "$target"; then
+                    printf 'Boot deployment: previous installation restored after error.\n' >&2
+                else
+                    printf 'Boot deployment: CRITICAL: restore %s to %s manually.\n' "$backup" "$target" >&2
+                fi
+            fi
+        elif [[ $mode == --install-new ]] && (( promoted )) && [[ -d "$target" && ! -L "$target" ]]; then
+            rm -rf -- "$target" || true
+        fi
+    fi
+    if [[ -n $stage && -d $stage && ! -L $stage ]]; then rm -rf -- "$stage" || true; fi
+    exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+# An interrupted swap must be resolved consciously, not treated as a new install.
+[[ ! -L "$target" && ! -L "$backup" ]] || fail 'Deployment/rollback path is a symbolic link'
+if [[ $mode == --recover ]]; then
+    [[ -d "$backup" && -f "$backup/BOOTX64.EFI" && ! -L "$backup/BOOTX64.EFI" ]] || fail 'No valid previous installation to recover'
+    failed=
+    if [[ -e "$target" ]]; then
+        [[ -d "$target" ]] || fail 'Unexpected existing destination'
+        failed=$(mktemp -d "$parent/.InfiltratorBoot.failed.XXXXXXXX")
+        rmdir -- "$failed"
+        mv -T -- "$target" "$failed"
+    fi
+    if ! mv -T -- "$backup" "$target"; then
+        if [[ -n $failed && ! -e $target ]]; then mv -T -- "$failed" "$target" || true; fi
+        fail 'Could not reinstate previous installation'
+    fi
+    [[ -f "$target/BOOTX64.EFI" ]] || fail 'Recovered installation lacks EFI executable'
+    sync -f "$target/BOOTX64.EFI"
+    if [[ -n $failed && -d $failed ]]; then rm -rf -- "$failed"; fi
+    log 'Previous installation restored; firmware boot order was unchanged.'
+    exit 0
+fi
+
+[[ -d "$payload" && ! -L "$payload" ]] || fail 'Staged EFI payload missing'
+for required in BOOTX64.EFI boot.conf mb-corpo-s-regular.png mb-corpo-s-bold.png mb-corpo-a-cond-regular.png boot-banner.png boot-selection-big.png boot-selection-small.png; do
+    [[ -f "$payload/$required" && ! -L "$payload/$required" && -s "$payload/$required" ]] || fail "Invalid staged resource: $required"
+done
+[[ -d "$payload/icons" && ! -L "$payload/icons" ]] || fail 'Staged icon directory missing'
+[[ -n $(find "$payload/icons" -type f -name '*.png' -print -quit) ]] || fail 'Staged icon directory is empty'
+[[ -z $(find "$payload" -type l -print -quit) ]] || fail 'Symbolic link found in staged payload'
+[[ -z $(find "$payload" -type f ! -name '*.png' ! -name 'boot.conf' ! -name 'BOOTX64.EFI' ! -name 'README' -print -quit) ]] || fail 'Unexpected staged payload file'
+if [[ $mode == --install-new ]]; then
+    [[ ! -e "$target" && ! -e "$backup" ]] || fail 'Existing or interrupted BOOT installation; use --update-existing or --recover'
+else
+    [[ -d "$target" && -f "$target/BOOTX64.EFI" && ! -L "$target/BOOTX64.EFI" ]] || fail 'BOOT not installed; use --install-new (or --recover if interrupted)'
+    [[ -z $(find "$target" -type l -print -quit) ]] || fail 'Symbolic link in existing installation; refusing copy'
+    if [[ -e "$backup" ]]; then
+        [[ -d "$backup" && -f "$backup/BOOTX64.EFI" && ! -L "$backup/BOOTX64.EFI" ]] || fail 'Unrecognised rollback state; refuse to overwrite'
+    fi
+fi
+
+stage=$(mktemp -d "$parent/.InfiltratorBoot.pending.XXXXXXXX")
+if [[ $mode == --update-existing ]]; then
+    cp -R -- "$target/." "$stage/" || fail 'Unable to stage existing BOOT resources'
+fi
+
+# Overlay only files owned by the BOOT payload. User boot.conf, extra artwork
+# and independently owned drivers_x64 files remain unchanged on upgrades.
+while IFS= read -r -d '' source_file; do
+    relative=${source_file#"$payload"/}
+    case "$relative" in drivers_x64/*) fail 'Filesystem driver unexpectedly bundled with BOOT';; esac
+    if [[ $mode == --update-existing && $relative == boot.conf && -f "$target/boot.conf" ]]; then
+        continue
+    fi
+    mkdir -p -- "$(dirname "$stage/$relative")"
+    cp -- "$source_file" "$stage/$relative"
+done < <(find "$payload" -type f -print0)
+mkdir -p -- "$stage/drivers_x64" "$stage/filesystems_x64" "$stage/icons"
+if [[ $mode == --update-existing && -f "$target/boot.conf" ]]; then
+    cp -- "$payload/boot.conf" "$stage/boot.conf.package-default"
+fi
+
+verify() {
+    local dest=$1 source_file relative
+    while IFS= read -r -d '' source_file; do
+        relative=${source_file#"$payload"/}
+        if [[ $mode == --update-existing && $relative == boot.conf && -f "$target/boot.conf" && $dest == "$stage" ]]; then
+            cmp -s -- "$target/boot.conf" "$dest/boot.conf" || return 1
+        elif [[ $mode == --update-existing && $relative == boot.conf && -d "$backup" && $dest == "$target" ]]; then
+            cmp -s -- "$backup/boot.conf" "$dest/boot.conf" || return 1
+        else
+            cmp -s -- "$source_file" "$dest/$relative" || return 1
+        fi
+    done < <(find "$payload" -type f -print0)
+    return 0
+}
+verify "$stage" || fail 'Staged resources did not verify byte-for-byte'
+if [[ $mode == --update-existing && -d "$target/drivers_x64" ]]; then
+    while IFS= read -r -d '' driver; do
+        cmp -s -- "$driver" "$stage/${driver#"$target"/}" || fail 'Staging changed a separately owned EFI driver'
+    done < <(find "$target/drivers_x64" -type f -print0)
+fi
+if [[ $mode == --update-existing && -e "$backup" ]]; then
+    # Previous successful rollback copy is replaced only after a new candidate
+    # has been fully staged and verified. Current BOOT remains installed here.
+    [[ -d "$backup" && ! -L "$backup" ]] || fail 'Invalid previous rollback path'
+    rm -rf -- "$backup"
+fi
+if [[ $mode == --update-existing ]]; then
+    mv -T -- "$target" "$backup"
+fi
+mv -T -- "$stage" "$target"
+promoted=1
+verify "$target" || fail 'Installed resources failed post-deployment verification'
+sync -f "$target/BOOTX64.EFI"
+if [[ $mode == --install-new ]]; then
+    log 'Full BOOT installation staged; use firmware Boot from File or separately configure an EFI entry.'
+else
+    log 'BOOT executable and assets updated; user boot.conf and independent drivers preserved.'
+    log "Previous full installation available at $backup (--recover --confirm)."
+fi
+log 'No NVRAM, BootOrder, other EFI loader or Linux boot configuration was modified.'
