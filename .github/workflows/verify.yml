@@ -44,6 +44,7 @@ jobs:
           python3 tests/verify-linux-source-loading.py
           python3 tests/verify-storage-driver-stage.py
           python3 tests/test-build-deb-policy.py
+          python3 tests/test-build-uefi-bundle.py
           version=$(tr -d '\r\n' < VERSION)
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           grep -q '#define CONFIG_FILE_NAME[[:space:]]*L"boot.conf"' refind/config.h

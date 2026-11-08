@@ -80,6 +80,10 @@ required = {
     'EFI/BOOT/icons/os_uefi.png',
     'EFI/BOOT/icons/os_unknown.png',
 }
+# Refuse links from an externally sourced artwork/licence tree: Path.read_bytes()
+# follows symlinks, which could otherwise package files outside the stage.
+if any(path.is_symlink() for path in stage.rglob('*')):
+    raise SystemExit('symbolic links are not permitted in the Boot bundle')
 files = sorted(path for path in stage.rglob('*') if path.is_file())
 relative = {path.relative_to(stage).as_posix() for path in files}
 root_graphics = {name for name in required
