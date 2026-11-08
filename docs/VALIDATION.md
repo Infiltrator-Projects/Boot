@@ -102,6 +102,12 @@ access on OFS, and end-to-end boot remain unverified until a physical retest.**
 The Dell's GRUB boot entry must remain the default and all OFS trials must
 use a one-shot BootNext entry.
 
+## Actual cross-repository InfiltratorOS root-volume boot
+
+The [8 November 2026 real QEMU/OVMF run](https://github.com/Infiltrator-Projects/Kernel/actions/runs/42431603931) passed using the official Boot `v0.1.39` UEFI executable, the source-owned Format 0.19 InfiltratorFS `.efi` driver (`c8f6431f2de34806d8614a241cab8db5a0daad48`), and a freshly built Kernel with native release and module vermagic `0.1.0-infiltrator`. The kernel and initramfs were **only** on the InfiltratorFS image. The FAT32 ESP had no copy of either. Boot's `linux_load memory` path successfully started the EFI-stub kernel; the guest then loaded `infiltratorfs.ko` and verified mount/read/write on the source volume.
+
+This is precise evidence for the tested x86-64 QEMU/OVMF combination and pinned revisions, and does **not** imply equivalence for OFS, legacy BIOS, Secure Boot, different firmware, a physical machine or a complete native-root userspace. In particular the separate historical OFS physical failures remain open. Installer activation and firmware NVRAM mutation were not part of this VM test.
+
 ## Current automated qualification
 
 The maintained development-preview workflow has the following automated coverage:

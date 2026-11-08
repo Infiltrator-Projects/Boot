@@ -5,7 +5,7 @@
 Boot is the firmware-stage boot manager for InfiltratorOS. It is an Infiltrator project and is engineered under the canonical Infiltrator Engineering Philosophy.
 
 The component name is **Boot**. The operating system is **InfiltratorOS**;
-**Filesystems** owns filesystem implementations and drivers, and **Setup** is the
+**Filesystems** owns the shared/legacy filesystem adapters, while **InfiltratorFS** owns its native format, UEFI reader and kernel module; **Setup** is the
 name reserved for the future installer. **InfiltratorFS** remains the name of the
 filesystem format.
 
@@ -22,6 +22,12 @@ InfiltratorOS is the product authority. External implementations, standards, fir
 This repository follows the canonical [Infiltrator Engineering Philosophy](https://github.com/Infiltrator-Projects/Libraries/blob/main/docs/PHILOSOPHY.md): Mercedes-Benz engineering excellence as an execution benchmark — deep engineering hidden beneath a calm surface, one authority per concern, explicit ownership, proportional complexity, deterministic behaviour, designed failure and recovery, and technical documentation precise enough for another expert to maintain the system confidently.
 
 The project-specific application of that standard is in `docs/PHILOSOPHY.md`.
+
+## Verified InfiltratorOS boot-chain milestone
+
+On 8 November 2026, the [real three-repository QEMU/OVMF integration run](https://github.com/Infiltrator-Projects/Kernel/actions/runs/42431603931) passed for **Boot 0.1.39**, InfiltratorFS Format 0.19 source `c8f6431f2de34806d8614a241cab8db5a0daad48`, and the real InfiltratorOS Kernel `0.1.0-infiltrator`. The FAT32 ESP contained only Boot, its configuration and the InfiltratorFS EFI filesystem reader. Boot loaded both kernel and initramfs through the native InfiltratorFS UEFI filesystem driver. The kernel started and loaded the ABI-matching native filesystem module, mounted and read/wrote InfiltratorFS. Evidence includes QEMU serial output.
+
+This is an **isolated VM integration milestone**, not a full InfiltratorOS distribution, production ESP install, physical-firmware, Secure Boot or power-failure qualification. The experimental InfiltratorFS EFI reader is owned and built in the InfiltratorFS repository, not bundled in Boot's own release; setup/deployment must explicitly provide it. The pinned integration qualification lives in the Kernel repository.
 
 ## Current implementation
 
