@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.40 — 2026-11-08
+
+- Reject symbolic links in the entire staged UEFI bundle, preventing recursively copied artwork or licence paths from adding unexpected files to firmware installation media.
+- Add reproducible ZIP inventory, deterministic-byte and symlink-rejection regression checks to the Boot release gate.
+- Extend malformed filesystem SO/ELF input rejection coverage while preserving the independent EFI driver and filesystem ownership boundary.
+- Release only the source revision that passes the full Boot qualification. Physical hardware and Secure Boot remain separate qualifications.
+
 ## 0.1.39 — 2026-11-07
 
 - Add an explicitly confirmed first-install deployment path for the full UEFI BOOT executable, default configuration, fonts, icons and artwork on a mounted vfat ESP.
