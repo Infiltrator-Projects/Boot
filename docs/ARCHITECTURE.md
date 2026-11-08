@@ -215,3 +215,7 @@ optional provider stage gets a bounded second BlockIo enumeration so
 new partition children created from whole-disk storage handles can
 receive filesystem drivers, without changing normal boot discovery
 when no storage provider is installed.
+
+## FAT12 Common ABI pilot and Boot boundary (9 November 2026)
+
+`FAT12.so` has begun implementing Common/Libraries `infiltrator_filesystem_api_v1` for generic discovery and constrained reformat, **without changing Boot's proven `infiltrator_filesystem_boot_v1` read-only path**. Boot remains a consumer of the same trusted SO bytes using its validated freestanding ELF/UEFI adapter and should not call any formatting or repair operation during ordinary boot. Common V1 probe/format support is not evidence of Common V1 Boot support or Linux kernel SO mount support. Keep firmware-bounded, read-only access and independently checked module identity/trust as the required Boot gates.
