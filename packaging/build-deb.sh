@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build an APT-installable Boot payload from the already verified UEFI bundle.
 # Neither this script nor the package's installation modifies the EFI partition.
 set -euo pipefail
@@ -15,40 +16,54 @@ trap 'rm -rf -- "$work"' EXIT
 pkg="$work/pkg"
 mkdir -p "$pkg/DEBIAN" "$pkg/usr/lib/infiltrator-boot/EFI/BOOT/drivers_x64" "$pkg/usr/sbin"
 python3 - "$bundle" "$pkg/usr/lib/infiltrator-boot" <<'PY'
-from pathlib import Path
-import sys, zipfile
+from pathlib import Path, PurePosixPath
+import stat
+import sys
+import zipfile
+
 bundle, root = Path(sys.argv[1]), Path(sys.argv[2])
 with zipfile.ZipFile(bundle) as z:
-    items = [f for f in z.infolist() if not f.is_dir()]
-    names = {f.filename for f in items}
-    # The public package must never inherit source-theme/font/icon build records.
+    items = [item for item in z.infolist() if not item.is_dir()]
+    filenames = [item.filename for item in items]
+    names = set(filenames)
+    # A set-only inventory hides duplicate ZIP entries, allowing an unchecked
+    # second member to overwrite the executable or a verified resource.
+    if len(names) != len(filenames):
+        raise SystemExit('duplicate bundle member names are forbidden')
+    required = {'EFI/BOOT/BOOTX64.EFI', 'EFI/BOOT/boot.conf'}
+    if not required <= names:
+        raise SystemExit(f'missing Boot bundle files: {sorted(required - names)}')
     leaked = sorted(name for name in names if name.endswith('_PROVENANCE.txt'))
     if leaked:
         raise SystemExit(f'provenance metadata must not ship in a DEB: {leaked}')
-    assert 'EFI/BOOT/BOOTX64.EFI' in names
-    assert 'EFI/BOOT/boot.conf' in names
     root_graphics = {'mb-corpo-s-regular.png', 'mb-corpo-s-bold.png',
                      'mb-corpo-a-cond-regular.png', 'boot-banner.png',
                      'boot-selection-big.png', 'boot-selection-small.png'}
     graphics = {name for name in names if name.lower().endswith('.png')}
     misplaced_pngs = sorted(name for name in graphics
-                            if Path(name).parent != Path('EFI/BOOT/icons')
+                            if PurePosixPath(name).parent != PurePosixPath('EFI/BOOT/icons')
                             and name not in {'EFI/BOOT/' + asset for asset in root_graphics})
     if misplaced_pngs:
         raise SystemExit(f'icons must ship only in icons/: {misplaced_pngs}')
-    if len({Path(name).name for name in graphics}) != len(graphics):
+    if len({PurePosixPath(name).name for name in graphics}) != len(graphics):
         raise SystemExit('duplicate graphics filenames in the Boot DEB')
-    assert {name for name in names if name.lower().endswith('.efi')} == {'EFI/BOOT/BOOTX64.EFI'}
+    if {name for name in names if name.lower().endswith('.efi')} != {'EFI/BOOT/BOOTX64.EFI'}:
+        raise SystemExit('Boot must contain exactly its own EFI executable')
     forbidden = [name for name in names if '/drivers_' in name or '/drivers-disabled/' in name]
     if forbidden:
         raise SystemExit(f'independently owned EFI driver shipped in Boot DEB: {forbidden}')
+    if sum(item.file_size for item in items) > 256 * 1024 * 1024:
+        raise SystemExit('Boot bundle expands beyond the permitted 256 MiB')
+    # Validate the complete inventory before writing any bundle member.
     for item in items:
-        p = Path(item.filename)
-        if (p.is_absolute() or '..' in p.parts or
-            len(p.parts) < 3 or p.parts[:2] != ('EFI', 'BOOT') or
-            (item.external_attr >> 16) & 0o170000 == 0o120000):
+        p = PurePosixPath(item.filename)
+        kind = stat.S_IFMT(item.external_attr >> 16)
+        if (item.filename.startswith('/') or '\\' in item.filename or
+            '..' in p.parts or len(p.parts) < 3 or p.parts[:2] != ('EFI', 'BOOT') or
+            kind not in (0, stat.S_IFREG) or item.file_size > 64 * 1024 * 1024):
             raise SystemExit(f'unsafe bundle member: {item.filename}')
-        target = root / p
+    for item in items:
+        target = root.joinpath(*PurePosixPath(item.filename).parts)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(z.read(item))
         target.chmod(0o644)
