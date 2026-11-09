@@ -6,7 +6,11 @@ test "$(uname -m)" = x86_64
 test -f "$root/Make.common"
 gnu_efi_prefix="${GNU_EFI_PREFIX:-/usr}"
 if [[ -n ${GNU_EFI_PREFIX:-} ]]; then
-    files="$(find "$gnu_efi_prefix/lib" -type f -print)"
+    # A custom prefix may contain an entire system library tree. Enumerate
+    # only GNU-EFI link inputs instead of capturing every library file.
+    files="$(find "$gnu_efi_prefix/lib" -type f \( \
+        -name 'crt0-efi-x86_64.o' -o -name 'libefi.a' -o \
+        -name 'libgnuefi.a' \) -print)"
 else
     files="$(dpkg -L gnu-efi)"
 fi
