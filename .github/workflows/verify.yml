@@ -40,7 +40,9 @@ jobs:
           bash -n tests/run-icon-directory-test.sh
           bash scripts/build-gnuefi.sh
           bash tests/run-icon-directory-test.sh
-          python3 tests/verify-driver-diagnostics.py
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
+            tests/verify-driver-diagnostics.cpp -o "$RUNNER_TEMP/boot-driver-diagnostics-test"
+          "$RUNNER_TEMP/boot-driver-diagnostics-test" .
           python3 tests/verify-linux-source-loading.py
           c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
             tests/verify-storage-driver-stage.cpp -o "$RUNNER_TEMP/boot-storage-stage-test"
