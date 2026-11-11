@@ -42,7 +42,9 @@ jobs:
           bash tests/run-icon-directory-test.sh
           python3 tests/verify-driver-diagnostics.py
           python3 tests/verify-linux-source-loading.py
-          python3 tests/verify-storage-driver-stage.py
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
+            tests/verify-storage-driver-stage.cpp -o "$RUNNER_TEMP/boot-storage-stage-test"
+          "$RUNNER_TEMP/boot-storage-stage-test" .
           python3 tests/test-build-deb-policy.py
           python3 tests/test-build-uefi-bundle.py
           version=$(tr -d '\r\n' < VERSION)
