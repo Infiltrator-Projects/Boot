@@ -89,7 +89,7 @@ Section: admin
 Priority: optional
 Architecture: amd64
 Maintainer: Infiltrator Projects
-Depends: bash, coreutils, findutils, util-linux
+Depends: bash, coreutils, findutils, util-linux, efibootmgr
 X-Infiltrator-Native-Profile: aggressive
 Description: Locally compiled InfiltratorOS UEFI boot manager
  Built from BOOT source for the local processor.
