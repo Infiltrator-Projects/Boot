@@ -80,7 +80,12 @@ done
 [[ -d "$payload/icons" && ! -L "$payload/icons" ]] || fail 'Staged icon directory missing'
 [[ -n $(find "$payload/icons" -type f -name '*.png' -print -quit) ]] || fail 'Staged icon directory is empty'
 [[ -z $(find "$payload" -type l -print -quit) ]] || fail 'Symbolic link found in staged payload'
-[[ -z $(find "$payload" -type f ! -name '*.png' ! -name 'boot.conf' ! -name 'BOOTX64.EFI' ! -name 'README' -print -quit) ]] || fail 'Unexpected staged payload file'
+[[ -z $(find "$payload" -type f ! -name '*.png' ! -name 'boot.conf' ! -name 'BOOTX64.EFI' ! -name 'README' \
+    ! -path "$payload/icons/licenses/cc-by-sa-4.0.txt" \
+    ! -path "$payload/icons/licenses/lgpl-3.0.txt" \
+    ! -path "$payload/icons/licenses/gpl-3.0.txt" \
+    ! -path "$payload/icons/licenses/cc-3.0.txt" \
+    ! -path "$payload/icons/licenses/gpl-2.0.txt" -print -quit) ]] || fail 'Unexpected staged payload file'
 if [[ $mode == --install-new ]]; then
     [[ ! -e "$target" && ! -e "$backup" ]] || fail 'Existing or interrupted BOOT installation; use --update-existing or --recover'
 else

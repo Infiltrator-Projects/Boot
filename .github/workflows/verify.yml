@@ -229,6 +229,13 @@ jobs:
           dpkg-deb -x "dist/infiltrator-boot_${version}_amd64.deb" "$RUNNER_TEMP/boot-package-check"
           cmp packaging/infiltrator-boot-deploy-core "$RUNNER_TEMP/boot-package-check/usr/lib/infiltrator-boot/deploy-core"
           cmp packaging/infiltrator-boot-deploy "$RUNNER_TEMP/boot-package-check/usr/sbin/infiltrator-boot-deploy"
+          boot_root="$RUNNER_TEMP/boot-package-check/usr/lib/infiltrator-boot"
+          esp="$RUNNER_TEMP/boot-package-deploy-esp"
+          mkdir -p "$esp/EFI/ubuntu"
+          printf '%s\n' "GRUB sentinel" > "$esp/EFI/ubuntu/shimx64.efi"
+          bash "$boot_root/deploy-core" --install-new "$boot_root/EFI/BOOT" "$esp"
+          cmp "$boot_root/EFI/BOOT/BOOTX64.EFI" "$esp/EFI/InfiltratorBoot/BOOTX64.EFI"
+          grep -qx "GRUB sentinel" "$esp/EFI/ubuntu/shimx64.efi"
           if dpkg-deb --contents "dist/infiltrator-boot_${version}_amd64.deb" | grep -qE '(THEME|FONT|ICON)_PROVENANCE[.]txt|InfiltratorFS.*[.]efi|drivers-disabled/'; then
             echo "Build-only provenance or unqualified EFI driver shipped in Boot DEB." >&2
             exit 1

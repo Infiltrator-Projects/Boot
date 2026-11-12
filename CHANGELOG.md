@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.42 — 2026-11-12
+
+- Permit the five packaged icon licence files during ESP deployment. Test deployment from the actual Debian payload and verify that the existing GRUB directory is preserved.
+
 ## 0.1.40 — 2026-11-08
 
 - Reject symbolic links in the entire staged UEFI bundle, preventing recursively copied artwork or licence paths from adding unexpected files to firmware installation media.
