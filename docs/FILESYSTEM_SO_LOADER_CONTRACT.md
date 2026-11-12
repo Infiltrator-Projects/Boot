@@ -12,8 +12,12 @@ Stage an identical copy of `/System/Filesystems/FAT16.so` under
 `filesystems_x64/FAT16.so` beside Boot's EFI executable, on an already readable
 bootstrap volume. The copy is needed to obtain the first filesystem reader.
 It is the application-facing shared object, not a rebuilt firmware variant.
-Boot packages no filesystem module and does not create or update this staging
-copy. Selected component deployment remains a separate operation.
+Boot packages no filesystem modules. The deployment helper accepts explicit
+paths to independently installed modules under `/System/Filesystems`. It
+checks the staged copies with the same non-executing ELF validator as firmware
+and verifies their exact bytes before and after promoting the EFI directory.
+Upgrades preserve the previous complete directory for recovery, and refuse
+activation if a retained module is incompatible with the Common V2 loader.
 
 Boot calls Common's `infiltrator_filesystem_api_v2` exclusively. Its vendored
 header is the exact Libraries header at `4c92c8dcd7e03afd4bab3105e143dbabd72c8adc`.

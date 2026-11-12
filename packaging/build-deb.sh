@@ -70,6 +70,8 @@ with zipfile.ZipFile(bundle) as z:
 PY
 install -m 0755 "$root/packaging/infiltrator-boot-deploy" "$pkg/usr/sbin/infiltrator-boot-deploy"
 install -m 0644 "$root/packaging/infiltrator-boot-deploy-core" "$pkg/usr/lib/infiltrator-boot/deploy-core"
+cc -std=c11 -O2 -Wall -Wextra -Werror "$root/packaging/validate-module.c" \
+    "$root/refind/so_elf.c" -o "$pkg/usr/lib/infiltrator-boot/validate-module"
 printf '%s\n' "$version" > "$pkg/usr/lib/infiltrator-boot/VERSION"
 cat > "$pkg/DEBIAN/control" <<CONTROL
 Package: infiltrator-boot
@@ -78,7 +80,7 @@ Section: admin
 Priority: optional
 Architecture: amd64
 Maintainer: Infiltrator Projects
-Depends: bash, coreutils, findutils, util-linux
+Depends: bash, coreutils, findutils, util-linux, libc6
 Description: InfiltratorOS UEFI boot manager and explicitly deployed firmware payload
  This package stages the verified EFI boot manager and support files.
  To provision a fresh /boot/efi/EFI/InfiltratorBoot installation, run

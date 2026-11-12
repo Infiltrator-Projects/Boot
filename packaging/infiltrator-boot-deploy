@@ -3,8 +3,8 @@
 # Deliberate ESP deployment only: never register firmware entries or modify
 # BootOrder. The package install itself does not touch the ESP.
 set -euo pipefail
-if [[ $# != 2 || $2 != --confirm ]]; then
-    echo 'usage: sudo infiltrator-boot-deploy --install-new|--update-existing|--recover --confirm' >&2
+if [[ $# -lt 2 || $2 != --confirm ]]; then
+    echo 'usage: sudo infiltrator-boot-deploy --install-new|--update-existing|--recover --confirm [MODULE.so ...]' >&2
     exit 2
 fi
 case "$1" in --install-new|--update-existing|--recover) ;; *) echo 'Invalid deployment mode' >&2; exit 2 ;; esac
@@ -12,6 +12,18 @@ if [[ $EUID -ne 0 ]]; then
     echo 'Run as root; the EFI System Partition is privileged storage.' >&2
     exit 1
 fi
+mode=$1
+shift 2
+for module; do
+    [[ $module =~ ^/System/Filesystems/[A-Za-z0-9_-]+\.so$ && -f $module && ! -L $module ]] || {
+        echo "Invalid independently installed filesystem module: $module" >&2; exit 1;
+    }
+    permissions=$(stat -c '%a %u' -- "$module") || exit 1
+    read -r bits owner <<< "$permissions"
+    [[ $owner == 0 ]] && (( (8#$bits & 022) == 0 )) || {
+        echo "Unsafe filesystem module ownership or permissions: $module" >&2; exit 1;
+    }
+done
 esp=/boot/efi
 payload=/usr/lib/infiltrator-boot/EFI/BOOT
 core=/usr/lib/infiltrator-boot/deploy-core
@@ -21,4 +33,4 @@ core=/usr/lib/infiltrator-boot/deploy-core
     echo "EFI System Partition is not mounted as vfat at $esp; refusing write." >&2
     exit 1
 }
-exec /bin/bash "$core" "$1" "$payload" "$esp"
+exec /bin/bash "$core" "$mode" "$payload" "$esp" "$@"

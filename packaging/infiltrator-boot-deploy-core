@@ -6,9 +6,13 @@ set -euo pipefail
 
 fail() { printf 'Boot deployment: ERROR: %s\n' "$*" >&2; exit 1; }
 log() { printf 'Boot deployment: %s\n' "$*"; }
-[[ $# == 3 ]] || fail 'Internal usage: MODE STAGED-EFI-DIRECTORY ESP-MOUNT'
+[[ $# -ge 3 ]] || fail 'Internal usage: MODE STAGED-EFI-DIRECTORY ESP-MOUNT [MODULE.so ...]'
 mode=$1 payload=$2 esp=$3
+shift 3
+modules=("$@")
+validator="$(dirname -- "${BASH_SOURCE[0]}")/validate-module"
 case "$mode" in --install-new|--update-existing|--recover) ;; *) fail 'Invalid deployment mode' ;; esac
+[[ $mode != --recover || ${#modules[@]} == 0 ]] || fail 'Recovery takes no filesystem modules'
 [[ -d "$esp" && ! -L "$esp" && ! -L "$esp/EFI" ]] || fail 'ESP missing or unsafe'
 if [[ ! -d "$esp/EFI" ]]; then
     [[ $mode == --install-new && ! -e "$esp/EFI" ]] || fail 'ESP/EFI is missing'
@@ -113,6 +117,34 @@ while IFS= read -r -d '' source_file; do
     cp -- "$source_file" "$stage/$relative"
 done < <(find "$payload" -type f -print0)
 mkdir -p -- "$stage/drivers_x64" "$stage/filesystems_x64" "$stage/icons"
+declare -A module_names=()
+for module in "${modules[@]}"; do
+    name=${module##*/}
+    [[ $name =~ ^[A-Za-z0-9_-]+\.so$ && -f $module && ! -L $module ]] ||
+        fail "Invalid filesystem module: $module"
+    key=${name,,}
+    [[ ! -v 'module_names[$key]' ]] || fail "Duplicate filesystem module: $name"
+    module_names[$key]=1
+    # FAT is case-insensitive. Replace the existing spelling of a selected
+    # provider so copied staging trees behave identically on host and ESP.
+    for existing in "$stage"/filesystems_x64/*; do
+        existing_name=${existing##*/}
+        if [[ ${existing_name,,} == "$key" && $existing_name != "$name" ]]; then
+            [[ -f $existing && ! -L $existing ]] || fail "Unsafe filesystem module: $existing"
+            rm -- "$existing"
+        fi
+    done
+    destination="$stage/filesystems_x64/$name"
+    [[ ! -e $destination || -f $destination ]] || fail "Invalid module destination: $name"
+    cp -- "$module" "$destination"
+done
+shopt -s nullglob
+staged_modules=("$stage"/filesystems_x64/*.so)
+(( ${#staged_modules[@]} <= 8 )) || fail 'BOOT supports at most eight staged filesystem modules'
+for module in "${staged_modules[@]}"; do
+    "$validator" "$module" ||
+        fail "Filesystem module is incompatible with BOOT Common V2: ${module##*/}"
+done
 if [[ $mode == --update-existing && -f "$target/boot.conf" ]]; then
     cp -- "$payload/boot.conf" "$stage/boot.conf.package-default"
 fi
@@ -129,6 +161,9 @@ verify() {
             cmp -s -- "$source_file" "$dest/$relative" || return 1
         fi
     done < <(find "$payload" -type f -print0)
+    for source_file in "${modules[@]}"; do
+        cmp -s -- "$source_file" "$dest/filesystems_x64/${source_file##*/}" || return 1
+    done
     return 0
 }
 verify "$stage" || fail 'Staged resources did not verify byte-for-byte'

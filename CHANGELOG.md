@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.45 — 2026-11-13
+
+- Load filesystem shared objects exclusively through Common V2.
+- Deploy independently installed filesystem modules in the same verified, recoverable ESP transaction as the BOOT executable.
+
 ## 0.1.44 — 2026-11-12
 
 - Restrict the native installer payload to BOOT's required C sources, build files, licences and verified graphical resources.

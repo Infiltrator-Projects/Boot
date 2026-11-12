@@ -303,6 +303,17 @@ jobs:
           IFS_SO_SANITIZE=1 bash tests/run-so-tests.sh "$fs/build/FAT16.so"
           python3 "$fs/standalone/build.py" --profile aggressive --output "$fs/build-native/FAT16.so" --check
           bash tests/run-so-tests.sh "$fs/build-native/FAT16.so"
+          boot_root="$RUNNER_TEMP/boot-native-extract/usr/lib/infiltrator-boot"
+          esp="$RUNNER_TEMP/boot-module-deploy-esp"
+          mkdir -p "$esp"
+          bash "$boot_root/deploy-core" --install-new "$boot_root/EFI/BOOT" "$esp" "$fs/build-native/FAT16.so"
+          cmp "$fs/build-native/FAT16.so" "$esp/EFI/InfiltratorBoot/filesystems_x64/FAT16.so"
+          printf '%s\n' 'invalid module' > "$RUNNER_TEMP/FAT16.so"
+          if bash "$boot_root/deploy-core" --update-existing "$boot_root/EFI/BOOT" "$esp" "$RUNNER_TEMP/FAT16.so"; then
+            echo 'Invalid filesystem module was staged' >&2
+            exit 1
+          fi
+          cmp "$fs/build-native/FAT16.so" "$esp/EFI/InfiltratorBoot/filesystems_x64/FAT16.so"
           kernel_work="$RUNNER_TEMP/boot-so-kernel"
           mkdir -p "$kernel_work"
           kernel_package=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ { sub("linux-image-", "linux-image-unsigned-", $2); print $2; exit }')

@@ -79,6 +79,8 @@ cp -a "$resources/." "$package/usr/lib/infiltrator-boot/"
 install -m 0644 "$executable" "$package/usr/lib/infiltrator-boot/EFI/BOOT/BOOTX64.EFI"
 install -m 0644 "$source_root/packaging/infiltrator-boot-deploy-core" "$package/usr/lib/infiltrator-boot/deploy-core"
 install -m 0755 "$source_root/packaging/infiltrator-boot-deploy" "$package/usr/sbin/infiltrator-boot-deploy"
+gcc -std=c11 -O2 -Wall -Wextra -Werror "$source_root/packaging/validate-module.c" \
+    "$source_root/refind/so_elf.c" -o "$package/usr/lib/infiltrator-boot/validate-module"
 printf '%s\n' "$version" > "$package/usr/lib/infiltrator-boot/VERSION"
 printf '%s\n' 'Profile: aggressive' 'Compiler flags: -O3 -march=native -mgeneral-regs-only' \
     > "$package/usr/share/doc/infiltrator-boot/BUILD-INFO"
@@ -89,7 +91,7 @@ Section: admin
 Priority: optional
 Architecture: amd64
 Maintainer: Infiltrator Projects
-Depends: bash, coreutils, findutils, util-linux, efibootmgr
+Depends: bash, coreutils, findutils, util-linux, efibootmgr, libc6
 X-Infiltrator-Native-Profile: aggressive
 Description: Locally compiled InfiltratorOS UEFI boot manager
  Built from BOOT source for the local processor.
