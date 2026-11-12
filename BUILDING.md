@@ -38,7 +38,11 @@ module. Updating a driver does not require rebuilding Boot.
 
 CI generates the Boot executable, fonts, artwork and default configuration, then
 seals the runtime bundle into `infiltrator-boot_VERSION_amd64.deb`. The public
-release contains that package and `SHA256SUMS.txt`. Additional EFI binaries and
+release also contains a source-bearing native installer and `SHA256SUMS.txt`.
+The native installer compiles the EFI application on the target machine with
+`-O3 -march=native -mgeneral-regs-only`, retaining the GNU-EFI ABI and producing
+an independently owned `infiltrator-boot_VERSION+native1_amd64.deb`. Its visual
+resources are the verified release resources. Additional EFI binaries and
 filesystem driver files are rejected from both the bundle and the DEB.
 
 OS, utility and volume icons ship once under `icons/`, matching `icons_dir icons`

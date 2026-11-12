@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.43 — 2026-11-12
+
+- Publish a source-bearing native installer that compiles the EFI application for the target processor and installs a locally built Debian package.
+- Preserve the separately owned firmware deployment and registration steps.
+
 ## 0.1.42 — 2026-11-12
 
 - Permit the five packaged icon licence files during ESP deployment. Test deployment from the actual Debian payload and verify that the existing GRUB directory is preserved.

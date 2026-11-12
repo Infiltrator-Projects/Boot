@@ -269,17 +269,25 @@ jobs:
           assert 'EFI/BOOT/icons/func_firmware.png' in names
           PY
           # Keep intermediate images, themes and the EFI test bundle in CI only.
-          # A Debian product release contains exactly the installable package
-          # plus its checksum. GitHub supplies source archives for the tag.
+          # Publish the portable package and source-bearing native installer.
           mkdir -p release
           install -m 0644 "dist/infiltrator-boot_${version}_amd64.deb" \
               "release/infiltrator-boot_${version}_amd64.deb"
-          (cd release && sha256sum "infiltrator-boot_${version}_amd64.deb" > SHA256SUMS.txt)
-          python3 - "release" "infiltrator-boot_${version}_amd64.deb" <<'PY_PUBLIC_RELEASE'
+          run="boot-${version}-native-installer.run"
+          bash scripts/build-native-installer.sh "dist/infiltrator-boot_${version}_amd64.deb" "release/$run"
+          mkdir -p "$RUNNER_TEMP/boot-native-package"
+          "release/$run" --build-only --output-dir "$RUNNER_TEMP/boot-native-package"
+          native_deb="$RUNNER_TEMP/boot-native-package/infiltrator-boot_${version}+native1_amd64.deb"
+          test "$(dpkg-deb -f "$native_deb" Version)" = "${version}+native1"
+          dpkg-deb -x "$native_deb" "$RUNNER_TEMP/boot-native-extract"
+          objdump -f "$RUNNER_TEMP/boot-native-extract/usr/lib/infiltrator-boot/EFI/BOOT/BOOTX64.EFI" | grep -q 'file format pei-x86-64'
+          grep -Fq -- '-march=native -mgeneral-regs-only' "$RUNNER_TEMP/boot-native-extract/usr/share/doc/infiltrator-boot/BUILD-INFO"
+          (cd release && sha256sum "infiltrator-boot_${version}_amd64.deb" "$run" > SHA256SUMS.txt)
+          python3 - "release" "infiltrator-boot_${version}_amd64.deb" "$run" <<'PY_PUBLIC_RELEASE'
           from pathlib import Path
           import sys
           names = {p.name for p in Path(sys.argv[1]).iterdir()}
-          expected = {sys.argv[2], "SHA256SUMS.txt"}
+          expected = {sys.argv[2], sys.argv[3], "SHA256SUMS.txt"}
           assert names == expected, f"Unexpected public Boot assets: {names ^ expected}"
           PY_PUBLIC_RELEASE
       - name: Exercise identical application SO bytes through Boot and Linux handoff
@@ -303,11 +311,15 @@ jobs:
           kernel=$(find "$kernel_work/root/boot" -name 'vmlinuz-*' -type f -print -quit)
           test -s "$kernel"
           for profile in build build-native; do
-            python3 tests/test_so_boot.py --boot refind/refind_x64.efi \
+            boot=refind/refind_x64.efi
+            if [[ "$profile" == build-native ]]; then
+              boot="$RUNNER_TEMP/boot-native-extract/usr/lib/infiltrator-boot/EFI/BOOT/BOOTX64.EFI"
+            fi
+            python3 tests/test_so_boot.py --boot "$boot" \
               --module "$fs/$profile/FAT16.so" --kernel "$kernel" \
               --output "$RUNNER_TEMP/boot-so-$profile"
           done
-          python3 tests/test_so_boot.py --boot refind/refind_x64.efi \
+          python3 tests/test_so_boot.py --boot "$RUNNER_TEMP/boot-native-extract/usr/lib/infiltrator-boot/EFI/BOOT/BOOTX64.EFI" \
             --module "$fs/build/FAT16.so" --kernel "$kernel" --reject-module \
             --output "$RUNNER_TEMP/boot-so-invalid"
       - name: Retain SO firmware evidence
@@ -349,11 +361,12 @@ jobs:
           test "$(git rev-parse origin/main)" = "$GITHUB_SHA" || exit 0
           version=$(tr -d '\r\n' < VERSION)
           deb="infiltrator-boot_${version}_amd64.deb"
+          run="boot-${version}-native-installer.run"
           # Fail closed if build artifacts accidentally leak into public output.
-          expected="$(printf '%s\n' SHA256SUMS.txt "$deb" | sort)"
+          expected="$(printf '%s\n' SHA256SUMS.txt "$deb" "$run" | sort)"
           actual="$(find release -maxdepth 1 -type f -printf '%f\n' | sort)"
           test "$actual" = "$expected"
-          test "$(wc -l < release/SHA256SUMS.txt)" = 1
+          test "$(wc -l < release/SHA256SUMS.txt)" = 2
           (cd release && sha256sum -c SHA256SUMS.txt)
           test "$(dpkg-deb -f "release/$deb" Package)" = "infiltrator-boot"
           test "$(dpkg-deb -f "release/$deb" Version)" = "$version"

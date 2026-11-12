@@ -72,7 +72,7 @@ The repository contains material under multiple licences inherited from its sour
 
 ## Development preview and qualification
 
-[VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI builds Boot alone, verifies the runtime archive and DEB contain only its EFI application and presentation files, and publishes a DEB and checksum. Filesystem implementation source, build tooling and drivers are owned by Filesystems.
+[VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI verifies the runtime payload and publishes a portable DEB, a source-bearing native installer and checksums. Filesystem implementation source, build tooling and drivers are owned by Filesystems.
 
 Boot bundles no filesystem engine. Its generic x86-64 ELF loader now consumes the same `FAT16.so` used by applications and Defragmenter, through a read-only UEFI bridge. Stage identical module bytes in `filesystems_x64` beside Boot's EFI executable. Real Linux kernel/initramfs handoff is tested in OVMF; physical firmware and kernel-side SO root mounting remain separate qualification. Independent UEFI readers in `drivers_x64` remain transitional compatibility paths. See the [loader contract](docs/FILESYSTEM_SO_LOADER_CONTRACT.md).
 
@@ -136,13 +136,13 @@ system-wide installation and firmware-entry workflow.
 
 ## Public release asset policy
 
-Starting with Boot v0.1.19, each GitHub release publishes exactly two
-project-managed assets: `infiltrator-boot_VERSION_amd64.deb` and
+Starting with Boot v0.1.43, each GitHub release publishes
+`infiltrator-boot_VERSION_amd64.deb`, `boot-VERSION-native-installer.run` and
 `SHA256SUMS.txt`. GitHub also supplies its own automatic source archives.
 The separately built EFI executable, theme graphics, source
 snapshot and ready-to-copy UEFI ZIP remain verifiable **intermediate CI
 outputs**, not public duplicates of the Debian package. The packaged
 runtime files are staged beneath
 `/usr/lib/infiltrator-boot/EFI/BOOT/`. The opt-in deployment command installs or updates full managed BOOT resources;
-future Setup owns firmware registration and whole-system installation. A release guard checks the exact two-asset
+future Setup owns firmware registration and whole-system installation. A release guard checks the exact three-asset
 inventory before upload and validates the downloaded public bytes.
