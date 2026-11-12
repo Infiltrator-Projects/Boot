@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.44 — 2026-11-12
+
+- Restrict the native installer payload to BOOT's required C sources, build files, licences and verified graphical resources.
+
 ## 0.1.43 — 2026-11-12
 
 - Publish a source-bearing native installer that compiles the EFI application for the target processor and installs a locally built Debian package.

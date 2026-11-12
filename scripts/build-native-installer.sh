@@ -7,7 +7,9 @@ output=${2:?Native installer destination required}
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 mkdir -p "$work/input/source" "$work/extracted"
-git -C "$root" archive HEAD | tar -xf - -C "$work/input/source"
+git -C "$root" archive HEAD VERSION Make.common Makefile refind EfiLib gzip libeg mok include \
+    refind-sbat.csv packaging/infiltrator-boot-deploy-core packaging/infiltrator-boot-deploy \
+    LICENSE.txt COPYING.txt CREDITS.txt | tar -xf - -C "$work/input/source"
 dpkg-deb -x "$deb" "$work/extracted"
 cp -a "$work/extracted/usr/lib/infiltrator-boot" "$work/input/resources"
 rm -f "$work/input/resources/EFI/BOOT/BOOTX64.EFI" "$work/input/resources/deploy-core" "$work/input/resources/VERSION"
