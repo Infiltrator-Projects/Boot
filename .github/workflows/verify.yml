@@ -22,12 +22,15 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: Infiltrator-Projects/Filesystem-FAT16
-          ref: 26a216757127c7dde1a9bc34530a2852703f57a8
+          ref: 29061789a0a24822d46d2354f1853f821d46aec0
           path: .qualification/FAT16
+          submodules: recursive
       - name: Verify independent Boot GNU-EFI build
         shell: bash
         run: |
           set -euo pipefail
+          printf '%s  %s\n' 94105b722d7edbc15fbeed21f99ec75313517d261c720fdc7b0535052dee7c56 \
+            include/infiltratr/filesystem_module_v2.h | sha256sum -c -
           bash -n scripts/build-gnuefi.sh
           bash -n scripts/build-mb-fonts.sh
           bash -n scripts/build-icons.sh
@@ -296,10 +299,10 @@ jobs:
           set -euo pipefail
           fs="$GITHUB_WORKSPACE/.qualification/FAT16"
           make -C "$fs" check
-          bash tests/run-so-tests.sh "$fs/build/FAT16.so" "$fs"
-          IFS_SO_SANITIZE=1 bash tests/run-so-tests.sh "$fs/build/FAT16.so" "$fs"
+          bash tests/run-so-tests.sh "$fs/build/FAT16.so"
+          IFS_SO_SANITIZE=1 bash tests/run-so-tests.sh "$fs/build/FAT16.so"
           python3 "$fs/standalone/build.py" --profile aggressive --output "$fs/build-native/FAT16.so" --check
-          bash tests/run-so-tests.sh "$fs/build-native/FAT16.so" "$fs"
+          bash tests/run-so-tests.sh "$fs/build-native/FAT16.so"
           kernel_work="$RUNNER_TEMP/boot-so-kernel"
           mkdir -p "$kernel_work"
           kernel_package=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ { sub("linux-image-", "linux-image-unsigned-", $2); print $2; exit }')

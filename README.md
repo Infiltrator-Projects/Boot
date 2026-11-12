@@ -74,7 +74,7 @@ The repository contains material under multiple licences inherited from its sour
 
 [VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI verifies the runtime payload and publishes a portable DEB, a source-bearing native installer and checksums. Filesystem implementation source, build tooling and drivers are owned by Filesystems.
 
-Boot bundles no filesystem engine. Its generic x86-64 ELF loader now consumes the same `FAT16.so` used by applications and Defragmenter, through a read-only UEFI bridge. Stage identical module bytes in `filesystems_x64` beside Boot's EFI executable. Real Linux kernel/initramfs handoff is tested in OVMF; physical firmware and kernel-side SO root mounting remain separate qualification. Independent UEFI readers in `drivers_x64` remain transitional compatibility paths. See the [loader contract](docs/FILESYSTEM_SO_LOADER_CONTRACT.md).
+Boot's x86-64 loader consumes filesystem `.so` modules through Common V2 and a read-only UEFI bridge. Stage the same module bytes used by applications in `filesystems_x64` beside Boot's EFI executable. Independent UEFI readers in `drivers_x64` remain transitional compatibility paths for other boot entries. See the [loader contract](docs/FILESYSTEM_SO_LOADER_CONTRACT.md).
 
 The published EFI files are development artifacts for controlled testing. They are not an installer and publishing them does not claim firmware-runtime, Secure Boot, persistent-installation or recovery qualification. Setup remains responsible for the eventual supported installation transaction.
 

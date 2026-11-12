@@ -3,7 +3,7 @@
 #define BOOT_SO_ELF_H
 #include <stddef.h>
 #include <stdint.h>
-#include "../include/ifs_boot_module.h"
+#include "../include/infiltratr/filesystem_module_v2.h"
 
 #define BOOT_SO_MAX_FILE (16u*1024u*1024u)
 #define BOOT_SO_MAX_IMAGE (32u*1024u*1024u)
@@ -27,8 +27,9 @@ typedef struct {
     void *base;
     size_t bytes;
     BootSoMemory memory;
-    IfsBootManifest manifest;
-    const IfsBootModuleV1 *api;
+    char format_id[IFS_FS_MAX_FORMAT_ID+1u];
+    const IfsFsCoreOpsV2 *core;
+    const IfsFsVolumeOpsV2 *volume;
     BootSoSegment segments[BOOT_SO_MAX_SEGMENTS];
     uint32_t segment_count;
 } BootSoImage;

@@ -35,7 +35,6 @@ typedef struct {
     Phdr loads[BOOT_SO_MAX_SEGMENTS];
     uint32_t count;
     Shdr symbols, strings, relocations;
-    IfsBootManifest manifest;
     uint64_t entry, image_bytes;
 } Plan;
 
@@ -65,16 +64,6 @@ static int name_is(const unsigned char *strings, uint64_t bytes,
     }
     return 0;
 }
-static int text_valid(const char *s, size_t bytes, int id) {
-    if (!bytes || !s[0]) return 0;
-    for (size_t i=0; i<bytes; ++i) {
-        unsigned char c=(unsigned char)s[i];
-        if (!c) return 1;
-        if (id ? !((c>='a' && c<='z') || (c>='0' && c<='9') || c=='_' || c=='-') :
-                 (c<32u || c>126u)) return 0;
-    }
-    return 0;
-}
 static const Phdr *region(const Plan *p, uint64_t address, uint64_t bytes,
                            uint32_t required, uint32_t forbidden) {
     for (uint32_t i=0; i<p->count; ++i) {
@@ -87,11 +76,11 @@ static const Phdr *region(const Plan *p, uint64_t address, uint64_t bytes,
 }
 static int plan(const void *data, size_t bytes, Plan *p) {
     const unsigned char *source=data;
-    Shdr names={0}, manifest_section={0};
+    Shdr names={0};
     Phdr dynamic={0};
     uint64_t dynamic_symbols=0, dynamic_strings=0, dynamic_strings_bytes=0;
     uint64_t dynamic_relocations=0, dynamic_relocation_bytes=0;
-    int have_symbols=0, have_strings=0, have_relocations=0, have_manifest=0;
+    int have_symbols=0, have_strings=0, have_relocations=0;
     if (!data || bytes<sizeof(Ehdr) || bytes>BOOT_SO_MAX_FILE) return -1;
     zero(p, sizeof(*p));
     copy(&p->elf, source, sizeof(p->elf));
@@ -172,20 +161,8 @@ static int plan(const void *data, size_t bytes, Plan *p) {
                 !region(p,s.address,s.bytes,4,3)) return -1;
             p->relocations=s;
         }
-        if (name_is(source+names.offset,names.bytes,s.name,".ifsboot")) {
-            if (have_manifest++ || s.type!=1 || s.bytes!=sizeof(IfsBootManifest) ||
-                !region(p,s.address,s.bytes,4,3)) return -1;
-            manifest_section=s;
-        }
     }
-    if (!have_symbols || !have_strings || !have_manifest) return -1;
-    copy(&p->manifest,source+manifest_section.offset,sizeof(p->manifest));
-    if (!equal(p->manifest.magic,"IFSBOOT1",8) ||
-        p->manifest.structure_bytes!=sizeof(IfsBootManifest) ||
-        p->manifest.abi_version!=IFS_BOOT_ABI || p->manifest.machine!=62u ||
-        p->manifest.profile!=IFS_BOOT_PROFILE_X64 ||
-        !text_valid(p->manifest.format_id,sizeof(p->manifest.format_id),1) ||
-        !text_valid(p->manifest.display_name,sizeof(p->manifest.display_name),0)) return -1;
+    if (!have_symbols || !have_strings) return -1;
 
     int terminated=0;
     for (uint64_t at=0; at<dynamic.file_bytes; at+=sizeof(Dyn)) {
@@ -225,7 +202,7 @@ static int plan(const void *data, size_t bytes, Plan *p) {
         if (!symbol.section || symbol.section>=e->shnum || (symbol.info&15u)==10u ||
             symbol.name>=p->strings.bytes ||
             !region(p,symbol.value,symbol.bytes,4,0)) return -1;
-        if (name_is(source+p->strings.offset,p->strings.bytes,symbol.name,IFS_BOOT_SYMBOL)) {
+        if (name_is(source+p->strings.offset,p->strings.bytes,symbol.name,IFS_FS_COMMON_EXPORT_V2)) {
             if (p->entry || (symbol.info&15u)!=2u || !symbol.bytes ||
                 !region(p,symbol.value,symbol.bytes,5,2)) return -1;
             p->entry=symbol.value;
@@ -263,6 +240,55 @@ void BootSoUnload(BootSoImage *image) {
     if (image && image->base) image->memory.release(image->memory.context,image->base,image->bytes);
     if (image) zero(image,sizeof(*image));
 }
+
+static const IfsFsGroupHeaderV2 *bounded_group(const BootSoImage *image,
+        const IfsFsModuleApiV2 *api,uint32_t id,uint32_t size,uint64_t capabilities) {
+    const IfsFsGroupHeaderV2 *group=api->query_group(id,IFS_FS_GROUP_ABI_V2,IFS_FS_GROUP_ABI_V2);
+    if(!BootSoContains(image,group,size,BOOT_SO_READ,BOOT_SO_EXECUTE) ||
+       !ifs_fs_group_v2_header_valid(group,id,size,capabilities) ||
+       !ifs_fs_group_v2_callbacks_valid(group)) return NULL;
+    return group;
+}
+
+static int bind_common_v2(BootSoImage *image,const IfsFsModuleApiV2 *api) {
+    const uint64_t required=IFS_FS_CORE_PROBE|IFS_FS_CORE_MOUNT|IFS_FS_CORE_STAT|
+                            IFS_FS_CORE_LIST|IFS_FS_CORE_READ;
+    if(!BootSoContains(image,api,sizeof(*api),BOOT_SO_READ,BOOT_SO_EXECUTE) ||
+       api->abi_version!=IFS_FS_COMMON_ABI_V2 || api->structure_bytes<sizeof(*api) ||
+       !(api->runtime_profiles&(IFS_FS_PROFILE_FREESTANDING|IFS_FS_PROFILE_FIRMWARE)) ||
+       (api->runtime_profiles&~IFS_FS_PROFILE_ALL) || (api->group_mask&~IFS_FS_GROUP_ALL) ||
+       !(api->group_mask&IFS_FS_GROUP_BIT(IFS_FS_GROUP_CORE))) return -1;
+
+    /* Descriptor addresses are relocated ELF pointers. Check their mapped
+     * ranges before calling the group query or dereferencing its result. */
+    for(size_t i=0;i<sizeof(image->format_id);++i) {
+        const uintptr_t id=(uintptr_t)api->format_id;
+        if(id>UINTPTR_MAX-i || !BootSoContains(image,(const void *)(id+i),1,
+                                                BOOT_SO_READ,BOOT_SO_EXECUTE)) return -1;
+        image->format_id[i]=*(const char *)(id+i);
+        if(!image->format_id[i]) break;
+    }
+    if(!ifs_fs_format_id_valid(image->format_id)) return -1;
+
+#define EXECUTABLE(callback) BootSoContains(image,(const void *)(uintptr_t)(callback),1, \
+                                           BOOT_SO_READ|BOOT_SO_EXECUTE,BOOT_SO_WRITE)
+    if(!EXECUTABLE(api->query_group)) return -1;
+    const IfsFsCoreOpsV2 *core=(const IfsFsCoreOpsV2 *)bounded_group(image,api,
+                                      IFS_FS_GROUP_CORE,sizeof(*core),IFS_FS_CORE_ALL);
+    if(!core || (core->header.capabilities&required)!=required ||
+       !EXECUTABLE(core->probe) || !EXECUTABLE(core->mount) || !EXECUTABLE(core->unmount) ||
+       !EXECUTABLE(core->stat) || !EXECUTABLE(core->directory_entry) || !EXECUTABLE(core->read)) return -1;
+    if(api->group_mask&IFS_FS_GROUP_BIT(IFS_FS_GROUP_VOLUME)) {
+        const IfsFsVolumeOpsV2 *volume=(const IfsFsVolumeOpsV2 *)bounded_group(image,api,
+                                  IFS_FS_GROUP_VOLUME,sizeof(*volume),IFS_FS_VOLUME_ALL);
+        if(!volume || (volume->label && !EXECUTABLE(volume->label))) return -1;
+        image->volume=volume;
+    }
+#undef EXECUTABLE
+    image->core=core;
+    return 0;
+}
+
 int BootSoLoad(const void *data, size_t bytes, const BootSoMemory *memory,
                 BootSoImage *image) {
     Plan p;
@@ -275,7 +301,6 @@ int BootSoLoad(const void *data, size_t bytes, const BootSoMemory *memory,
     image->bytes=(size_t)p.image_bytes;
     if ((uintptr_t)image->base&4095u) { BootSoUnload(image); return -1; }
     zero(image->base,image->bytes);
-    image->manifest=p.manifest;
     image->segment_count=p.count;
     for (uint32_t i=0; i<p.count; ++i) {
         const Phdr *s=&p.loads[i];
@@ -298,25 +323,11 @@ int BootSoLoad(const void *data, size_t bytes, const BootSoMemory *memory,
                                 length,s->flags)) { BootSoUnload(image); return -1; }
         }
     }
-    IfsBootEntryPoint entry;
+    IfsFsModuleApiEntryV2 entry;
     void *address=(unsigned char *)image->base+p.entry;
     _Static_assert(sizeof(entry)==sizeof(address),"function pointer representation");
     copy(&entry,&address,sizeof(entry));
-    const IfsBootModuleV1 *api=entry();
-    if (!BootSoContains(image,api,sizeof(*api),4,1) ||
-        api->abi_version!=IFS_BOOT_ABI || api->structure_bytes!=sizeof(*api) ||
-        !equal(api->format_id,p.manifest.format_id,sizeof(api->format_id)) ||
-        !api->file_context_bytes || api->file_context_bytes>16384u || api->reserved)
-        goto invalid;
-#define CHECK_FUNCTION(member) \
-    if (!BootSoContains(image,(const void *)(uintptr_t)api->member,1,5,2)) goto invalid
-    CHECK_FUNCTION(mount); CHECK_FUNCTION(unmount); CHECK_FUNCTION(open);
-    CHECK_FUNCTION(close); CHECK_FUNCTION(read); CHECK_FUNCTION(directory_entry);
-    CHECK_FUNCTION(volume_label);
-#undef CHECK_FUNCTION
-    image->api=api;
-    return 0;
-invalid:
+    if(bind_common_v2(image,entry())==0) return 0;
     BootSoUnload(image);
     return -1;
 }

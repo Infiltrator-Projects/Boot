@@ -15,21 +15,24 @@ It is the application-facing shared object, not a rebuilt firmware variant.
 Boot packages no filesystem module and does not create or update this staging
 copy. Selected component deployment remains a separate operation.
 
-The shared C contract is `include/ifs_boot_module.h`, mirrored verbatim from
-`Filesystem-FAT16/native/include/infiltratr/fs/boot_module.h`; integration tests
-compare the files. The module exports `infiltrator_filesystem_boot_v1` and a
-fixed `.ifsboot` manifest. The profile is little-endian x86-64 ELF ET_DYN,
-SysV function and callback calls, no red zone, constructors, TLS, imports or
-host libc, and relative relocations only. Defragmenter's existing host table
-and V1/V3/V4 filesystem exports remain in that same object, untouched in layout.
+Boot calls Common's `infiltrator_filesystem_api_v2` exclusively. Its vendored
+header is the exact Libraries header at `4c92c8dcd7e03afd4bab3105e143dbabd72c8adc`.
+The native installer carries this header so it can compile from its verified
+payload. Boot requires a Common V2 descriptor, a freestanding or firmware
+profile, and CORE mount, stat, list and read operations. A module offering
+only a legacy entry point is rejected before execution.
+
+The profile is little-endian x86-64 ELF ET_DYN with SysV calls, relative
+relocations and no red zone, constructors, TLS, imports or host libc.
 
 Boot validates program/section tables, file and virtual ranges, non-overlapping
-segments, declared permissions, format/ABI identity, dynamic metadata, symbols
-and relocation destinations/addends before allocation or execution. Limits are
+segments, declared permissions, dynamic metadata, the V2 symbol and relocation
+destinations/addends before allocation or execution. After relocation it bounds
+the returned V2 descriptor, format ID, operation tables and callbacks. Limits are
 16 MiB of input, 32 MiB per loaded image, 16 load segments, 8 staged modules,
 256 directory entries/device handles considered and 32 mounted volumes.
-Each mount receives a separate relocated image because the engine owns one
-active mount per image. File contexts are bounded to 16 KiB each.
+Each mount receives a separate relocated image so provider state and volume
+handles stay independent.
 
 ## Read-only UEFI adaptation
 
@@ -37,6 +40,7 @@ The generic adapter supplies bounded, media-ID-checked BlockIo reads with an
 aligned 64 KiB bounce buffer. It publishes a child handle containing read-only
 BlockIo, SimpleFileSystem and a distinct device path. The module owns path
 lookup, directory enumeration, file data and volume-label interpretation.
+Boot uses the format ID as the display label if the module supplies no label.
 Boot owns UTF-16/UTF-8 conversion, volume-relative path normalisation, EFI file
 positions/information and protocol lifetimes.
 
@@ -63,10 +67,8 @@ menuentry "Linux through FAT16" {
 
 `filesystem_module` matches the bound module's immutable format ID. Missing,
 foreign or rejected modules disable the entry; launch checks the handle again.
-Submenu copies retain the requirement. Existing entries without this directive
-retain their normal behavior. Volume labels are preserved, not renamed to make
-the experiment pass. Existing independently installed EFI drivers remain a
-transitional compatibility path for other volumes.
+Submenu copies retain the requirement. Existing independently installed EFI
+drivers remain a transitional compatibility path for entries without it.
 
 ## Trust and permissions
 

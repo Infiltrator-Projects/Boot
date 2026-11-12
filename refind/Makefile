@@ -45,8 +45,8 @@ OBJS            = apple.o config.o crc32.o driver_support.o gpt.o icns.o \
 include $(SRCDIR)/../Make.common
 
 $(OBJS): global.h
-so_elf.o: so_elf.h ../include/ifs_boot_module.h
-so_uefi.o: so_uefi.h so_elf.h ../include/ifs_boot_module.h
+so_elf.o: so_elf.h ../include/infiltratr/filesystem_module_v2.h
+so_uefi.o: so_uefi.h so_elf.h ../include/infiltratr/filesystem_module_v2.h
 config.o driver_support.o launch_efi.o lib.o: so_uefi.h
 
 all: $(TARGET)

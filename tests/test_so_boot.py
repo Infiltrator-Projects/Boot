@@ -85,7 +85,12 @@ menuentry "Linux through FAT16.so" {
     run("mcopy", "-i", esp, args.boot, "::/EFI/BOOT/BOOTX64.EFI")
     run("mcopy", "-i", esp, config, "::/EFI/BOOT/boot.conf")
     module = work / "FAT16.so"
-    module.write_bytes(args.module.read_bytes() if not args.reject_module else b"invalid ELF" * 64)
+    module_bytes = args.module.read_bytes()
+    if args.reject_module:
+        export = b"infiltrator_filesystem_api_v2\0"
+        assert export in module_bytes
+        module_bytes = module_bytes.replace(export, b"infiltrator_filesystem_api_v1\0")
+    module.write_bytes(module_bytes)
     run("mcopy", "-i", esp, module, "::/EFI/BOOT/filesystems_x64/FAT16.so")
     run("mcopy", "-i", media, args.kernel, "::/vmlinuz")
     run("mcopy", "-i", media, initrd, "::/initrd.img")

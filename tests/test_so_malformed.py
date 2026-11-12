@@ -15,7 +15,8 @@ sections = [struct.unpack_from("<IIQQQQIIQQ", original, u64(40)+i*u16(58))
 names = sections[u16(62)]
 section_name = lambda s: original[names[4]+s[0]:].split(b"\0", 1)[0]
 named = {section_name(s): s for s in sections}
-manifest = named[b".ifsboot"][4]
+strings = named[b".dynstr"]
+export = original.index(b"infiltrator_filesystem_api_v2\0", strings[4], strings[4]+strings[5])
 rela = next(s for s in sections if s[1] == 4 and s[5])
 symbols = next(s for s in sections if s[1] == 11)
 programs = [(u64(32)+i*u16(54), struct.unpack_from("<IIQQQQQQ", original, u64(32)+i*u16(54)))
@@ -27,9 +28,7 @@ cases = {
     "executable": (16, struct.pack("<H", 2)),
     "section-overflow": (40, struct.pack("<Q", 2**64-1)),
     "program-count": (56, struct.pack("<H", 65535)),
-    "profile": (manifest+20, struct.pack("<I", 99)),
-    "abi": (manifest+12, struct.pack("<I", 99)),
-    "format-unterminated": (manifest+24, b"x"*16),
+    "v1-only-entry": (export, b"infiltrator_filesystem_api_v1\0"),
     "writable-code": (load[0]+4, struct.pack("<I", 7)),
     "segment-file-overflow": (load[0]+8, struct.pack("<Q", 2**64-1)),
     "tls": (load[0], struct.pack("<I", 7)),

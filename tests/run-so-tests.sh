@@ -3,9 +3,7 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 module=${1:?pass the canonical FAT16.so}
-source_root=${2:?pass the matching Filesystem-FAT16 checkout}
 module=$(realpath "$module")
-cmp "$root/include/ifs_boot_module.h" "$source_root/native/include/infiltratr/fs/boot_module.h"
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 cc=${CC:-cc}

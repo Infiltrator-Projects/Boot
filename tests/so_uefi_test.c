@@ -79,12 +79,10 @@ int main(int argc,char **argv) {
     media.BlockSize=512; media.IoAlign=32; media.LastBlock=(UINT64)st.st_size/512u-1u;
     EFI_BLOCK_IO_PROTOCOL disk={0}; disk.Media=&media; disk.ReadBlocks=read_blocks;
     volume.parent_block=&disk; volume.media=media;
-    volume.io=(IfsBootIo){&volume,(uint64_t)st.st_size,512,sizeof(IfsBootIo),disk_read};
+    init_host(&volume,(uint64_t)st.st_size);
     REQUIRE(posix_memalign(&volume.bounce,32,65536u)==0);
-    REQUIRE(volume.image.api->mount(&volume.io)==0);
-    char label[IFS_BOOT_NAME_BYTES];
-    REQUIRE(volume.image.api->volume_label(label,sizeof(label))==0);
-    REQUIRE(utf8_name(label,volume.label,IFS_BOOT_NAME_BYTES)>0);
+    REQUIRE(mount_volume(&volume)==EFI_SUCCESS);
+    REQUIRE(memcmp(volume.label,L"SOFIXTURE",sizeof(L"SOFIXTURE"))==0);
     EFI_FILE_PROTOCOL *root=NULL,*file=NULL;
     REQUIRE(open_volume(&volume.filesystem,&root)==EFI_SUCCESS && root);
     REQUIRE(root->Open(root,&file,L"\\Nested Directory\\Boot Read Test.bin",EFI_FILE_MODE_WRITE,0)==EFI_WRITE_PROTECTED && !file);
@@ -124,9 +122,9 @@ int main(int argc,char **argv) {
     got=sizeof(buffer); REQUIRE(root->Read(root,&got,buffer)==EFI_SUCCESS && got==needed);
     got=sizeof(buffer); REQUIRE(root->GetInfo(root,&filesystem_info_guid,&got,buffer)==EFI_SUCCESS);
     REQUIRE(((EFI_FILE_SYSTEM_INFO *)buffer)->ReadOnly);
-    REQUIRE(root->Close(root)==EFI_SUCCESS && volume.image.api->unmount()==0);
+    REQUIRE(root->Close(root)==EFI_SUCCESS && volume.image.core->unmount(volume.mounted)==0);
     UINT8 one;
-    REQUIRE(disk_read(&volume,volume.io.media_bytes,&one,1)!=0);
+    REQUIRE(disk_read(&volume,volume.io.volume_bytes,&one,1)!=0);
     media.MediaId++;
     REQUIRE(disk_read(&volume,0,&one,1)!=0);
     REQUIRE(fclose(media_file)==0);
@@ -135,8 +133,8 @@ int main(int argc,char **argv) {
     volume.media.MediaId=media.MediaId;
     media.LastBlock=(UINT64)st.st_size/512u-1u;
     volume.media.LastBlock=media.LastBlock;
-    volume.io.media_bytes=(UINT64)st.st_size;
-    REQUIRE(volume.image.api->mount(&volume.io)!=0);
+    volume.io.volume_bytes=(UINT64)st.st_size;
+    REQUIRE(mount_volume(&volume)!=EFI_SUCCESS);
     free(volume.bounce); REQUIRE(fclose(media_file)==0); BootSoUnload(&volume.image);
     puts("BOOT-SO-UEFI-PROTOCOL-UTF8-READONLY-TRUST-PASS");
     return 0;

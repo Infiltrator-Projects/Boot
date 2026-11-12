@@ -15,6 +15,7 @@
 #define SO_MAX_VOLUMES 32u
 #define SO_MAX_MODULES 8u
 #define SO_PATH_BYTES 4096u
+#define SO_NAME_BYTES 4096u
 #define CONTAINER(pointer,type,member) ((type *)((UINT8 *)(pointer)-offsetof(type,member)))
 static EFI_GUID block_guid=EFI_BLOCK_IO_PROTOCOL_GUID;
 static EFI_GUID filesystem_guid=EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
@@ -41,10 +42,13 @@ static EFI_GUID memory_attributes_guid={0xf4560cf6,0x40ec,0x4b4a,{0xa1,0x92,0xbf
 
 typedef struct SoVolume SoVolume;
 typedef struct {
+    IfsFsEntryV2 entry;
+    char name[SO_NAME_BYTES];
+} SoEntry;
+typedef struct {
     EFI_FILE_PROTOCOL protocol;
     SoVolume *volume;
-    void *context;
-    IfsBootInfo info;
+    SoEntry info;
     UINT64 position, read_bytes;
     UINT32 directory_index;
     char path[SO_PATH_BYTES];
@@ -57,15 +61,15 @@ struct SoVolume {
     EFI_HANDLE parent, child;
     EFI_DEVICE_PATH *path;
     BootSoImage image;
-    IfsBootIo io;
-    CHAR16 label[IFS_BOOT_NAME_BYTES];
+    IfsFsHostRuntimeV2 io;
+    void *mounted;
+    CHAR16 label[SO_NAME_BYTES];
     VOID *bounce_allocation, *bounce;
     SoVolume *next;
 };
 typedef struct {
     VOID *bytes;
     UINTN length;
-    IfsBootManifest manifest;
 } SoModule;
 static SoVolume *volumes;
 static SoModule modules[SO_MAX_MODULES];
@@ -120,9 +124,11 @@ static int image_protect(void *u, void *p, size_t bytes, uint32_t flags) {
     return 0;
 }
 static EFI_STATUS from_result(int status) {
-    if(status==IFS_BOOT_OK) return EFI_SUCCESS;
-    if(status==IFS_BOOT_NOT_FOUND) return EFI_NOT_FOUND;
-    if(status==IFS_BOOT_IO_ERROR) return EFI_DEVICE_ERROR;
+    if(status==IFS_FS_OK) return EFI_SUCCESS;
+    if(status==IFS_FS_NOT_FOUND) return EFI_NOT_FOUND;
+    if(status==IFS_FS_IO_ERROR) return EFI_DEVICE_ERROR;
+    if(status==IFS_FS_NO_MEMORY) return EFI_OUT_OF_RESOURCES;
+    if(status==IFS_FS_UNSUPPORTED) return EFI_UNSUPPORTED;
     return EFI_VOLUME_CORRUPTED;
 }
 /* UTF conversion rejects malformed encodings and drive-selector injection.
@@ -180,7 +186,7 @@ static BOOLEAN make_path(SoFile *parent, const CHAR16 *name, char *out) {
 }
 static UINTN utf8_name(const char *s, CHAR16 *out, UINTN capacity) {
     UINTN count=0, i=0;
-    while(i<IFS_BOOT_NAME_BYTES && s[i]) {
+    while(i<SO_NAME_BYTES && s[i]) {
         UINT32 c=(UINT8)s[i++], minimum=0;
         UINTN extra=0;
         if(c>=0xf0u && c<=0xf4u) { c&=7u; extra=3; minimum=0x10000u; }
@@ -188,7 +194,7 @@ static UINTN utf8_name(const char *s, CHAR16 *out, UINTN capacity) {
         else if(c>=0xc2u && c<=0xdfu) { c&=31u; extra=1; minimum=0x80u; }
         else if(c>=0x80u) return 0;
         while(extra--) {
-            if(i>=IFS_BOOT_NAME_BYTES || ((UINT8)s[i]&0xc0u)!=0x80u) return 0;
+            if(i>=SO_NAME_BYTES || ((UINT8)s[i]&0xc0u)!=0x80u) return 0;
             c=(c<<6)|((UINT8)s[i++]&63u);
         }
         if(c<minimum || c>0x10ffffu || (c>=0xd800u && c<=0xdfffu)) return 0;
@@ -196,7 +202,7 @@ static UINTN utf8_name(const char *s, CHAR16 *out, UINTN capacity) {
         if(c>=0x10000u) { c-=0x10000u; out[count++]=(CHAR16)(0xd800u+(c>>10)); out[count++]=(CHAR16)(0xdc00u+(c&1023u)); }
         else out[count++]=(CHAR16)c;
     }
-    if(i==IFS_BOOT_NAME_BYTES) return 0;
+    if(i==SO_NAME_BYTES) return 0;
     out[count]=0; return count+1u;
 }
 
@@ -211,14 +217,28 @@ static EFI_STATUS EFIAPI file_set_position(EFI_FILE_PROTOCOL *, UINT64);
 static EFI_STATUS EFIAPI file_get_info(EFI_FILE_PROTOCOL *, EFI_GUID *, UINTN *, VOID *);
 static EFI_STATUS EFIAPI file_set_info(EFI_FILE_PROTOCOL *, EFI_GUID *, UINTN, VOID *);
 static EFI_STATUS EFIAPI file_flush(EFI_FILE_PROTOCOL *);
+static void prepare_entry(SoEntry *out) {
+    clear_bytes(out,sizeof(*out));
+    out->entry.structure_bytes=sizeof(out->entry);
+    out->entry.name=out->name;
+    out->entry.name_capacity=sizeof(out->name);
+}
+static BOOLEAN entry_valid(const SoEntry *out) {
+    const IfsFsEntryV2 *entry=&out->entry;
+    if(entry->name!=out->name || entry->name_bytes>=sizeof(out->name) ||
+       entry->type<IFS_FS_ENTRY_FILE || entry->type>IFS_FS_ENTRY_LINK) return FALSE;
+    for(UINT32 i=0;i<entry->name_bytes;++i) if(!out->name[i]) return FALSE;
+    return out->name[entry->name_bytes]==0;
+}
 static EFI_STATUS new_file(SoVolume *volume, const char *path, EFI_FILE_PROTOCOL **out) {
     *out=NULL;
     SoFile *file=pool(sizeof(*file));
     if(!file) return EFI_OUT_OF_RESOURCES;
-    file->context=pool(volume->image.api->file_context_bytes);
-    if(!file->context) { free_pool(file); return EFI_OUT_OF_RESOURCES; }
-    EFI_STATUS status=from_result(volume->image.api->open(path,file->context,&file->info));
-    if(EFI_ERROR(status)) { free_pool(file->context); free_pool(file); return status; }
+    prepare_entry(&file->info);
+    EFI_STATUS status=from_result(volume->image.core->stat(volume->mounted,path,&file->info.entry));
+    if(EFI_ERROR(status) || !entry_valid(&file->info)) {
+        free_pool(file); return EFI_ERROR(status)?status:EFI_VOLUME_CORRUPTED;
+    }
     UINTN i=0; while(path[i]) { file->path[i]=path[i]; ++i; } file->path[i]=0;
     file->volume=volume;
     file->protocol.Revision=EFI_FILE_PROTOCOL_REVISION;
@@ -242,7 +262,7 @@ static EFI_STATUS EFIAPI file_open(EFI_FILE_PROTOCOL *this, EFI_FILE_PROTOCOL **
     *out=NULL;
     if(mode!=EFI_FILE_MODE_READ) return EFI_WRITE_PROTECTED;
     SoFile *parent=(SoFile *)this;
-    if(!(parent->info.attributes&IFS_BOOT_DIRECTORY)) return EFI_UNSUPPORTED;
+    if(parent->info.entry.type!=IFS_FS_ENTRY_DIRECTORY) return EFI_UNSUPPORTED;
     char path[SO_PATH_BYTES];
     if(!make_path(parent,name,path)) return EFI_INVALID_PARAMETER;
     return new_file(parent->volume,path,out);
@@ -250,30 +270,31 @@ static EFI_STATUS EFIAPI file_open(EFI_FILE_PROTOCOL *this, EFI_FILE_PROTOCOL **
 static EFI_STATUS EFIAPI file_close(EFI_FILE_PROTOCOL *this) {
     if(!this) return EFI_INVALID_PARAMETER;
     SoFile *file=(SoFile *)this;
-    EFI_STATUS status=from_result(file->volume->image.api->close(file->context));
     if(diagnostics && file->read_bytes) {
         CHAR16 path[256];
         UINTN i=0; while(file->path[i] && i+1u<256u) { path[i]=(UINT8)file->path[i]; ++i; }
         path[i]=0;
         Print(L"[Boot SO] close %s: %ld bytes read through module\n",path,file->read_bytes);
     }
-    free_pool(file->context); free_pool(file); return status;
+    free_pool(file); return EFI_SUCCESS;
 }
 static EFI_STATUS EFIAPI file_delete(EFI_FILE_PROTOCOL *this) {
     if(!this) return EFI_INVALID_PARAMETER;
     (void)file_close(this); return EFI_WARN_DELETE_FAILURE;
 }
-static EFI_STATUS fill_file_info(const IfsBootInfo *source, UINTN *bytes, VOID *buffer) {
-    CHAR16 name[IFS_BOOT_NAME_BYTES];
-    UINTN chars=utf8_name(source->name,name,IFS_BOOT_NAME_BYTES);
+static EFI_STATUS fill_file_info(const SoEntry *source, UINTN *bytes, VOID *buffer) {
+    CHAR16 name[SO_NAME_BYTES];
+    if(!entry_valid(source)) return EFI_VOLUME_CORRUPTED;
+    UINTN chars=utf8_name(source->name,name,SO_NAME_BYTES);
     if(!chars) return EFI_VOLUME_CORRUPTED;
     UINTN required=SIZE_OF_EFI_FILE_INFO+chars*sizeof(CHAR16);
     if(*bytes<required) { *bytes=required; return EFI_BUFFER_TOO_SMALL; }
     if(!buffer) return EFI_INVALID_PARAMETER;
     clear_bytes(buffer,required);
     EFI_FILE_INFO *info=buffer;
-    info->Size=required; info->FileSize=source->bytes; info->PhysicalSize=source->bytes;
-    info->Attribute=source->attributes&EFI_FILE_VALID_ATTR;
+    info->Size=required; info->FileSize=source->entry.size_bytes; info->PhysicalSize=source->entry.size_bytes;
+    info->Attribute=EFI_FILE_READ_ONLY;
+    if(source->entry.type==IFS_FS_ENTRY_DIRECTORY) info->Attribute|=EFI_FILE_DIRECTORY;
     info->CreateTime.Year=info->LastAccessTime.Year=info->ModificationTime.Year=1980;
     info->CreateTime.Month=info->LastAccessTime.Month=info->ModificationTime.Month=1;
     info->CreateTime.Day=info->LastAccessTime.Day=info->ModificationTime.Day=1;
@@ -283,29 +304,30 @@ static EFI_STATUS fill_file_info(const IfsBootInfo *source, UINTN *bytes, VOID *
 static EFI_STATUS EFIAPI file_read(EFI_FILE_PROTOCOL *this, UINTN *bytes, VOID *buffer) {
     if(!this || !bytes || (!buffer && *bytes)) return EFI_INVALID_PARAMETER;
     SoFile *file=(SoFile *)this;
-    if(file->info.attributes&IFS_BOOT_DIRECTORY) {
-        IfsBootInfo info;
-        int result=file->volume->image.api->directory_entry(file->context,file->directory_index,&info);
-        if(result==IFS_BOOT_END) { *bytes=0; return EFI_SUCCESS; }
-        if(result!=IFS_BOOT_OK) return from_result(result);
+    if(file->info.entry.type==IFS_FS_ENTRY_DIRECTORY) {
+        SoEntry info;
+        prepare_entry(&info);
+        int result=file->volume->image.core->directory_entry(file->volume->mounted,file->path,
+                                                            file->directory_index,&info.entry);
+        if(result==IFS_FS_END) { *bytes=0; return EFI_SUCCESS; }
+        if(result!=IFS_FS_OK) return from_result(result);
+        if(file->directory_index==UINT32_MAX) return EFI_VOLUME_CORRUPTED;
         EFI_STATUS status=fill_file_info(&info,bytes,buffer);
         if(!EFI_ERROR(status)) ++file->directory_index;
         return status;
     }
     UINTN requested=*bytes;
-    if(file->position>=file->info.bytes) { *bytes=0; return EFI_SUCCESS; }
-    if(requested>file->info.bytes-file->position) requested=(UINTN)(file->info.bytes-file->position);
+    const UINT64 size=file->info.entry.size_bytes;
+    if(file->position>=size) { *bytes=0; return EFI_SUCCESS; }
+    if(requested>size-file->position) requested=(UINTN)(size-file->position);
     *bytes=0;
     while(*bytes<requested) {
         UINTN chunk=requested-*bytes;
         if(chunk>1024u*1024u) chunk=1024u*1024u;
-        UINT32 got=0;
-        EFI_STATUS status=from_result(file->volume->image.api->read(file->context,file->position,
-                                           (UINT8 *)buffer+*bytes,(UINT32)chunk,&got));
-        if(got>chunk) return EFI_VOLUME_CORRUPTED;
-        *bytes+=got; file->position+=got; file->read_bytes+=got;
+        EFI_STATUS status=from_result(file->volume->image.core->read(file->volume->mounted,
+            file->path,file->position,(UINT8 *)buffer+*bytes,(UINT32)chunk));
         if(EFI_ERROR(status)) return status;
-        if(!got) return EFI_VOLUME_CORRUPTED;
+        *bytes+=chunk; file->position+=chunk; file->read_bytes+=chunk;
     }
     return EFI_SUCCESS;
 }
@@ -315,17 +337,17 @@ static EFI_STATUS EFIAPI file_write(EFI_FILE_PROTOCOL *this, UINTN *bytes, VOID 
 static EFI_STATUS EFIAPI file_get_position(EFI_FILE_PROTOCOL *this, UINT64 *position) {
     if(!this || !position) return EFI_INVALID_PARAMETER;
     SoFile *file=(SoFile *)this;
-    if(file->info.attributes&IFS_BOOT_DIRECTORY) return EFI_UNSUPPORTED;
+    if(file->info.entry.type==IFS_FS_ENTRY_DIRECTORY) return EFI_UNSUPPORTED;
     *position=file->position; return EFI_SUCCESS;
 }
 static EFI_STATUS EFIAPI file_set_position(EFI_FILE_PROTOCOL *this, UINT64 position) {
     if(!this) return EFI_INVALID_PARAMETER;
     SoFile *file=(SoFile *)this;
-    if(file->info.attributes&IFS_BOOT_DIRECTORY) {
+    if(file->info.entry.type==IFS_FS_ENTRY_DIRECTORY) {
         if(position) return EFI_UNSUPPORTED;
         file->directory_index=0; return EFI_SUCCESS;
     }
-    file->position=position==~(UINT64)0?file->info.bytes:position;
+    file->position=position==~(UINT64)0?file->info.entry.size_bytes:position;
     return EFI_SUCCESS;
 }
 static EFI_STATUS EFIAPI file_get_info(EFI_FILE_PROTOCOL *this, EFI_GUID *type,
@@ -345,8 +367,8 @@ static EFI_STATUS EFIAPI file_get_info(EFI_FILE_PROTOCOL *this, EFI_GUID *type,
     if(fs) {
         EFI_FILE_SYSTEM_INFO *info=buffer;
         info->Size=required; info->ReadOnly=TRUE;
-        info->VolumeSize=file->volume->io.media_bytes;
-        info->BlockSize=file->volume->io.block_bytes;
+        info->VolumeSize=file->volume->io.volume_bytes;
+        info->BlockSize=file->volume->io.logical_sector_bytes;
         copy_bytes(info->VolumeLabel,label,chars*sizeof(CHAR16));
     } else copy_bytes(buffer,label,chars*sizeof(CHAR16));
     *bytes=required; return EFI_SUCCESS;
@@ -359,12 +381,12 @@ static EFI_STATUS EFIAPI file_flush(EFI_FILE_PROTOCOL *this) {
     return this?EFI_SUCCESS:EFI_INVALID_PARAMETER;
 }
 
-static int IFS_BOOT_CALL disk_read(void *context, uint64_t offset, void *out, uint32_t bytes) {
+static int disk_read(void *context, uint64_t offset, void *out, uint32_t bytes) {
     SoVolume *volume=context;
     EFI_BLOCK_IO_PROTOCOL *disk=volume->parent_block;
     if(!disk->Media || !disk->Media->MediaPresent || disk->Media->MediaId!=volume->media.MediaId ||
-        disk->Media->BlockSize!=volume->media.BlockSize || offset>volume->io.media_bytes ||
-        bytes>volume->io.media_bytes-offset) return -1;
+        disk->Media->BlockSize!=volume->media.BlockSize || offset>volume->io.volume_bytes ||
+        bytes>volume->io.volume_bytes-offset || (!out && bytes)) return -1;
     UINT32 block=volume->media.BlockSize;
     UINT8 *destination=out;
     while(bytes) {
@@ -406,12 +428,41 @@ BOOLEAN BootSoHandleMatches(EFI_HANDLE handle, const CHAR16 *id) {
     if(!id || !id[0]) return FALSE;
     for(SoVolume *v=volumes;v;v=v->next) {
         if(v->child!=handle) continue;
-        for(UINTN i=0;i<16u;++i) {
-            if(id[i]!=(UINT8)v->image.manifest.format_id[i]) return FALSE;
+        for(UINTN i=0;i<sizeof(v->image.format_id);++i) {
+            if(id[i]!=(UINT8)v->image.format_id[i]) return FALSE;
             if(!id[i]) return TRUE;
         }
     }
     return FALSE;
+}
+static void *host_allocate(void *context,size_t bytes) { (void)context; return pool(bytes); }
+static void host_release(void *context,void *data) { (void)context; free_pool(data); }
+static void init_host(SoVolume *volume,UINT64 bytes) {
+    volume->io=(IfsFsHostRuntimeV2){
+        .abi_version=IFS_FS_HOST_ABI_V2,.structure_bytes=sizeof(volume->io),
+        .capabilities=IFS_FS_HOST_READ_ONLY,.volume_bytes=bytes,
+        .logical_sector_bytes=volume->media.BlockSize,.physical_sector_bytes=volume->media.BlockSize,
+        .maximum_transfer_bytes=65536u,.context=volume,.read_at=disk_read,
+        .allocate=host_allocate,.release=host_release
+    };
+}
+static EFI_STATUS mount_volume(SoVolume *volume) {
+    IfsFsVolumeInfoV2 info={.structure_bytes=sizeof(info)};
+    int result=volume->image.core->mount(&volume->io,&volume->mounted,&info);
+    if(result!=IFS_FS_OK || !volume->mounted) return EFI_UNSUPPORTED;
+    char label[SO_NAME_BYTES]={0};
+    const IfsFsVolumeOpsV2 *ops=volume->image.volume;
+    if(ops && ops->label) {
+        UINT32 bytes=0;
+        if(ops->label(volume->mounted,label,sizeof(label),&bytes)!=IFS_FS_OK ||
+           bytes>=sizeof(label) || label[bytes]) goto invalid;
+    }
+    if(!utf8_name(label[0]?label:volume->image.format_id,volume->label,SO_NAME_BYTES)) goto invalid;
+    return EFI_SUCCESS;
+invalid:
+    (void)volume->image.core->unmount(volume->mounted);
+    volume->mounted=NULL;
+    return EFI_VOLUME_CORRUPTED;
 }
 static EFI_STATUS bind_module(SoModule *module, EFI_HANDLE handle) {
     EFI_BLOCK_IO_PROTOCOL *disk=NULL;
@@ -436,17 +487,13 @@ static EFI_STATUS bind_module(SoModule *module, EFI_HANDLE handle) {
         free_pool(volume); return EFI_LOAD_ERROR;
     }
     volume->parent=handle; volume->parent_block=disk; volume->media=*disk->Media;
-    volume->io=(IfsBootIo){volume,(disk->Media->LastBlock+1u)*disk->Media->BlockSize,
-                           disk->Media->BlockSize,sizeof(IfsBootIo),disk_read};
+    init_host(volume,(disk->Media->LastBlock+1u)*disk->Media->BlockSize);
     volume->bounce_allocation=pool(65536u+65536u);
     if(!volume->bounce_allocation) { status=EFI_OUT_OF_RESOURCES; goto failure; }
     UINTN align=disk->Media->IoAlign>1u?disk->Media->IoAlign:1u;
     volume->bounce=(VOID *)(((UINTN)volume->bounce_allocation+align-1u)&~(align-1u));
-    if(volume->image.api->mount(&volume->io)!=0) { status=EFI_UNSUPPORTED; goto failure; }
-    char label[IFS_BOOT_NAME_BYTES];
-    if(volume->image.api->volume_label(label,sizeof(label))!=0) { status=EFI_VOLUME_CORRUPTED; goto unmount; }
-    if(!label[0]) copy_bytes(label,volume->image.manifest.display_name,sizeof(volume->image.manifest.display_name));
-    if(!utf8_name(label,volume->label,IFS_BOOT_NAME_BYTES)) { status=EFI_VOLUME_CORRUPTED; goto unmount; }
+    status=mount_volume(volume);
+    if(EFI_ERROR(status)) goto failure;
     VENDOR_DEVICE_PATH node;
     clear_bytes(&node,sizeof(node));
     node.Header.Type=MEDIA_DEVICE_PATH; node.Header.SubType=MEDIA_VENDOR_DP;
@@ -467,7 +514,7 @@ static EFI_STATUS bind_module(SoModule *module, EFI_HANDLE handle) {
     if(diagnostics) Print(L"[Boot SO] mounted module on read-only child handle\n");
     return EFI_SUCCESS;
 unmount:
-    (void)volume->image.api->unmount();
+    (void)volume->image.core->unmount(volume->mounted);
 failure:
     free_pool(volume->path); free_pool(volume->bounce_allocation);
     BootSoUnload(&volume->image); free_pool(volume); return status;
