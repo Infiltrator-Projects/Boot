@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnu-efi gcc make binutils curl xz-utils python3-pil qemu-system-x86 ovmf dosfstools mtools busybox-static
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnu-efi gcc g++ make binutils curl xz-utils libarchive-dev python3-pil qemu-system-x86 ovmf dosfstools mtools busybox-static
       - name: Check out the canonical FAT16 SO implementation for integration tests
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
