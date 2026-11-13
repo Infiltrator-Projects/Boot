@@ -14,32 +14,18 @@ fi
 "$cc" -std=c11 -O2 -Wall -Wextra -Werror \
     "${sanitizers[@]}" \
     "$root/refind/so_elf.c" "$root/tests/so_module_test.c" -o "$work/module-test"
-python3 "$root/tests/test_so_malformed.py" "$work/module-test" "$module"
+cxx=${CXX:-c++}
+"$cxx" -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -pthread \
+    "$root/tests/so_fixture_test.cpp" -o "$work/so-fixtures"
+"$work/so-fixtures" malformed "$work/module-test" "$module"
 truncate -s 32M "$work/media.img"
 mkfs.fat -F 16 -I -n SOFIXTURE "$work/media.img"
-python3 - "$work/data.bin" <<'PY'
-from pathlib import Path
-import sys
-Path(sys.argv[1]).write_bytes(bytes((i*37+3)%256 for i in range(137123)))
-PY
+"$work/so-fixtures" generate-data "$work/data.bin"
 mmd -i "$work/media.img" '::/Nested Directory'
 mcopy -i "$work/media.img" "$work/data.bin" '::/Nested Directory/Boot Read Test.bin'
 mcopy -i "$work/media.img" "$work/data.bin" '::/Nested Directory/Café Ü.bin'
 before=$(sha256sum "$work/media.img")
-python3 - "$work/media.img" "$work/whole-disk.img" <<'PY'
-from pathlib import Path
-import struct
-import sys
-source = Path(sys.argv[1]).read_bytes()
-mbr = bytearray(512)
-mbr[446+4] = 6
-struct.pack_into('<II', mbr, 446+8, 2048, len(source)//512)
-mbr[510:] = b'\x55\xaa'
-with Path(sys.argv[2]).open('wb') as output:
-    output.write(mbr)
-    output.seek(1024*1024)
-    output.write(source)
-PY
+"$work/so-fixtures" whole-disk "$work/media.img" "$work/whole-disk.img"
 "$work/module-test" "$module" "$work/media.img" '/Nested Directory/Boot Read Test.bin' "$work/data.bin"
 prefix=${GNU_EFI_PREFIX:-/usr}
 "$cc" -std=c11 -O2 -fshort-wchar -ffunction-sections -fdata-sections \
