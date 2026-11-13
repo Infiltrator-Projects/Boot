@@ -102,7 +102,6 @@
 #define GPTSYNC_NAMES           L"gptsync.efi"
 #define GDISK_NAMES             L"gdisk.efi"
 #define NETBOOT_NAMES           L"ipxe.efi"
-#define DRIVER_DIRS             L"drivers"
 #define FALLBACK_FULLNAME       L"EFI\\BOOT\\boot.efi" /* Not really correct */
 #define FALLBACK_BASENAME       L"boot.efi"            /* Not really correct */
 

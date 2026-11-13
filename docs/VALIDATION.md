@@ -253,6 +253,13 @@ Removing bundled drivers does not remove drivers independently installed on an
 existing EFI partition. Fresh targets require the selected external modules.
 Build/package validation of this move is not a new physical-firmware boot result.
 
+## BOOT 0.1.46 filesystem extension selection
+
+The OVMF handoff fixture stages valid EFI images in the retired default and
+configured driver directories. BOOT must reach Linux through the independent
+Common V2 module without attempting those EFI images. The rejected-module
+case must remain unable to start the test kernel.
+
 ## Boot 0.1.22 icon directory loading
 
 The icon reader now opens the configured directory first and reads leaf

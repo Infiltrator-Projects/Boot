@@ -53,7 +53,6 @@ LibScanHandleDatabase (
   UINT32      **HandleType
   );
 EFI_STATUS ConnectAllDriversToAllControllers(VOID);
-VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle);
 BOOLEAN LoadDrivers(VOID);
 
 /* Opt-in, RAM-only driver progress. No disk logging or EFI variable writes. */

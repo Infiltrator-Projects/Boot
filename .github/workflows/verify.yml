@@ -118,13 +118,11 @@ jobs:
           assert '!BlockIo->Media->LogicalPartition' not in targeted
           assert '&gMyEfiSimpleFileSystemProtocolGuid' in targeted
           assert 'if (!EFI_ERROR(Status)) {\n            NumFound++;' in s
-          assert 'GlobalConfig.DriverDirs[0] != 0' in s
-          assert 'ConnectAllDriversToAllControllers();\n        else {' in s
           startup = s[s.index('BOOLEAN LoadDrivers(VOID)'):]
-          assert startup.count('ConnectAllDriversToAllControllers();') == 1
+          assert 'ConnectAllDriversToAllControllers();' not in startup
           assert startup.count('ConnectFilesystemBlockDevices();') == 2
           assert 'if (NumStorage > 0U)' in startup
-          assert 'IsDriver && !StorageDriver && !EFI_ERROR(Status)' in Path('refind/launch_efi.c').read_text()
+          assert startup.index('ConnectFilesystemBlockDevices();') < startup.index('BootSoLoadDirectory(')
           PY_BOOT_DRIVER_BINDING
           # The manager must build with no filesystem implementation checkout.
           test ! -e filesystems
@@ -407,7 +405,7 @@ jobs:
             git push origin "refs/tags/$tag"
           fi
           if ! gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"; then
-            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Infiltrator Boot $version for x86-64 UEFI. Install the verified infiltrator-boot Debian package from the Infiltrator APT repository or download the DEB here. Its payload includes Boot, its configuration template, fonts and artwork; filesystem drivers are supplied independently by Filesystems. APT installs the managed package; ESP deployment is always opt-in: sudo infiltrator-boot-deploy --install-new --confirm for a new directory or --update-existing --confirm to update managed graphics and executable while retaining existing boot.conf and independent drivers. --recover --confirm restores the prior installation. None of these commands changes NVRAM or firmware BootOrder; first boot selection is configured separately. The EFI bundle and individual build products are validated in CI, not published as duplicate release assets. Physical firmware, Secure Boot and recovery qualification remain separate."
+            gh release create "$tag" --verify-tag --draft --title "Boot $version" --notes "Infiltrator Boot $version for x86-64 UEFI. BOOT extends firmware filesystem access through Common V2 shared objects. Install the verified Debian package from the Infiltrator APT repository or download the DEB here. The package stages BOOT, configuration, fonts and artwork. For deliberate ESP deployment use sudo infiltrator-boot-deploy --install-new --confirm, --update-existing --confirm or --recover --confirm. These commands preserve firmware boot order. Direct boot from a volume requires a compatible shared object or a firmware-provided reader. Check the filesystem loader contract before replacing an older BOOT installation."
             gh release view "$tag" --json isDraft > "$RUNNER_TEMP/release-state"
           fi
           draft=$(jq -r .isDraft "$RUNNER_TEMP/release-state")

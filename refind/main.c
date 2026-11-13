@@ -145,7 +145,6 @@ REFIT_CONFIG GlobalConfig = { /* TextOnly = */ FALSE,
                               /* *DontScanFirmware = */ NULL,
                               /* *WindowsRecoveryFiles = */ NULL,
                               /* *MacOSRecoveryFiles = */ NULL,
-                              /* *DriverDirs = */ NULL,
                               /* *IconsDir = */ NULL,
                               /* *LinuxPrefixes = */ NULL,
                               /* *LinuxMatchPatterns = */ NULL,
@@ -242,8 +241,8 @@ VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
     FreeList((VOID ***) &(MainMenu.Entries), &MainMenu.EntryCount);
     MainMenu.Entries = NULL;
     MainMenu.EntryCount = 0;
-    // ConnectAllDriversToAllControllers() can cause system hangs with some
-    // buggy filesystem drivers, so do it only if necessary....
+    // Some firmware controllers can hang during a reconnect. Reserve the
+    // full firmware pass for requests that need to rediscover devices.
     if (Reconnect) {
         ConnectAllDriversToAllControllers();
         ScanVolumes();

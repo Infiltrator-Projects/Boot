@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.46 — 2026-11-13
+
+- Use Common V2 shared objects for all BOOT-loaded filesystem extensions.
+- Finish storage-controller and partition discovery before binding filesystem modules.
+- Preserve previously installed resources for rollback during ESP upgrades.
+
 ## 0.1.45 — 2026-11-13
 
 - Load filesystem shared objects exclusively through Common V2.

@@ -64,7 +64,6 @@
 #include "../include/refit_call_wrapper.h"
 #include "launch_efi.h"
 #include "log.h"
-#include "driver_support.h"
 #include "scan.h"
 #include "so_uefi.h"
 #include "menu.h"
@@ -419,8 +418,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR8 OSType,
                          IN BOOLEAN Verbose,
                          IN BOOLEAN IsDriver,
-                         IN BOOLEAN LinuxMemoryFirst,
-                         IN BOOLEAN StorageDriver)
+                         IN BOOLEAN LinuxMemoryFirst)
 {
     EFI_STATUS              Status, ReturnStatus;
     EFI_HANDLE              ChildImageHandle, ChildImageHandle2;
@@ -584,17 +582,6 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     ErrorInfo = PoolPrint(L"returned from %s", ImageTitle);
     CheckError(Status, ErrorInfo);
     MyFreePool(ErrorInfo);
-    if (IsDriver && !StorageDriver && !EFI_ERROR(Status)) {
-        // Only filesystem drivers receive DiskIo compatibility rebinding;
-        // storage providers self-bind without disconnecting other devices.
-        // Below should have no effect on most systems, but works
-        // around bug with some EFIs that prevents filesystem drivers
-        // from binding to partitions.
-        BootDriverDiagnosticProgress(L"compatibility binding", ImageTitle, FALSE, EFI_SUCCESS);
-        ConnectFilesystemDriver(ChildImageHandle);
-        BootDriverDiagnosticProgress(L"compatibility binding", ImageTitle, TRUE, EFI_SUCCESS);
-    }
-
     // re-open file handles
     ReinitRefitLib();
     LOG(1, LOG_LINE_NORMAL, L"Program has returned %d", Status);
@@ -711,7 +698,7 @@ VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
     StoreLoaderName(SelectionName);
     Status = StartEFIImage(Entry->Volume, Entry->LoaderPath, Entry->LoadOptions,
                            LoaderPath, Entry->OSType, !Entry->UseGraphicsMode, FALSE,
-                           Entry->LinuxMemoryFirst, FALSE);
+                           Entry->LinuxMemoryFirst);
     // An EFI stub normally does not return. CheckError() already pauses on
     // reported failures; also make a clean but unexpected return observable.
     if (Entry->OSType == 'L' && !EFI_ERROR(Status)) {
@@ -732,6 +719,6 @@ VOID StartTool(IN LOADER_ENTRY *Entry) {
     StoreLoaderName(Entry->me.Title);
     LoaderPath = Basename(Entry->LoaderPath);
     StartEFIImage(Entry->Volume, Entry->LoaderPath, Entry->LoadOptions,
-                  LoaderPath, Entry->OSType, TRUE, FALSE, FALSE, FALSE);
+                  LoaderPath, Entry->OSType, TRUE, FALSE, FALSE);
     MyFreePool(LoaderPath);
 } /* VOID StartTool() */

@@ -24,7 +24,9 @@ header is the exact Libraries header at `4c92c8dcd7e03afd4bab3105e143dbabd72c8ad
 The native installer carries this header so it can compile from its verified
 payload. Boot requires a Common V2 descriptor, a freestanding or firmware
 profile, and CORE mount, stat, list and read operations. A module offering
-only a legacy entry point is rejected before execution.
+only a legacy entry point is rejected before execution. BOOT does not scan
+the old `drivers` directories or load files from `scan_driver_dirs`. Optional
+storage-controller drivers provide BlockIo before the module scan.
 
 The profile is little-endian x86-64 ELF ET_DYN with SysV calls, relative
 relocations and no red zone, constructors, TLS, imports or host libc.
@@ -71,8 +73,8 @@ menuentry "Linux through FAT16" {
 
 `filesystem_module` matches the bound module's immutable format ID. Missing,
 foreign or rejected modules disable the entry; launch checks the handle again.
-Submenu copies retain the requirement. Existing independently installed EFI
-drivers remain a transitional compatibility path for entries without it.
+Submenu copies retain the requirement. Entries without it may use a
+firmware-provided reader, including the ESP reader used for EFI bootloaders.
 
 ## Trust and permissions
 

@@ -1,6 +1,6 @@
 # Architecture
 
-**Filesystem loading:** [BOOT loads the same filesystem `.so` as applications](FILESYSTEM_SO_LOADER_CONTRACT.md). The generic x86-64 loader and read-only UEFI bridge are implemented and exercised with FAT16 in OVMF. Separate UEFI drivers remain transitional compatibility mechanisms for other formats; kernel SO integration remains separate.
+**Filesystem loading:** [BOOT loads filesystem shared objects through Common V2](FILESYSTEM_SO_LOADER_CONTRACT.md). The generic x86-64 loader and read-only UEFI bridge are exercised with the same FAT16 module bytes used by applications in OVMF. Kernel SO integration is separate.
 
 ## Purpose
 
@@ -48,7 +48,7 @@ Firmware-facing code owns UEFI protocols, handles, variables, memory and platfor
 
 Filesystem drivers and adapters expose bounded read access required for discovery and loading. The default product contract is read-only. Filesystem policy belongs to the filesystem integration boundary, not to presentation or boot selection code.
 
-**Currently** the runtime filesystem extension contract is EFI Driver Binding + EFI Simple File System, **not** a named filesystem embedded in Boot's OS scanner. The planned generic loader adapts trusted filesystem `.so` modules to these UEFI services without requiring a separate per-format `.efi` distribution. Boot loads independently installed drivers in `drivers_x64` before scanning volumes, and asks firmware to bind them only to present BlockIo handles lacking SimpleFileSystem. This includes logical partitions **and native whole-disk layouts**; requiring `LogicalPartition` would rule out future Amiga RDB probing. Each driver must reject unsupported formats quickly through its EFI driver binding interface. Boot then rescans volumes and discovers boot files using the standard EFI file APIs. It does not parse ext, AmigaFS or another format in its UI or kernel handoff.
+BOOT loads filesystem extensions exclusively from `filesystems_x64/` through Common V2. The bridge probes media-bearing BlockIo handles, including partitions and whole disks, and publishes EFI Simple File System for compatible modules. BOOT then discovers boot files through the EFI file APIs. Firmware-provided readers still handle the bootstrap ESP and other volumes they support.
 
 
 A Linux EFI-stub image normally uses UEFI `LoadImage` with a device path.
@@ -178,15 +178,14 @@ shows confirmed progress, and calls firmware LoadImage once with both the
 complete memory buffer and the **original device path**. This retains source
 filesystem context for `initrd=` and firmware image security validation.
 Unknown modes disable the manual entry; the memory option on a non-Linux
-target also disables it. Neither the independent filesystem drivers nor other
-loaders change. A blocked synchronous `EFI_FILE_PROTOCOL.Read` cannot
+target also disables it. A blocked synchronous `EFI_FILE_PROTOCOL.Read` cannot
 provide heartbeat callbacks or be interrupted by the Boot UI.
 
 ## Portable storage-controller driver stage — 0.1.34
 
 Boot loads optional standalone UEFI storage transport drivers in
-`storage_x64/` (or legacy `storage/`) **before** loading filesystem drivers
-from `drivers_x64/`. All paths are relative to the currently running Boot
+`storage_x64/` or `storage/` before enumerating BlockIo handles for Common V2
+modules in `filesystems_x64/`. All paths are relative to the currently running Boot
 executable. Missing storage directories are a no-op: Boot retains the
 firmware-provided EFI BlockIo/DiskIo stack on ordinary computers.
 
@@ -207,14 +206,9 @@ This is an architectural separation and loading-order correction, **not**
 a claim that a native Dell RTS525A transport exists or that the physical
 OFS SD timeout has been resolved.
 
-Boot 0.1.35 additionally separates storage providers from the inherited
-filesystem-only DiskIo compatibility rebinding hook. A storage provider's
-EFI launch never invokes `ConnectFilesystemDriver`, which can disconnect
-partition users on firmware with unusual protocol ownership. The
-optional provider stage gets a bounded second BlockIo enumeration so
-new partition children created from whole-disk storage handles can
-receive filesystem drivers, without changing normal boot discovery
-when no storage provider is installed.
+The optional transport stage makes a second BlockIo connection pass so
+partition children published by the first pass are available before Common V2
+probing. BOOT leaves existing DiskIo bindings in place.
 
 ## Common V2 filesystem modules
 

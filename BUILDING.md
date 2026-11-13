@@ -65,7 +65,8 @@ The packaged `infiltrator-boot-deploy` command supports explicit
 The first-install operation lays out the executable, configuration and all
 graphics/resources without changing NVRAM. The updater stages and verifies a
 complete replacement directory, preserving the current user `boot.conf`,
-external `drivers_x64/`, independent `filesystems_x64/` and custom art.
+independent `filesystems_x64/` and custom art. An installation with a prior EFI
+filesystem reader or an unresolved driver configuration is kept in place.
 A copy of the prior tree is retained for rollback. Firmware entry registration
 remains Setup-owned and the host's existing boot path is not changed.
 

@@ -174,16 +174,6 @@ CHAR16 *BootGetDriverDiagnosticLine(IN UINTN Line) {
     return NULL;
 }
 
-#if defined (EFIX64)
-#define DRIVER_DIRS             L"drivers,drivers_x64"
-#elif defined (EFI32)
-#define DRIVER_DIRS             L"drivers,drivers_ia32"
-#elif defined (EFIAARCH64)
-#define DRIVER_DIRS             L"drivers,drivers_aa64"
-#else
-#define DRIVER_DIRS             L"drivers"
-#endif
-
 // Following "global" constants are from EDK2's AutoGen.c....
 EFI_GUID gMyEfiLoadedImageProtocolGuid = { 0x5B1B31A1, 0x9562, 0x11D2, { 0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
 EFI_GUID gMyEfiDriverBindingProtocolGuid = { 0x18A031AB, 0xB443, 0x4D1A, { 0xA5, 0xC0, 0x0C, 0x09, 0x26, 0x1E, 0x9F, 0x71 }};
@@ -191,7 +181,6 @@ EFI_GUID gMyEfiDriverConfigurationProtocolGuid = { 0x107A772B, 0xD5E1, 0x11D4, {
 EFI_GUID gMyEfiDriverDiagnosticsProtocolGuid = { 0x0784924F, 0xE296, 0x11D4, { 0x9A, 0x49, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D }};
 EFI_GUID gMyEfiComponentNameProtocolGuid = { 0x107A772C, 0xD5E1, 0x11D4, { 0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D }};
 EFI_GUID gMyEfiDevicePathProtocolGuid = { 0x09576E91, 0x6D3F, 0x11D2, { 0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
-EFI_GUID gMyEfiDiskIoProtocolGuid = { 0xCE345171, 0xBA0B, 0x11D2, { 0x8E, 0x4F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
 EFI_GUID gMyEfiBlockIoProtocolGuid = { 0x964E5B21, 0x6459, 0x11D2, { 0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
 EFI_GUID gMyEfiSimpleFileSystemProtocolGuid = { 0x964E5B22, 0x6459, 0x11D2, { 0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
 
@@ -530,126 +519,9 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
 }
 #endif
 
-/*
- * ConnectFilesystemDriver() is modified from DisconnectInvalidDiskIoChildDrivers()
- * in Clover (https://sourceforge.net/projects/cloverefiboot/), which is derived
- * from rEFIt. The refit/main.c file from which this function was taken continues
- * to bear rEFIt's original copyright/licence notice (BSD); modifications by
- * Roderick Smith (2016) are GPLv3.
- */
-/**
- * Some UEFI's (like HPQ EFI from HP notebooks) have DiskIo protocols
- * opened BY_DRIVER (by Partition driver in HP case) even when no file system
- * is produced from this DiskIo. This then blocks our FS drivers from connecting
- * and producing file systems.
- * To fix it: we will disconnect drivers that connected to DiskIo BY_DRIVER
- * if this is partition volume and if those drivers did not produce file system,
- * then try to connect every unconnected device to the driver whose handle is
- * passed to us. This should have no effect on systems unaffected by this EFI
- * bug/quirk.
- */
-VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
-    EFI_STATUS                            Status;
-    UINTN                                 HandleCount = 0;
-    UINTN                                 Index;
-    UINTN                                 OpenInfoIndex;
-    EFI_HANDLE                            *Handles = NULL;
-    MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL       *Fs;
-    MY_EFI_BLOCK_IO_PROTOCOL                 *BlockIo;
-    EFI_OPEN_PROTOCOL_INFORMATION_ENTRY   *OpenInfo;
-    UINTN                                 OpenInfoCount;
-    EFI_HANDLE                            DriverHandleList[2];
-
-    //
-    // Get all DiskIo handles
-    //
-    Status = refit_call5_wrapper(gBS->LocateHandleBuffer,
-                                 ByProtocol,
-                                 &gMyEfiDiskIoProtocolGuid,
-                                 NULL,
-                                 &HandleCount,
-                                 &Handles);
-    if (EFI_ERROR(Status) || HandleCount == 0)
-        return;
-
-    //
-    // Check every DiskIo handle
-    //
-    for (Index = 0; Index < HandleCount; Index++) {
-        //
-        // If this is not partition - skip it.
-        // This is then whole disk and DiskIo
-        // should be opened here BY_DRIVER by Partition driver
-        // to produce partition volumes.
-        //
-        Status = refit_call3_wrapper(gBS->HandleProtocol,
-                                     Handles[Index],
-                                     &gMyEfiBlockIoProtocolGuid,
-                                     (VOID **) &BlockIo);
-        if (EFI_ERROR (Status))
-            continue;
-        if (BlockIo->Media == NULL || !BlockIo->Media->LogicalPartition)
-            continue;
-
-        //
-        // If SimpleFileSystem is already produced - skip it, this is ok
-        //
-        Status = refit_call3_wrapper(gBS->HandleProtocol,
-                                     Handles[Index],
-                                     &gMyEfiSimpleFileSystemProtocolGuid,
-                                     (VOID **) &Fs);
-        if (Status == EFI_SUCCESS)
-            continue;
-
-        //
-        // If no SimpleFileSystem on this handle but DiskIo is opened BY_DRIVER
-        // then disconnect this connection and try to connect our driver to it
-        //
-        Status = refit_call4_wrapper(gBS->OpenProtocolInformation,
-                                     Handles[Index],
-                                     &gMyEfiDiskIoProtocolGuid,
-                                     &OpenInfo,
-                                     &OpenInfoCount);
-        if (EFI_ERROR (Status))
-            continue;
-        DriverHandleList[1] = NULL;
-        for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
-            if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
-                BootDriverDiagnosticProgress(L"compat DisconnectController",
-                                             L"DiskIo partition", FALSE, EFI_SUCCESS);
-                Status = refit_call3_wrapper(gBS->DisconnectController,
-                                             Handles[Index],
-                                             OpenInfo[OpenInfoIndex].AgentHandle,
-                                             NULL);
-                BootDriverDiagnosticProgress(L"compat DisconnectController",
-                                             L"DiskIo partition", TRUE, Status);
-                if (!(EFI_ERROR(Status))) {
-                    DriverHandleList[0] = DriverHandle;
-                    BootDriverDiagnosticProgress(L"compat ConnectController",
-                                                 L"DiskIo partition", FALSE, EFI_SUCCESS);
-                    Status = refit_call4_wrapper(gBS->ConnectController,
-                                                 Handles[Index],
-                                                 DriverHandleList,
-                                                 NULL,
-                                                 FALSE);
-                    BootDriverDiagnosticProgress(L"compat ConnectController",
-                                                 L"DiskIo partition", TRUE, Status);
-                } // if
-            } // if
-        } // for
-        MyFreePool (OpenInfo);
-    }
-    MyFreePool(Handles);
-} // VOID ConnectFilesystemDriver()
-
-// Bundled filesystem drivers may support GPT/MBR partitions, optical media,
-// or native whole-disk layouts (such as Amiga RDB). They expose standard UEFI
-// protocols and decide independently whether they support each block device.
-//
-// Restrict binding to media-bearing BlockIo handles with no filesystem;
-// never reconnect unrelated firmware controllers. In particular, do not
-// require LogicalPartition: it would prevent native whole-disk drivers from
-// discovering their own on-disk partition maps.
+/* Give firmware and the installed storage transport drivers a chance to
+ * finish creating BlockIo children before the Common V2 module scan.
+ * Restrict connections to media-bearing handles without a filesystem. */
 static VOID ConnectFilesystemBlockDevices(VOID) {
     EFI_STATUS Status;
     EFI_HANDLE *Handles = NULL;
@@ -711,7 +583,7 @@ static VOID ConnectFilesystemBlockDevices(VOID) {
 
 // Scan a directory for drivers.
 // Originally from rEFIt's main.c (BSD), but modified since then (GPLv3).
-static UINTN ScanDriverDir(IN CHAR16 *Path, IN BOOLEAN StorageProvider)
+static UINTN ScanStorageDriverDir(IN CHAR16 *Path)
 {
     EFI_STATUS              Status;
     REFIT_DIR_ITER          DirIter;
@@ -719,19 +591,23 @@ static UINTN ScanDriverDir(IN CHAR16 *Path, IN BOOLEAN StorageProvider)
     EFI_FILE_INFO           *DirEntry;
     CHAR16                  *FileName;
 
+    if (Path == NULL)
+        return 0;
     CleanUpPathNameSlashes(Path);
     // look through contents of the directory
     DirIterOpen(SelfRootDir, Path, &DirIter);
     while (DirIterNext(&DirIter, 2, LOADER_MATCH_PATTERNS, &DirEntry)) {
-        if (DirEntry->FileName[0] == '.')
-            continue;   // skip this
+        if (DirEntry->FileName[0] == '.') {
+            MyFreePool(DirEntry);
+            continue;
+        }
 
         FileName = PoolPrint(L"%s\\%s", Path, DirEntry->FileName);
         if (GlobalConfig.DriverDiagnostics) {
             ++DiagDriverAttempts;
             BootDriverDiagnosticProgress(L"load driver", DirEntry->FileName, FALSE, EFI_SUCCESS);
         }
-        Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE, FALSE, StorageProvider);
+        Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE, FALSE);
         if (!EFI_ERROR(Status)) {
             NumFound++;
             if (GlobalConfig.DriverDiagnostics)
@@ -748,88 +624,41 @@ static UINTN ScanDriverDir(IN CHAR16 *Path, IN BOOLEAN StorageProvider)
         MyFreePool(FileName);
     }
     return (NumFound);
-} // static UINTN ScanDriverDir()
+}
 
-
-// Load all EFI drivers from rEFInd's "drivers" subdirectory and from the
-// directories specified by the user in the "scan_driver_dirs" configuration
-// file line.
-// Originally from rEFIt's main.c (BSD), but modified since then (GPLv3).
-// Returns TRUE if any drivers are loaded, FALSE otherwise.
 BOOLEAN LoadDrivers(VOID) {
-    CHAR16        *Directory, *SelfDirectory;
-    UINTN         i = 0, Length, NumFound = 0, NumStorage = 0;
+    CHAR16 *SelfDirectory;
+    UINTN NumStorage = 0, NumMounted;
 
-    LOG(1, LOG_LINE_SEPARATOR, L"Loading drivers");
-    BootDriverDiagnosticProgress(L"driver directory discovery", L"external drivers", FALSE, EFI_SUCCESS);
-    /* Hardware transport plugins are separate from filesystem parsers.
-     * They run first, so self-binding native BlockIo providers can publish
-     * partition handles before OFS/ext4/etc bind as SimpleFileSystem.
-     * Absent directories have no effect on other computers. Never load
-     * unknown native providers implicitly or mutate PCI hardware here. */
+    LOG(1, LOG_LINE_SEPARATOR, L"Loading storage and filesystem extensions");
+    BootDriverDiagnosticProgress(L"driver directory discovery", L"storage and Common V2", FALSE, EFI_SUCCESS);
+
+    /* Explicitly installed transport providers self-bind to their controllers.
+     * Finish firmware partition discovery before enumerating module targets. */
     SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
     CleanUpPathNameSlashes(SelfDirectory);
     MergeStrings(&SelfDirectory, L"storage_x64", L'\\');
-    NumStorage += ScanDriverDir(SelfDirectory, TRUE);
+    NumStorage += ScanStorageDriverDir(SelfDirectory);
     MyFreePool(SelfDirectory);
 
-    /* Legacy EFI storage plugin directory, also opt-in and vendor neutral. */
     SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
     CleanUpPathNameSlashes(SelfDirectory);
     MergeStrings(&SelfDirectory, L"storage", L'\\');
-    NumStorage += ScanDriverDir(SelfDirectory, TRUE);
-    NumFound += NumStorage;
+    NumStorage += ScanStorageDriverDir(SelfDirectory);
     MyFreePool(SelfDirectory);
+    if (NumStorage > 0U) {
+        ConnectFilesystemBlockDevices();
+        /* The first connection can publish new partition children. */
+        ConnectFilesystemBlockDevices();
+    }
 
-    /* The generic bridge loads the same ELF module installed for applications.
-     * Bootstrap bytes come from Boot's already readable source volume. */
     SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
     CleanUpPathNameSlashes(SelfDirectory);
     MergeStrings(&SelfDirectory, L"filesystems_x64", L'\\');
-    NumFound += BootSoLoadDirectory(SelfImageHandle, SelfRootDir, SelfDirectory,
-                                    GlobalConfig.DriverDiagnostics);
+    NumMounted = BootSoLoadDirectory(SelfImageHandle, SelfRootDir, SelfDirectory,
+                                     GlobalConfig.DriverDiagnostics);
     MyFreePool(SelfDirectory);
 
-    /* Filesystem drivers remain device-agnostic; each one consumes standard
-     * EFI BlockIo/DiskIo and publishes standard EFI SimpleFileSystem. */
-    // load drivers from the subdirectories of rEFInd's home directory specified
-    // in the DRIVER_DIRS constant.
-    while ((Directory = FindCommaDelimited(DRIVER_DIRS, i++)) != NULL) {
-        SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
-        CleanUpPathNameSlashes(SelfDirectory);
-        MergeStrings(&SelfDirectory, Directory, L'\\');
-        NumFound += ScanDriverDir(SelfDirectory, FALSE);
-        MyFreePool(Directory);
-        MyFreePool(SelfDirectory);
-    }
-
-    // Scan additional user-specified driver directories....
-    i = 0;
-    while ((Directory = FindCommaDelimited(GlobalConfig.DriverDirs, i++)) != NULL) {
-        CleanUpPathNameSlashes(Directory);
-        Length = StrLen(Directory);
-        if (Length > 0) {
-            NumFound += ScanDriverDir(Directory, FALSE);
-        } // if
-        MyFreePool(Directory);
-    } // while
-
-    // Any number of bundled filesystem drivers can coexist in drivers_x64.
-    // Their Supported() checks decide which block-device handles to bind.
-    // Preserve the broad firmware pass for explicitly configured non-filesystem
-    // drivers that may expose other protocols.
-    if (NumFound > 0) {
-        if (GlobalConfig.DriverDirs != NULL && GlobalConfig.DriverDirs[0] != 0)
-            ConnectAllDriversToAllControllers();
-        else {
-            ConnectFilesystemBlockDevices();
-            /* Re-enumerate new partition children created when explicitly
-             * installed native storage providers publish whole-disk BlockIo.
-             * Normal computers never perform the extra pass. */
-            if (NumStorage > 0U)
-                ConnectFilesystemBlockDevices();
-        }
-    }
-    BootDriverDiagnosticProgress(L"driver directory discovery", L"external drivers", TRUE, EFI_SUCCESS);
-    return (NumFound > 0);
+    BootDriverDiagnosticProgress(L"driver directory discovery", L"storage and Common V2", TRUE, EFI_SUCCESS);
+    return NumStorage > 0U || NumMounted > 0U;
 } /* BOOLEAN LoadDrivers() */

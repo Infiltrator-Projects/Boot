@@ -76,7 +76,7 @@ Firmware filesystem support exists to locate and read boot material. It is not a
 
 Read-only access is the default because it sharply reduces failure and corruption modes. A writable firmware filesystem path would require a separate product requirement and safety design before implementation.
 
-Filesystem implementations belong to their per-format repositories. Boot's generic loader and UEFI bridge call the shared module's read interface; the module owns directory lookup and file interpretation. Boot does not embed portable filesystem cores. Independent legacy EFI readers remain supported during migration.
+Filesystem implementations belong to their per-format repositories. Boot's generic loader and UEFI bridge call the module's Common V2 read interface. The module owns directory lookup and file interpretation. The firmware continues to provide the initial reader for the bootstrap volume.
 
 ## Compatibility design
 

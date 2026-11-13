@@ -7,7 +7,7 @@ work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 payload="$work/package/EFI/BOOT"
 esp="$work/esp"
-mkdir -p "$payload/icons" "$payload/drivers_x64" "$esp/EFI" "$work/original"
+mkdir -p "$payload/icons" "$esp/EFI" "$work/original"
 for name in BOOTX64.EFI boot.conf mb-corpo-s-regular.png mb-corpo-s-bold.png mb-corpo-a-cond-regular.png boot-banner.png boot-selection-big.png boot-selection-small.png; do
     printf 'original %s\n' "$name" > "$payload/$name"
 done
@@ -22,23 +22,40 @@ for name in BOOTX64.EFI boot.conf mb-corpo-s-regular.png mb-corpo-s-bold.png mb-
     cmp "$payload/$name" "$target/$name"
 done
 cmp "$payload/icons/linux.png" "$target/icons/linux.png"
-[[ -d $target/drivers_x64 && -d $target/filesystems_x64 && -z $(find "$esp/EFI" -type l -print -quit) ]]
+[[ ! -e $target/drivers_x64 && -d $target/filesystems_x64 && -z $(find "$esp/EFI" -type l -print -quit) ]]
 [[ $(cat "$esp/EFI/BOOTX64.EFI") == 'old firmware entry should be unchanged' ]]
 if bash "$core" --install-new "$payload" "$esp" > "$work/double-install.log" 2>&1; then
     echo 'Second new installation was incorrectly allowed' >&2; exit 1
 fi
 
-# Updating keeps the exact local configuration, driver bytes and extra assets.
+# Updating keeps the exact local configuration and extra assets.
 printf 'local user config\n' > "$target/boot.conf"
-printf 'independent OFS driver\n' > "$target/drivers_x64/ofs.efi"
+mkdir "$target/drivers_x64"
+printf 'independent OFS driver\n' > "$target/drivers_x64/OFS.EFI"
 printf 'custom artwork\n' > "$target/icons/personal.png"
 printf 'next boot executable\n' > "$payload/BOOTX64.EFI"
 printf 'new icon\n' > "$payload/icons/windows.png"
 printf 'new default config\n' > "$payload/boot.conf"
+expect_migration_skip() {
+    local result=0
+    bash "$core" --update-existing "$payload" "$esp" > "$work/blocked.log" 2>&1 || result=$?
+    [[ $result == 77 ]]
+    [[ $(cat "$target/BOOTX64.EFI") == 'original BOOTX64.EFI' ]]
+    [[ ! -e "$esp/EFI/.InfiltratorBoot.rollback" ]]
+}
+expect_migration_skip
+[[ $(cat "$target/drivers_x64/OFS.EFI") == 'independent OFS driver' ]]
+mv "$target/drivers_x64/OFS.EFI" "$work/original/"
+printf '\xef\xbb\xbf  "scan_driver_dirs" EFI/other\n' > "$target/boot.conf"
+expect_migration_skip
+printf 'include other.conf\n' > "$target/boot.conf"
+expect_migration_skip
+printf 'i\0n\0c\0l\0u\0d\0e\0\n\0' > "$target/boot.conf"
+expect_migration_skip
+printf 'local user config\n' > "$target/boot.conf"
 bash "$core" --update-existing "$payload" "$esp"
 [[ $(cat "$target/boot.conf") == 'local user config' ]]
 [[ $(cat "$target/boot.conf.package-default") == 'new default config' ]]
-[[ $(cat "$target/drivers_x64/ofs.efi") == 'independent OFS driver' ]]
 [[ $(cat "$target/icons/personal.png") == 'custom artwork' ]]
 cmp "$payload/BOOTX64.EFI" "$target/BOOTX64.EFI"
 cmp "$payload/icons/windows.png" "$target/icons/windows.png"

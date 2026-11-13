@@ -1,6 +1,6 @@
 # Boot
 
-**Target design:** [BOOT is the universal HAL for filesystem `.so` modules](docs/FILESYSTEM_SO_LOADER_CONTRACT.md). One filesystem = one distributed `.so`, used by BOOT, the OS kernel and applications through generic adapters; no permanent per-format `.efi` products. The existing `drivers_x64` EFI path is transitional until the common module loader passes real UEFI tests.
+BOOT extends firmware filesystem access with [Common V2 shared objects](docs/FILESYSTEM_SO_LOADER_CONTRACT.md). Each format has one independently owned engine. Application and firmware support depend on the capabilities that engine implements.
 
 Boot is the firmware-stage boot manager for InfiltratorOS. It is an Infiltrator project and is engineered under the canonical Infiltrator Engineering Philosophy.
 
@@ -27,7 +27,7 @@ The project-specific application of that standard is in `docs/PHILOSOPHY.md`.
 
 On 8 November 2026, the [real three-repository QEMU/OVMF integration run](https://github.com/Infiltrator-Projects/Kernel/actions/runs/42431603931) passed for **Boot 0.1.39**, InfiltratorFS Format 0.19 source `c8f6431f2de34806d8614a241cab8db5a0daad48`, and the real InfiltratorOS Kernel `0.1.0-infiltrator`. The FAT32 ESP contained only Boot, its configuration and the InfiltratorFS EFI filesystem reader. Boot loaded both kernel and initramfs through the native InfiltratorFS UEFI filesystem driver. The kernel started and loaded the ABI-matching native filesystem module, mounted and read/wrote InfiltratorFS. Evidence includes QEMU serial output.
 
-This is an **isolated VM integration milestone**, not a full InfiltratorOS distribution, production ESP install, physical-firmware, Secure Boot or power-failure qualification. The experimental InfiltratorFS EFI reader is owned and built in the InfiltratorFS repository, not bundled in Boot's own release; setup/deployment must explicitly provide it. The pinned integration qualification lives in the Kernel repository.
+This historical VM result applies to Boot 0.1.39 and its then-supported EFI reader. Direct InfiltratorFS boot on current BOOT requires a firmware-compatible Common V2 module. The pinned historical qualification lives in the Kernel repository.
 
 ## Current implementation
 
@@ -74,7 +74,7 @@ The repository contains material under multiple licences inherited from its sour
 
 [VERSION](VERSION) identifies the Infiltrator development preview independently of the inherited engine version. The maintained [build entry point](BUILDING.md) and [validation contract](docs/VALIDATION.md) define its evidence. Main CI verifies the runtime payload and publishes a portable DEB, a source-bearing native installer and checksums. Filesystem implementation source, build tooling and drivers are owned by Filesystems.
 
-Boot's x86-64 loader consumes filesystem `.so` modules through Common V2 and a read-only UEFI bridge. Stage the same module bytes used by applications in `filesystems_x64` beside Boot's EFI executable. Independent UEFI readers in `drivers_x64` remain transitional compatibility paths for other boot entries. See the [loader contract](docs/FILESYSTEM_SO_LOADER_CONTRACT.md).
+Boot's x86-64 loader consumes filesystem `.so` modules through Common V2 and a read-only UEFI bridge. Stage the same module bytes used by applications in `filesystems_x64` beside Boot's EFI executable. A volume requires either a firmware-provided reader or a compatible Common V2 module. See the [loader contract](docs/FILESYSTEM_SO_LOADER_CONTRACT.md).
 
 The published EFI files are development artifacts for controlled testing. They are not an installer and publishing them does not claim firmware-runtime, Secure Boot, persistent-installation or recovery qualification. Setup remains responsible for the eventual supported installation transaction.
 
@@ -102,7 +102,7 @@ sudo infiltrator-boot-deploy --recover --confirm
 
 A **new** installation creates `/boot/efi/EFI/InfiltratorBoot/` with
 `BOOTX64.EFI`, the default `boot.conf`, fonts, graphical resources,
-`icons/`, and empty `drivers_x64/` and `filesystems_x64/` directories.
+`icons/`, and a `filesystems_x64/` directory for independently installed modules.
 It never overwrites an existing installation or any other EFI loader.
 A firmware boot entry is **not** created. Use the firmware's Boot from File
 feature or a separately approved and verified firmware-entry step to select
@@ -111,7 +111,9 @@ the installed executable. Copying files is not proof of a successful UEFI boot.
 An **update** builds and byte-verifies a complete candidate under a sibling
 directory on the same ESP. It replaces the BOOT executable and package-owned
 graphics together while preserving an existing user `boot.conf`, custom
-artwork, separately installed EFI drivers and filesystem SOs. The packaged
+artwork, separately installed resources and filesystem SOs. The updater keeps
+the old deployment when it finds an EFI filesystem driver in its former
+default directories or a configuration that may load an external reader. The packaged
 default configuration is available as `boot.conf.package-default` for
 comparison; it is not silently activated. The previous complete installation
 remains under `EFI/.InfiltratorBoot.rollback` and can be restored with

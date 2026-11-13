@@ -301,17 +301,8 @@ use_nvram false
 #
 #windows_recovery_files LRS_ESP:/EFI/Microsoft/Boot/LrsBootmgr.efi
 
-# Directories in which to search for EFI drivers. These drivers can
-# provide filesystem support, give access to hard disks on plug-in
-# controllers, etc. In most cases none are needed, but if you add
-# EFI drivers and you want rEFInd to automatically load them, you
-# should specify one or more paths here. rEFInd always scans the
-# "drivers" and "drivers_{arch}" subdirectories of its own installation
-# directory (where "{arch}" is your architecture code); this option
-# specifies ADDITIONAL directories to scan.
-# Default is to scan no additional directories for EFI drivers
-#
-#scan_driver_dirs EFI/tools/drivers,drivers
+# Install Common V2 filesystem shared objects in filesystems_x64 next to BOOT.
+# Optional storage transport EFI drivers use storage_x64.
 
 # Which types of boot loaders to search, and in what order to display them:
 #  internal      - internal EFI disk-based boot loaders

@@ -14,7 +14,7 @@ test ! -e "$output"
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 pkg="$work/pkg"
-mkdir -p "$pkg/DEBIAN" "$pkg/usr/lib/infiltrator-boot/EFI/BOOT/drivers_x64" "$pkg/usr/sbin"
+mkdir -p "$pkg/DEBIAN" "$pkg/usr/lib/infiltrator-boot/EFI/BOOT/filesystems_x64" "$pkg/usr/sbin"
 # Compile native bounded ZIP admission/extraction. No Python packaging runtime.
 cxx="${CXX:-c++}"
 "$cxx" -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \

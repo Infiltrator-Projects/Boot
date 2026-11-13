@@ -666,9 +666,6 @@ VOID ReadConfig(CHAR16 *FileName)
         } else if (MyStriCmp(TokenList[0], L"windows_recovery_files")) {
             HandleStrings(TokenList, TokenCount, &(GlobalConfig.WindowsRecoveryFiles));
 
-        } else if (MyStriCmp(TokenList[0], L"scan_driver_dirs")) {
-            HandleStrings(TokenList, TokenCount, &(GlobalConfig.DriverDirs));
-
         } else if (MyStriCmp(TokenList[0], L"showtools")) {
             SetMem(GlobalConfig.ShowTools, NUM_TOOLS * sizeof(UINTN), 0);
             GlobalConfig.HiddenTags = FALSE;

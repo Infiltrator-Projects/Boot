@@ -23,6 +23,7 @@ target="$parent/InfiltratorBoot"
 backup="$parent/.InfiltratorBoot.rollback"
 stage=
 promoted=0
+swap_started=0
 
 # A staged directory swap has only two non-atomic renames. On an interrupted
 # update the previous full installation remains under .InfiltratorBoot.rollback
@@ -31,7 +32,7 @@ cleanup() {
     local status=$?
     trap - EXIT
     if (( status != 0 )); then
-        if [[ $mode == --update-existing && -d "$backup" && ! -L "$backup" ]]; then
+        if [[ $mode == --update-existing && $swap_started == 1 && -d "$backup" && ! -L "$backup" ]]; then
             if (( promoted )) && [[ -d "$target" && ! -L "$target" ]]; then
                 if [[ -n $stage && ! -e $stage ]]; then
                     mv -T -- "$target" "$stage" || true
@@ -98,6 +99,31 @@ else
     if [[ -e "$backup" ]]; then
         [[ -d "$backup" && -f "$backup/BOOTX64.EFI" && ! -L "$backup/BOOTX64.EFI" ]] || fail 'Unrecognised rollback state; refuse to overwrite'
     fi
+    # A preserved config can still depend on an independent EFI reader.
+    # Staging a V2 SO does not establish that it replaces that reader.
+    for dir in drivers drivers_x64; do
+        [[ -d "$target/$dir" ]] || continue
+        prior_driver=$(find "$target/$dir" -maxdepth 1 -type f -iname '*.efi' -print -quit) ||
+            fail "Cannot inspect existing BOOT driver directory: $dir"
+        if [[ -n $prior_driver ]]; then
+            log "Existing BOOT uses an EFI driver directory ($dir); current deployment kept."
+            exit 77
+        fi
+    done
+    # ReadConfig also accepts UTF-16 and one level of includes. In those cases
+    # retain the working deployment until the custom configuration is reviewed.
+    if [[ -f "$target/boot.conf" ]]; then
+        prefix=$(od -An -N4 -tx1 -- "$target/boot.conf") || fail 'Cannot inspect BOOT configuration encoding'
+        IFS=' ' read -r first second third fourth <<< "$prefix"
+        config_result=0
+        LC_ALL=C grep -Eiq $'^(\xef\xbb\xbf)?[[:space:]=,]*"?(scan_driver_dirs|include)"?([[:space:]=,#]|$)' "$target/boot.conf" ||
+            config_result=$?
+        (( config_result < 2 )) || fail 'Cannot inspect the existing BOOT configuration'
+        if [[ $first$second == fffe || $second$fourth == 0000 || $config_result == 0 ]]; then
+            log 'Existing BOOT config may load an external EFI reader; current deployment kept.'
+            exit 77
+        fi
+    fi
 fi
 
 stage=$(mktemp -d "$parent/.InfiltratorBoot.pending.XXXXXXXX")
@@ -105,8 +131,8 @@ if [[ $mode == --update-existing ]]; then
     cp -R -- "$target/." "$stage/" || fail 'Unable to stage existing BOOT resources'
 fi
 
-# Overlay only files owned by the BOOT payload. User boot.conf, extra artwork
-# and independently owned drivers_x64 files remain unchanged on upgrades.
+# Overlay only files owned by the BOOT payload. The complete previous tree,
+# including any inactive driver files, remains available for rollback.
 while IFS= read -r -d '' source_file; do
     relative=${source_file#"$payload"/}
     case "$relative" in drivers_x64/*) fail 'Filesystem driver unexpectedly bundled with BOOT';; esac
@@ -116,7 +142,7 @@ while IFS= read -r -d '' source_file; do
     mkdir -p -- "$(dirname "$stage/$relative")"
     cp -- "$source_file" "$stage/$relative"
 done < <(find "$payload" -type f -print0)
-mkdir -p -- "$stage/drivers_x64" "$stage/filesystems_x64" "$stage/icons"
+mkdir -p -- "$stage/filesystems_x64" "$stage/icons"
 declare -A module_names=()
 for module in "${modules[@]}"; do
     name=${module##*/}
@@ -179,6 +205,7 @@ if [[ $mode == --update-existing && -e "$backup" ]]; then
     rm -rf -- "$backup"
 fi
 if [[ $mode == --update-existing ]]; then
+    swap_started=1
     mv -T -- "$target" "$backup"
 fi
 mv -T -- "$stage" "$target"
@@ -188,7 +215,7 @@ sync -f "$target/BOOTX64.EFI"
 if [[ $mode == --install-new ]]; then
     log 'Full BOOT installation staged; use firmware Boot from File or separately configure an EFI entry.'
 else
-    log 'BOOT executable and assets updated; user boot.conf and independent drivers preserved.'
+    log 'BOOT executable and assets updated; user boot.conf and independent resources preserved.'
     log "Previous full installation available at $backup (--recover --confirm)."
 fi
 log 'No NVRAM, BootOrder, other EFI loader or Linux boot configuration was modified.'

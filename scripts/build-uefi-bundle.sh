@@ -28,7 +28,7 @@ test ! -e "$icons_dir/os_refit.png"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 boot_dir="$stage/EFI/BOOT"
-mkdir -p "$boot_dir/drivers_x64" "$boot_dir/icons"
+mkdir -p "$boot_dir/icons"
 
 install -m 0644 "$boot_efi" "$boot_dir/BOOTX64.EFI"
 

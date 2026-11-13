@@ -62,6 +62,7 @@ fi
 textonly true
 use_nvram false
 driver_diagnostics true
+scan_driver_dirs EFI/BOOT/custom-drivers
 scanfor manual
 showtools shutdown
 menuentry "Linux through FAT16.so" {
@@ -84,6 +85,12 @@ menuentry "Linux through FAT16.so" {
     run("mmd", "-i", esp, "::/EFI", "::/EFI/BOOT", "::/EFI/BOOT/filesystems_x64")
     run("mcopy", "-i", esp, args.boot, "::/EFI/BOOT/BOOTX64.EFI")
     run("mcopy", "-i", esp, config, "::/EFI/BOOT/boot.conf")
+    # A valid EFI image in each retired path must never be started.
+    for directory, name in [("drivers", "old-generic.efi"),
+                            ("drivers_x64", "old-x64.efi"),
+                            ("custom-drivers", "old-configured.efi")]:
+        run("mmd", "-i", esp, f"::/EFI/BOOT/{directory}")
+        run("mcopy", "-i", esp, args.boot, f"::/EFI/BOOT/{directory}/{name}")
     module = work / "FAT16.so"
     module_bytes = args.module.read_bytes()
     if args.reject_module:
@@ -114,6 +121,8 @@ menuentry "Linux through FAT16.so" {
         if not args.reject_module:
             raise
     text = log.read_text(errors="replace")
+    for name in ("old-generic.efi", "old-x64.efi", "old-configured.efi"):
+        assert name not in text, f"BOOT attempted to load a retired EFI driver: {name}"
     assert before == digest(media), "Boot changed the filesystem image"
     if args.reject_module:
         assert "BOOT-FAT16-SO-LINUX-PASS" not in text, "Native FAT hid a broken SO path"

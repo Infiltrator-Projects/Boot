@@ -48,10 +48,9 @@ int main(int argc,char**argv){
         must(config,"L\"driver_diagnostics\"");
         must(defaults,"# driver_diagnostics true");
         must_not(defaults,"\ndriver_diagnostics true\n");
-        for(const char* action:{"verify EFI image","LoadImage","StartImage","compatibility binding"})
+        for(const char* action:{"verify EFI image","LoadImage","StartImage"})
             must(launch,std::string("L\"")+action+"\"");
-        for(const char* action:{"ConnectController","compat DisconnectController",
-                                "compat ConnectController","volume rescan"})
+        for(const char* action:{"ConnectController","volume rescan"})
             must(drivers+main,std::string("L\"")+action+"\"");
         must(launch,"BootDriverDiagnosticProgress(L\"StartImage\", ImageTitle, FALSE");
         must(launch,"BootDriverDiagnosticProgress(L\"StartImage\", ImageTitle, TRUE");
@@ -86,8 +85,7 @@ int main(int argc,char**argv){
                                 "WriteToLog","StartLogging"})
             must_not(functions,unsafe);
         must(drivers,"ConnectFilesystemBlockDevices();");
-        must(drivers,"ConnectAllDriversToAllControllers();");
-        must(launch,"ConnectFilesystemDriver(ChildImageHandle);");
+        must(drivers,"BootSoLoadDirectory(");
         demand(!fs::exists(root/"tests/verify-driver-diagnostics.py"),
                "Retired Python UEFI diagnostics verifier has returned");
         std::cout<<"Boot RAM-only EFI diagnostic source contract passed (native C++17)\n";

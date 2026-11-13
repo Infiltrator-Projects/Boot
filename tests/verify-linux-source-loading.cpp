@@ -110,9 +110,8 @@ int main(int argc,char** argv) {
             "Entry->LinuxMemoryFirst && Entry->OSType != 'L'"
         })at(config,token);
         at(scan,"NewEntry->LinuxMemoryFirst = Entry->LinuxMemoryFirst");
-        at(header,"IN BOOLEAN LinuxMemoryFirst,");
-        at(header,"IN BOOLEAN StorageDriver);");
-        at(drivers,"FALSE, TRUE, FALSE, StorageProvider);");
+        at(header,"IN BOOLEAN LinuxMemoryFirst);");
+        at(drivers,"FALSE, TRUE, FALSE);");
         const auto valid=section(source,"UINTN IsValidLoader(",
                                   "} // UINTN IsValidLoader()");
         const auto loader=section(source,"VOID StartLoader(",

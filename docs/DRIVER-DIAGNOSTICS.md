@@ -1,11 +1,8 @@
-# EFI filesystem-driver diagnostics
+# BOOT storage and filesystem diagnostics
 
-**Scope:** these diagnostics currently concern legacy UEFI driver loading. The [single-`.so` BOOT loader](FILESYSTEM_SO_LOADER_CONTRACT.md) is the future model; it must report module validation, adapter binding, trust failures and fallbacks separately. No universal loader is claimed as shipped.
-
-Boot owns driver discovery and firmware controller connection. Filesystems owns
-independently built EFI drivers. This diagnostic mode inspects Boot's real
-UEFI Driver Binding workflow and does not embed or emulate OFS, ext4 or any
-other filesystem parser.
+Boot reports UEFI storage transport startup and [Common V2 filesystem module
+loading](FILESYSTEM_SO_LOADER_CONTRACT.md). The individual filesystem
+repositories own the filesystem engines.
 
 ## Enabling a controlled physical test
 
@@ -30,8 +27,9 @@ drivers to enable diagnostics.
 
 As Boot executes its normal driver-loading path, the firmware console receives
 stage markers immediately before and after EFI image validation,
-`LoadImage`, `StartImage`, inherited DiskIo compatibility binding,
-targeted `ConnectController` and the volume rescan. A successful
+`LoadImage`, `StartImage`, targeted `ConnectController` and the volume
+rescan. Common V2 diagnostics report ELF validation, the firmware trust
+policy and module binding. A successful
 `ConnectController` call is **not** interpreted as successful mounting: the
 diagnostic separately checks whether `EFI_SIMPLE_FILE_SYSTEM_PROTOCOL` became
 available on that controller.
@@ -63,10 +61,8 @@ drivers ran.
 
 ## Failure and recovery
 
-The diagnostic itself does not change device binding order, repeat controller
-connections, introduce new filesystem algorithms, write to NVRAM or save an
-ESP log. The inherited compatibility connection/disconnection behaviour
-remains unchanged and is identified at its call boundaries.
+Diagnostics report the normal startup sequence to the console and the
+in-memory menu. They leave the ESP and NVRAM untouched.
 
 If the firmware stalls, use the existing firmware recovery mechanism (for the
 Dell Latitude 5550, the F12 one-time boot menu and Ubuntu/GRUB entry). Disable

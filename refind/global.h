@@ -388,7 +388,6 @@ typedef struct {
    CHAR16           *DontScanFirmware;
    CHAR16           *WindowsRecoveryFiles;
    CHAR16           *MacOSRecoveryFiles;
-   CHAR16           *DriverDirs;
    CHAR16           *IconsDir;
    CHAR16           *LinuxPrefixes;      // Linux prefixes (e.g., L"vmlinuz,bzImage"
    CHAR16           *LinuxMatchPatterns; // Linux prefixes PLUS wildcards (e.g., L"vmlinuz*,bzImage*")
