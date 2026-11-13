@@ -120,6 +120,14 @@ remains under `EFI/.InfiltratorBoot.rollback` and can be restored with
 `--recover --confirm`. An older rollback copy is displaced only after the
 new candidate has been staged and checked.
 
+`infiltrator-boot-deploy --stage-ext4-trial --confirm KERNEL_VERSION` stages a
+separate `EFI/InfiltratorBootTrial/BOOTX64.EFI` for firmware Boot from File.
+It uses the installed `EXT4.so` and the native kernel under
+`/System/Kernel/Images/` on a direct GPT/NVMe EXT4 root. It includes the
+versioned native initramfs when present. The command requires 64-bit UEFI
+with Secure Boot disabled and leaves existing BOOT, GRUB and firmware
+entries available. An existing trial directory is protected from replacement.
+
 A directory swap on a FAT ESP requires two renames and **cannot be perfectly
 atomic across sudden power loss**. If interrupted between those renames, the
 previous directory remains at `EFI/.InfiltratorBoot.rollback`; the recovery

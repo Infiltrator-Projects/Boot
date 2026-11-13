@@ -9,6 +9,17 @@ log() { printf 'Boot deployment: %s\n' "$*"; }
 [[ $# -ge 3 ]] || fail 'Internal usage: MODE STAGED-EFI-DIRECTORY ESP-MOUNT [MODULE.so ...]'
 mode=$1 payload=$2 esp=$3
 shift 3
+target_name=InfiltratorBoot
+trial_version=
+if [[ $mode == --stage-ext4-trial ]]; then
+    [[ $# == 4 && $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ &&
+       $2 =~ ^[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12}$ &&
+       $3 =~ ^[01]$ && ${4##*/} == EXT4.so ]] || fail 'Invalid EXT4 trial kernel, partition or module'
+    trial_version=$1 trial_root=${2,,} trial_initrd=$3
+    shift 3
+    target_name=InfiltratorBootTrial
+    mode=--install-new
+fi
 modules=("$@")
 validator="$(dirname -- "${BASH_SOURCE[0]}")/validate-module"
 case "$mode" in --install-new|--update-existing|--recover) ;; *) fail 'Invalid deployment mode' ;; esac
@@ -19,8 +30,8 @@ if [[ ! -d "$esp/EFI" ]]; then
     mkdir -- "$esp/EFI"
 fi
 parent="$esp/EFI"
-target="$parent/InfiltratorBoot"
-backup="$parent/.InfiltratorBoot.rollback"
+target="$parent/$target_name"
+backup="$parent/.$target_name.rollback"
 stage=
 promoted=0
 swap_started=0
@@ -92,7 +103,10 @@ done
     ! -path "$payload/icons/licenses/cc-3.0.txt" \
     ! -path "$payload/icons/licenses/gpl-2.0.txt" -print -quit) ]] || fail 'Unexpected staged payload file'
 if [[ $mode == --install-new ]]; then
-    [[ ! -e "$target" && ! -e "$backup" ]] || fail 'Existing or interrupted BOOT installation; use --update-existing or --recover'
+    if [[ -e $target || -e $backup ]]; then
+        if [[ -n $trial_version ]]; then fail 'Existing EXT4 trial directory retained'; fi
+        fail 'Existing or interrupted BOOT installation; use --update-existing or --recover'
+    fi
 else
     [[ -d "$target" && -f "$target/BOOTX64.EFI" && ! -L "$target/BOOTX64.EFI" ]] || fail 'BOOT not installed; use --install-new (or --recover if interrupted)'
     [[ -z $(find "$target" -type l -print -quit) ]] || fail 'Symbolic link in existing installation; refusing copy'
@@ -126,7 +140,7 @@ else
     fi
 fi
 
-stage=$(mktemp -d "$parent/.InfiltratorBoot.pending.XXXXXXXX")
+stage=$(mktemp -d "$parent/.$target_name.pending.XXXXXXXX")
 if [[ $mode == --update-existing ]]; then
     cp -R -- "$target/." "$stage/" || fail 'Unable to stage existing BOOT resources'
 fi
@@ -175,11 +189,31 @@ if [[ $mode == --update-existing && -f "$target/boot.conf" ]]; then
     cp -- "$payload/boot.conf" "$stage/boot.conf.package-default"
 fi
 
+trial_config() {
+    cat -- "$payload/boot.conf"
+    # The canonical paths are on the GPT partition that backs the running
+    # root. Resolve the same partition at both stages, even if Linux renames it.
+    printf '\nscanfor manual\ndefault_selection InfiltratorOS\n'
+    printf 'menuentry "InfiltratorOS Kernel %s" {\n' "$trial_version"
+    printf '    volume %s\n    filesystem_module ext4\n' "$trial_root"
+    printf '    loader \\System\\Kernel\\Images\\InfiltratorOS-%s.img\n' "$trial_version"
+    if [[ $trial_initrd == 1 ]]; then
+        printf '    initrd \\System\\Kernel\\Images\\InfiltratorOS-%s.initrd\n' "$trial_version"
+    fi
+    printf '    linux_load memory\n    ostype Linux\n'
+    printf '    options "root=PARTUUID=%s rootfstype=ext4 rootwait=30 ro"\n}\n' "$trial_root"
+}
+if [[ -n $trial_version ]]; then
+    trial_config > "$stage/boot.conf"
+fi
+
 verify() {
     local dest=$1 source_file relative
     while IFS= read -r -d '' source_file; do
         relative=${source_file#"$payload"/}
-        if [[ $mode == --update-existing && $relative == boot.conf && -f "$target/boot.conf" && $dest == "$stage" ]]; then
+        if [[ -n $trial_version && $relative == boot.conf ]]; then
+            trial_config | cmp -s -- - "$dest/boot.conf" || return 1
+        elif [[ $mode == --update-existing && $relative == boot.conf && -f "$target/boot.conf" && $dest == "$stage" ]]; then
             cmp -s -- "$target/boot.conf" "$dest/boot.conf" || return 1
         elif [[ $mode == --update-existing && $relative == boot.conf && -d "$backup" && $dest == "$target" ]]; then
             cmp -s -- "$backup/boot.conf" "$dest/boot.conf" || return 1
@@ -212,7 +246,9 @@ mv -T -- "$stage" "$target"
 promoted=1
 verify "$target" || fail 'Installed resources failed post-deployment verification'
 sync -f "$target/BOOTX64.EFI"
-if [[ $mode == --install-new ]]; then
+if [[ -n $trial_version ]]; then
+    log 'Staged EXT4 trial at EFI/InfiltratorBootTrial/BOOTX64.EFI for firmware Boot from File.'
+elif [[ $mode == --install-new ]]; then
     log 'Full BOOT installation staged; use firmware Boot from File or separately configure an EFI entry.'
 else
     log 'BOOT executable and assets updated; user boot.conf and independent resources preserved.'

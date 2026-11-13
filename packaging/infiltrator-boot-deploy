@@ -5,15 +5,69 @@
 set -euo pipefail
 if [[ $# -lt 2 || $2 != --confirm ]]; then
     echo 'usage: sudo infiltrator-boot-deploy --install-new|--update-existing|--recover --confirm [MODULE.so ...]' >&2
+    echo '       sudo infiltrator-boot-deploy --stage-ext4-trial --confirm KERNEL_VERSION' >&2
     exit 2
 fi
-case "$1" in --install-new|--update-existing|--recover) ;; *) echo 'Invalid deployment mode' >&2; exit 2 ;; esac
+case "$1" in --install-new|--update-existing|--recover|--stage-ext4-trial) ;; *) echo 'Invalid deployment mode' >&2; exit 2 ;; esac
 if [[ $EUID -ne 0 ]]; then
     echo 'Run as root; the EFI System Partition is privileged storage.' >&2
     exit 1
 fi
 mode=$1
 shift 2
+fail() { printf 'Boot deployment: ERROR: %s\n' "$*" >&2; exit 1; }
+trial_args=()
+if [[ $mode == --stage-ext4-trial ]]; then
+    [[ $# == 1 && $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'Supply the installed InfiltratorOS Kernel version'
+    secure=$(od -An -tu1 -j4 -N1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c 2>/dev/null) || secure=
+    [[ $secure =~ ^[[:space:]]*0[[:space:]]*$ && $(cat /sys/firmware/efi/fw_platform_size 2>/dev/null) == 64 ]] ||
+        fail 'EXT4 trial requires 64-bit UEFI with Secure Boot disabled'
+    version=$1
+    image="/System/Kernel/Images/InfiltratorOS-$version"
+    [[ ! -L /System && ! -L /System/Kernel && ! -L /System/Kernel/Images ]] || fail 'Unsafe kernel image directory'
+    assets=("$image.img" "$image.config")
+    initrd=0
+    if [[ -e $image.initrd || -L $image.initrd ]]; then
+        assets+=("$image.initrd")
+        initrd=1
+    fi
+    for resource in "${assets[@]}"; do
+        [[ -s $resource && -f $resource && ! -L $resource && $(findmnt -nro TARGET -T "$resource") == / ]] ||
+            fail "Missing native kernel asset on the root filesystem: $resource"
+    done
+    for setting in EXT4_FS BLK_DEV_NVME EFI_STUB DEVTMPFS_MOUNT; do
+        grep -Fxq "CONFIG_$setting=y" "$image.config" || fail "The native kernel requires CONFIG_$setting=y"
+    done
+    # x86 boot protocol header at 0x202 and release string pointer at 0x20e.
+    [[ $(dd if="$image.img" bs=1 skip=514 count=4 status=none) == HdrS ]] || fail 'Invalid x86 kernel image'
+    read -r version_offset <<< "$(od -An --endian=little -j 526 -N2 -tu2 "$image.img")"
+    [[ $version_offset =~ ^[1-9][0-9]*$ &&
+       $(dd if="$image.img" bs=1 skip=$((512 + version_offset)) count=$((${#version} + 1)) status=none) == "$version " ]] ||
+        fail 'The kernel image release does not match the requested version'
+    read -r root_device root_type root_path <<< "$(findmnt -nro SOURCE,FSTYPE,FSROOT -M /)"
+    [[ -b $root_device && $root_type == ext4 && $root_path == / ]] || fail 'Trial requires a direct EXT4 root partition'
+    root_device=$(readlink -f -- "$root_device") || fail 'Unable to resolve the root partition'
+    device_path=$(readlink -f -- "/sys/class/block/${root_device##*/}") || fail 'Unable to resolve the root block device'
+    [[ $device_path == /sys/devices/*/nvme/* ]] || fail 'Trial requires an NVMe root partition'
+    # Intel VMD exposes the NVMe controller beneath another PCI domain.
+    pci_domain='/pci[[:xdigit:]]{4,5}:[[:xdigit:]]{2}/'
+    if (( ! initrd )) && [[ $device_path =~ $pci_domain.+$pci_domain ]]; then
+        grep -Fxq 'CONFIG_VMD=y' "$image.config" || fail 'NVMe behind a PCI domain requires built-in VMD or a native initramfs'
+    fi
+    partition=$(blkid -p -s PART_ENTRY_SCHEME -s PART_ENTRY_UUID -o export -- "$root_device") ||
+        fail 'Unable to read the root partition identity'
+    scheme= uuid=
+    while IFS='=' read -r key value; do
+        case "$key" in
+            PART_ENTRY_SCHEME) scheme=$value ;;
+            PART_ENTRY_UUID) uuid=$value ;;
+        esac
+    done <<< "$partition"
+    [[ $scheme == gpt && $uuid =~ ^[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12}$ ]] ||
+        fail 'Trial requires an EXT4 root on a GPT partition'
+    trial_args=("$version" "$uuid" "$initrd")
+    set -- /System/Filesystems/EXT4.so
+fi
 for module; do
     [[ $module =~ ^/System/Filesystems/[A-Za-z0-9_-]+\.so$ && -f $module && ! -L $module ]] || {
         echo "Invalid independently installed filesystem module: $module" >&2; exit 1;
@@ -33,4 +87,4 @@ core=/usr/lib/infiltrator-boot/deploy-core
     echo "EFI System Partition is not mounted as vfat at $esp; refusing write." >&2
     exit 1
 }
-exec /bin/bash "$core" "$mode" "$payload" "$esp" "$@"
+exec /bin/bash "$core" "$mode" "$payload" "$esp" "${trial_args[@]}" "$@"
