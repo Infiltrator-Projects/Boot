@@ -53,7 +53,9 @@ jobs:
             tests/verify-storage-driver-stage.cpp -o "$RUNNER_TEMP/boot-storage-stage-test"
           "$RUNNER_TEMP/boot-storage-stage-test" .
           python3 tests/test-build-deb-policy.py
-          python3 tests/test-build-uefi-bundle.py
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -pthread \
+            tests/test-build-uefi-bundle.cpp -o "$RUNNER_TEMP/boot-uefi-bundle-test"
+          "$RUNNER_TEMP/boot-uefi-bundle-test" .
           version=$(tr -d '\r\n' < VERSION)
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           grep -q '#define CONFIG_FILE_NAME[[:space:]]*L"boot.conf"' refind/config.h
