@@ -52,7 +52,9 @@ jobs:
           c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
             tests/verify-storage-driver-stage.cpp -o "$RUNNER_TEMP/boot-storage-stage-test"
           "$RUNNER_TEMP/boot-storage-stage-test" .
-          python3 tests/test-build-deb-policy.py
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -pthread \
+            tests/test-build-deb-policy.cpp -o "$RUNNER_TEMP/boot-deb-policy-test"
+          "$RUNNER_TEMP/boot-deb-policy-test" .
           c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -pthread \
             tests/test-build-uefi-bundle.cpp -o "$RUNNER_TEMP/boot-uefi-bundle-test"
           "$RUNNER_TEMP/boot-uefi-bundle-test" .
