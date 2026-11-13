@@ -151,13 +151,33 @@ static void malformed(const fs::path& executable,const fs::path& module){
         require(end<limit,"Unterminated ELF section name");
         return std::string(original.begin()+begin,original.begin()+end);
     };
-    const Section *manifest=nullptr,*rela=nullptr,*symbols=nullptr;
+    const Section *strings=nullptr,*rela=nullptr,*symbols=nullptr;
     for(const auto& s:sections){
-        if(section_name(s)==".ifsboot")manifest=&s;
+        if(section_name(s)==".dynstr")strings=&s;
         if(!rela&&s.type==4&&s.length>0)rela=&s;
         if(!symbols&&s.type==11)symbols=&s;
     }
-    require(manifest&&rela&&symbols,"Qualified ELF lacks boot manifest, relocation or dynsym");
+    require(strings&&rela&&symbols,"Qualified V2 ELF lacks dynamic strings, relocations or symbols");
+    require(strings->offset<=original.size()&&
+            strings->length<=original.size()-strings->offset,
+            "ELF dynamic string table exceeds module buffer");
+    // The canonical V2 export must be present. A V1-only export is an
+    // intentionally malformed negative fixture, never a compatibility path.
+    const std::string symbol="infiltrator_filesystem_api_v2";
+    const Bytes target=[&]{
+        Bytes bytes(symbol.begin(),symbol.end());
+        bytes.push_back(0);
+        return bytes;
+    }();
+    const auto search_start=original.begin()+std::size_t(strings->offset);
+    const auto search_end=search_start+std::size_t(strings->length);
+    const auto found=std::search(search_start,search_end,target.begin(),target.end());
+    require(found!=search_end,"Canonical V2 export missing from qualified SO dynstr");
+    const auto export_offset=std::uint64_t(std::distance(original.begin(),found));
+    const std::string obsolete="infiltrator_filesystem_api_v1";
+    Bytes obsolete_bytes(obsolete.begin(),obsolete.end());
+    obsolete_bytes.push_back(0);
+    require(obsolete_bytes.size()==target.size(),"Malformed V1 export fixture length mismatch");
     std::uint64_t load_header=0,load_vaddr=0;
     bool found_load=false;
     for(std::uint64_t i=0;i<phnum;i++){
@@ -178,9 +198,7 @@ static void malformed(const fs::path& executable,const fs::path& module){
         {"executable",16,encode(2,2)},
         {"section-overflow",40,encode(UINT64_MAX,8)},
         {"program-count",56,encode(65535,2)},
-        {"profile",manifest->offset+20,encode(99,4)},
-        {"abi",manifest->offset+12,encode(99,4)},
-        {"format-unterminated",manifest->offset+24,Bytes(16,'x')},
+        {"v1-only-entry",export_offset,obsolete_bytes},
         {"writable-code",load_header+4,encode(7,4)},
         {"segment-file-overflow",load_header+8,encode(UINT64_MAX,8)},
         {"tls",load_header,encode(7,4)},
