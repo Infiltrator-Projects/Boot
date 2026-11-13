@@ -39,11 +39,10 @@ Firmware filesystem access is read-only by default. The boot manager needs to di
 
 Filesystem parsers operate on untrusted on-disk structures. They must bound lengths, counts, offsets, recursion, decompression and allocation. Corrupt metadata must produce explicit failure rather than unchecked pointer arithmetic or unbounded traversal.
 
-Filesystems owns EFI filesystem implementations, their pinned source and parser
-qualification. Boot owns safe use of the exposed EFI protocols, including
-bounded reads and path/handle ownership. Importing a format implementation into
-Boot to serve a local test would cross this boundary. Firmware readers remain
-independent of host operating-system runtime services.
+Each independent filesystem repository owns its Common V2 format engine and
+parser qualification. BOOT owns the generic EFI adapter, including bounded
+BlockIo reads and path and handle ownership. Firmware-compatible modules use
+the supplied runtime services for their I/O.
 
 ## Configuration and external data
 

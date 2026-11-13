@@ -5,7 +5,7 @@ BOOT extends firmware filesystem access with [Common V2 shared objects](docs/FIL
 Boot is the firmware-stage boot manager for InfiltratorOS. It is an Infiltrator project and is engineered under the canonical Infiltrator Engineering Philosophy.
 
 The component name is **Boot**. The operating system is **InfiltratorOS**;
-**Filesystems** owns the shared/legacy filesystem adapters, while **InfiltratorFS** owns its native format, UEFI reader and kernel module; **Setup** is the
+The independent filesystem repositories own their Common V2 engines. **InfiltratorFS** owns its native format and Linux driver. **Setup** is the
 name reserved for the future installer. **InfiltratorFS** remains the name of the
 filesystem format.
 
@@ -45,7 +45,7 @@ The current major implementation areas are:
 
 The authoritative architectural interpretation of those areas is `docs/ARCHITECTURE.md`.
 
-The shared [Bootable Filesystem Integration Contract](https://github.com/Infiltrator-Projects/Filesystems/blob/main/docs/BOOTABLE_FILESYSTEM_CONTRACT.md) records how independent EFI filesystem readers, modular kernel-side filesystem modules and the future Setup installer cooperate. The first AmigaDOS milestone is to **load a Linux EFI-stub kernel stored on OFS**, with Linux's root remaining on a separately supported filesystem; that is not yet an OFS root installation.
+BOOT 0.1.46 reached Linux in OVMF using the released `OFS.so` to read the kernel and initramfs from an independently generated Amiga OFS image. Linux started from the initramfs. Mounting OFS as a Linux root through a generic Common V2 bridge remains separate work. See the [Bootable Filesystem Integration Contract](https://github.com/Infiltrator-Projects/Filesystems/blob/main/docs/BOOTABLE_FILESYSTEM_CONTRACT.md).
 
 ## Maintained documentation
 

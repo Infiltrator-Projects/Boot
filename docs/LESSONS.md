@@ -8,10 +8,10 @@ must prevent.
 
 ## Keep the component boundaries intact
 
-- Boot owns discovery, configuration, presentation, generic EFI driver loading
-  and operating-system handoff.
-- Filesystems owns filesystem implementations, EFI readers/adapters, their
-  build tooling and operating-system filesystem modules.
+- BOOT owns discovery, configuration, presentation, UEFI storage transport
+  startup, Common V2 module loading and operating-system handoff.
+- Independent filesystem repositories own their Common V2 format engines,
+  build tooling and qualification.
 - Setup owns the future complete installation transaction, including target
   selection and the deployment of selected independent components.
 

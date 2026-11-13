@@ -52,8 +52,8 @@ BOOT loads filesystem extensions exclusively from `filesystems_x64/` through Com
 
 
 A Linux EFI-stub image normally uses UEFI `LoadImage` with a device path.
-When firmware cannot resolve a kernel path exposed by an external EFI filesystem
-driver but Boot's EFI file protocol can still read it, Boot makes a bounded
+When firmware cannot resolve a kernel path exposed by BOOT's Common V2
+filesystem adapter, BOOT makes a bounded
 Linux-only memory-backed retry after `EFI_NOT_FOUND` or `EFI_DEVICE_ERROR`,
 and only after the complete file is read with the expected size through the
 existing EFI file protocol. Security, invalid-image and other firmware errors
@@ -63,7 +63,7 @@ kernel/initramfs filesystem context, and the firmware remains responsible for
 PE/COFF validation, policy enforcement and image execution. No OFS-specific
 path rules or filesystem parsers are added to Boot.
 
-Driver startup must not reconnect every firmware device merely because a filesystem module was added. Broad controller binding is reserved for explicit custom non-filesystem driver paths or interactive rescans.
+Storage controller startup binds the relevant BlockIo handles before BOOT probes them with its Common V2 filesystem modules. An interactive rescan can refresh the controller list.
 
 The cross-project [Bootable Filesystem Integration Contract](https://github.com/Infiltrator-Projects/Filesystems/blob/main/docs/BOOTABLE_FILESYSTEM_CONTRACT.md) is the agreed integration and phased-test reference. **Boot's readable kernel-source filesystem need not be the running OS's root filesystem.** Loading a Linux EFI-stub kernel and initramfs from Amiga OFS is an earlier, independent test from mounting an Amiga OFS Linux root. After handoff the runtime OS must use its own qualified generic bridge/loader for the **same filesystem `.so`**, not the firmware services that disappear at `ExitBootServices`. Under current stock Linux, `.ko` modules remain interim compatibility for mounts until that kernel-side bridge exists. Future native InfiltratorOS may use a different kernel and payload protocol.
 
