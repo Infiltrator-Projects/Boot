@@ -27,6 +27,30 @@ mcopy -i "$work/media.img" "$work/data.bin" '::/Nested Directory/Café Ü.bin'
 before=$(sha256sum "$work/media.img")
 "$work/so-fixtures" whole-disk "$work/media.img" "$work/whole-disk.img"
 "$work/module-test" "$module" "$work/media.img" '/Nested Directory/Boot Read Test.bin' "$work/data.bin"
+# A hosted library can carry the exact firmware ELF. Its hosted callback
+# deliberately returns NULL, so a successful read proves BOOT used the section.
+cat > "$work/carrier.c" <<'SOURCE'
+#include <stdio.h>
+void *infiltrator_filesystem_api_v2(void)
+{
+    puts("This hosted entry must never run in firmware.");
+    return NULL;
+}
+SOURCE
+"$cc" -shared -fPIC "$work/carrier.c" -o "$work/carrier.so"
+objcopy --add-section ".infiltrator_boot=$module" \
+    --set-section-flags .infiltrator_boot=readonly "$work/carrier.so" "$work/combined.so"
+"$work/module-test" "$work/combined.so" "$work/media.img" '/Nested Directory/Boot Read Test.bin' "$work/data.bin"
+printf 'invalid embedded ELF' > "$work/invalid"
+objcopy --update-section ".infiltrator_boot=$work/invalid" "$work/combined.so" "$work/bad.so"
+if "$work/module-test" --validate "$work/bad.so"; then exit 1; fi
+objcopy --set-section-flags .infiltrator_boot=alloc,readonly "$work/combined.so" "$work/bad.so" 2>/dev/null
+if "$work/module-test" --validate "$work/bad.so"; then exit 1; fi
+sed 's/infiltrator_filesystem_api_v2/other_entry/' "$work/carrier.c" > "$work/no-export.c"
+"$cc" -shared -fPIC "$work/no-export.c" -o "$work/no-export.so"
+objcopy --add-section ".infiltrator_boot=$module" \
+    --set-section-flags .infiltrator_boot=readonly "$work/no-export.so" "$work/bad.so"
+if "$work/module-test" --validate "$work/bad.so"; then exit 1; fi
 prefix=${GNU_EFI_PREFIX:-/usr}
 "$cc" -std=c11 -O2 -fshort-wchar -ffunction-sections -fdata-sections \
     "${sanitizers[@]}" \

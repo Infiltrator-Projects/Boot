@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Deliberately bounded ELF64 loader for the no-import SysV module profile.
- * Source bytes remain immutable while relocating a private image. This loader
- * supplies no filesystem interpretation and never resolves host symbols. */
+ * Source bytes remain immutable while relocating a private image. A hosted
+ * module can carry its freestanding ELF in a non-allocated section. */
 #include "so_elf.h"
 
 typedef struct {
@@ -221,9 +221,79 @@ static int plan(const void *data, size_t bytes, Plan *p) {
     }
     return 0;
 }
+/* Check that the outer hosted object also declares the Common V2 entry.
+ * Its executable code and runtime dependencies are never used by BOOT. */
+static int carrier_export(const unsigned char *source,size_t bytes,
+                          const Ehdr *elf,const Shdr *symbols) {
+    Shdr strings;
+    if(symbols->entry_bytes!=sizeof(Sym) || !symbols->bytes ||
+       symbols->bytes%sizeof(Sym) || symbols->bytes>4096u*sizeof(Sym) ||
+       symbols->link>=elf->shnum || !span(symbols->offset,symbols->bytes,bytes))
+        return 0;
+    copy(&strings,source+elf->shoff+(uint64_t)symbols->link*sizeof(Shdr),sizeof(strings));
+    if(strings.type!=3u || !span(strings.offset,strings.bytes,bytes)) return 0;
+    unsigned exports=0;
+    for(uint64_t at=0;at<symbols->bytes;at+=sizeof(Sym)) {
+        Sym sym;
+        copy(&sym,source+symbols->offset+at,sizeof(sym));
+        if(name_is(source+strings.offset,strings.bytes,sym.name,IFS_FS_COMMON_EXPORT_V2)) {
+            if(!sym.section || sym.section>=elf->shnum || (sym.info&15u)!=2u ||
+               (sym.info>>4)!=1u || (sym.other&3u)!=0u || !sym.bytes)
+                return 0;
+            ++exports;
+        }
+    }
+    return exports==1u;
+}
+
+/* The extracted ELF passes the standalone firmware module checks. */
+static int embedded_payload(const void **data, size_t *bytes) {
+    const unsigned char *source=*data;
+    Ehdr elf;
+    Shdr names;
+    if(!source || *bytes<sizeof(elf) || *bytes>BOOT_SO_MAX_FILE) return -1;
+    copy(&elf,source,sizeof(elf));
+    if(!equal(elf.ident,"\177ELF\2\1\1",7) || (elf.ident[7]!=0 && elf.ident[7]!=3) ||
+       elf.ident[8] || elf.type!=3 || elf.machine!=62 || elf.version!=1 ||
+       elf.ehsize!=sizeof(elf) || elf.shentsize!=sizeof(Shdr) ||
+       !elf.shnum || elf.shnum>256u || !elf.shstrndx || elf.shstrndx>=elf.shnum ||
+       !span(elf.shoff,(uint64_t)elf.shnum*sizeof(Shdr),*bytes)) return -1;
+    copy(&names,source+elf.shoff+(uint64_t)elf.shstrndx*sizeof(Shdr),sizeof(names));
+    if(names.type!=3u || !span(names.offset,names.bytes,*bytes)) return -1;
+
+    Shdr payload={0};
+    unsigned exports=0;
+    for(uint32_t i=1;i<elf.shnum;++i) {
+        Shdr section;
+        copy(&section,source+elf.shoff+(uint64_t)i*sizeof(Shdr),sizeof(section));
+        if(section.type==11u) {
+            if(exports || !carrier_export(source,*bytes,&elf,&section)) return -1;
+            ++exports;
+        }
+        if(!name_is(source+names.offset,names.bytes,section.name,".infiltrator_boot"))
+            continue;
+        if(payload.bytes || section.type!=1u || section.flags || section.address ||
+           section.link || section.info || section.entry_bytes ||
+           section.offset<sizeof(Ehdr) || section.bytes<sizeof(Ehdr) ||
+           !span(section.offset,section.bytes,*bytes))
+            return -1;
+        payload=section;
+    }
+    if(!payload.bytes || exports!=1u) return -1;
+    *data=source+payload.offset;
+    *bytes=(size_t)payload.bytes;
+    return 0;
+}
+
+static int module_plan(const void **data,size_t bytes,Plan *p) {
+    if(!plan(*data,bytes,p)) return 0;
+    if(embedded_payload(data,&bytes)) return -1;
+    return plan(*data,bytes,p);
+}
+
 int BootSoValidate(const void *data, size_t bytes) {
     Plan p;
-    return plan(data,bytes,&p);
+    return module_plan(&data,bytes,&p);
 }
 int BootSoContains(const BootSoImage *image, const void *address, size_t bytes,
                     uint32_t required, uint32_t forbidden) {
@@ -293,7 +363,7 @@ int BootSoLoad(const void *data, size_t bytes, const BootSoMemory *memory,
                 BootSoImage *image) {
     Plan p;
     if (!image || !memory || !memory->allocate || !memory->release ||
-        plan(data,bytes,&p)) return -1;
+        module_plan(&data,bytes,&p)) return -1;
     zero(image,sizeof(*image));
     image->memory=*memory;
     image->base=memory->allocate(memory->context,(size_t)p.image_bytes);

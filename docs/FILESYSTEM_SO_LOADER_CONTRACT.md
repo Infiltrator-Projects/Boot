@@ -30,6 +30,12 @@ storage-controller drivers provide BlockIo before the module scan.
 
 The profile is little-endian x86-64 ELF ET_DYN with SysV calls, relative
 relocations and no red zone, constructors, TLS, imports or host libc.
+An installed hosted shared object can also carry that ELF profile in a
+non-allocated `.infiltrator_boot` section. BOOT verifies the outer Common V2
+export, then validates and loads the embedded Common V2 ELF. The outer
+library's hosted dependencies are only used by Linux applications. The
+deployment helper stages the installed shared object byte-for-byte in
+either case.
 
 Boot validates program/section tables, file and virtual ranges, non-overlapping
 segments, declared permissions, dynamic metadata, the V2 symbol and relocation
