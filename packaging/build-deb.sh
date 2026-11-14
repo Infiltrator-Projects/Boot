@@ -32,7 +32,7 @@ Section: admin
 Priority: optional
 Architecture: amd64
 Maintainer: Infiltrator Projects
-Depends: bash, coreutils, findutils, util-linux, libc6
+Depends: bash, coreutils, findutils, util-linux, e2fsprogs, libc6
 Description: InfiltratorOS UEFI boot manager and explicitly deployed firmware payload
  This package stages the verified EFI boot manager and support files.
  To provision a fresh /boot/efi/EFI/InfiltratorBoot installation, run

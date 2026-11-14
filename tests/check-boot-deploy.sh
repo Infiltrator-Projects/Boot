@@ -116,8 +116,8 @@ mkdir -p "$blank"
 bash "$core" --install-new "$payload" "$blank"
 [[ -f "$blank/EFI/InfiltratorBoot/BOOTX64.EFI" ]]
 
-# The trial is staged beside an existing EFI-dependent installation. Use
-# a stand-in validator here to test deployment, independently of ELF tests.
+# The active legacy EXT4 driver is retired only when its V2 replacement
+# passes validation. Recovery retains the previous full deployment.
 mkdir "$work/engine"
 cp "$core" "$work/engine/deploy-core"
 cat > "$work/engine/validate-module" <<'VALIDATE'
@@ -125,34 +125,22 @@ cat > "$work/engine/validate-module" <<'VALIDATE'
 test "$(cat -- "$1")" = 'qualified fixture'
 VALIDATE
 chmod +x "$work/engine/validate-module"
-trial_core="$work/engine/deploy-core"
-uuid=1e8b9e89-4664-4621-86db-7ea42b42e1e1
 module="$work/EXT4.so"
-trial="$esp/EFI/InfiltratorBootTrial"
-cp "$work/original/OFS.EFI" "$target/drivers_x64/"
+printf 'old EXT4 EFI reader\n' > "$target/drivers_x64/ext4_x64.efi"
+expect_migration_skip
 printf 'invalid fixture\n' > "$module"
-if bash "$trial_core" --stage-ext4-trial "$payload" "$esp" 0.1.1 "$uuid" 0 "$module"; then
-    echo 'Trial accepted an unqualified filesystem module' >&2; exit 1
+if bash "$work/engine/deploy-core" --update-existing "$payload" "$esp" "$module"; then
+    echo 'Upgrade accepted an invalid EXT4 module' >&2; exit 1
 fi
-[[ ! -e $trial ]]
+grep -Fxq 'old EXT4 EFI reader' "$target/drivers_x64/ext4_x64.efi"
+[[ ! -e "$esp/EFI/.InfiltratorBoot.rollback" ]]
 printf 'qualified fixture\n' > "$module"
-bash "$trial_core" --stage-ext4-trial "$payload" "$esp" 0.1.1 "$uuid" 0 "$module"
-cmp "$module" "$trial/filesystems_x64/EXT4.so"
-cmp "$payload/BOOTX64.EFI" "$trial/BOOTX64.EFI"
-grep -Fxq "    volume $uuid" "$trial/boot.conf"
-grep -Fxq '    filesystem_module ext4' "$trial/boot.conf"
-grep -Fxq '    loader \System\Kernel\Images\InfiltratorOS-0.1.1.img' "$trial/boot.conf"
-grep -Fxq "    options \"root=PARTUUID=$uuid rootfstype=ext4 rootwait=30 ro\"" "$trial/boot.conf"
-! grep -q '^    initrd ' "$trial/boot.conf"
-[[ ! -e "$trial/drivers_x64" ]]
-if bash "$trial_core" --stage-ext4-trial "$payload" "$esp" 0.1.1 "$uuid" 1 "$module"; then
-    echo 'Trial replaced an existing firmware path' >&2; exit 1
-fi
-! grep -q '^    initrd ' "$trial/boot.conf"
-[[ $(cat "$target/BOOTX64.EFI") == 'original BOOTX64.EFI' ]]
-cmp "$work/original/OFS.EFI" "$target/drivers_x64/OFS.EFI"
-bash "$trial_core" --stage-ext4-trial "$payload" "$blank" 0.1.1 "$uuid" 1 "$module"
-grep -Fxq '    initrd \System\Kernel\Images\InfiltratorOS-0.1.1.initrd' "$blank/EFI/InfiltratorBootTrial/boot.conf"
+bash "$work/engine/deploy-core" --update-existing "$payload" "$esp" "$module"
+cmp "$module" "$target/filesystems_x64/EXT4.so"
+cmp "$payload/BOOTX64.EFI" "$target/BOOTX64.EFI"
+[[ ! -e "$target/drivers_x64/ext4_x64.efi" ]]
+grep -Fxq 'old EXT4 EFI reader' "$esp/EFI/.InfiltratorBoot.rollback/drivers_x64/ext4_x64.efi"
+grep -Fxq 'local user config' "$target/boot.conf"
 
 # Existing non-BOOT firmware path never changed during any operation.
 [[ $(cat "$esp/EFI/BOOTX64.EFI") == 'old firmware entry should be unchanged' ]]

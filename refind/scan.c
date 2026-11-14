@@ -72,6 +72,7 @@
 #include "log.h"
 #include "scan.h"
 #include "install.h"
+#include "so_uefi.h"
 #include "../include/refit_call_wrapper.h"
 
 
@@ -637,10 +638,33 @@ static LOADER_ENTRY * AddEfiLoaderEntry(IN EFI_DEVICE_PATH *EfiLoaderPath,
     return Entry;
 } // LOADER_ENTRY * AddEfiLoaderEntry()
 
+#define NATIVE_KERNEL_DIRECTORY L"System\\Kernel\\Images"
+#define NATIVE_KERNEL_PREFIX L"InfiltratorOS-"
+
+// Native images use their own versioned naming contract. Check the whole
+// filename so that config, map and initramfs files cannot become loaders.
+static BOOLEAN IsNativeKernelName(CHAR16 *Name) {
+    UINTN Parts;
+    const CHAR16 *Prefix = NATIVE_KERNEL_PREFIX;
+    while (*Prefix)
+        if (*Name++ != *Prefix++)
+            return FALSE;
+    for (Parts = 0; Parts < 3; ++Parts) {
+        if (*Name < L'0' || *Name > L'9')
+            return FALSE;
+        while (*Name >= L'0' && *Name <= L'9')
+            ++Name;
+        if (Parts < 2 && *Name++ != L'.')
+            return FALSE;
+    }
+    return MyStriCmp(Name, L".img");
+}
+
 // Add a specified EFI boot loader to the list, using automatic settings
 // for icons, options, etc.
-static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
-                                     IN REFIT_VOLUME *Volume, IN BOOLEAN SubScreenReturn) {
+static LOADER_ENTRY * AddDiscoveredLoader(IN OUT CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
+                                         IN REFIT_VOLUME *Volume, IN BOOLEAN SubScreenReturn,
+                                         IN BOOLEAN NativeKernel) {
     LOADER_ENTRY  *Entry;
 
     CleanUpPathNameSlashes(LoaderPath);
@@ -667,8 +691,37 @@ static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *Loade
         }
         MergeStrings(&(Entry->LoaderPath), LoaderPath, 0);
         Entry->Volume = Volume;
-        SetLoaderDefaults(Entry, LoaderPath, Volume);
-        GenerateSubScreen(Entry, Volume, SubScreenReturn);
+        if (NativeKernel) {
+            CHAR16 *Guid = GuidAsString(&Volume->PartGuid);
+            CHAR16 *Initrd = Entry->LoaderPath ? StrDuplicate(Entry->LoaderPath) : NULL;
+            CHAR16 *Options = Guid ? PoolPrint(L"root=PARTUUID=%s rootfstype=ext4 rootwait=30 ro", Guid) : NULL;
+            if (Initrd) {
+                Initrd[StrLen(Initrd) - 4] = L'\0';
+                MergeStrings(&Initrd, L".initrd", 0);
+            }
+            MyFreePool(Entry->LoadOptions);
+            Entry->LoadOptions = Options && Initrd ? AddInitrdToOptions(Options,
+                Initrd && FileExists(Volume->RootDir, Initrd) ? Initrd : NULL) : NULL;
+            MyFreePool(Guid);
+            MyFreePool(Initrd);
+            MyFreePool(Options);
+            Entry->OSType = 'L';
+            Entry->LinuxMemoryFirst = TRUE;
+            Entry->UseGraphicsMode = (GlobalConfig.GraphicsFor & GRAPHICS_FOR_LINUX) != 0;
+            Entry->me.Image = LoadOSIcon(L"linux", L"unknown", FALSE);
+            Entry->me.ShortcutLetter = 'L';
+            StrCpy(Entry->RequiredFilesystemModule, L"ext4");
+            if (!Entry->LoadOptions) {
+                MyFreePool(Entry->Title);
+                MyFreePool(Entry->me.Title);
+                MyFreePool(Entry->LoaderPath);
+                MyFreePool(Entry);
+                return NULL;
+            }
+        } else {
+            SetLoaderDefaults(Entry, LoaderPath, Volume);
+            GenerateSubScreen(Entry, Volume, SubScreenReturn);
+        }
         AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
         LOG(3, LOG_LINE_NORMAL, L"Have successfully created menu entry for '%s'", Entry->Title);
     } else {
@@ -676,7 +729,12 @@ static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *Loade
     }
 
     return(Entry);
-} // LOADER_ENTRY * AddLoaderEntry()
+}
+
+static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
+                                     IN REFIT_VOLUME *Volume, IN BOOLEAN SubScreenReturn) {
+    return AddDiscoveredLoader(LoaderPath, LoaderTitle, Volume, SubScreenReturn, FALSE);
+}
 
 // Returns -1 if (Time1 < Time2), +1 if (Time1 > Time2), or 0 if
 // (Time1 == Time2). Precision is only to the nearest second; since
@@ -916,6 +974,12 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
     struct LOADER_LIST      *LoaderList = NULL, *NewLoader;
     LOADER_ENTRY            *FirstKernel = NULL, *LatestEntry = NULL;
     BOOLEAN                 FoundFallbackDuplicate = FALSE, IsLinux = FALSE, InSelfPath;
+    BOOLEAN                 NativeDirectory = MyStriCmp(Path, NATIVE_KERNEL_DIRECTORY);
+    EFI_GUID                NoPartition = NULL_GUID_VALUE;
+
+    if (NativeDirectory && (!BootSoHandleMatches(Volume->DeviceHandle, L"ext4") ||
+        GuidsAreEqual(&Volume->PartGuid, &NoPartition)))
+        return FALSE;
 
     LOG(3, LOG_LINE_NORMAL, L"Beginning to scan directory '%s' for '%s'", Path, Pattern);
     InSelfPath = MyStriCmp(Path, SelfDirPath);
@@ -932,7 +996,8 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
           if (!GlobalConfig.FollowSymlinks && IsSymbolicLink(Volume, FullName, DirEntry)) {
               continue;   // is symbolic link ... skip as ignoring such
           }
-          if (DirEntry->FileName[0] == '.' ||
+          if ((NativeDirectory && !IsNativeKernelName(DirEntry->FileName)) ||
+              DirEntry->FileName[0] == '.' ||
               MyStriCmp(Extension, L".icns") ||
               MyStriCmp(Extension, L".png") ||
               (MyStriCmp(DirEntry->FileName, FALLBACK_BASENAME) && (MyStriCmp(Path, L"EFI\\BOOT"))) ||
@@ -960,12 +1025,16 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
 
        NewLoader = LoaderList;
        while (NewLoader != NULL) {
-           IsLinux = IsInSubstring(NewLoader->FileName, GlobalConfig.LinuxPrefixes);
+           IsLinux = !NativeDirectory && IsInSubstring(NewLoader->FileName, GlobalConfig.LinuxPrefixes);
            if ((FirstKernel != NULL) && IsLinux && GlobalConfig.FoldLinuxKernels) {
                AddKernelToSubmenu(FirstKernel, NewLoader->FileName, Volume);
            } else {
-               LatestEntry = AddLoaderEntry(NewLoader->FileName, NULL, Volume,
-                                            !(IsLinux && GlobalConfig.FoldLinuxKernels));
+               CHAR16 *Title = NativeDirectory ? Basename(NewLoader->FileName) : NULL;
+               if (Title)
+                   Title[StrLen(Title) - 4] = L'\0';
+               LatestEntry = AddDiscoveredLoader(NewLoader->FileName, Title, Volume,
+                              !(IsLinux && GlobalConfig.FoldLinuxKernels), NativeDirectory);
+               MyFreePool(Title);
                if (IsLinux && (FirstKernel == NULL))
                    FirstKernel = LatestEntry;
            }
@@ -1134,6 +1203,8 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
         if (ScanLoaderDir(Volume, L"\\", MatchPatterns))
             ScanFallbackLoader = FALSE;
 
+        ScanLoaderDir(Volume, NATIVE_KERNEL_DIRECTORY, L"InfiltratorOS-*.img");
+
         // scan subdirectories of the EFI directory (as per the standard)
         DirIterOpen(Volume->RootDir, L"EFI", &EfiDirIter);
         while (DirIterNext(&EfiDirIter, 1, NULL, &EfiDirEntry)) {
@@ -1158,7 +1229,8 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
                 SplitVolumeAndFilename(&Directory, &VolName);
                 CleanUpPathNameSlashes(Directory);
                 Length = StrLen(Directory);
-                if ((Length > 0) && ScanLoaderDir(Volume, Directory, MatchPatterns))
+                if ((Length > 0) && !MyStriCmp(Directory, NATIVE_KERNEL_DIRECTORY) &&
+                    ScanLoaderDir(Volume, Directory, MatchPatterns))
                     ScanFallbackLoader = FALSE;
                 MyFreePool(VolName);
             } // if should scan dir

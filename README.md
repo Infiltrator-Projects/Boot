@@ -111,22 +111,17 @@ the installed executable. Copying files is not proof of a successful UEFI boot.
 An **update** builds and byte-verifies a complete candidate under a sibling
 directory on the same ESP. It replaces the BOOT executable and package-owned
 graphics together while preserving an existing user `boot.conf`, custom
-artwork, separately installed resources and filesystem SOs. The updater keeps
-the old deployment when it finds an EFI filesystem driver in its former
-default directories or a configuration that may load an external reader. The packaged
-default configuration is available as `boot.conf.package-default` for
-comparison; it is not silently activated. The previous complete installation
-remains under `EFI/.InfiltratorBoot.rollback` and can be restored with
-`--recover --confirm`. An older rollback copy is displaced only after the
-new candidate has been staged and checked.
+artwork, separately installed resources and filesystem SOs. The former EXT4
+EFI driver is retired when the independently installed Common V2 `EXT4.so`
+passes validation and the host EXT4 boot layout is compatible. Unknown EFI
+readers or custom external reader settings keep the current installation in
+place. The previous complete installation remains under
+`EFI/.InfiltratorBoot.rollback` and can be restored with `--recover --confirm`.
 
-`infiltrator-boot-deploy --stage-ext4-trial --confirm KERNEL_VERSION` stages a
-separate `EFI/InfiltratorBootTrial/BOOTX64.EFI` for firmware Boot from File.
-It uses the installed `EXT4.so` and the native kernel under
-`/System/Kernel/Images/` on a direct GPT/NVMe EXT4 root. It includes the
-versioned native initramfs when present. The command requires 64-bit UEFI
-with Secure Boot disabled and leaves existing BOOT, GRUB and firmware
-entries available. An existing trial directory is protected from replacement.
+On a GPT EXT4 volume opened by the V2 module, BOOT automatically discovers
+versioned InfiltratorOS images in `/System/Kernel/Images/` and uses a matching
+native initramfs when present. The regular EFI and Linux scans continue to
+populate the same menu.
 
 A directory swap on a FAT ESP requires two renames and **cannot be perfectly
 atomic across sudden power loss**. If interrupted between those renames, the

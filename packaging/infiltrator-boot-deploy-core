@@ -10,17 +10,8 @@ log() { printf 'Boot deployment: %s\n' "$*"; }
 mode=$1 payload=$2 esp=$3
 shift 3
 target_name=InfiltratorBoot
-trial_version=
-if [[ $mode == --stage-ext4-trial ]]; then
-    [[ $# == 4 && $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ &&
-       $2 =~ ^[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12}$ &&
-       $3 =~ ^[01]$ && ${4##*/} == EXT4.so ]] || fail 'Invalid EXT4 trial kernel, partition or module'
-    trial_version=$1 trial_root=${2,,} trial_initrd=$3
-    shift 3
-    target_name=InfiltratorBootTrial
-    mode=--install-new
-fi
 modules=("$@")
+retired_ext4_drivers=()
 validator="$(dirname -- "${BASH_SOURCE[0]}")/validate-module"
 case "$mode" in --install-new|--update-existing|--recover) ;; *) fail 'Invalid deployment mode' ;; esac
 [[ $mode != --recover || ${#modules[@]} == 0 ]] || fail 'Recovery takes no filesystem modules'
@@ -104,7 +95,6 @@ done
     ! -path "$payload/icons/licenses/gpl-2.0.txt" -print -quit) ]] || fail 'Unexpected staged payload file'
 if [[ $mode == --install-new ]]; then
     if [[ -e $target || -e $backup ]]; then
-        if [[ -n $trial_version ]]; then fail 'Existing EXT4 trial directory retained'; fi
         fail 'Existing or interrupted BOOT installation; use --update-existing or --recover'
     fi
 else
@@ -113,16 +103,24 @@ else
     if [[ -e "$backup" ]]; then
         [[ -d "$backup" && -f "$backup/BOOTX64.EFI" && ! -L "$backup/BOOTX64.EFI" ]] || fail 'Unrecognised rollback state; refuse to overwrite'
     fi
-    # A preserved config can still depend on an independent EFI reader.
-    # Staging a V2 SO does not establish that it replaces that reader.
+    # The formerly bundled EXT4 reader has an independent V2 replacement.
+    # Unknown readers and local driver configuration are outside this migration.
+    ext4_module=0
+    for module in "${modules[@]}"; do
+        if [[ ${module##*/} == EXT4.so ]]; then ext4_module=1; fi
+    done
     for dir in drivers drivers_x64; do
         [[ -d "$target/$dir" ]] || continue
-        prior_driver=$(find "$target/$dir" -maxdepth 1 -type f -iname '*.efi' -print -quit) ||
-            fail "Cannot inspect existing BOOT driver directory: $dir"
-        if [[ -n $prior_driver ]]; then
-            log "Existing BOOT uses an EFI driver directory ($dir); current deployment kept."
-            exit 77
-        fi
+        for driver in "$target/$dir/"*; do
+            name=${driver##*/}
+            [[ -f $driver && ${name,,} == *.efi ]] || continue
+            if [[ ${name,,} == ext4_x64.efi && $ext4_module == 1 ]]; then
+                retired_ext4_drivers+=("${driver#"$target"/}")
+            else
+                log "No qualified replacement for existing EFI filesystem reader $dir/$name."
+                exit 77
+            fi
+        done
     done
     # ReadConfig also accepts UTF-16 and one level of includes. In those cases
     # retain the working deployment until the custom configuration is reviewed.
@@ -143,6 +141,9 @@ fi
 stage=$(mktemp -d "$parent/.$target_name.pending.XXXXXXXX")
 if [[ $mode == --update-existing ]]; then
     cp -R -- "$target/." "$stage/" || fail 'Unable to stage existing BOOT resources'
+    for driver in "${retired_ext4_drivers[@]}"; do
+        rm -- "$stage/$driver"
+    done
 fi
 
 # Overlay only files owned by the BOOT payload. The complete previous tree,
@@ -189,31 +190,11 @@ if [[ $mode == --update-existing && -f "$target/boot.conf" ]]; then
     cp -- "$payload/boot.conf" "$stage/boot.conf.package-default"
 fi
 
-trial_config() {
-    cat -- "$payload/boot.conf"
-    # The canonical paths are on the GPT partition that backs the running
-    # root. Resolve the same partition at both stages, even if Linux renames it.
-    printf '\nscanfor manual\ndefault_selection InfiltratorOS\n'
-    printf 'menuentry "InfiltratorOS Kernel %s" {\n' "$trial_version"
-    printf '    volume %s\n    filesystem_module ext4\n' "$trial_root"
-    printf '    loader \\System\\Kernel\\Images\\InfiltratorOS-%s.img\n' "$trial_version"
-    if [[ $trial_initrd == 1 ]]; then
-        printf '    initrd \\System\\Kernel\\Images\\InfiltratorOS-%s.initrd\n' "$trial_version"
-    fi
-    printf '    linux_load memory\n    ostype Linux\n'
-    printf '    options "root=PARTUUID=%s rootfstype=ext4 rootwait=30 ro"\n}\n' "$trial_root"
-}
-if [[ -n $trial_version ]]; then
-    trial_config > "$stage/boot.conf"
-fi
-
 verify() {
     local dest=$1 source_file relative
     while IFS= read -r -d '' source_file; do
         relative=${source_file#"$payload"/}
-        if [[ -n $trial_version && $relative == boot.conf ]]; then
-            trial_config | cmp -s -- - "$dest/boot.conf" || return 1
-        elif [[ $mode == --update-existing && $relative == boot.conf && -f "$target/boot.conf" && $dest == "$stage" ]]; then
+        if [[ $mode == --update-existing && $relative == boot.conf && -f "$target/boot.conf" && $dest == "$stage" ]]; then
             cmp -s -- "$target/boot.conf" "$dest/boot.conf" || return 1
         elif [[ $mode == --update-existing && $relative == boot.conf && -d "$backup" && $dest == "$target" ]]; then
             cmp -s -- "$backup/boot.conf" "$dest/boot.conf" || return 1
@@ -227,11 +208,9 @@ verify() {
     return 0
 }
 verify "$stage" || fail 'Staged resources did not verify byte-for-byte'
-if [[ $mode == --update-existing && -d "$target/drivers_x64" ]]; then
-    while IFS= read -r -d '' driver; do
-        cmp -s -- "$driver" "$stage/${driver#"$target"/}" || fail 'Staging changed a separately owned EFI driver'
-    done < <(find "$target/drivers_x64" -type f -print0)
-fi
+for driver in "${retired_ext4_drivers[@]}"; do
+    [[ ! -e "$stage/$driver" ]] || fail 'Retired EXT4 EFI driver is still active'
+done
 if [[ $mode == --update-existing && -e "$backup" ]]; then
     # Previous successful rollback copy is replaced only after a new candidate
     # has been fully staged and verified. Current BOOT remains installed here.
@@ -246,12 +225,11 @@ mv -T -- "$stage" "$target"
 promoted=1
 verify "$target" || fail 'Installed resources failed post-deployment verification'
 sync -f "$target/BOOTX64.EFI"
-if [[ -n $trial_version ]]; then
-    log 'Staged EXT4 trial at EFI/InfiltratorBootTrial/BOOTX64.EFI for firmware Boot from File.'
-elif [[ $mode == --install-new ]]; then
+if [[ $mode == --install-new ]]; then
     log 'Full BOOT installation staged; use firmware Boot from File or separately configure an EFI entry.'
 else
     log 'BOOT executable and assets updated; user boot.conf and independent resources preserved.'
+    if (( ${#retired_ext4_drivers[@]} )); then log 'Installed Common V2 EXT4 reader replaces the former EFI driver.'; fi
     log "Previous full installation available at $backup (--recover --confirm)."
 fi
 log 'No NVRAM, BootOrder, other EFI loader or Linux boot configuration was modified.'
