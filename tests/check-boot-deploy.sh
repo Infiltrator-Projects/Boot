@@ -142,6 +142,26 @@ cmp "$payload/BOOTX64.EFI" "$target/BOOTX64.EFI"
 grep -Fxq 'old EXT4 EFI reader' "$esp/EFI/.InfiltratorBoot.rollback/drivers_x64/ext4_x64.efi"
 grep -Fxq 'local user config' "$target/boot.conf"
 
+# More than eight valid providers must all be staged, while a bad late
+# provider must leave the current installation untouched.
+mkdir "$work/providers"
+providers=()
+for index in $(seq 1 24); do
+    provider="$work/providers/Provider${index}.so"
+    printf 'qualified fixture\n' > "$provider"
+    providers+=("$provider")
+done
+bash "$work/engine/deploy-core" --update-existing "$payload" "$esp" "${providers[@]}"
+for provider in "${providers[@]}"; do
+    cmp "$provider" "$target/filesystems_x64/${provider##*/}"
+done
+printf 'invalid fixture\n' > "${providers[23]}"
+if bash "$work/engine/deploy-core" --update-existing "$payload" "$esp" "${providers[@]}"; then
+    echo 'Upgrade accepted an invalid later provider' >&2; exit 1
+fi
+grep -Fxq 'qualified fixture' "$target/filesystems_x64/Provider24.so"
+cmp "$payload/BOOTX64.EFI" "$target/BOOTX64.EFI"
+
 # Existing non-BOOT firmware path never changed during any operation.
 [[ $(cat "$esp/EFI/BOOTX64.EFI") == 'old firmware entry should be unchanged' ]]
 ! find "$esp/EFI" -maxdepth 1 -name '.InfiltratorBoot.pending.*' | grep -q .

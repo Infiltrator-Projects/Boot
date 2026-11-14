@@ -181,7 +181,10 @@ for module in "${modules[@]}"; do
 done
 shopt -s nullglob
 staged_modules=("$stage"/filesystems_x64/*.so)
-(( ${#staged_modules[@]} <= 8 )) || fail 'BOOT supports at most eight staged filesystem modules'
+# The firmware directory walk is bounded at 4096 entries. Reserve space for
+# the optional dot entries and count every item, not only recognised modules.
+entry_count=$(find "$stage/filesystems_x64" -mindepth 1 -maxdepth 1 -printf '.' | wc -c)
+(( entry_count <= 4094 )) || fail 'Filesystem module directory exceeds the BOOT scan limit'
 for module in "${staged_modules[@]}"; do
     "$validator" "$module" ||
         fail "Filesystem module is incompatible with BOOT Common V2: ${module##*/}"
