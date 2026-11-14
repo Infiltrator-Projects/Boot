@@ -660,6 +660,38 @@ static BOOLEAN IsNativeKernelName(CHAR16 *Name) {
     return MyStriCmp(Name, L".img");
 }
 
+// Names are validated before comparison. Compare each decimal field by
+// length and digits so 0.1.10 ranks ahead of 0.1.9 without integer overflow.
+static BOOLEAN NativeKernelIsNewer(const CHAR16 *Candidate, const CHAR16 *Current) {
+    UINTN Field;
+
+    Candidate += StrLen(NATIVE_KERNEL_PREFIX);
+    Current += StrLen(NATIVE_KERNEL_PREFIX);
+    for (Field = 0; Field < 3; ++Field) {
+        const CHAR16 *CandidateEnd = Candidate, *CurrentEnd = Current;
+
+        while (*CandidateEnd != L'.')
+            ++CandidateEnd;
+        while (*CurrentEnd != L'.')
+            ++CurrentEnd;
+        while (Candidate + 1 < CandidateEnd && *Candidate == L'0')
+            ++Candidate;
+        while (Current + 1 < CurrentEnd && *Current == L'0')
+            ++Current;
+        if (CandidateEnd - Candidate != CurrentEnd - Current)
+            return CandidateEnd - Candidate > CurrentEnd - Current;
+        while (Candidate < CandidateEnd) {
+            if (*Candidate != *Current)
+                return *Candidate > *Current;
+            ++Candidate;
+            ++Current;
+        }
+        Candidate = CandidateEnd + 1;
+        Current = CurrentEnd + 1;
+    }
+    return FALSE;
+}
+
 // Add a specified EFI boot loader to the list, using automatic settings
 // for icons, options, etc.
 static LOADER_ENTRY * AddDiscoveredLoader(IN OUT CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
@@ -976,6 +1008,7 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
     BOOLEAN                 FoundFallbackDuplicate = FALSE, IsLinux = FALSE, InSelfPath;
     BOOLEAN                 NativeDirectory = MyStriCmp(Path, NATIVE_KERNEL_DIRECTORY);
     EFI_GUID                NoPartition = NULL_GUID_VALUE;
+    CHAR16                  *NativeKernel = NULL;
 
     if (NativeDirectory && (!BootSoHandleMatches(Volume->DeviceHandle, L"ext4") ||
         GuidsAreEqual(&Volume->PartGuid, &NoPartition)))
@@ -1007,6 +1040,18 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
                 continue;   // skip this
           }
 
+          if (NativeDirectory) {
+              const UINTN Offset = StrLen(NATIVE_KERNEL_DIRECTORY) + 1;
+              if (!NativeKernel || NativeKernelIsNewer(DirEntry->FileName, NativeKernel + Offset)) {
+                  MyFreePool(NativeKernel);
+                  NativeKernel = FullName;
+                  FullName = NULL;
+              }
+              MyFreePool(Extension);
+              MyFreePool(FullName);
+              continue;
+          }
+
           NewLoader = AllocateZeroPool(sizeof(struct LOADER_LIST));
           if (NewLoader != NULL) {
              NewLoader->FileName = StrDuplicate(FullName);
@@ -1023,18 +1068,22 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
           MyFreePool(FullName);
        } // while
 
+       if (NativeKernel) {
+           CHAR16 *Title = Basename(NativeKernel);
+           if (Title)
+               Title[StrLen(Title) - 4] = L'\0';
+           AddDiscoveredLoader(NativeKernel, Title, Volume, FALSE, TRUE);
+           MyFreePool(Title);
+           MyFreePool(NativeKernel);
+       }
        NewLoader = LoaderList;
        while (NewLoader != NULL) {
-           IsLinux = !NativeDirectory && IsInSubstring(NewLoader->FileName, GlobalConfig.LinuxPrefixes);
+           IsLinux = IsInSubstring(NewLoader->FileName, GlobalConfig.LinuxPrefixes);
            if ((FirstKernel != NULL) && IsLinux && GlobalConfig.FoldLinuxKernels) {
                AddKernelToSubmenu(FirstKernel, NewLoader->FileName, Volume);
            } else {
-               CHAR16 *Title = NativeDirectory ? Basename(NewLoader->FileName) : NULL;
-               if (Title)
-                   Title[StrLen(Title) - 4] = L'\0';
-               LatestEntry = AddDiscoveredLoader(NewLoader->FileName, Title, Volume,
-                              !(IsLinux && GlobalConfig.FoldLinuxKernels), NativeDirectory);
-               MyFreePool(Title);
+               LatestEntry = AddLoaderEntry(NewLoader->FileName, NULL, Volume,
+                                            !(IsLinux && GlobalConfig.FoldLinuxKernels));
                if (IsLinux && (FirstKernel == NULL))
                    FirstKernel = LatestEntry;
            }

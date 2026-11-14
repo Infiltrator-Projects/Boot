@@ -119,7 +119,7 @@ place. The previous complete installation remains under
 `EFI/.InfiltratorBoot.rollback` and can be restored with `--recover --confirm`.
 
 On a GPT EXT4 volume opened by the V2 module, BOOT automatically discovers
-versioned InfiltratorOS images in `/System/Kernel/Images/` and uses a matching
+the newest versioned InfiltratorOS image in `/System/Kernel/Images/` and uses a matching
 native initramfs when present. The regular EFI and Linux scans continue to
 populate the same menu.
 
