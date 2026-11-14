@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s  %s\n' 692fa7bc005d855b5268dd66b952a73b76e084027ef13cf992e205a33c6930bd \
+          printf '%s  %s\n' e229e51c6d916f187540bb1d771aa8c007d66ad2c237557b39b2997a7bf0082b \
             include/infiltratr/filesystem_module_v2.h | sha256sum -c -
           bash -n scripts/build-gnuefi.sh
           bash -n scripts/build-mb-fonts.sh
