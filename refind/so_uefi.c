@@ -13,7 +13,6 @@
 #define EFI_MEMORY_RO UINT64_C(0x20000)
 #endif
 #define SO_MAX_VOLUMES 32u
-#define SO_MAX_MODULES 8u
 #define SO_PATH_BYTES 4096u
 #define SO_NAME_BYTES 4096u
 #define CONTAINER(pointer,type,member) ((type *)((UINT8 *)(pointer)-offsetof(type,member)))
@@ -80,8 +79,7 @@ typedef struct {
     UINTN length;
 } SoModule;
 static SoVolume *volumes;
-static SoModule modules[SO_MAX_MODULES];
-static UINTN module_count, volume_count;
+static UINTN volume_count;
 
 static VOID copy_bytes(VOID *d, const VOID *s, UINTN n) {
     UINT8 *out=d; const UINT8 *in=s;
@@ -601,9 +599,17 @@ UINTN BootSoLoadDirectory(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL *root,
     if(EFI_ERROR(services->HandleProtocol(image_handle,&loaded_guid,(VOID **)&loaded))) {
         directory->Close(directory); return 0;
     }
+    EFI_HANDLE *handles=NULL; UINTN count=0, mounted=0;
+    if(EFI_ERROR(services->LocateHandleBuffer(ByProtocol,&block_guid,
+                                    NULL,&count,&handles))) {
+        directory->Close(directory); return 0;
+    }
     UINT8 buffer[4096];
     UINTN entries=0;
-    while(module_count<SO_MAX_MODULES && entries++<256u) {
+    /* Process one module at a time: installed providers must not be silently
+     * omitted by a small module-count limit, and raw ELF buffers do not need
+     * to remain allocated after each volume has its own relocated image. */
+    while(entries++<4096u && volume_count<SO_MAX_VOLUMES) {
         UINTN bytes=sizeof(buffer);
         EFI_STATUS status=directory->Read(directory,&bytes,buffer);
         if(EFI_ERROR(status) || !bytes) break;
@@ -613,28 +619,23 @@ UINTN BootSoLoadDirectory(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL *root,
         UINTN name_chars=(bytes-SIZE_OF_EFI_FILE_INFO)/sizeof(CHAR16), name_end=0;
         while(name_end<name_chars && info->FileName[name_end]) ++name_end;
         if(name_end==name_chars || !suffix_so(info->FileName)) continue;
-        SoModule *module=&modules[module_count];
-        status=read_module(directory,info->FileName,module);
+        SoModule module={0};
+        status=read_module(directory,info->FileName,&module);
         if(EFI_ERROR(status)) {
             if(diagnostics) Print(L"[Boot SO] rejected %s: %r\n",info->FileName,status);
             continue;
         }
         /* No module code ran in validation. Each matching volume receives a
          * private instance, so one module's global mount cannot alias another. */
-        ++module_count;
-        if(diagnostics) Print(L"[Boot SO] validated %s (%d bytes)\n",info->FileName,module->length);
+        if(diagnostics) Print(L"[Boot SO] validated %s (%d bytes)\n",info->FileName,module.length);
+        for(UINTN i=0;i<count && i<256u && volume_count<SO_MAX_VOLUMES;++i) {
+            if(handles[i]==loaded->DeviceHandle) continue;
+            status=bind_module(&module,handles[i]);
+            if(!EFI_ERROR(status)) ++mounted;
+        }
+        free_pool(module.bytes);
     }
     directory->Close(directory);
-    EFI_HANDLE *handles=NULL; UINTN count=0, mounted=0;
-    if(EFI_ERROR(services->LocateHandleBuffer(ByProtocol,&block_guid,
-                                    NULL,&count,&handles))) return 0;
-    for(UINTN i=0;i<count && i<256u && volume_count<SO_MAX_VOLUMES;++i) {
-        if(handles[i]==loaded->DeviceHandle) continue; /* retain the bootstrap reader */
-        for(UINTN j=0;j<module_count;++j) {
-            EFI_STATUS status=bind_module(&modules[j],handles[i]);
-            if(!EFI_ERROR(status)) { ++mounted; break; }
-        }
-    }
     free_pool(handles);
     return mounted;
 }

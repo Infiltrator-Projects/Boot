@@ -41,10 +41,10 @@ Boot validates program/section tables, file and virtual ranges, non-overlapping
 segments, declared permissions, dynamic metadata, the V2 symbol and relocation
 destinations/addends before allocation or execution. After relocation it bounds
 the returned V2 descriptor, format ID, operation tables and callbacks. Limits are
-16 MiB of input, 32 MiB per loaded image, 16 load segments, 8 staged modules,
-256 directory entries/device handles considered and 32 mounted volumes.
-Each mount receives a separate relocated image so provider state and volume
-handles stay independent.
+16 MiB of input, 32 MiB per loaded image, 16 load segments, 4096 directory
+entries, 256 device handles and 32 mounted volumes. Boot processes provider
+files one at a time; each mount receives a separate relocated image so provider
+state and volume handles stay independent.
 
 ## Read-only UEFI adaptation
 

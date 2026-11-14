@@ -93,6 +93,12 @@ menuentry "Linux through FAT16.so" {
         run("mcopy", "-i", esp, args.boot, f"::/EFI/BOOT/{directory}/{name}")
     module = work / "FAT16.so"
     module_bytes = args.module.read_bytes()
+    # Directory iteration sees these valid modules before FAT16.so. More than
+    # eight providers must not stop BOOT from considering the requested one.
+    if not args.reject_module:
+        for index in range(24):
+            run("mcopy", "-i", esp, args.module,
+                f"::/EFI/BOOT/filesystems_x64/P{index:02}.so")
     if args.reject_module:
         export = b"infiltrator_filesystem_api_v2\0"
         assert export in module_bytes
@@ -132,6 +138,11 @@ menuentry "Linux through FAT16.so" {
         assert "BOOT-FAT16-SO-LINUX-PASS" in text, "Linux did not reach our initramfs"
         assert "validated FAT16.so" in text and "mounted module" in text
         assert "bytes read through module" in text
+        diagnostic = text.lower()
+        for index in range(24):
+            assert f"validated p{index:02}.so" in diagnostic, "Provider was skipped"
+        assert diagnostic.index("validated p23.so") < diagnostic.index("validated fat16.so"), \
+            "The later provider was not encountered after the test modules"
         print("BOOT-FAT16-SO-LINUX-HANDOFF-PASS", digest(module))
 
 
