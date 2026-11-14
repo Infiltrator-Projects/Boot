@@ -20,7 +20,7 @@ Upgrades preserve the previous complete directory for recovery, and refuse
 activation if a retained module is incompatible with the Common V2 loader.
 
 Boot calls Common's `infiltrator_filesystem_api_v2` exclusively. Its vendored
-header is the exact Libraries header at `4c92c8dcd7e03afd4bab3105e143dbabd72c8adc`.
+header is the exact Libraries header at `b50f493d789b840edea40ea09978d94d751533f8`.
 The native installer carries this header so it can compile from its verified
 payload. Boot requires a Common V2 descriptor, a freestanding or firmware
 profile, and CORE mount, stat, list and read operations. A module offering
@@ -55,6 +55,11 @@ lookup, directory enumeration, file data and volume-label interpretation.
 Boot uses the format ID as the display label if the module supplies no label.
 Boot owns UTF-16/UTF-8 conversion, volume-relative path normalisation, EFI file
 positions/information and protocol lifetimes.
+
+When firmware supplies the UEFI RNG protocol, the V2 host exposes its entropy
+callback to the filesystem module. Missing or failing firmware entropy is
+reported as unavailable or failed; BOOT does not manufacture replacement
+randomness. The host still grants no write access or exclusive media lease.
 
 Firmware's original handles and protocols remain installed. Boot's own volume
 scan selects the SO child instead of its parent, avoiding duplicate candidates.

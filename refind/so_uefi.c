@@ -39,6 +39,14 @@ struct BootMemoryAttributes {
 };
 static BootMemoryAttributes *memory_attributes;
 static EFI_GUID memory_attributes_guid={0xf4560cf6,0x40ec,0x4b4a,{0xa1,0x92,0xbf,0x1d,0x57,0xd0,0xb1,0x89}};
+/* The firmware RNG is optional. Never synthesize entropy if it is absent or
+ * reports failure. The protocol and its callbacks live until ExitBootServices. */
+typedef struct BootRngProtocol BootRngProtocol;
+typedef EFI_STATUS (EFIAPI *BootRngInfo)(BootRngProtocol *,UINTN *,EFI_GUID *);
+typedef EFI_STATUS (EFIAPI *BootRngGet)(BootRngProtocol *,EFI_GUID *,UINTN,UINT8 *);
+struct BootRngProtocol { BootRngInfo GetInfo; BootRngGet GetRNG; };
+static BootRngProtocol *firmware_rng;
+static EFI_GUID rng_guid={0x3152bca5,0xeade,0x433d,{0x86,0x2e,0xc0,0x1c,0xdc,0x29,0x1f,0x44}};
 
 typedef struct SoVolume SoVolume;
 typedef struct {
@@ -437,13 +445,20 @@ BOOLEAN BootSoHandleMatches(EFI_HANDLE handle, const CHAR16 *id) {
 }
 static void *host_allocate(void *context,size_t bytes) { (void)context; return pool(bytes); }
 static void host_release(void *context,void *data) { (void)context; free_pool(data); }
+static int host_random(void *context,void *data,uint32_t bytes) {
+    (void)context;
+    if(!firmware_rng || !firmware_rng->GetRNG || (!data && bytes)) return -1;
+    if(!bytes) return 0;
+    return EFI_ERROR(firmware_rng->GetRNG(firmware_rng,NULL,(UINTN)bytes,data))?-1:0;
+}
 static void init_host(SoVolume *volume,UINT64 bytes) {
     volume->io=(IfsFsHostRuntimeV2){
         .abi_version=IFS_FS_HOST_ABI_V2,.structure_bytes=sizeof(volume->io),
         .capabilities=IFS_FS_HOST_READ_ONLY,.volume_bytes=bytes,
         .logical_sector_bytes=volume->media.BlockSize,.physical_sector_bytes=volume->media.BlockSize,
         .maximum_transfer_bytes=65536u,.context=volume,.read_at=disk_read,
-        .allocate=host_allocate,.release=host_release
+        .allocate=host_allocate,.release=host_release,
+        .random_bytes=firmware_rng && firmware_rng->GetRNG?host_random:NULL
     };
 }
 static EFI_STATUS mount_volume(SoVolume *volume) {
@@ -578,6 +593,9 @@ UINTN BootSoLoadDirectory(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL *root,
         directory->Close(directory); return 0;
     }
     (void)services->LocateProtocol(&memory_attributes_guid,NULL,(VOID **)&memory_attributes);
+    firmware_rng=NULL;
+    if(EFI_ERROR(services->LocateProtocol(&rng_guid,NULL,(VOID **)&firmware_rng)))
+        firmware_rng=NULL;
     if(diagnostics) Print(L"[Boot SO] platform memory permissions: %s\n",
                            memory_attributes?L"enforced":L"protocol unavailable");
     if(EFI_ERROR(services->HandleProtocol(image_handle,&loaded_guid,(VOID **)&loaded))) {

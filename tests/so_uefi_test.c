@@ -12,6 +12,15 @@ static FILE *media_file;
 static int variable_mode;
 static UINT64 set_attributes, clear_attributes;
 static int fail_attributes;
+static int fail_rng;
+static EFI_STATUS EFIAPI get_random(BootRngProtocol *this,EFI_GUID *algorithm,
+                                     UINTN bytes,UINT8 *buffer) {
+    (void)this;
+    REQUIRE(!algorithm && buffer && bytes);
+    if(fail_rng) return EFI_DEVICE_ERROR;
+    memset(buffer,0xa5,bytes);
+    return EFI_SUCCESS;
+}
 static EFI_STATUS EFIAPI set_memory(BootMemoryAttributes *this, EFI_PHYSICAL_ADDRESS base,
                                      UINT64 bytes, UINT64 flags) {
     (void)this; (void)base; (void)bytes; set_attributes|=flags;
@@ -79,7 +88,19 @@ int main(int argc,char **argv) {
     media.BlockSize=512; media.IoAlign=32; media.LastBlock=(UINT64)st.st_size/512u-1u;
     EFI_BLOCK_IO_PROTOCOL disk={0}; disk.Media=&media; disk.ReadBlocks=read_blocks;
     volume.parent_block=&disk; volume.media=media;
+    firmware_rng=NULL;
     init_host(&volume,(uint64_t)st.st_size);
+    REQUIRE(ifs_fs_host_random_bytes_v2(&volume.io,(UINT8[8]){0},8)==IFS_FS_UNSUPPORTED);
+    BootRngProtocol rng={NULL,get_random};
+    firmware_rng=&rng;
+    init_host(&volume,(uint64_t)st.st_size);
+    UINT8 entropy[8]={0};
+    REQUIRE(ifs_fs_host_random_bytes_v2(&volume.io,entropy,sizeof(entropy))==IFS_FS_OK);
+    for(UINTN i=0;i<sizeof(entropy);++i) REQUIRE(entropy[i]==0xa5);
+    fail_rng=1;
+    REQUIRE(ifs_fs_host_random_bytes_v2(&volume.io,entropy,sizeof(entropy))==IFS_FS_IO_ERROR);
+    REQUIRE((volume.io.capabilities&IFS_FS_HOST_READ_ONLY) && !volume.io.write_at);
+    fail_rng=0;
     REQUIRE(posix_memalign(&volume.bounce,32,65536u)==0);
     REQUIRE(mount_volume(&volume)==EFI_SUCCESS);
     REQUIRE(memcmp(volume.label,L"SOFIXTURE",sizeof(L"SOFIXTURE"))==0);
