@@ -35,7 +35,7 @@ relocation helpers are not part of this repository.
 
 Provenance
 ----------
-BOOT derives from the earlier rEFInd project and its predecessors, with
+BOOT derives from earlier UEFI boot manager projects and their predecessors, with
 third-party UEFI, image-decoding and compression components. Preserve
 copyright and applicable third-party licence notices when distributing
 modified binaries. Refer to the preserved notices in the source files.
