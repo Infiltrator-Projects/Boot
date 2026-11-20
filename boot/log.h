@@ -1,8 +1,8 @@
 /*
- * refind/log.h
+ * boot/log.h
  * 
- * Definitions to handle rEFInd's logging facility, activated by setting
- * log_level in refind.conf.
+ * Definitions to handle BOOT's logging facility, activated by setting
+ * log_level in boot.conf.
  * 
  */
 /*
@@ -31,8 +31,8 @@ extern CHAR16           *gLogTemp;
 #define LOG_LINE_SEPARATOR   2
 #define LOG_LINE_THIN_SEP    3
 
-#define LOGFILE L"refind.log"
-#define LOGFILE_OLD L"refind.log-old"
+#define LOGFILE L"boot.log"
+#define LOGFILE_OLD L"boot.log-old"
 
 // Note: gLogTemp is freed within WriteToLog()
 #define LOG(level, type, ...) \
