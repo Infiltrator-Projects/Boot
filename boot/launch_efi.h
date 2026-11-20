@@ -1,5 +1,5 @@
 /*
- * refind/launch_efi.h
+ * boot/launch_efi.h
  * Function definitions related to launching EFI programs
  *
  * Copyright (c) 2006-2010 Christoph Pfisterer
@@ -55,8 +55,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __REFIND_LAUNCH_EFI_H_
-#define __REFIND_LAUNCH_EFI_H_
+#ifndef __BOOT_LAUNCH_EFI_H_
+#define __BOOT_LAUNCH_EFI_H_
 
 #ifdef __MAKEWITH_GNUEFI
 #include "efi.h"
