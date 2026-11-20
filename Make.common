@@ -9,12 +9,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # This file contains make definitions common to several (or all) of the make
-# files in the rEFInd code subdirectories. Some options are specific to
+# files in the BOOT code subdirectories. Some options are specific to
 # particular architectures or build systems and others are more universal.
 
 #
 # Environment definitions -- where stuff is and what sort of system is being
-# used to compile rEFInd....
+# used to compile BOOT....
 #
 
 EFIINC          = /usr/include/efi
@@ -47,8 +47,8 @@ ARCH            ?= $(HOSTARCH)
 # Pointer to SBAT .csv file. First is default; uncomment second (or make your
 # your own) if you build your own binary. If you make changes and build your
 # own binary, creating your own file is the best practice.
-REFIND_SBAT_CSV = refind-sbat.csv
-#REFIND_SBAT_CSV = refind-sbat-local.csv
+BOOT_SBAT_CSV = boot-sbat.csv
+#BOOT_SBAT_CSV = boot-sbat-local.csv
 
 # Note: TIANOBASE is defined in master Makefile and exported
 GENFW           = $(TIANOBASE)/BaseTools/Source/C/bin/GenFw
@@ -83,7 +83,7 @@ OPTIMFLAGS      = -Os -fno-strict-aliasing -fno-tree-loop-distribute-patterns
 CFLAGS          = $(OPTIMFLAGS) -fno-stack-protector -fshort-wchar -Wall
 
 # ...for GNU-EFI....
-GNUEFI_CFLAGS   = -fpic -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol -I../include -I../refind -I../libeg -I../mok -I../gzip
+GNUEFI_CFLAGS   = -fpic -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol -I../include -I../boot -I../libeg -I../mok -I../gzip
 
 # ...and for TianoCore....
 TIANO_INCLUDE_DIRS = -I $(TIANOBASE)/MdePkg \
@@ -93,7 +93,7 @@ TIANO_INCLUDE_DIRS = -I $(TIANOBASE)/MdePkg \
                      -I $(TIANOBASE)/IntelFrameworkPkg/Include \
                      -I $(TIANOBASE)/MdePkg/Include/$(ARCHDIR) \
                      -I .. \
-                     -I ../refind \
+                     -I ../boot \
                      -I ../libeg \
                      -I ../gzip \
                      -I ../include \
@@ -145,7 +145,7 @@ ifeq ($(ARCH),ia32)
   GNUEFI_LDFLAGS += -znocombreloc -zdefs
 
   # In practice, cross-compiling filesystem drivers works, but not the main
-  # rEFInd binary....
+  # BOOT binary....
   ifeq ($(HOSTARCH),x86_64)
     GNUEFILIB := $(GNUEFILIB)32
     EFILIB    := $(EFILIB)32
@@ -212,6 +212,6 @@ endif
 # utility rules
 
 #clean:
-#	rm -f $(TARGET) *~ *.so $(OBJS) *.efi *.obj refind_*.txt refind_*.dll *.lib
+#	rm -f $(TARGET) *~ *.so $(OBJS) *.efi *.obj boot_*.txt boot_*.dll *.lib
 
 # EOF
