@@ -142,7 +142,7 @@ typedef struct _MY_EFI_BLOCK_IO_PROTOCOL {
 #define MY_EFI_BLOCK_IO_PROTOCOL EFI_BLOCK_IO_PROTOCOL
 #endif
 
-/* LibScanHandleDatabase() is used by rEFInd's driver-loading code (inherited
+/* LibScanHandleDatabase() is used by BOOT's driver-loading code (inherited
  * from rEFIt), but has not been implemented in GNU-EFI and seems to have been
  * dropped from current versions of the Tianocore library. This function was
  * taken from http://git.etherboot.org/?p=mirror/efi/shell/.git;a=commitdiff;h=b1b0c63423cac54dc964c2930e04aebb46a946ec,
@@ -570,7 +570,7 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
 } // static UINTN ScanDriverDir()
 
 
-// Load all EFI drivers from rEFInd's "drivers" subdirectory and from the
+// Load all EFI drivers from BOOT's "drivers" subdirectory and from the
 // directories specified by the user in the "scan_driver_dirs" configuration
 // file line.
 // Originally from rEFIt's main.c (BSD), but modified since then (GPLv3).
@@ -580,7 +580,7 @@ BOOLEAN LoadDrivers(VOID) {
     UINTN         i = 0, Length, NumFound = 0;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Loading drivers");
-    // load drivers from the subdirectories of rEFInd's home directory specified
+    // load drivers from the subdirectories of BOOT's home directory specified
     // in the DRIVER_DIRS constant.
     while ((Directory = FindCommaDelimited(DRIVER_DIRS, i++)) != NULL) {
         SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
