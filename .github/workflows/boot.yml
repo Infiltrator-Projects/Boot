@@ -1,4 +1,4 @@
-name: BOOT build and AMD64 preview release
+name: BOOT native source installer and generic AMD64 package
 
 on:
   push:
@@ -65,17 +65,20 @@ jobs:
           operational boot managers. Firmware boot behaviour and Common V2
           filesystem integration remain under development.
 
-          - Native .run: self-extract with --extract DIRECTORY, or stage
-            files with sudo ./BOOT-*.run --install.
-          - Generic AMD64 .deb: stages the same BOOT files.
-          - SHA256SUMS: verifies both downloadable assets.
+          - Native .run: bundles the exact BOOT source, compiles locally with
+            GNU-EFI and CPU-native settings, then executes the existing
+            boot-install script. No build-only or staging mode.
+          - Generic AMD64 .deb: stages the generic BOOT firmware image only.
+          - SHA256SUMS: verifies the two downloadable assets.
 
-          Neither package modifies the EFI System Partition, GRUB,
-          EFI/BOOT fallback files, or UEFI NVRAM automatically.
-          Do not deploy this preview to a production boot environment.
+          The native .run invokes boot-install, which can update the ESP and
+          firmware entries. This is NOT yet validated for production UEFI
+          use or Common V2 filesystem module compatibility.
+          Do not execute it on a production boot environment until those
+          separate qualifications have been completed.
           NOTES
           gh release create "v${VERSION}" dist/*.run dist/*.deb dist/SHA256SUMS \
             --target "$GITHUB_SHA" \
-            --title "BOOT ${VERSION} (unverified preview)" \
+            --title "BOOT ${VERSION} (native RUN, unverified firmware)" \
             --notes-file release-notes.txt \
             --prerelease
