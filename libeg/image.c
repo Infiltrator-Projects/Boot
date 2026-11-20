@@ -56,10 +56,10 @@
  */
 
 #include "libegint.h"
-#include "../refind/global.h"
-#include "../refind/lib.h"
-#include "../refind/screen.h"
-#include "../refind/mystrings.h"
+#include "../boot/global.h"
+#include "../boot/lib.h"
+#include "../boot/screen.h"
+#include "../boot/mystrings.h"
 #include "../include/refit_call_wrapper.h"
 #include "lodepng.h"
 #include "libeg.h"
