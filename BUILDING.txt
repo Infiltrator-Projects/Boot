@@ -12,10 +12,9 @@ Local firmware compilation (no deployment)
   make gnuefi
   file boot/boot_x64.efi
 
-The build also produces the optional historical GPTSync executable. Its
-existence is not an invitation to modify partition tables. Do not invoke
-make install during automated packaging: installing BOOT requires an
-intentional ESP and EFI firmware change.
+The build produces only the BOOT EFI executable and its supporting libraries.
+Historic GPTSync and per-format filesystem drivers are maintained outside
+this repository. Firmware installation is not a make target.
 
   make clean
 

@@ -25,10 +25,6 @@ payload="$work/payload"
 root="$payload/usr/share/infiltrator-boot"
 mkdir -p "$root/boot" "$root/docs"
 install -m 0644 boot/boot_x64.efi "$root/boot/boot_x64.efi"
-if [[ -s gptsync/gptsync_x64.efi ]]; then
-    mkdir -p "$root/boot/tools_x64"
-    install -m 0644 gptsync/gptsync_x64.efi "$root/boot/tools_x64/gptsync_x64.efi"
-fi
 for directory in icons fonts banners themes; do
     if [[ -d "$directory" ]]; then cp -a "$directory" "$root/boot/"; fi
 done
@@ -138,7 +134,7 @@ git -C "$source_dir" remote add origin "$SOURCE_URL"
 # Fetch only needed source/graphics from the pinned commit, not the whole
 # repository history or a source bundle in this installer.
 git -C "$source_dir" sparse-checkout init --cone
-git -C "$source_dir" sparse-checkout set boot EfiLib gptsync gzip libeg mok include icons fonts banners themes keys
+git -C "$source_dir" sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys
 git -C "$source_dir" -c protocol.version=2 fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"
 git -C "$source_dir" -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD
 [[ $(git -C "$source_dir" rev-parse HEAD) == "$SOURCE_SHA" ]] || {
