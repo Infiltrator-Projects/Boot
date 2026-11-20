@@ -1,27 +1,81 @@
-name: BOOT source and firmware build
+name: BOOT build and AMD64 preview release
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  check-and-build:
+  build-package-release:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Check BOOT identifiers
         shell: bash
         run: |
           if git ls-files | grep -iE 're[f]ind'; then exit 1; fi
           if git grep -n -i -I -E 're[f]ind' -- .; then exit 1; fi
-      - name: Install firmware build dependencies
+
+      - name: Install firmware and packaging dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential binutils gnu-efi
-      - name: Compile BOOT using GNU-EFI
+          sudo apt-get install -y build-essential binutils gnu-efi file dpkg-dev
+
+      - name: Compile BOOT with GNU-EFI
         run: make gnuefi
-      - name: Check BOOT EFI image
+
+      - name: Check BOOT EFI binary
         run: |
           test -s boot/boot_x64.efi
           file boot/boot_x64.efi
+          file boot/boot_x64.efi | grep -F 'PE32+'
+
+      - name: Build and test .run and .deb
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "VERSION=0.1.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          bash -n packaging/build-release.sh
+          bash -n packaging/test-release.sh
+          bash packaging/build-release.sh "0.1.${GITHUB_RUN_NUMBER}" dist
+          bash packaging/test-release.sh "0.1.${GITHUB_RUN_NUMBER}" dist
+
+      - name: Upload verified workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-amd64-preview
+          path: |
+            dist/*.deb
+            dist/*.run
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+      - name: Publish GitHub prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > release-notes.txt <<'NOTES'
+          BOOT AMD64 preview build. These packages are NOT verified as
+          operational boot managers. Firmware boot behaviour and Common V2
+          filesystem integration remain under development.
+
+          - Native .run: self-extract with --extract DIRECTORY, or stage
+            files with sudo ./BOOT-*.run --install.
+          - Generic AMD64 .deb: stages the same BOOT files.
+          - SHA256SUMS: verifies both downloadable assets.
+
+          Neither package modifies the EFI System Partition, GRUB,
+          EFI/BOOT fallback files, or UEFI NVRAM automatically.
+          Do not deploy this preview to a production boot environment.
+          NOTES
+          gh release create "v${VERSION}" dist/*.run dist/*.deb dist/SHA256SUMS \
+            --target "$GITHUB_SHA" \
+            --title "BOOT ${VERSION} (unverified preview)" \
+            --notes-file release-notes.txt \
+            --prerelease
