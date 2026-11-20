@@ -132,7 +132,7 @@ BOOLEAN FilenameIn(IN REFIT_VOLUME *Volume, IN CHAR16 *Directory, IN CHAR16 *Fil
 VOID MyFreePool(IN OUT VOID *Pointer);
 
 // When using GNU-EFI, call the EFI's built-in gBS->CopyMem() function, because
-// GNU-EFI 3.0.18 changed its CopyMem() definition in a way that broke rEFInd.
+// GNU-EFI 3.0.18 changed its CopyMem() definition in a way that broke BOOT.
 #ifdef __MAKEWITH_GNUEFI
 #define MyCopyMem(Dest, Src, len) refit_call3_wrapper(gBS->CopyMem, Dest, Src, len)
 #else
