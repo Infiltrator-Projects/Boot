@@ -1,6 +1,6 @@
 /*
- * refind/install.c
- * Functions related to installation of rEFInd and management of EFI boot order
+ * boot/install.c
+ * Functions related to installation of BOOT and management of EFI boot order
  *
  * Copyright (c) 2020-2024 by Roderick W. Smith
  *
@@ -92,7 +92,7 @@ static REFIT_VOLUME *PickOneESP(ESP_LIST *AllESPs) {
     INTN                DefaultEntry = 0, MenuExit = MENU_EXIT_ESCAPE, i = 1;
     MENU_STYLE_FUNC     Style = TextMenuStyle;
     REFIT_MENU_ENTRY    *ChosenOption, *MenuEntryItem = NULL;
-    REFIT_MENU_SCREEN   InstallMenu = { L"Install rEFInd", NULL, 0, NULL, 0, NULL, 0, NULL,
+    REFIT_MENU_SCREEN   InstallMenu = { L"Install BOOT", NULL, 0, NULL, 0, NULL, 0, NULL,
                                         L"Select a destination and press Enter or",
                                         L"press Esc to return to main menu without changes" };
 
@@ -102,7 +102,7 @@ static REFIT_VOLUME *PickOneESP(ESP_LIST *AllESPs) {
 
     if (AllESPs) {
         CurrentESP = AllESPs;
-        AddMenuInfoLine(&InstallMenu, L"Select a partition and press Enter to install rEFInd");
+        AddMenuInfoLine(&InstallMenu, L"Select a partition and press Enter to install BOOT");
         while (CurrentESP != NULL) {
             MenuEntryItem = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));
             GuidStr = GuidAsString(&(CurrentESP->Volume->PartGuid));
@@ -223,7 +223,7 @@ EFI_STATUS BackupOldFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
     return (Status);
 } // EFI_STATUS BackupOldFile()
 
-// Create directories in which rEFInd will reside....
+// Create directories in which BOOT will reside....
 static EFI_STATUS CreateDirectories(IN EFI_FILE_PROTOCOL *BaseDir) {
     CHAR16            *FileName = NULL;
     UINTN             i = 0, Status = EFI_SUCCESS;
@@ -398,30 +398,30 @@ static EFI_STATUS CopyDrivers(IN EFI_FILE_PROTOCOL *SourceDirPtr,
 static EFI_STATUS CopyFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
     REFIT_VOLUME    *SourceVolume = NULL; // Do not free
     CHAR16          *SourceFile = NULL, *SourceDir, *ConfFile;
-    CHAR16          *SourceDriversDir, *TargetDriversDir, *RefindName;
+    CHAR16          *SourceDriversDir, *TargetDriversDir, *BootName;
     EFI_STATUS      Status;
     EFI_STATUS      WorstStatus = EFI_SUCCESS;
 
     FindVolumeAndFilename(GlobalConfig.SelfDevicePath, &SourceVolume, &SourceFile);
     SourceDir = FindPath(SourceFile);
 
-    // Begin by copying rEFInd itself....
-    RefindName = PoolPrint(L"EFI\\refind\\%s", INST_REFIND_NAME);
-    Status = CopyOneFile(SourceVolume->RootDir, SourceFile, TargetDir, RefindName);
+    // Begin by copying BOOT itself....
+    BootName = PoolPrint(L"EFI\\boot\\%s", INST_BOOT_NAME);
+    Status = CopyOneFile(SourceVolume->RootDir, SourceFile, TargetDir, BootName);
     MyFreePool(SourceFile);
-    MyFreePool(RefindName);
+    MyFreePool(BootName);
     if (EFI_ERROR(Status)) {
-        LOG(1, LOG_LINE_NORMAL, L"Error copying rEFInd binary; installation has failed");
+        LOG(1, LOG_LINE_NORMAL, L"Error copying BOOT binary; installation has failed");
         Status = WorstStatus = EFI_ABORTED;
     }
 
     if (Status == EFI_SUCCESS) {
         // Now copy the config file -- but:
-        //  - Copy refind.conf-sample, not refind.conf, if it's available, to
+        //  - Copy boot.conf-sample, not boot.conf, if it's available, to
         //    avoid picking up live-disk-specific customizations.
-        //  - Do not overwrite an existing refind.conf at the target; instead,
-        //    copy to refind.conf-sample if refind.conf is present.
-        ConfFile = PoolPrint(L"%s\\refind.conf-sample", SourceDir);
+        //  - Do not overwrite an existing boot.conf at the target; instead,
+        //    copy to boot.conf-sample if boot.conf is present.
+        ConfFile = PoolPrint(L"%s\\boot.conf-sample", SourceDir);
         if (FileExists(SourceVolume->RootDir, ConfFile)) {
             // The following line originally used StrCpy(), but that had a bug
             // because it didn't allocate SourceFile; but even after fixing
@@ -429,14 +429,14 @@ static EFI_STATUS CopyFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
             // Using PoolPrint() rather than StrCpy() works around this issue.
             SourceFile = PoolPrint(L"%s", ConfFile);
         } else {
-            SourceFile = PoolPrint(L"%s\\refind.conf", SourceDir);
+            SourceFile = PoolPrint(L"%s\\boot.conf", SourceDir);
         }
         MyFreePool(ConfFile);
         // Note: CopyOneFile() logs errors if they occur
-        if (FileExists(TargetDir, L"\\EFI\\refind\\refind.conf")) {
-            Status = CopyOneFile(SourceVolume->RootDir, SourceFile, TargetDir, L"EFI\\refind\\refind.conf-sample");
+        if (FileExists(TargetDir, L"\\EFI\\boot\\boot.conf")) {
+            Status = CopyOneFile(SourceVolume->RootDir, SourceFile, TargetDir, L"EFI\\boot\\boot.conf-sample");
         } else {
-            Status = CopyOneFile(SourceVolume->RootDir, SourceFile, TargetDir, L"EFI\\refind\\refind.conf");
+            Status = CopyOneFile(SourceVolume->RootDir, SourceFile, TargetDir, L"EFI\\boot\\boot.conf");
         }
         if (EFI_ERROR(Status))
             WorstStatus = Status;
@@ -444,7 +444,7 @@ static EFI_STATUS CopyFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
 
         // Now copy icons....
         SourceFile = PoolPrint(L"%s\\icons", SourceDir);
-        Status = CopyDirectory(SourceVolume->RootDir, SourceFile, TargetDir, L"EFI\\refind\\icons");
+        Status = CopyDirectory(SourceVolume->RootDir, SourceFile, TargetDir, L"EFI\\boot\\icons");
         if (EFI_ERROR(Status)) {
             LOG(1, LOG_LINE_NORMAL, L"Error %d copying icons directory", Status);
             WorstStatus = Status;
@@ -453,7 +453,7 @@ static EFI_STATUS CopyFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
 
         // Now copy drivers....
         SourceDriversDir = PoolPrint(L"%s\\%s", SourceDir, INST_DRIVERS_SUBDIR);
-        TargetDriversDir = PoolPrint(L"EFI\\refind\\%s", INST_DRIVERS_SUBDIR);
+        TargetDriversDir = PoolPrint(L"EFI\\boot\\%s", INST_DRIVERS_SUBDIR);
         Status = CopyDrivers(SourceVolume->RootDir, SourceDriversDir, TargetDir, TargetDriversDir);
         if (EFI_ERROR(Status)) {
             LOG(1, LOG_LINE_NORMAL, L"Error %d copying drivers", Status);
@@ -473,11 +473,11 @@ static VOID CreateFallbackCSV(IN EFI_FILE_PROTOCOL *TargetDir) {
     UINTN             FileSize, Status;
     EFI_FILE_PROTOCOL *FilePtr; // NOTE: DO NOT FREE!
 
-    Status = refit_call5_wrapper(TargetDir->Open, TargetDir, &FilePtr, L"\\EFI\\refind\\BOOT.CSV",
+    Status = refit_call5_wrapper(TargetDir->Open, TargetDir, &FilePtr, L"\\EFI\\boot\\BOOT.CSV",
                                  EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0);
     if (Status == EFI_SUCCESS) {
-        Contents = PoolPrint(L"%s,rEFInd Boot Manager,,This is the boot entry for rEFInd\n",
-                             INST_REFIND_NAME);
+        Contents = PoolPrint(L"%s,BOOT Boot Manager,,This is the boot entry for BOOT\n",
+                             INST_BOOT_NAME);
         if (Contents) {
             FileSize = StrSize(Contents);
             Status = refit_call3_wrapper(FilePtr->Write, FilePtr, &FileSize, Contents);
@@ -491,11 +491,11 @@ static VOID CreateFallbackCSV(IN EFI_FILE_PROTOCOL *TargetDir) {
     }
 } // VOID CreateFallbackCSV()
 
-static BOOLEAN CopyRefindFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
+static BOOLEAN CopyBootFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
     EFI_STATUS Status = EFI_SUCCESS, Status2;
 
-    if (FileExists(TargetDir, L"\\EFI\\refind\\icons")) {
-        Status = BackupOldFile(TargetDir, L"\\EFI\\refind\\icons");
+    if (FileExists(TargetDir, L"\\EFI\\boot\\icons")) {
+        Status = BackupOldFile(TargetDir, L"\\EFI\\boot\\icons");
         if (EFI_ERROR(Status)) {
             LOG(1, LOG_LINE_NORMAL, L"Error when backing up icons");
         }
@@ -522,7 +522,7 @@ static BOOLEAN CopyRefindFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
     CreateFallbackCSV(TargetDir);
 
     return Status;
-} // BOOLEAN CopyRefindFiles()
+} // BOOLEAN CopyBootFiles()
 
 /***********************
  *
@@ -530,7 +530,7 @@ static BOOLEAN CopyRefindFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
  *
  ***********************/
 
-// Find a Boot#### number that will boot the new rEFInd installation. This
+// Find a Boot#### number that will boot the new BOOT installation. This
 // function must be passed:
 // - *Entry -- A new entry that's been constructed, but not yet stored in NVRAM
 // - Size -- The size of the new entry
@@ -550,7 +550,7 @@ static BOOLEAN CopyRefindFiles(IN EFI_FILE_PROTOCOL *TargetDir) {
 // an exact duplicate, then this function will return 5, resulting in two
 // identical entries (Boot0005 and Boot0006). This is done because scanning
 // all possible entries (0 through 0xffff) takes a few seconds, and because
-// a single duplicate isn't a big deal. (If rEFInd is re-installed via this
+// a single duplicate isn't a big deal. (If BOOT is re-installed via this
 // feature again, this function will return "5," so no additional duplicate
 // entry will be created. A third duplicate might be created if some other
 // process were to delete an entry between Boot0000 and Boot0004, though.)
@@ -655,7 +655,7 @@ static EFI_STATUS SetBootDefault(UINTN BootNum) {
     return Status;
 } // EFI_STATUS SetBootDefault()
 
-// Create an NVRAM entry for the newly-installed rEFInd and make it the default.
+// Create an NVRAM entry for the newly-installed BOOT and make it the default.
 // (If an entry that's identical to the one this function would create already
 // exists, it may be used instead; see the comments before the FindBootNum()
 // function for details and caveats.)
@@ -665,9 +665,9 @@ static EFI_STATUS CreateNvramEntry(EFI_HANDLE DeviceHandle) {
     EFI_DEVICE_PATH  *Entry;
     BOOLEAN          AlreadyExists = FALSE;
 
-    ProgName = PoolPrint(L"\\EFI\\refind\\%s", INST_REFIND_NAME);
+    ProgName = PoolPrint(L"\\EFI\\boot\\%s", INST_BOOT_NAME);
     Status = ConstructBootEntry(DeviceHandle, ProgName,
-                                L"rEFInd Boot Manager", (CHAR8**) &Entry, &Size);
+                                L"BOOT Boot Manager", (CHAR8**) &Entry, &Size);
     MyFreePool(ProgName);
     if (Status == EFI_SUCCESS)
         BootNum = FindBootNum(Entry, Size, &AlreadyExists);
@@ -687,33 +687,33 @@ static EFI_STATUS CreateNvramEntry(EFI_HANDLE DeviceHandle) {
 
 /***********************
  *
- * The main rEFInd-installation function....
+ * The main BOOT-installation function....
  *
  ***********************/
 
-// Install rEFInd to an ESP that the user specifies, create an NVRAM entry for
+// Install BOOT to an ESP that the user specifies, create an NVRAM entry for
 // that installation, and set it as the default boot option.
-VOID InstallRefind(VOID) {
+VOID InstallBoot(VOID) {
     ESP_LIST      *AllESPs;
     REFIT_VOLUME  *SelectedESP; // Do not free
     UINTN         Status;
 
-    LOG(1, LOG_LINE_THIN_SEP, L"Installing rEFInd to an ESP");
+    LOG(1, LOG_LINE_THIN_SEP, L"Installing BOOT to an ESP");
     AllESPs = FindAllESPs();
     SelectedESP = PickOneESP(AllESPs);
     if (SelectedESP) {
-        Status = CopyRefindFiles(SelectedESP->RootDir);
+        Status = CopyBootFiles(SelectedESP->RootDir);
         if (Status == EFI_SUCCESS)
             Status = CreateNvramEntry(SelectedESP->DeviceHandle);
         DeleteESPList(AllESPs);
         if (Status == EFI_SUCCESS) {
-            DisplaySimpleMessage(L"Information", L"rEFInd successfully installed");
+            DisplaySimpleMessage(L"Information", L"BOOT successfully installed");
         } else {
             DisplaySimpleMessage(L"Warning", L"Problems encountered during installation");
         } // if/else
     } // if
-    LOG(1, LOG_LINE_THIN_SEP, L"Done installing rEFInd to an ESP");
-} // VOID InstallRefind()
+    LOG(1, LOG_LINE_THIN_SEP, L"Done installing BOOT to an ESP");
+} // VOID InstallBoot()
 
 /***********************
  *
