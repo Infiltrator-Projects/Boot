@@ -106,6 +106,29 @@ static EFI_STATUS SetBootDefault(UINTN BootNum) {
     return Status;
 } // EFI_STATUS SetBootDefault()
 
+/* EFI device-path nodes are untrusted firmware variable contents. */
+static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
+    UINTN Offset = 0;
+    UINTN Length;
+    UINT8 Type, SubType;
+
+    if (!Path || PathBytes < 4) return FALSE;
+    while (Offset + 4 <= PathBytes) {
+        Type = (UINT8)Path[Offset];
+        SubType = (UINT8)Path[Offset + 1];
+        Length = (UINT8)Path[Offset + 2] |
+                 ((UINTN)(UINT8)Path[Offset + 3] << 8);
+        if (Length < 4 || Length > PathBytes - Offset) return FALSE;
+        if (Type == 0x7f) {
+            /* Require the terminal END_ENTIRE node and no trailing bytes. */
+            return SubType == 0xff && Length == 4 &&
+                   Offset + Length == PathBytes;
+        }
+        Offset += Length;
+    }
+    return FALSE;
+}
+
 /* Validate the complete firmware Boot#### record before accessing any member. */
 BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
     UINTN Status, VarSize, OrderBytes = 0, i, charCount, pathOffset;
@@ -143,7 +166,8 @@ BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
         }
         pathOffset = 6 + (charCount + 1) * sizeof(CHAR16);
         if (pathBytes < sizeof(EFI_DEVICE_PATH) ||
-            pathOffset > VarSize || pathBytes > VarSize - pathOffset) {
+            pathOffset > VarSize || pathBytes > VarSize - pathOffset ||
+            !BootDevicePathValid(Contents + pathOffset, pathBytes)) {
             MyFreePool(Contents);
             continue;
         }
@@ -210,6 +234,7 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
         AddMenuInfoLine(&Menu, L"Select an option and press Enter to make it the default");
         while (Entries != NULL) {
             MenuEntryItem = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));
+            if (!MenuEntryItem) break;
             FindVolumeAndFilename(Entries->BootEntry.DevPath, &Volume, &Filename);
             if ((Filename != NULL) && (StrLen(Filename) > 0)) {
                 if ((Volume != NULL) && (Volume->VolName != NULL)) {
@@ -239,7 +264,7 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
             MyFreePool(Temp);
         } // while
         MenuExit = RunGenericMenu(&Menu, Style, &DefaultEntry, &ChosenOption);
-        if (MenuExit == MENU_EXIT_ENTER) {
+        if (MenuExit == MENU_EXIT_ENTER && ChosenOption) {
             Operation = EFI_BOOT_OPTION_MAKE_DEFAULT;
             *BootOrderNum = ChosenOption->Row;
         } // if
