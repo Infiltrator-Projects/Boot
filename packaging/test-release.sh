@@ -27,32 +27,35 @@ if grep -Eq '(^|/)(postinst|preinst|prerm|postrm)$' "$work/control.txt"; then
     exit 1
 fi
 
-# The downloaded RUN is intentionally a small script, not a source archive.
-# Its ONLY operation downloads the pinned source, recompiles, and calls the
-# existing boot-install. Never execute it in a GitHub runner.
+# The ONE distributed RUN contains both complete source and boot-install.
+# Verify archive integrity and source identity without touching firmware.
 bash -n "$run"
-# Validate the original installer that the RUN fetches and executes.
-bash -n boot-install
-grep -Fq 'InstallationFailed=1' boot-install
-grep -Fq 'exit "$InstallationFailed"' boot-install
-# A machine without a usable ESP must fail, not report installation success.
-grep -A5 'create an ESP, and ideally boot in EFI mode, before installing BOOT.' boot-install |
-    grep -Fq 'exit 1'
 test "$(head -n 1 "$run")" = '#!/usr/bin/env bash'
-test "$(stat -c '%s' "$run")" -lt 16384
 expected=$(git rev-parse --verify HEAD)
 grep -Fxq "SOURCE_SHA=\"$expected\"" "$run"
-grep -Fq "SOURCE_URL='https://github.com/Infiltrator-Projects/Boot.git'" "$run"
-grep -Fq 'fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"' "$run"
-grep -Fq 'rev-parse HEAD) == "$SOURCE_SHA"' "$run"
+grep -Fq "SOURCE_DIGEST=" "$run"
 grep -Fq -- '-march=native -mtune=native -mgeneral-regs-only' "$run"
 grep -Fq 'bash ./boot-install --nodrivers' "$run"
-if grep -Eq -- '--build-only|--extract|--install|__BOOT_SOURCE_ARCHIVE_BELOW__' "$run"; then
-    echo "Native RUN has an unwanted mode or embedded source archive" >&2
+if grep -Eq -- '--build-only|git -C .* fetch|SOURCE_URL=' "$run"; then
+    echo "Native BOOT RUN must install from its embedded source, not download or build-only" >&2
     exit 1
 fi
-if [[ $(grep -Ec '^bash \./boot-install --nodrivers$' "$run") != 1 ]]; then
-    echo "Native BOOT installer must invoke the original installer exactly once" >&2
-    exit 1
-fi
-echo "Verified compact source-downloading native BOOT RUN and generic DEB"
+awk '$0 == "__BOOT_SOURCE_ARCHIVE_BELOW__" { copy=1; next }
+     $0 == "__BOOT_SOURCE_ARCHIVE_END__" { exit }
+     copy { print }' "$run" | base64 --decode > "$work/bundled.tar.gz"
+digest=$(sha256sum "$work/bundled.tar.gz" | cut -d ' ' -f 1)
+grep -Fxq "SOURCE_DIGEST=\"$digest\"" "$run"
+mkdir "$work/source"
+tar -xzf "$work/bundled.tar.gz" -C "$work/source" --no-same-owner --no-same-permissions
+test -s "$work/source/boot-install"
+cmp boot-install "$work/source/boot-install"
+bash -n "$work/source/boot-install"
+grep -Fxq 'TargetDir=/EFI/BOOT' "$work/source/boot-install"
+! grep -Fq 'TargetDir=/EFI/InfiltratorBoot' "$work/source/boot-install"
+grep -Fq 'InstallationFailed=1' "$work/source/boot-install"
+grep -Fq 'exit "$InstallationFailed"' "$work/source/boot-install"
+grep -A5 'create an ESP, and ideally boot in EFI mode, before installing BOOT.' "$work/source/boot-install" |
+    grep -Fq 'exit 1'
+test -s "$work/source/Makefile"
+test -s "$work/source/boot/main.c"
+echo "Verified self-contained native BOOT RUN, bundled installer and generic DEB"
