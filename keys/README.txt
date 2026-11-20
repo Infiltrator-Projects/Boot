@@ -9,7 +9,7 @@ Files come with three extensions. A filename ending in .crt is a
 certificate file that can be used by sbverify to verify the authenticity of
 a key, as in:
 
-$ sbverify --cert keys/refind.crt refind/refind_x64.efi
+$ sbverify --cert keys/boot.crt boot/boot_x64.efi
 
 The .cer and .der filename extensions are equivalent, and are public key
 files similar to .crt files, but in a different form. The MokManager
@@ -69,15 +69,15 @@ The files in this directory are, in alphabetical order:
   Red Hat kernel. (They do NOT seem to be used to sign Fedora's kernels or
   GRUB binaries, though.)
 
-- refind.cer & refind.crt -- My own (Roderick W. Smith's) public key,
-  matched to the one used to sign refind_x64.efi and the 64-bit rEFInd
+- boot.cer & boot.crt -- My own (Roderick W. Smith's) public key,
+  matched to the one used to sign boot_x64.efi and the 64-bit BOOT
   drivers.
 
 - SLES-UEFI-CA-Certificate.cer & SLES-UEFI-CA-Certificate.crt -- The Public
   key for SUSE Linux Enterprise Server; taken from openSUSE's shim
   0.7.318.81ee56d package.
 
-The refind.cer and refind.crt files are my creations and are distributed
+The boot.cer and boot.crt files are my creations and are distributed
 under the terms of the BSD 2-clause license. The rest of the files are
 distributed on the assumption that doing so constitutes fair use. Certainly
 they're all easily obtained on the Internet from other sources.
