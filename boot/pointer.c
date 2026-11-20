@@ -1,5 +1,5 @@
 /*
- * refind/pointer.c
+ * boot/pointer.c
  * Pointer device functions
  *
  * Copyright (c) 2018 CJ Vaughter
@@ -24,7 +24,7 @@
 #include "screen.h"
 #include "icns.h"
 #include "../include/refit_call_wrapper.h"
-#include "../refind/lib.h"
+#include "../boot/lib.h"
 
 EFI_HANDLE* APointerHandles = NULL;
 EFI_ABSOLUTE_POINTER_PROTOCOL** APointerProtocol = NULL;
