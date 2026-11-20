@@ -26,7 +26,7 @@ New fonts can be created on Linux as follows:
 NOTE TO DEVELOPERS:
 -------------------
 
-When embedding a font in the rEFInd binary as libeg/egemb_font.h or
+When embedding a font in the BOOT binary as libeg/egemb_font.h or
 libeg/egemb_font_large.h, the images/mkegemb.py script is used. This script
 is likely to complain of an unsupported format on fonts prepared in this
 way. The solution is:
