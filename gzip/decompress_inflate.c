@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0
 
 /* 
- * gzip uncompression support for rEFInd.
+ * gzip uncompression support for BOOT.
  * Taken from Linux kernel version 6.1.11 and modified
  * 
  */
 
-#include "../refind/lib.h"
+#include "../boot/lib.h"
 #include "../libeg/lodepng.h"
-#include "../refind/log.h"
+#include "../boot/log.h"
 
 #define malloc AllocatePool
 #define free MyFreePool
