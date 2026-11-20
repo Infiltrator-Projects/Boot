@@ -1,6 +1,6 @@
 /*
- * include/egemb_refind_banner.h
- * An encoded rEFInd banner graphic
+ * include/egemb_boot_banner.h
+ * An encoded BOOT banner graphic
  *
  * Copyright (c) 2015 Roderick W. Smith
  * All rights reserved.
@@ -19,7 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-static const UINT8 egemb_refind_banner_data[22887] = {
+static const UINT8 egemb_boot_banner_data[22887] = {
  0x94, 0xd0, 0x12, 0xcf, 0xce, 0xcd, 0xcc, 0xcb, 0xc9, 0xc7, 0xc6, 0xc5,
  0xc4, 0xc4, 0xc6, 0xc7, 0xc9, 0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0xff, 0xd0,
  0xb7, 0xd0, 0x18, 0xcf, 0xcf, 0xcd, 0xcc, 0xc9, 0xc6, 0xc2, 0xbc, 0xa4,
@@ -1929,4 +1929,4 @@ static const UINT8 egemb_refind_banner_data[22887] = {
  0xc4, 0xb9, 0xab, 0x9e, 0x98, 0x9b, 0xa5, 0xb4, 0xc1, 0xca, 0xce, 0xff,
  0xd0, 0x93, 0xd0,
 };
-static EG_EMBEDDED_IMAGE egemb_refind_banner = { 210, 64, EG_EIPIXELMODE_COLOR, EG_EICOMPMODE_RLE, egemb_refind_banner_data, 22887 };
+static EG_EMBEDDED_IMAGE egemb_boot_banner = { 210, 64, EG_EIPIXELMODE_COLOR, EG_EICOMPMODE_RLE, egemb_boot_banner_data, 22887 };
