@@ -144,7 +144,6 @@ REFIT_CONFIG GlobalConfig = { /* TextOnly = */ FALSE,
                               /* *DontScanFirmware = */ NULL,
                               /* *WindowsRecoveryFiles = */ NULL,
                               /* *MacOSRecoveryFiles = */ NULL,
-                              /* *DriverDirs = */ NULL,
                               /* *IconsDir = */ NULL,
                               /* *LinuxPrefixes = */ NULL,
                               /* *LinuxMatchPatterns = */ NULL,
@@ -491,10 +490,8 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
        MyCopyMem(GlobalConfig.ScanFor, "ihebocm    ", NUM_SCAN_OPTIONS);
     SetConfigFilename(ImageHandle);
 
-    // Scan volumes first to find SelfVolume, which is needed by LoadDrivers()
-    // and ReadConfig(); however, if drivers are loaded, a second call to
-    // ScanVolumes() is needed to register the new filesystem(s) accessed
-    // by the drivers.
+    // Discover firmware-accessible volumes first. Legacy filesystem-specific
+    // .efi drivers must never be used as a Common V2 substitute.
     ScanVolumes();
     ReadConfig(GlobalConfig.ConfigFilename);
     if (GlobalConfig.LogLevel > 0) {
@@ -503,8 +500,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }
     LOG(3, LOG_LINE_NORMAL, L"GlobalConfig.DontScanFiles is '%s'", GlobalConfig.DontScanFiles);
     MokProtocol = SecureBootSetup();
-    if (LoadDrivers())
-        ScanVolumes();
+
 
     LOG(1, LOG_LINE_SEPARATOR, L"Initializing basic features");
     AdjustDefaultSelection();

@@ -24,6 +24,14 @@ jobs:
         run: |
           if git ls-files | grep -iE 're[f]ind'; then exit 1; fi
           if git grep -n -i -I -E 're[f]ind' -- .; then exit 1; fi
+          if grep -RInE 'LoadDrivers\(|ConnectFilesystemDriver\(' boot --include='*.c' --include='*.h'; then
+            echo "Legacy EFI driver runtime loading is prohibited" >&2
+            exit 1
+          fi
+          if [[ -d filesystems || -d gptsync || -e BootPkg.dsc ]]; then
+            echo "Vendored filesystem drivers or obsolete build system remain" >&2
+            exit 1
+          fi
           for legacy in debian boot.spec boot-alt.spec mkdistrib mkcdimage; do
             if [[ -e "$legacy" ]]; then
               echo "Obsolete legacy packaging remains: $legacy" >&2
