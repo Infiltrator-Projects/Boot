@@ -1,5 +1,5 @@
 /*
- * refind/main.c
+ * boot/main.c
  * Main code for the boot menu
  *
  * Copyright (c) 2006-2010 Christoph Pfisterer
@@ -158,13 +158,13 @@ REFIT_CONFIG GlobalConfig = { /* TextOnly = */ FALSE,
 
 CHAR16 *gHiddenTools = NULL;
 
-EFI_GUID RefindGuid = REFIND_GUID_VALUE;
+EFI_GUID BootGuid = BOOT_GUID_VALUE;
 
 //
 // misc functions
 //
 
-VOID AboutrEFInd(VOID)
+VOID AboutBOOT(VOID)
 {
     CHAR16     *FirmwareVendor;
     CHAR16     *TempStr;
@@ -173,7 +173,7 @@ VOID AboutrEFInd(VOID)
     LOG(1, LOG_LINE_SEPARATOR, L"Displaying About/Info screen");
     if (AboutMenu.EntryCount == 0) {
         AboutMenu.TitleImage = BuiltinIcon(BUILTIN_ICON_FUNC_ABOUT);
-        AddMenuInfoLine(&AboutMenu, PoolPrint(L"rEFInd Version %s", REFIND_VERSION));
+        AddMenuInfoLine(&AboutMenu, PoolPrint(L"BOOT Version %s", BOOT_VERSION));
         AddMenuInfoLine(&AboutMenu, L"");
         AddMenuInfoLine(&AboutMenu, L"Copyright (c) 2006-2010 Christoph Pfisterer");
         AddMenuInfoLine(&AboutMenu, L"Copyright (c) 2012-2024 Roderick W. Smith");
@@ -216,21 +216,21 @@ VOID AboutrEFInd(VOID)
         AddMenuInfoLine(&AboutMenu, L"Built with TianoCore EDK2");
 #endif
         AddMenuInfoLine(&AboutMenu, L"");
-        AddMenuInfoLine(&AboutMenu, L"For more information, see the rEFInd Web site:");
-        AddMenuInfoLine(&AboutMenu, L"http://www.rodsbooks.com/refind/");
+        AddMenuInfoLine(&AboutMenu, L"For more information, see the BOOT Web site:");
+        AddMenuInfoLine(&AboutMenu, L"https://github.com/Infiltrator-Projects/Boot");
         AddMenuEntry(&AboutMenu, &MenuEntryReturn);
         MyFreePool(FirmwareVendor);
     }
 
     RunMenu(&AboutMenu, NULL);
-} /* VOID AboutrEFInd() */
+} /* VOID AboutBOOT() */
 
-// Record the value of the loader's name/description in rEFInd's "PreviousBoot" EFI variable,
+// Record the value of the loader's name/description in BOOT's "PreviousBoot" EFI variable,
 // if it's different from what's already stored there.
 VOID StoreLoaderName(IN CHAR16 *Name) {
 
     if (Name) {
-        EfivarSetRaw(&RefindGuid, L"PreviousBoot", (CHAR8*) Name, StrLen(Name) * 2 + 2, TRUE);
+        EfivarSetRaw(&BootGuid, L"PreviousBoot", (CHAR8*) Name, StrLen(Name) * 2 + 2, TRUE);
     } // if
 } // VOID StoreLoaderName()
 
@@ -336,7 +336,7 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
             if (FileExists(SelfDir, FileName)) {
                 GlobalConfig.ConfigFilename = FileName;
             } else {
-                Print(L"Specified configuration file (%s) doesn't exist; using\n'refind.conf' default\n", FileName);
+                Print(L"Specified configuration file (%s) doesn't exist; using\n'boot.conf' default\n", FileName);
                 MyFreePool(FileName);
             } // if/else
         } // if
@@ -344,7 +344,7 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
 } // VOID SetConfigFilename()
 
 // Adjust the GlobalConfig.DefaultSelection variable: Replace all "+" elements with the
-// rEFInd PreviousBoot variable, if it's available. If it's not available, delete that
+// BOOT PreviousBoot variable, if it's available. If it's not available, delete that
 // element.
 static VOID AdjustDefaultSelection() {
     UINTN i = 0, j;
@@ -354,7 +354,7 @@ static VOID AdjustDefaultSelection() {
     LOG(1, LOG_LINE_NORMAL, L"Adjusting default_selection with PreviousBoot values");
     while ((Element = FindCommaDelimited(GlobalConfig.DefaultSelection, i++)) != NULL) {
         if (MyStriCmp(Element, L"+")) {
-            Status = EfivarGetRaw(&RefindGuid, L"PreviousBoot", (CHAR8 **) &PreviousBoot, &j);
+            Status = EfivarGetRaw(&BootGuid, L"PreviousBoot", (CHAR8 **) &PreviousBoot, &j);
             if (Status == EFI_SUCCESS) {
                 MyFreePool(Element);
                 Element = PreviousBoot;
@@ -371,7 +371,7 @@ static VOID AdjustDefaultSelection() {
     GlobalConfig.DefaultSelection = NewCommaDelimited;
 } // AdjustDefaultSelection()
 
-// Log basic information (rEFInd version, EFI version, etc.) to the log file.
+// Log basic information (BOOT version, EFI version, etc.) to the log file.
 VOID LogBasicInfo(VOID) {
     EFI_STATUS Status;
     UINT64     MaximumVariableStorageSize;
@@ -385,12 +385,12 @@ VOID LogBasicInfo(VOID) {
 
     LOG(1, LOG_LINE_SEPARATOR, L"System information");
 #if defined(__MAKEWITH_GNUEFI)
-    LOG(1, LOG_LINE_NORMAL, L"rEFInd %s built with GNU-EFI", REFIND_VERSION);
+    LOG(1, LOG_LINE_NORMAL, L"BOOT %s built with GNU-EFI", BOOT_VERSION);
 #else
-    LOG(1, LOG_LINE_NORMAL, L"rEFInd %s built with TianoCore EDK2", REFIND_VERSION);
+    LOG(1, LOG_LINE_NORMAL, L"BOOT %s built with TianoCore EDK2", BOOT_VERSION);
 #endif
     TempStr = GuidAsString(&(SelfVolume->PartGuid));
-    LOG(1, LOG_LINE_NORMAL, L"rEFInd boot partition GUID: %s", TempStr);
+    LOG(1, LOG_LINE_NORMAL, L"BOOT boot partition GUID: %s", TempStr);
     MyFreePool(TempStr);
 #if defined(EFI32)
     LOG(1, LOG_LINE_NORMAL, L"Platform: x86/IA32/i386 (32-bit)");
@@ -580,8 +580,8 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
                 MainLoopRunning = FALSE;   // just in case we get this far
                 break;
 
-            case TAG_ABOUT:    // About rEFInd
-                AboutrEFInd();
+            case TAG_ABOUT:    // About BOOT
+                AboutBOOT();
                 break;
 
             case TAG_LOADER:   // Boot OS via .EFI loader
@@ -608,7 +608,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
                 ManageHiddenTags();
                 break;
 
-            case TAG_EXIT:    // Terminate rEFInd
+            case TAG_EXIT:    // Terminate BOOT
                 if ((MokProtocol) && !SecureBootUninstall()) {
                    MainLoopRunning = FALSE;   // just in case we get this far
                 } else {
@@ -626,7 +626,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
                 break;
 
             case TAG_INSTALL:
-                InstallRefind();
+                InstallBoot();
                 break;
 
             case TAG_BOOTORDER:
