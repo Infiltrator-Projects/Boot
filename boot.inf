@@ -1,6 +1,6 @@
 ## @file
 #
-# refind.inf file to build rEFInd using the EDK2/UDK201# development
+# boot.inf file to build BOOT using the EDK2/UDK201# development
 # kit.
 #
 # Copyright (c) 2012-2020 by Roderick W. Smith
@@ -11,7 +11,7 @@
 
 [Defines]
   INF_VERSION                   = 0x00010005
-  BASE_NAME                     = refind
+  BASE_NAME                     = boot
   FILE_GUID                     = B8448DD1-B146-41B7-9D66-98B3A0A404D3
   MODULE_TYPE                   = UEFI_APPLICATION
   EDK_RELEASE_VERSION		= 0x00020000
@@ -38,25 +38,25 @@
   mok/guid.c
   mok/security_policy.c
   mok/simple_file.c
-  refind/apple.c
-  refind/config.c
-  refind/crc32.c
-  refind/driver_support.c
-  refind/gpt.c
-  refind/icns.c
-  refind/install.c
-  refind/launch_efi.c
-  refind/launch_legacy.c
-  refind/lib.c
-  refind/line_edit.c
-  refind/linux.c
-  refind/log.c
-  refind/main.c
-  refind/menu.c
-  refind/mystrings.c
-  refind/pointer.c
-  refind/scan.c
-  refind/screen.c
+  boot/apple.c
+  boot/config.c
+  boot/crc32.c
+  boot/driver_support.c
+  boot/gpt.c
+  boot/icns.c
+  boot/install.c
+  boot/launch_efi.c
+  boot/launch_legacy.c
+  boot/lib.c
+  boot/line_edit.c
+  boot/linux.c
+  boot/log.c
+  boot/main.c
+  boot/menu.c
+  boot/mystrings.c
+  boot/pointer.c
+  boot/scan.c
+  boot/screen.c
   libeg/image.c
   libeg/load_bmp.c
   libeg/load_icns.c
