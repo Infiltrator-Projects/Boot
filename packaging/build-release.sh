@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Build the two AMD64 preview distributions without touching the host ESP.
+# Build a generic AMD64 DEB and a source-bearing native installer RUN.
 set -euo pipefail
 
 version="${1:?Usage: packaging/build-release.sh VERSION [OUTPUT_DIRECTORY]}"
@@ -15,6 +15,7 @@ if [[ "$(uname -m)" != "x86_64" ]]; then
 fi
 test -s boot/boot_x64.efi || { echo "Missing compiled boot/boot_x64.efi" >&2; exit 1; }
 command -v dpkg-deb >/dev/null || { echo "dpkg-deb is required" >&2; exit 1; }
+command -v git >/dev/null || { echo "git is required to bundle the exact source revision" >&2; exit 1; }
 
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
@@ -64,48 +65,58 @@ EOF
 deb="$out/infiltrator-boot_${version}_amd64.deb"
 dpkg-deb --root-owner-group --build "$package" "$deb"
 
-run="$out/BOOT-${version}-amd64.run"
+run="$out/boot-$version-native-installer.run"
 cat > "$run" <<'RUN_HEADER'
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# BOOT self-extracting AMD64 distribution. Does not modify the ESP or NVRAM.
+# Native BOOT installer: build this machine's BOOT from bundled source and
+# hand installation to the original boot-install script. No separate modes.
 set -euo pipefail
 
-extract_payload() {
-    local line
-    line="$(LC_ALL=C awk '/^__BOOT_ARCHIVE_BELOW__$/ { print NR + 1; exit }' "$0")"
-    [[ -n "$line" ]] || { echo "Archive marker missing" >&2; return 1; }
-    tail -n +"$line" "$0" | tar -xz -C "$1"
+if [[ $(uname -m) != x86_64 ]]; then
+    echo "BOOT native installer requires an x86-64 host" >&2
+    exit 2
+fi
+for program in make gcc ld objcopy awk tail tar mktemp; do
+    command -v "$program" >/dev/null || {
+        echo "BOOT native installer needs $program" >&2
+        exit 1
+    }
+done
+if [[ ! -d /usr/include/efi ]]; then
+    echo "GNU-EFI development headers are missing (install gnu-efi)" >&2
+    exit 1
+fi
+
+source_dir=$(mktemp -d)
+cleanup() { rm -rf -- "$source_dir"; }
+trap cleanup EXIT
+archive_line=$(LC_ALL=C awk '/^__BOOT_SOURCE_ARCHIVE_BELOW__$/ { print NR + 1; exit }' "$0")
+[[ -n $archive_line ]] || { echo "BOOT source archive marker missing" >&2; exit 1; }
+tail -n +"$archive_line" "$0" | tar -xz -C "$source_dir"
+cd "$source_dir"
+[[ -f Makefile && -f Make.common && -f boot-install && -f boot/main.c ]] || {
+    echo "The BOOT source bundle is incomplete" >&2
+    exit 1
 }
-case "${1:---help}" in
-    --extract)
-        target="${2:-./BOOT-extracted}"
-        mkdir -p "$target"
-        extract_payload "$target"
-        echo "Extracted staged files into $target"
-        ;;
-    --install)
-        if (( EUID != 0 )); then
-            echo "Use sudo for --install, or use --extract without privileges" >&2
-            exit 1
-        fi
-        extract_payload /
-        echo "BOOT staged in /usr/share/infiltrator-boot"
-        echo "The EFI System Partition and NVRAM have NOT been changed."
-        ;;
-    --help|-h)
-        echo "Usage: $0 --extract [DIRECTORY] | --install | --help"
-        echo "--install stages files only; it does not change firmware boot settings."
-        ;;
-    *)
-        echo "Unknown option: $1" >&2
-        exit 2
-        ;;
-esac
+
+echo "Compiling BOOT locally for $(uname -m) with GNU-EFI..."
+# UEFI requires general-purpose registers; local CPU tuning must not cause
+# the compiler to emit vector instructions into firmware context.
+make CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall" gnuefi
+[[ -s boot/boot_x64.efi ]] || { echo "Native BOOT compilation produced no EFI executable" >&2; exit 1; }
+
+echo "Invoking BOOT's existing boot-install script..."
+# Keep the repository's real installer (including its prompts and EFI/NVRAM
+# handling). Do not install legacy per-filesystem EFI drivers.
+bash ./boot-install --nodrivers "$@"
+echo "BOOT native build and installation completed."
 exit 0
-__BOOT_ARCHIVE_BELOW__
+__BOOT_SOURCE_ARCHIVE_BELOW__
 RUN_HEADER
-tar -czf - -C "$payload" usr >> "$run"
+# The RUN contains the complete recorded source, not a precompiled EFI image.
+# git archive also preserves executable modes required by the original installer.
+git archive --format=tar HEAD | gzip -n -9 >> "$run"
 chmod 0755 "$run"
 
 (
