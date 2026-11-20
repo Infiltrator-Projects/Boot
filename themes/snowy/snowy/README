@@ -1,4 +1,4 @@
-This directory holds icons used by rEFInd. This file describes their
+This directory holds icons used by BOOT. This file describes their
 sources, both in overview and in file-by-file detail, and provides pointers
 to the relevant licenses under which the icons are distributed.
 
@@ -10,8 +10,8 @@ Icon Sources (Overview)
   - Copyright (c) 2013 by Alessandro Roncone (aka alecive on DeviantArt)
   - License: Creative Commons Attribution-Share Alike 3.0 (CC-SA 3.0)
 
-- Original work for rEFInd
-  - Source: https://sourceforge.net/p/refind (this archive)
+- Original work for BOOT
+  - Source: https://sourceforge.net/p/boot (this archive)
   - Copyright (c) 2015-2017 by Roderick W. Smith
   - License: LGPLv3+ or CC-SA 3.0
 
@@ -36,7 +36,7 @@ Icon Sources (Overview)
   - License: CC-BY-SA 3.0
 
 - Haiku OS icon
-  - Source: Direct submission to rEFInd by Adrien Destugues
+  - Source: Direct submission to BOOT by Adrien Destugues
   - Copyright 2010-2023 Haiku, inc.
   - License: Expat
 
@@ -127,7 +127,7 @@ os_legacy.png
 os_mac.png
 os_netbsd.png
 os_redhat.png
-os_refind.png
+os_boot.png
 os_refit.png
 os_win.png
 tool_apple_rescue.png
