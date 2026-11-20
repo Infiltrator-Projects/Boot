@@ -54,9 +54,11 @@ if ! mcopy -i "$work/after.img" ::/EFI/BOOT/BOOT.log "$work/BOOT.log"; then
  tail -n 60 "$work/serial.log" >&2 || true
  exit 1
 fi
-if ! grep -Fq 'Entering main loop' "$work/BOOT.log"; then
+# BOOT firmware logging writes UTF-16LE; decode before checking messages.
+iconv -f UTF-16LE -t UTF-8 "$work/BOOT.log" > "$work/log.txt"
+if ! grep -Fq 'Entering main loop' "$work/log.txt"; then
  echo "BOOT did not reach main menu under OVMF" >&2
- tail -n 65 "$work/BOOT.log" >&2 || true
+ tail -n 65 "$work/log.txt" >&2 || true
  exit 1
 fi
 echo "BOOT firmware executable reached main menu in OVMF"

@@ -1,119 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Linux/MacOS X script to install BOOT
+# Infiltrator BOOT native EFI installer.
+# The native .run contains this entire implementation and downloads only
+# the pinned build sources before executing its embedded installer logic.
 #
-# Usage:
+# Copyright (c) 2012-2024 Roderick W. Smith.
+# Maintained and modified by Infiltrator-Projects.
 #
-# ./boot-install [options]
+# This program is licensed under GNU GPL version 3 or (at your option)
+# any later version. See COPYING.txt and applicable component notices.
 #
-# options include:
-#    "--notesp" to install to the OS X root filesystem rather than to the ESP.
-#           This option is valid only under OS X.
-#    "--usedefault {devicefile}" to install as default
-#           (/EFI/BOOT/BOOTX64.EFI and similar) to the specified device
-#           (/dev/sdd1 or whatever) without registering with the NVRAM.
-#    "--ownhfs {devicefile}" to install to an HFS+ volume that's NOT currently
-#           an OS X boot volume. Valid only in OS X.
-#    "--root {dir}" to specify installation using the specified directory
-#           as the system's root
-#    "--alldrivers" to install all drivers along with regular files
-#    "--nodrivers" to suppress driver installation (default in Linux is
-#           driver used on /boot; --nodrivers is OS X default).
-#    "--shim {shimfile}" to install a shim.efi file for Secure Boot. Valid
-#           only under Linux.
-#    "--preloader" is synonymous with "--shim". Valid only under Linux.
-#    "--encryptkeys" password-protects the Secure Boot private key.
-#    "--localkeys" to re-sign x86-64 binaries with a locally-generated key.
-#           Valid only under Linux.
-#    "--keepname" to keep boot_x64.efi name as such even when using shim.
-#           Valid only under Linux.
-#    "--yes" to assume a "yes" response to all prompts
+# Normal installations write BOOT to /EFI/InfiltratorOS/BOOT and register
+# its firmware entry. They must never overwrite EFI/BOOT, Microsoft or GRUB.
+# The historical install revision history is retained in Git commits,
+# not duplicated as obsolete comments in this executable.
 #
-# This program is copyright (c) 2012-2024 by Roderick W. Smith
-#
-# This program is licensed under the terms of the GNU GPL, version 3,
-# or (at your option) any later version.
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-# Revision history:
-#
-# 0.14.1  -- Fix bug that caused --ownhfs option to fail
-# 0.14.0.2-- Fix bug that caused failure to detect mounted ESP in Linux (AGAIN)
-# 0.14.0  -- Fix bug that caused failure to install filesystem driver in Linux
-# 0.13.3.1-- Fix bug that caused failure to detect mounted ESP in Linux
-# 0.13.3  -- Remove stray exit from CreateBootCsvFile()
-# 0.13.2  -- Add installation of BOOT Secure Boot key as MOK; if installing
-#            with Shim, add backup direct boot NVRAM option
-# 0.12.0  -- Improve code to find ESPs; should help with NVMe drives. Also
-#            activate install and bootorder features when using --usedefault
-#            option.
-# 0.11.5  -- Remove excessive slashes (/) from some filenames
-# 0.11.4  -- Fixed generation of GUID when automount of ESP in use on Linux
-# 0.11.3  -- Added support for ESP mounted at /efi under Linux
-# 0.11.1  -- In Linux, be less aggressive about replacing existing NVRAM entries
-# 0.11.0  -- Create BOOT.CSV file and option to encrypt SB private key
-# 0.10.8  -- Enabled use of shimx64.efi.signed as Shim source file
-# 0.10.7  -- Added mm{arch}.efi as equivalent of MokManager.efi
-# 0.10.6  -- Improved identification of the root device under macOS.
-# 0.10.5  -- More improvement to handling of disks (other than /dev/[sh]d? disks).
-# 0.10.4  -- Improved handling of disks (other than /dev/[sh]d? disks).
-# 0.10.2  -- Improved Secure Boot detection in Linux, fixed --usedefault in OS X,
-#            and fixed bug that could cause mountesp to be installed as a FILE
-#            called /usr/local/bin in OS X.
-# 0.10.1  -- Improve extraction of default kernel options from /proc/cmdline.
-#            Add support for AMD64 (aka AARCH64, aa64) platform. Added
-#            warning when --alldrivers used without --usedefault.
-# 0.10.0  -- Enable running under OS X's recovery system & add warning about
-#            SIP & brief instructions on how to deal with it if SIP is
-#            detected to be enabled. Also change way boot_linux.conf default
-#            options are found; use /proc/cmdline as base.
-# 0.9.2   -- Added --keepname option.
-# 0.8.7   -- Better detection of Secure Boot mode & fixed errors when copying
-#            Shim & MokManager files over themselves; fixed bug that caused
-#            inappropriate installation to EFI/BOOT/bootx64.efi
-# 0.8.6   -- Fixed bugs that caused misidentification of ESP on disks with
-#            partition numbers over 10 on OS X and misidentification of mount
-#            point if already-mounted ESP had space in path.
-# 0.8.5   -- Refinement/cleanup of new OS X ESP-as-default policy
-# 0.8.4   -- OS X default changed to install to ESP under /EFI/BOOT
-# 0.7.9   -- Fixed bug that caused errors if dmraid utility not installed
-# 0.7.7   -- Fixed bug that created mangled boot_linux.conf file; added ability
-#            to locate and mount ESP on Linux, if it's not mounted
-# 0.7.6   -- Added --ownhfs {device-filename} option
-# 0.7.5   -- Fixed bug when installing to ESP on recent versions of OS X
-# 0.7.2   -- Fixed code that could be confused by use of autofs to mount the ESP
-# 0.7.0   -- Added support for the new Btrfs driver
-# 0.6.12  -- Added support for PreLoader as well as for shim
-# 0.6.11  -- Improvements in script's ability to handle directories with spaces
-#            in their names
-# 0.6.9   -- Install gptsync on Macs
-# 0.6.8   -- Bug fix: ESP scan now uses "uniq".
-# 0.6.6   -- Bug fix: Upgrade drivers when installed to EFI/BOOT. Also enable
-#            copying shim.efi and MokManager.efi over themselves.
-# 0.6.4   -- Copies ext2 driver rather than ext4 driver for ext2/3fs
-# 0.6.3   -- Support for detecting BOOT in EFI/BOOT and EFI/Microsoft/Boot
-#            directories & for installing to EFI/BOOT in BIOS mode
-# 0.6.2-1 -- Added --yes option & tweaked key-copying for use with RPM install script
-# 0.6.1   -- Added --root option; minor bug fixes
-# 0.6.0   -- Changed --drivers to --alldrivers and added --nodrivers option;
-#            changed default driver installation behavior in Linux to install
-#            the driver needed to read /boot (if available)
-# 0.5.1.2 -- Fixed bug that caused failure to generate boot_linux.conf file
-# 0.5.1.1 -- Fixed bug that caused script failure under OS X
-# 0.5.1   -- Added --shim & --localkeys options & create sample boot_linux.conf
-#            in /boot
-# 0.5.0   -- Added --usedefault & --drivers options & changed "esp" option to "--esp"
-# 0.4.5   -- Fixed check for rEFItBlesser in OS X
-# 0.4.2   -- Added notice about BIOS-based OSes & made NVRAM changes in Linux smarter
-# 0.4.1   -- Added check for rEFItBlesser in OS X
-# 0.3.3.1 -- Fixed OS X 10.7 bug; also works as make target
-# 0.3.2.1 -- Check for presence of source files; aborts if not present
-# 0.3.2   -- Initial version
-#
-# Note: install.sh version numbers match those of the BOOT package
-# with which they first appeared.
-
 RootDir="/"
 TargetDir=/EFI/InfiltratorOS/BOOT
 LocalKeysBase="boot_local"
