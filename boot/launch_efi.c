@@ -198,12 +198,21 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     CHAR16                  *ErrorInfo;
     CHAR16                  *FullLoadOptions = NULL;
     CHAR16                  *EspGUID;
-    UINT8                   *gzData, *ImageData = NULL;
+    UINT8                   *gzData = NULL, *ImageData = NULL;
     UINTN                   gzSize, ImageSize;
     UINTN                   LoaderType;
     int                     gzStatus;
     long                    ReadSize = 0;
     EFI_GUID                SystemdGuid = SYSTEMD_GUID_VALUE;
+
+    /* BOOT no longer executes standalone filesystem-specific EFI drivers.
+     * Only qualified Common V2 readers will be permitted in firmware. */
+    if (IsDriver) {
+        LOG(1, LOG_LINE_NORMAL, L"Legacy EFI driver execution rejected");
+        return EFI_UNSUPPORTED;
+    }
+    if (!Volume || !Volume->RootDir || !Filename)
+        return EFI_INVALID_PARAMETER;
 
     // set load options
     if (LoadOptions != NULL) {
@@ -247,16 +256,30 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                 // On ARM64 Linux, an uncompressed kernel is about 3-3.5x the size of a
                 // gzip-compressed kernel. To be sure we're well within those limits, go
                 // to a factor of 10x....
-                ImageSize = gzSize * 10;
-                ImageData = AllocateZeroPool(ImageSize);
-                gzStatus = gunzip(gzData, gzSize, NULL, NULL, ImageData, ImageSize, &ReadSize);
-                LOG(1, LOG_LINE_NORMAL, L"gunzip returned '%d'; ReadSize of '%ld'", gzStatus, ReadSize);
-                if (gzStatus == 0) {
-                    ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
-                                                                ImageData, 0x8000000, &ChildImageHandle);
+                if (!gzSize || gzSize > (UINTN)(512U * 1024U * 1024U / 10U)) {
+                    LOG(1, LOG_LINE_NORMAL, L"Gzip EFI image is too large");
+                    ReturnStatus = Status = EFI_OUT_OF_RESOURCES;
                 } else {
-                    LOG(1, LOG_LINE_NORMAL, L"gunzip failure!");
-                    ReturnStatus = Status = EFI_LOAD_ERROR;
+                    ImageSize = gzSize * 10;
+                    ImageData = AllocateZeroPool(ImageSize);
+                    if (!ImageData) {
+                        ReturnStatus = Status = EFI_OUT_OF_RESOURCES;
+                    } else {
+                        gzStatus = gunzip(gzData, gzSize, NULL, NULL,
+                                         ImageData, ImageSize, &ReadSize);
+                        LOG(1, LOG_LINE_NORMAL, L"gunzip returned '%d'; ReadSize of '%ld'",
+                            gzStatus, ReadSize);
+                        if (gzStatus == 0 && ReadSize > 0 &&
+                            (UINTN)ReadSize <= ImageSize) {
+                            ReturnStatus = Status = refit_call6_wrapper(
+                                BS->LoadImage, FALSE, SelfImageHandle,
+                                DevicePath, ImageData, (UINTN)ReadSize,
+                                &ChildImageHandle);
+                        } else {
+                            LOG(1, LOG_LINE_NORMAL, L"Invalid gzip EFI image size or content");
+                            ReturnStatus = Status = EFI_LOAD_ERROR;
+                        }
+                    }
                 }
             }
         }
@@ -292,6 +315,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
         MyFreePool(ErrorInfo);
         goto bailout;
     }
+    MyFreePool(ErrorInfo);
 
     ReturnStatus = Status = refit_call3_wrapper(BS->HandleProtocol, ChildImageHandle, &LoadedImageProtocol,
                                                 (VOID **) &ChildLoadedImage);
@@ -327,13 +351,6 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     ErrorInfo = PoolPrint(L"returned from %s", ImageTitle);
     CheckError(Status, ErrorInfo);
     MyFreePool(ErrorInfo);
-    if (IsDriver) {
-        // Below should have no effect on most systems, but works
-        // around bug with some EFIs that prevents filesystem drivers
-        // from binding to partitions.
-        ConnectFilesystemDriver(ChildImageHandle);
-    }
-
     // re-open file handles
     ReinitRefitLib();
     LOG(1, LOG_LINE_NORMAL, L"Program has returned %d", Status);
@@ -344,6 +361,7 @@ bailout_unload:
         Status = refit_call1_wrapper(BS->UnloadImage, ChildImageHandle);
 
 bailout:
+    MyFreePool(gzData);
     MyFreePool(ImageData);
     MyFreePool(FullLoadOptions);
     if (!IsDriver)
