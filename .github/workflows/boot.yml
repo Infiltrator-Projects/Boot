@@ -91,6 +91,10 @@ jobs:
         shell: bash
         run: bash tests/install-safety.sh
 
+      - name: Test firmware-entry preservation with fake NVRAM
+        shell: bash
+        run: sudo bash tests/nvram-safety.sh
+
       - name: Upload verified workflow artifacts
         uses: actions/upload-artifact@v4
         with:
