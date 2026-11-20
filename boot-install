@@ -610,7 +610,61 @@ CopyTools() {
 
 # Copy the BOOT files to the ESP or OS X root partition.
 # Sets Problems=1 if any critical commands fail.
+# Hash an EFI executable using utilities available under Linux or macOS.
+BootFileHash() {
+   if command -v sha256sum &> /dev/null ; then
+      sha256sum "$1" | cut -d ' ' -f 1
+   elif command -v shasum &> /dev/null ; then
+      shasum -a 256 "$1" | cut -d ' ' -f 1
+   else
+      echo "A SHA-256 tool is required for safe EFI loader updates." >&2
+      return 1
+   fi
+}
+
+# /EFI/BOOT is shared by firmware, operating systems and recovery loaders.
+# Refuse to replace another owner's loader or assets. Only an empty directory
+# or an installed BOOT with a matching hash record may be modified.
+GuardDefaultBootLocation() {
+   [[ "$TargetDir" == "/EFI/BOOT" ]] || return 0
+   local dir="$InstallDir/EFI/BOOT"
+   local existing="$dir/$TargetX64"
+   local marker="$dir/.infiltrator-boot-loader.sha256"
+   local expected actual
+
+   if [[ -L "$InstallDir/EFI" || -L "$dir" || -L "$existing" || -L "$marker" ]] ; then
+      echo "Refusing EFI installation through a symbolic link." >&2
+      return 1
+   fi
+   # In fallback mode, shim writes multiple executable filenames, so reject
+   # it until every affected filename can be verified before any write.
+   if [[ "$ShimSource" != "none" ]] ; then
+      echo "Refusing unverified shim replacement in shared /EFI/BOOT." >&2
+      return 1
+   fi
+   if [[ -e "$marker" || -e "$existing" ]] ; then
+      if [[ ! -f "$marker" || ! -f "$existing" ]] ; then
+         echo "Existing /EFI/BOOT loader ownership is unknown. No files were replaced." >&2
+         return 1
+      fi
+      expected=$(cat "$marker") || return 1
+      if [[ ! "$expected" =~ ^[a-f0-9]{64}$ ]] ; then
+         echo "Invalid BOOT ownership marker; existing loader was preserved." >&2
+         return 1
+      fi
+      actual=$(BootFileHash "$existing") || return 1
+      if [[ "$actual" != "$expected" ]] ; then
+         echo "Existing /EFI/BOOT loader has changed since BOOT installed it; refusing to overwrite." >&2
+         return 1
+      fi
+   elif [[ -d "$dir" && -n "$(find "$dir" -mindepth 1 -print -quit)" ]] ; then
+      echo "Shared /EFI/BOOT contains unrecognised files. No files were replaced." >&2
+      return 1
+   fi
+}
+
 CopyBootFiles() {
+   GuardDefaultBootLocation || exit 1
    mkdir -p "$InstallDir/$TargetDir"
    if [[ "$TargetDir" == '/EFI/BOOT' ]] ; then
       if ! cp "$BootDir/boot_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" 2> /dev/null ; then
@@ -715,6 +769,20 @@ CopyBootFiles() {
    if [[ "$TargetDir" == '/EFI/BOOT' ]] ; then
       cp -f "$ConfFile" "$InstallDir/$TargetDir/boot.conf-sample"
       sed -i 's/#showtools shell/showtools install, shell/g' "$InstallDir/$TargetDir/boot.conf"
+   fi
+   if [[ "$TargetDir" == "/EFI/BOOT" && -z "${Problems:-}" ]] ; then
+      # Record the exact executable produced by this installation. Future
+      # upgrades must match it before replacing the loader.
+      local verified marker temporary
+      verified=$(BootFileHash "$InstallDir/$TargetDir/$TargetX64") || exit 1
+      marker="$InstallDir/$TargetDir/.infiltrator-boot-loader.sha256"
+      temporary="$marker.$"
+      if ! printf '%s\n' "$verified" > "$temporary" ||
+         ! mv -f -- "$temporary" "$marker" ; then
+         rm -f -- "$temporary"
+         echo "Unable to record EFI loader ownership." >&2
+         exit 1
+      fi
    fi
    if [[ $DeleteBootDir == 1 ]] ; then
       echo "Deleting the temporary directory $BootDir"
@@ -1421,18 +1489,6 @@ InstallOnLinux() {
    fi
 
    CheckSecureBoot
-   # Preserve any existing default loader before installing BOOT. Keep this
-   # backup across upgrades rather than overwriting the last known fallback.
-   if [[ "$TargetDir" == "/EFI/BOOT" && -f "$InstallDir/EFI/BOOT/$TargetX64" ]] ; then
-      local previous="$InstallDir/EFI/BOOT/$TargetX64"
-      local backup="$previous.before-infiltrator-boot"
-      if [[ ! -e "$backup" ]] ; then
-         cp -p -- "$previous" "$backup" && cmp -s -- "$previous" "$backup" || {
-            echo "Could not preserve the existing default EFI loader." >&2
-            exit 1
-         }
-      fi
-   fi
    CopyBootFiles
    if [[ "$TargetDir" != "/EFI/BOOT" && "$TargetDir" != "/EFI/Microsoft/Boot" ]] ; then
       AddBootEntry
