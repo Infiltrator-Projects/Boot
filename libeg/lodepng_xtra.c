@@ -1,5 +1,5 @@
 /*
- * Additional functions to support LodePNG for use in rEFInd
+ * Additional functions to support LodePNG for use in BOOT
  *
  * copyright (c) 2013 by by Roderick W. Smith, and distributed
  * under the terms of the GNU GPL v3, or (at your option) any
@@ -24,8 +24,8 @@
  */
 
 #include "global.h"
-#include "../refind/screen.h"
-#include "../refind/lib.h"
+#include "../boot/screen.h"
+#include "../boot/lib.h"
 #include "lodepng.h"
 
 // EFI's equivalent of realloc requires the original buffer's size as an
