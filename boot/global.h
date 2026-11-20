@@ -209,7 +209,7 @@
 #define LINUX_PREFIXES          L"vmlinuz,bzImage,kernel"
 #endif
 
-// Definitions for the "hideui" option in refind.conf
+// Definitions for the "hideui" option in boot.conf
 #define HIDEUI_FLAG_NONE       (0x0000)
 #define HIDEUI_FLAG_BANNER     (0x0001)
 #define HIDEUI_FLAG_LABEL      (0x0002)
@@ -228,7 +228,7 @@
 #define SUBSCREEN_HINT2_NO_EDITOR  L"Esc to return to main menu"
 
 #define NULL_GUID_VALUE { 0x00000000, 0x0000, 0x0000, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00} };
-#define REFIND_GUID_VALUE { 0x36D08FA7, 0xCF0B, 0x42F5, {0x8F, 0x14, 0x68, 0xDF, 0x73, 0xED, 0x37, 0x40} };
+#define BOOT_GUID_VALUE { 0x36D08FA7, 0xCF0B, 0x42F5, {0x8F, 0x14, 0x68, 0xDF, 0x73, 0xED, 0x37, 0x40} };
 #define ESP_GUID_VALUE { 0xc12a7328, 0xf81f, 0x11d2, { 0xba, 0x4b, 0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b } };
 #define SYSTEMD_GUID_VALUE { 0x4a67b082, 0x0a4c, 0x41cf, { 0xb6, 0xc7, 0x44, 0x0b, 0x29, 0xbb, 0x8c, 0x4f }};
 
@@ -416,14 +416,14 @@ extern EFI_GUID gEfiGlobalVariableGuid;
 extern BOOLEAN HaveResized;
 
 extern EFI_GUID GlobalGuid;
-extern EFI_GUID RefindGuid;
+extern EFI_GUID BootGuid;
 
 extern REFIT_MENU_SCREEN MainMenu;
 extern REFIT_MENU_ENTRY MenuEntryReturn;
 
 // Global function definitions....
 
-VOID AboutrEFInd(VOID);
+VOID AboutBOOT(VOID);
 EG_IMAGE * GetDiskBadge(IN UINTN DiskType);
 LOADER_ENTRY * MakeGenericLoaderEntry(VOID);
 VOID StoreLoaderName(IN CHAR16 *Name);
