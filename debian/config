@@ -4,6 +4,6 @@ set -e
 
 . /usr/share/debconf/confmodule
 
-db_input high refind/install_to_esp || true
+db_input high boot/install_to_esp || true
 
 db_go || true
