@@ -82,7 +82,7 @@ grep -Fq 'InstallationFailed=1' "$work/embedded-boot-install"
 grep -Fq 'exit "$InstallationFailed"' "$work/embedded-boot-install"
 grep -Fxq 'TargetDir=/EFI/InfiltratorOS/BOOT' "$work/embedded-boot-install"
 grep -Fxq 'TargetX64="BOOTX64.EFI"' "$work/embedded-boot-install"
-grep -Fq 'GuardDefaultBootLocation || exit 1' "$work/embedded-boot-install"
+grep -Fq 'GuardDefaultBootLocation || return 1' "$work/embedded-boot-install"
 grep -Fq 'Boot="$TargetX64"' "$work/embedded-boot-install"
 grep -Fq 'BOOT_INSTALL_SOURCE_DIR' "$work/embedded-boot-install"
 grep -A5 'create an ESP, and ideally boot in EFI mode, before installing BOOT.' "$work/embedded-boot-install" |
