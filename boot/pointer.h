@@ -1,5 +1,5 @@
 /*
- * refind/pointer.h
+ * boot/pointer.h
  * pointer device functions header file
  *
  * Copyright (c) 2018 CJ Vaughter
@@ -19,8 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __REFIND_POINTERDEVICE_H_
-#define __REFIND_POINTERDEVICE_H_
+#ifndef __BOOT_POINTERDEVICE_H_
+#define __BOOT_POINTERDEVICE_H_
 
 #ifdef __MAKEWITH_GNUEFI
 #include "efi.h"
