@@ -505,7 +505,7 @@ GuardDefaultBootLocation() {
          return 1
       fi
    elif [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -d "$dir" &&
-           -n "$(find "$dir" -mindepth 1 -maxdepth 1 ! -name drivers_x64 -print -quit)" ]] ; then
+           -n "$(find "$dir" -mindepth 1 -maxdepth 1 ! -name drivers_x64 ! -name icons ! -name keys ! -name boot.conf ! -name boot.conf-sample ! -name BOOT.CSV -print -quit)" ]] ; then
       echo "BOOT's dedicated directory contains unrecognised files; refusing replacement." >&2
       return 1
    fi
@@ -568,7 +568,7 @@ CopyBootFiles() {
    fi
    BootHadPrevious=0
    if [[ -e "$final" ]]; then
-      if ! cp -p -- "$final" "$rollback"; then
+      if ! cp -f -- "$final" "$rollback"; then
          rm -f -- "$staged"
          Problems=1
          return 1
@@ -817,7 +817,10 @@ InstallOnOSX() {
    echo "Installing BOOT to the partition mounted at $InstallDir"
    DetermineTargetDir
    CheckForSIP
-   CopyBootFiles
+   if ! CopyBootFiles; then
+      Problems=1
+      return 1
+   fi
    if [[ $InstallToEspOnMac == "1" && -z "$TargetPart" ]] ; then
       bless --mount "$InstallDir" --setBoot --file "$InstallDir/$TargetDir/$Boot" --shortform
    elif [[ "$TargetDir" != "/EFI/BOOT" ]] ; then
@@ -826,6 +829,11 @@ InstallOnOSX() {
    if [[ $? != 0 ]] ; then
       Problems=1
    fi
+   if [[ -n "${Problems:-}" ]]; then
+      RollbackBootFiles || true
+      return 1
+   fi
+   FinalizeBootFiles
    if [[ -f /Library/StartupItems/rEFItBlesser || -d /Library/StartupItems/rEFItBlesser ]] ; then
       echo
       echo "/Library/StartupItems/rEFItBlesser found!"
