@@ -1,2 +1,2 @@
 version=3
-https://sf.net/refind/refind-src-(\d\S*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
+https://sf.net/boot/boot-src-(\d\S*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
