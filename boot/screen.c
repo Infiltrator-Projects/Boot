@@ -1,5 +1,5 @@
 /*
- * refind/screen.c
+ * boot/screen.c
  * Screen handling functions
  *
  * Copyright (c) 2006 Christoph Pfisterer
@@ -65,7 +65,7 @@
 #include "log.h"
 #include "../include/refit_call_wrapper.h"
 
-#include "../include/egemb_refind_banner.h"
+#include "../include/egemb_boot_banner.h"
 
 // Console defines and variables
 
@@ -292,7 +292,7 @@ VOID DrawScreenHeader(IN CHAR16 *Title)
 
     // print header text
     refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, 1);
-    Print(L"rEFInd - %s", Title);
+    Print(L"BOOT - %s", Title);
 
     // reposition cursor
     refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
@@ -445,7 +445,7 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
             if (GlobalConfig.BannerFileName)
                 Banner = egLoadImage(SelfDir, GlobalConfig.BannerFileName, FALSE);
             if (Banner == NULL)
-                Banner = egPrepareEmbeddedImage(&egemb_refind_banner, FALSE);
+                Banner = egPrepareEmbeddedImage(&egemb_boot_banner, FALSE);
         }
 
         if (Banner) {
