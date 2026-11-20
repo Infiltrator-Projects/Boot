@@ -115,15 +115,15 @@
 # with which they first appeared.
 
 RootDir="/"
-TargetDir=/EFI/BOOT
+TargetDir=/EFI/InfiltratorOS/BOOT
 LocalKeysBase="boot_local"
 ShimSource="none"
 ShimType="none"
 KeepName=0
 TargetShim="default"
-TargetX64="bootx64.efi"
-TargetIA32="bootia32.efi"
-TargetAARCH64="bootaa64.efi"
+TargetX64="BOOTX64.EFI"
+TargetIA32="BOOTIA32.EFI"
+TargetAARCH64="BOOTAA64.EFI"
 ExplicitDefault=0
 LocalKeys=0
 EncryptKeys=0
@@ -507,16 +507,15 @@ SetVarsForMsBoot() {
    fi
 } # SetVarsForMsBoot()
 
-# BOOT installs to /EFI/BOOT as its selected directory. Historical
-# auto-detection that hijacked Microsoft Boot or relocated other loaders
-# is deliberately not used. Explicit --usedefault only selects a device.
+# BOOT's selected directory is /EFI/InfiltratorOS/BOOT on the mounted ESP.
+# Never hijack the shared /EFI/BOOT path, Microsoft Boot or GRUB.
+# Explicit --usedefault remains a separate removable-media selection.
 DetermineTargetDir() {
    Upgrade=0
-   if [[ "$TargetDir" == "/EFI/BOOT" ]] ; then
-      SetVarsForBoot
-      if [[ -f "$InstallDir/EFI/BOOT/boot.conf" ]] ; then
+   if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] ; then
+      if [[ -f "$InstallDir/$TargetDir/boot.conf" ]] ; then
          Upgrade=1
-         echo "Found BOOT configuration in $InstallDir/EFI/BOOT; preserving it."
+         echo "Found BOOT configuration in $InstallDir/$TargetDir; preserving it."
       fi
    fi
 } # DetermineTargetDir()
@@ -622,43 +621,42 @@ BootFileHash() {
    fi
 }
 
-# /EFI/BOOT is shared by firmware, operating systems and recovery loaders.
-# Refuse to replace another owner's loader or assets. Only an empty directory
-# or an installed BOOT with a matching hash record may be modified.
+# Verify any existing executable before writing to the dedicated BOOT
+# directory or an explicitly selected UEFI fallback path.
 GuardDefaultBootLocation() {
-   [[ "$TargetDir" == "/EFI/BOOT" ]] || return 0
-   local dir="$InstallDir/EFI/BOOT"
+   [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" || "$TargetDir" == "/EFI/BOOT" ]] || return 0
+   local dir="$InstallDir/$TargetDir"
    local existing="$dir/$TargetX64"
    local marker="$dir/.infiltrator-boot-loader.sha256"
    local expected actual
-
-   if [[ -L "$InstallDir/EFI" || -L "$dir" || -L "$existing" || -L "$marker" ]] ; then
+   if [[ -L "$InstallDir/EFI" || -L "$InstallDir/EFI/InfiltratorOS" ||
+         -L "$dir" || -L "$existing" || -L "$marker" ]] ; then
       echo "Refusing EFI installation through a symbolic link." >&2
       return 1
    fi
-   # In fallback mode, shim writes multiple executable filenames, so reject
-   # it until every affected filename can be verified before any write.
    if [[ "$ShimSource" != "none" ]] ; then
-      echo "Refusing unverified shim replacement in shared /EFI/BOOT." >&2
+      echo "Shim installation requires verified ownership of all affected EFI executables." >&2
       return 1
    fi
-   if [[ -e "$marker" || -e "$existing" ]] ; then
-      if [[ ! -f "$marker" || ! -f "$existing" ]] ; then
-         echo "Existing /EFI/BOOT loader ownership is unknown. No files were replaced." >&2
+   if [[ -e "$existing" || -e "$marker" ]] ; then
+      if [[ ! -f "$existing" || ! -f "$marker" ]] ; then
+         echo "BOOT's target executable has no matching ownership record; refusing replacement." >&2
          return 1
       fi
       expected=$(cat "$marker") || return 1
-      if [[ ! "$expected" =~ ^[a-f0-9]{64}$ ]] ; then
-         echo "Invalid BOOT ownership marker; existing loader was preserved." >&2
-         return 1
-      fi
+      [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || return 1
       actual=$(BootFileHash "$existing") || return 1
       if [[ "$actual" != "$expected" ]] ; then
-         echo "Existing /EFI/BOOT loader has changed since BOOT installed it; refusing to overwrite." >&2
+         echo "BOOT's target executable differs from its recorded checksum; refusing replacement." >&2
          return 1
       fi
-   elif [[ -d "$dir" && -n "$(find "$dir" -mindepth 1 -print -quit)" ]] ; then
-      echo "Shared /EFI/BOOT contains unrecognised files. No files were replaced." >&2
+   elif [[ "$TargetDir" == "/EFI/BOOT" && -d "$dir" &&
+           -n "$(find "$dir" -mindepth 1 -print -quit)" ]] ; then
+      echo "The shared UEFI fallback directory is already in use; refusing replacement." >&2
+      return 1
+   elif [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -d "$dir" &&
+           -n "$(find "$dir" -mindepth 1 -maxdepth 1 ! -name drivers_x64 -print -quit)" ]] ; then
+      echo "BOOT's dedicated directory contains unrecognised files; refusing replacement." >&2
       return 1
    fi
 }
@@ -696,7 +694,7 @@ CopyBootFiles() {
       fi
       CopyDrivers x64
       CopyTools x64
-      Boot="boot_x64.efi"
+      Boot="$TargetX64"
       CopyKeys
       if [[ "$ShimSource" != "none" ]] ; then
          if [[ "$TargetShim" == "default" ]] ; then
@@ -726,7 +724,8 @@ CopyBootFiles() {
       fi
       CopyDrivers $Platform
       CopyTools $Platform
-      Boot="boot_$Platform.efi"
+      Boot="$TargetIA32"
+      if [[ "$Platform" == "aa64" ]] ; then Boot="$TargetAARCH64"; fi
       if [[ "$TargetDir" == '/System/Library/CoreServices' ]] ; then
          SetupMacHfs $TargetIA32
       fi
@@ -770,7 +769,7 @@ CopyBootFiles() {
       cp -f "$ConfFile" "$InstallDir/$TargetDir/boot.conf-sample"
       sed -i 's/#showtools shell/showtools install, shell/g' "$InstallDir/$TargetDir/boot.conf"
    fi
-   if [[ "$TargetDir" == "/EFI/BOOT" && -z "${Problems:-}" ]] ; then
+   if [[ ( "$TargetDir" == "/EFI/InfiltratorOS/BOOT" || "$TargetDir" == "/EFI/BOOT" ) && -z "${Problems:-}" ]] ; then
       # Record the exact executable produced by this installation. Future
       # upgrades must match it before replacing the loader.
       local verified marker temporary
