@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Build a generic AMD64 DEB and a source-bearing native installer RUN.
+# Build a generic AMD64 DEB and a source-downloading native installer RUN.
 set -euo pipefail
 
 version="${1:?Usage: packaging/build-release.sh VERSION [OUTPUT_DIRECTORY]}"
@@ -15,7 +15,7 @@ if [[ "$(uname -m)" != "x86_64" ]]; then
 fi
 test -s boot/boot_x64.efi || { echo "Missing compiled boot/boot_x64.efi" >&2; exit 1; }
 command -v dpkg-deb >/dev/null || { echo "dpkg-deb is required" >&2; exit 1; }
-command -v git >/dev/null || { echo "git is required to bundle the exact source revision" >&2; exit 1; }
+command -v git >/dev/null || { echo "git is required to pin the exact source revision" >&2; exit 1; }
 
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
@@ -65,23 +65,20 @@ EOF
 deb="$out/infiltrator-boot_${version}_amd64.deb"
 dpkg-deb --root-owner-group --build "$package" "$deb"
 
-# Ship ONE offline, self-contained native RUN. The source bundle contains
-# the full boot-install implementation; no git clone or second download.
+# Keep the native RUN small: fetch its pinned source and original boot-install
+# at execution time. No source tarball or EFI binary is embedded in the RUN.
 source_sha=$(git rev-parse --verify HEAD)
 [[ "$source_sha" =~ ^[a-f0-9]{40}$ ]] || { echo "Cannot pin BOOT source commit" >&2; exit 1; }
-archive="$work/boot-source.tar.gz"
-git archive --format=tar HEAD | gzip -n -9 > "$archive"
-test -s "$archive" || { echo "BOOT source archive is empty" >&2; exit 1; }
-source_digest=$(sha256sum "$archive" | cut -d ' ' -f 1)
 run="$out/boot-$version-native-installer.run"
 cat > "$run" <<'RUN_HEADER'
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Complete native installer: embedded source, boot-install and CPU-native build.
+# BOOT native installer. Downloads exact GitHub source, compiles for local
+# hardware, then delegates firmware installation to the ORIGINAL boot-install.
 set -euo pipefail
 
 SOURCE_SHA="__BOOT_SOURCE_COMMIT__"
-SOURCE_DIGEST="__BOOT_SOURCE_DIGEST__"
+SOURCE_URL='https://github.com/Infiltrator-Projects/Boot.git'
 
 if (($# != 0)); then
     echo "BOOT native installer takes no arguments: running it builds and installs." >&2
@@ -89,60 +86,58 @@ if (($# != 0)); then
 fi
 [[ $(uname -m) == x86_64 ]] || { echo "BOOT native installer requires x86-64" >&2; exit 2; }
 
-missing=0
-for program in make gcc ld objcopy tar gzip base64 awk sha256sum mktemp; do
-    if ! command -v "$program" >/dev/null 2>&1; then
-        echo "Missing build tool: $program" >&2
-        missing=1
-    fi
+required=(git make gcc ld objcopy tar mktemp)
+missing=()
+for program in "${required[@]}"; do
+    command -v "$program" >/dev/null 2>&1 || missing+=("$program")
 done
-if ((missing)) || [[ ! -f /usr/include/efi/efi.h ]]; then
+if ((${#missing[@]})) || [[ ! -f /usr/include/efi/efi.h ]]; then
+    echo "Missing BOOT native build prerequisites: ${missing[*]} (and/or gnu-efi headers)" >&2
     if ! command -v apt-get >/dev/null; then
-        echo "Install build-essential, binutils and gnu-efi before running BOOT." >&2
+        echo "Install build-essential, binutils, git and gnu-efi before running BOOT." >&2
         exit 1
     fi
     if ((EUID == 0)); then
-        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils gnu-efi
+        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi
     else
         command -v sudo >/dev/null || { echo "sudo is required to install build dependencies" >&2; exit 1; }
-        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils gnu-efi
+        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi
     fi
 fi
-for program in make gcc ld objcopy tar gzip base64 awk sha256sum mktemp; do
+for program in "${required[@]}"; do
     command -v "$program" >/dev/null || { echo "Still missing $program" >&2; exit 1; }
 done
 [[ -f /usr/include/efi/efi.h ]] || { echo "GNU-EFI headers are still missing" >&2; exit 1; }
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
-archive="$work/boot-source.tar.gz"
-awk '$0 == "__BOOT_SOURCE_ARCHIVE_BELOW__" { copy=1; next }
-     $0 == "__BOOT_SOURCE_ARCHIVE_END__" { exit }
-     copy { print }' "$0" | base64 --decode > "$archive"
-printf '%s  %s\n' "$SOURCE_DIGEST" "$archive" | sha256sum --check --status || {
-    echo "Embedded BOOT source digest mismatch" >&2; exit 1;
-}
 source_dir="$work/Boot"
-mkdir -p "$source_dir"
-tar -xzf "$archive" -C "$source_dir" --no-same-owner --no-same-permissions
+git -C "$work" init -q Boot
+git -C "$source_dir" remote add origin "$SOURCE_URL"
+# Fetch only needed source/graphics from the pinned commit, not the whole
+# repository history or a source bundle in this installer.
+git -C "$source_dir" sparse-checkout init --cone
+git -C "$source_dir" sparse-checkout set boot EfiLib gptsync gzip libeg mok include icons fonts banners themes keys
+git -C "$source_dir" -c protocol.version=2 fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"
+git -C "$source_dir" -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD
+[[ $(git -C "$source_dir" rev-parse HEAD) == "$SOURCE_SHA" ]] || {
+    echo "BOOT source commit does not match the published installer" >&2; exit 1;
+}
 cd "$source_dir"
 [[ -f Makefile && -f Make.common && -f boot/main.c && -f boot-install ]] || {
-    echo "Embedded BOOT source or original installer is incomplete" >&2; exit 1;
+    echo "Downloaded BOOT source is incomplete" >&2; exit 1;
 }
 bash -n ./boot-install
-echo "Building BOOT natively from embedded source commit $SOURCE_SHA..."
+echo "Building BOOT natively from source commit $SOURCE_SHA..."
+# Native CPU code generation, while preventing floating/vector operations in
+# UEFI contexts where they are not necessarily available.
 make CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall" gnuefi
 [[ -s boot/boot_x64.efi ]] || { echo "Native BOOT EFI build failed" >&2; exit 1; }
-echo "Installing BOOT using its bundled boot-install implementation..."
+echo "Installing BOOT with the existing boot-install script..."
 bash ./boot-install --nodrivers
 echo "BOOT native compilation and installation completed."
-exit 0
-: <<'__BOOT_SOURCE_ARCHIVE_END__'
-__BOOT_SOURCE_ARCHIVE_BELOW__
 RUN_HEADER
-sed -i "s/__BOOT_SOURCE_COMMIT__/$source_sha/g; s/__BOOT_SOURCE_DIGEST__/$source_digest/g" "$run"
-base64 -w 76 "$archive" >> "$run"
-printf '__BOOT_SOURCE_ARCHIVE_END__\n' >> "$run"
+sed -i "s/__BOOT_SOURCE_COMMIT__/$source_sha/g" "$run"
 chmod 0755 "$run"
 
 (
