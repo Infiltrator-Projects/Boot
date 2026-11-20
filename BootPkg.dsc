@@ -1,5 +1,5 @@
 [Defines]
-  PLATFORM_NAME                  = Refind
+  PLATFORM_NAME                  = Boot
   PLATFORM_GUID                  = d6365e1c-b895-426d-a012-46769b2d02a3
   PLATFORM_VERSION               = 4.5.0
   DSC_SPECIFICATION              = 0x00010006
@@ -76,12 +76,12 @@
   CompilerIntrinsicsLib|ArmPkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
 
 [Components]
-  RefindPkg/refind.inf
-  RefindPkg/gptsync.inf
-  RefindPkg/filesystems/ext2.inf
-  RefindPkg/filesystems/ext4.inf
-  RefindPkg/filesystems/btrfs.inf
-  RefindPkg/filesystems/reiserfs.inf
-  RefindPkg/filesystems/hfs.inf
-  RefindPkg/filesystems/iso9660.inf
-  RefindPkg/filesystems/ntfs.inf
+  BootPkg/boot.inf
+  BootPkg/gptsync.inf
+  BootPkg/filesystems/ext2.inf
+  BootPkg/filesystems/ext4.inf
+  BootPkg/filesystems/btrfs.inf
+  BootPkg/filesystems/reiserfs.inf
+  BootPkg/filesystems/hfs.inf
+  BootPkg/filesystems/iso9660.inf
+  BootPkg/filesystems/ntfs.inf
