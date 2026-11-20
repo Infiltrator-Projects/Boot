@@ -1,6 +1,6 @@
 #
-# refind/Makefile
-# Build control file for the rEFInd boot menu
+# boot/Makefile
+# Build control file for the BOOT boot menu
 #
 # This program is licensed under the terms of the GNU GPL, version 3,
 # or (at your option) any later version.
@@ -13,21 +13,21 @@ VPATH = $(SRCDIR)
 
 ARCH            = $(shell uname -m | sed s,i[3456789]86,ia32,)
 
-TARGET	= refind.efi
+TARGET	= boot.efi
 
 ifeq ($(ARCH),ia32)
   LIBEG = build32
-  TARGET = refind_ia32.efi
+  TARGET = boot_ia32.efi
 endif
 
 ifeq ($(ARCH),x86_64)
   LIBEG = build64
-  TARGET = refind_x64.efi
+  TARGET = boot_x64.efi
 endif
 
 ifeq ($(ARCH),aarch64)
   LIBEG = build
-  TARGET = refind_aa64.efi
+  TARGET = boot_aa64.efi
 endif
 
 LOCAL_GNUEFI_CFLAGS  = -I$(SRCDIR) -I$(SRCDIR)/../include \
@@ -54,12 +54,12 @@ $(TARGET): $(SHLIB_TARGET)
 		   -j .rel -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
 		   -j .reloc --strip-unneeded $(FORMAT) $< $@
 ifneq ($(OMIT_SBAT), 1)
-	    $(OBJCOPY) --add-section .sbat=$(SRCDIR)/../$(REFIND_SBAT_CSV) \
+	    $(OBJCOPY) --add-section .sbat=$(SRCDIR)/../$(BOOT_SBAT_CSV) \
 		       --adjust-section-vma .sbat+10000000 $@
 endif
 	chmod a-x $(TARGET)
 
 clean:
-	rm -f $(TARGET) *~ *.so $(OBJS) *.efi *.obj refind_*.txt \
-		refind_*.dll *.lib
+	rm -f $(TARGET) *~ *.so $(OBJS) *.efi *.obj boot_*.txt \
+		boot_*.dll *.lib
 
