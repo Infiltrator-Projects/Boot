@@ -84,10 +84,11 @@ jobs:
           operational boot managers. Firmware boot behaviour and Common V2
           filesystem integration remain under development.
 
-          - Native .run: a self-contained installer containing pinned BOOT
-            sources and the complete boot-install implementation. It builds
-            locally with GNU-EFI CPU-native settings and installs BOOT in
-            /EFI/InfiltratorOS/BOOT. No build-only or download-only mode.
+          - Native .run: a compact downloader that retrieves the pinned BOOT
+            Git revision on the target computer, including its original
+            boot-install script. It compiles locally using GNU-EFI CPU-native
+            settings and then installs BOOT in /EFI/InfiltratorOS/BOOT.
+            No embedded source bundle and no build-only mode.
           - Generic AMD64 .deb: stages the generic BOOT firmware image only.
           - SHA256SUMS: verifies the two downloadable assets.
 
