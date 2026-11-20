@@ -151,12 +151,8 @@ GetParams() {
               TargetDir=/System/Library/CoreServices
               shift
               ;;
-         --usedefault) TargetDir=/EFI/BOOT
-              ExplicitDefault=1
-              TargetPart="$2"
-              TargetX64="bootx64.efi"
-              TargetIA32="bootia32.efi"
-              shift
+         --usedefault) echo "BOOT never installs to the shared EFI/BOOT fallback." >&2
+              exit 2
               ;;
          --root) RootDir="$2"
               InstallToEspOnMac=0
@@ -178,7 +174,7 @@ GetParams() {
               ;;
          --yes) AlwaysYes=1
               ;;
-         * ) echo "Usage: $0 [--notesp | --usedefault {device-file} | --root {dir} |"
+         * ) echo "Usage: $0 [--notesp | --root {dir} |"
              echo "                     --ownhfs {device-file} ] [--keepname]"
              echo "                  [--nodrivers | --alldrivers] [--shim {shimfile}]"
              echo "                  [--localkeys [--encryptkeys]] [--keepname] [--yes]"
@@ -459,60 +455,6 @@ CopyKeys() {
    fi
 } # CopyKeys()
 
-# Set varaibles for installation in EFI/BOOT directory
-SetVarsForBoot() {
-   TargetDir="/EFI/BOOT"
-   if [[ $ShimSource == "none" ]] ; then
-      TargetX64="bootx64.efi"
-      TargetIA32="bootia32.efi"
-      TargetAARCH64="bootaa64.efi"
-   else
-      if [[ $ShimType == "shim.efi" || $ShimType == "shimx64.efi" || $ShimType == "shimx64.efi.signed" || $ShimType = "shimaa64.efi" ]] ; then
-         TargetX64="grubx64.efi"
-         TargetAARCH64="grubaa64.efi"
-      elif [[ $ShimType == "preloader.efi" || $ShimType == "PreLoader.efi" ]] ; then
-         TargetX64="loader.efi"
-      else
-         echo "Unknown shim/PreBootloader type: $ShimType"
-         echo "Aborting!"
-         exit 1
-      fi
-      TargetIA32="bootia32.efi"
-      TargetShim="boot$Platform.efi"
-   fi
-   if [[ $KeepName == 1 ]] ; then
-      echo "Installation is to /EFI/BOOT, which is incompatible with --keepname! Aborting!"
-      exit 1
-   fi
-} # SetVarsForBoot()
-
-# Set variables for installation in EFI/Microsoft/Boot directory
-SetVarsForMsBoot() {
-   TargetDir="/EFI/Microsoft/Boot"
-   if [[ $ShimSource == "none" ]] ; then
-      TargetX64="bootmgfw.efi"
-      TargetIA32="bootmgfw.efi"
-      TargetAARCH64="bootmgfw.efi"
-   else
-      if [[ $ShimType == "shim.efi" || $ShimType == "shimx64.efi" || $ShimType == "shimaa64.efi" ]] ; then
-         TargetX64="grubx64.efi"
-         TargetAARCH64="grubaa64.efi"
-      elif [[ $ShimType == "preloader.efi" || $ShimType == "PreLoader.efi" ]] ; then
-         TargetX64="loader.efi"
-      else
-         echo "Unknown shim/PreBootloader type: $ShimType"
-         echo "Aborting!"
-         exit 1
-      fi
-      TargetShim="bootmgfw.efi"
-   fi
-   if [[ $KeepName == 1 ]] ; then
-      echo "Installation is to /EFI/Microsoft/Boot, which is incompatible with --keepname!"
-      echo "Aborting!"
-      exit 1
-   fi
-} # SetVarsForMsBoot()
-
 # BOOT's selected directory is /EFI/InfiltratorOS/BOOT on the mounted ESP.
 # Never hijack the shared /EFI/BOOT path, Microsoft Boot or GRUB.
 # Explicit --usedefault remains a separate removable-media selection.
@@ -599,22 +541,6 @@ CopyDrivers() {
    fi
 } # CopyDrivers()
 
-# Copy tools (currently only gptsync, and that only on Macs) to the EFI/tools
-# directory on the ESP. Must be passed a suitable architecture code (ia32
-# or x64).
-CopyTools() {
-   mkdir -p "$InstallDir/EFI/tools"
-   if [[ $OSTYPE == darwin* ]] ; then
-      cp -f "$BootDir/tools_$1/gptsync_$1.efi" "$InstallDir/EFI/tools/"
-      if [[ -f "$InstallDir/EFI/tools/gptsync.efi" ]] ; then
-         mv "$InstallDir/EFI/tools/gptsync.efi" "$InstallDir/EFI/tools/gptsync.efi-disabled"
-         echo "Found old gptsync.efi; disabling it by renaming it to gptsync.efi-disabled"
-      fi
-   fi
-} # CopyTools()
-
-# Copy the BOOT files to the ESP or OS X root partition.
-# Sets Problems=1 if any critical commands fail.
 # Hash an EFI executable using utilities available under Linux or macOS.
 BootFileHash() {
    if command -v sha256sum &> /dev/null ; then
@@ -630,7 +556,10 @@ BootFileHash() {
 # Verify any existing executable before writing to the dedicated BOOT
 # directory or an explicitly selected UEFI fallback path.
 GuardDefaultBootLocation() {
-   [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" || "$TargetDir" == "/EFI/BOOT" ]] || return 0
+   if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
+      echo "Refusing BOOT installation outside /EFI/InfiltratorOS/BOOT." >&2
+      return 1
+   fi
    local dir="$InstallDir/$TargetDir"
    local existing="$dir/$TargetX64"
    local marker="$dir/.infiltrator-boot-loader.sha256"
@@ -690,7 +619,6 @@ CopyBootFiles() {
          cp -r "$ThisDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
       elif [[ $Upgrade == 1 || $InstallToEspOnMac == 1 ]] ; then
          CopyDrivers "$Platform"
-         CopyTools "$Platform"
       fi
       Boot="boot$Platform.efi"
       CopyKeys
@@ -699,7 +627,6 @@ CopyBootFiles() {
          Problems=1
       fi
       CopyDrivers x64
-      CopyTools x64
       Boot="$TargetX64"
       CopyKeys
       if [[ "$ShimSource" != "none" ]] ; then
@@ -992,8 +919,6 @@ InstallOnOSX() {
    DetermineTargetDir
    CheckForSIP
    CopyBootFiles
-   mkdir -p /usr/local/bin &> /dev/null
-   cp "$ThisDir/mountesp" /usr/local/bin/ &> /dev/null
    if [[ $InstallToEspOnMac == "1" && -z "$TargetPart" ]] ; then
       bless --mount "$InstallDir" --setBoot --file "$InstallDir/$TargetDir/$Boot" --shortform
    elif [[ "$TargetDir" != "/EFI/BOOT" ]] ; then
@@ -1300,140 +1225,77 @@ FindMountedESP() {
 # Uses efibootmgr to add an entry for BOOT to the EFI's NVRAM, if necessary.
 # If this fails, sets Problems=1
 AddBootEntry() {
-   local PartNum
-   local InstallDisk
-   local InstallPart
-   local InstallPartGuid
-   local Name
-   local ExistingEntry
-   local KeepExistingEntry=0
-   local ExistingEntryBootNum
-   local FirstBoot
-   local RealBootBinary
-
-   Efibootmgr="$(command -v efibootmgr 2> /dev/null)"
-   if [[ "$Efibootmgr" ]] ; then
-      InstallPart=$(grep "$InstallDir " /etc/mtab | grep -v autofs | cut -d " " -f 1 | tail -n1)
-      for Name in $(lsblk -r | grep disk | cut -f 1 -d " ") ; do
-         if [[ $InstallPart == *"$Name"* ]] ; then
-            InstallDisk="/dev/"$Name
-            PartNum=${InstallPart#"$InstallDisk"}
-            PartNum="${PartNum//[!0-9]/}"
-            break
-         fi
-      done
-      if [[ -z $InstallDisk || -z $PartNum ]] ; then
-         echo "Could not identify ESP in AddBootEntry()!"
+   local efibootmgr_bin install_part install_disk part_num part_guid
+   local entry_filename existing_entry existing_num current_order next_order
+   local token all_entries=() verbose
+   efibootmgr_bin="$(command -v efibootmgr 2>/dev/null)" || {
+      echo "efibootmgr is required to register BOOT." >&2
+      Problems=1
+      return 1
+   }
+   # Identify the exact mounted ESP and its real parent, including NVMe.
+   install_part="$(findmnt -n --mountpoint "$InstallDir" -o SOURCE 2>/dev/null | head -n1)"
+   install_part="$(readlink -f -- "$install_part" 2>/dev/null)"
+   install_disk="$(lsblk -no PKNAME -- "$install_part" 2>/dev/null | head -n1)"
+   part_num="$(lsblk -no PARTN -- "$install_part" 2>/dev/null | head -n1)"
+   part_guid="$(blkid -s PARTUUID -o value "$install_part" 2>/dev/null)"
+   if [[ ! -b "$install_part" || -z "$install_disk" ||
+         ! "$part_num" =~ ^[0-9]+$ || -z "$part_guid" ]]; then
+      echo "Cannot prove the ESP partition; leaving NVRAM untouched." >&2
+      Problems=1
+      return 1
+   fi
+   install_disk="/dev/$install_disk"
+   entry_filename='\EFI\InfiltratorOS\BOOT\BOOTX64.EFI'
+   verbose="$("$efibootmgr_bin" -v)" || {
+      echo "Cannot inspect firmware entries; NVRAM unchanged." >&2
+      Problems=1
+      return 1
+   }
+   existing_entry="$(printf '%s\n' "$verbose" | grep -iF -- "$part_guid" |
+                      grep -iF -- "$entry_filename" | head -n1)"
+   if [[ -n "$existing_entry" ]]; then
+      existing_num="${existing_entry:4:4}"
+      if [[ ! "$existing_num" =~ ^[[:xdigit:]]{4}$ ]]; then
+         echo "Invalid existing BOOT entry number; NVRAM unchanged." >&2
          Problems=1
          return 1
       fi
-      EntryFilename="$TargetDir/$Boot"
-      EfiEntryFilename=$(echo "${EntryFilename}" | tr '/' '\\')
-      # DO NOT change the below to use "$(...)" syntax; despite shellcheck's complaint,
-      # such a change will BREAK IT!
-      EfiEntryFilename2=`echo "${EfiEntryFilename}" | sed s/\\\\\\\\/\\\\\\\\\\\\\\\\/g`
-      InstallPartGuid=$(blkid -s PARTUUID -o value "$InstallPart")
-      FirstBoot=$("$Efibootmgr" | grep BootOrder | cut -c 12-15)
-      ExistingEntry=$("$Efibootmgr" -v | grep -i "$EfiEntryFilename2" | grep -i "$InstallPartGuid" | head -n 1)
-      ExistingEntryFirstBoot=$("$Efibootmgr" -v | grep -i "$EfiEntryFilename2" | grep -i "$InstallPartGuid" | grep "Boot$FirstBoot")
-
-      if [[ "$ExistingEntry" ]] ; then
-         ExistingEntryBootNum=$(echo "$ExistingEntry" | cut -c 5-8)
-         if [[ -z "$ExistingEntryFirstBoot" ]] ; then
-            echo "An existing BOOT boot entry exists, but isn't set as the default boot"
-            echo "manager. The boot order is being adjusted to make BOOT the default boot"
-            echo "manager. If this is NOT what you want, you should use efibootmgr to"
-            echo "manually adjust your EFI's boot order."
-            "$Efibootmgr" -b "$ExistingEntryBootNum" -B &> /dev/null
-         else
-            KeepExistingEntry=1
-         fi
-      fi
-
-      if [[ "$KeepExistingEntry" == 0 ]] ; then
-         echo "Creating new NVRAM entry"
-         # If this is a Shim-based installation, then also create a direct
-         # entry to BOOT's own binary as a fallback. This is helpful in
-         # case of package scripts that tend to pass --shim even when the
-         # system is configured with custom SB variables, making use of Shim
-         # inappropriate.
-         if [[ $Boot == *"shim"* ]]; then
-             if [[ "$KeepName" == 1 ]] ; then
-                 RealBootBinary="$TargetDir/boot_$Platform.efi"
-             else
-                 RealBootBinary="$TargetDir/grub$Platform.efi"
-             fi
-             "$Efibootmgr" -c -l "$RealBootBinary" -L "BOOT Boot Manager (direct)" \
-                           -d "$InstallDisk" -p "$PartNum" &> /dev/null
-         fi
-         if [[ "$KeepName" == 0 ]] ; then
-             "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" \
-                           -p "$PartNum" &> /dev/null
-         else
-             "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" \
-                           -p "$PartNum" -u "$TargetShim $TargetX64" &> /dev/null
-         fi
-      else
-         echo "Keeping existing NVRAM entry"
-      fi
-      if [[ $? != 0 ]] ; then
-         EfibootmgrProblems=1
+      current_order="$("$efibootmgr_bin" | sed -n 's/^BootOrder:[[:space:]]*//p' | head -n1)"
+      if [[ ! "$current_order" =~ ^[[:xdigit:]]{4}(,[[:xdigit:]]{4})*$ ]]; then
+         echo "Cannot parse BootOrder; NVRAM unchanged." >&2
          Problems=1
+         return 1
       fi
-
-   else # efibootmgr not found
-      EfibootmgrProblems=1
-      Problems=1
-   fi
-
-   if [[ $EfibootmgrProblems ]] ; then
-      echo
-      echo "ALERT: There were problems running the efibootmgr program! You may need to"
-      echo "rename the $Boot binary to the default name (EFI/BOOT/bootx64.efi"
-      echo "on x86-64 systems, EFI/BOOT/bootia32.efi on x86 systems, or"
-      echo "EFI/BOOT/bootaa64.efi on ARM64 systems) to have it run!"
-      echo
+      next_order="$existing_num"
+      IFS=',' read -r -a all_entries <<< "$current_order"
+      for token in "${all_entries[@]}"; do
+         [[ "${token,,}" == "${existing_num,,}" ]] || next_order="$next_order,$token"
+      done
+      if [[ "${current_order,,}" != "${next_order,,}" ]]; then
+         if ! "$efibootmgr_bin" -o "$next_order"; then
+            echo "Could not prioritise existing BOOT entry; entry preserved." >&2
+            Problems=1
+            return 1
+         fi
+      fi
+      echo "Existing BOOT firmware entry preserved and prioritised."
    else
-      echo "BOOT is set as the default boot manager."
+      if ! "$efibootmgr_bin" -c -d "$install_disk" -p "$part_num" \
+             -l "$entry_filename" -L "BOOT Boot Manager"; then
+         echo "Could not create BOOT entry; existing NVRAM entries untouched." >&2
+         Problems=1
+         return 1
+      fi
+      echo "New BOOT firmware entry registered."
+   fi
+   current_order="$("$efibootmgr_bin" | sed -n 's/^BootOrder:[[:space:]]*//p' | head -n1)"
+   if [[ -z "$current_order" ]]; then
+      echo "Unable to verify firmware BootOrder." >&2
+      Problems=1
+      return 1
    fi
 } # AddBootEntry()
-
-# Create a minimal/sample boot_linux.conf file in /boot.
-GenerateBootLinuxConf() {
-   if [[ -f "$RLConfFile" ]] ; then
-      echo "Existing $RLConfFile found; not overwriting."
-   else
-      echo "Creating $RLConfFile; edit it to adjust kernel options."
-      RootFS=$(df "$RootDir" | grep dev | cut -f 1 -d " ")
-      StartOfDevName=$(echo "$RootFS" | cut -b 1-7)
-      if [[ "$StartOfDevName" == "/dev/sd" || "$StartOfDevName" == "/dev/hd" || "$StartOfDevName" == "/dev/vd" ]] ; then
-         # Identify root filesystem by UUID rather than by device node, if possible
-         Uuid=$(blkid -o export -s UUID "$RootFS" 2> /dev/null | grep UUID=)
-         if [[ -n $Uuid ]] ; then
-            RootFS="$Uuid"
-         fi
-      fi
-      if [[ $RootDir == "/" ]] ; then
-         local FirstCmdlineOption
-         FirstCmdlineOption=$(cut -d ' ' -f 1 < /proc/cmdline)
-         if [[ "$FirstCmdlineOption" =~ (vmlinuz|bzImage|kernel) ]] ; then
-            DefaultOptions=$(cut -d ' ' -f 2- < /proc/cmdline | sed 's/\S*initrd=\S*//g' | sed 's/ *$//' | sed 's/^ *//')
-         else
-            DefaultOptions=$(sed 's/\S*initrd=\S*//g' < /proc/cmdline | sed 's/ *$//' | sed 's/^ *//')
-         fi
-      else
-         if [[ -f "$RootDir/etc/default/grub" ]] ; then
-            # We want the default options used by the distribution, stored here....
-            source "$RootDir/etc/default/grub"
-            echo "Setting default boot options based on $RootDir/etc/default/grub"
-         fi
-         DefaultOptions="ro root=$RootFS $GRUB_CMDLINE_LINUX $GRUB_CMDLINE_LINUX_DEFAULT"
-      fi
-      echo "\"Boot with standard options\"  \"$DefaultOptions\"" > "$RLConfFile"
-      echo "\"Boot to single-user mode\"    \"$DefaultOptions single\"" >> "$RLConfFile"
-      echo "\"Boot with minimal options\"   \"ro root=$RootFS\"" >> "$RLConfFile"
-   fi
-}
 
 # Install a Secure Boot key as a MOK
 InstallSBKey() {
@@ -1497,7 +1359,6 @@ InstallOnLinux() {
    CopyBootFiles
    if [[ "$TargetDir" != "/EFI/BOOT" && "$TargetDir" != "/EFI/Microsoft/Boot" ]] ; then
       AddBootEntry
-      GenerateBootLinuxConf
    fi
    # Note that InstallSBKey may require the user to enter a password, so
    # it must NOT be called if --yes is passed to the script, since that
