@@ -168,7 +168,8 @@ GetParams() {
               ;;
          --keepname) KeepName=1
               ;;
-         --drivers | --alldrivers) InstallDrivers="all"
+         --drivers | --alldrivers) echo "BOOT only accepts filesystem modules through Common V2; legacy EFI driver installation is prohibited." >&2
+              exit 2
               ;;
          --nodrivers) InstallDrivers="none"
               ;;
@@ -206,17 +207,6 @@ GetParams() {
    if [[ "$KeepName" == 1 && "$ExplicitDefault" == 1 ]] ; then
       echo "The --keepname option is incompatible with --usedefault! Aborting!"
       exit 1
-   fi
-   if [[ "$InstallDrivers" == "all" && "$TargetDir" != "/EFI/BOOT" ]] ; then
-      echo "The --alldrivers option is meant for creating USB flash drives with (near-)"
-      echo "universal boot support. Using it on a hard disk partition runs the risk of"
-      echo "creating serious problems, up to and including rendering your computer"
-      echo -n "unbootable. Are you SURE you want to proceed (Y/N)? "
-      ReadYesNo
-      if [[ "$YesNo" != "Y" && "$YesNo" != "y" ]] ; then
-         echo "Aborting installation!"
-         exit 0
-      fi
    fi
    if [[ "$EncryptKeys" == 1 && "$LocalKeys" == 0 ]] ; then
       echo "The --encryptkeys option requires the use of --localkeys! Aborting!"
@@ -468,79 +458,6 @@ DetermineTargetDir() {
    fi
 } # DetermineTargetDir()
 
-# Determine (or guess) the filesystem used on the Linux /boot filesystem.
-# Store the result in the BootFS global variable.
-SetBootFS() {
-   BootFS=""
-   case "$OSTYPE" in
-      linux*)
-           if command -v blkid &>/dev/null; then
-              BootPart=$(df "$RootDir"/boot | grep dev | cut -f 1 -d " ")
-              BootFS=$(blkid -o export "$BootPart" 2> /dev/null | grep TYPE= | cut -f 2 -d =)
-              # The above line fails in Ubuntu 22.04, but is OK in 20.10 and 22.10;
-              # the "-o export" option seems to have temporarily disappeared. In case
-              # it fails, try another approach (which I think uses newer grep features,
-              # so don't rely 100% on it, either; but at least it works in Ubuntu
-              # 22.04)....
-              if [[ -z "$BootFS" ]] ; then
-                 BootFS=$(blkid "$BootPart" 2> /dev/null | grep -Po 'TYPE=\"\K[^\"]*')
-              fi
-           fi
-           ;;
-      darwin*)
-           # 0FC63DAF-8483-4772-8E79-3D69D8477DE4 = Linux filesystem
-           # BC13C2FF-59E6-4262-A352-B275FD6F7172 = Freedesktop $boot partition
-           # 933AC7E1-2EB4-4F13-B844-0E14E2AEF915 = Freedesktop Linux /home
-           # E6D6D379-F507-44C2-A23C-238F2A3DF928 = Linux LVM
-           # A19D880F-05FC-4D3B-A006-743F0F84911E = Linux RAID
-           # 0657FD6D-A4AB-43C4-84E5-0933C84B4F4F = Linux swap
-           Temp=$(diskutil list | grep -i '0FC63DAF-8483-4772-8E79-3D69D8477DE4\|BC13C2FF-59E6-4262-A352-B275FD6F7172\|933AC7E1-2EB4-4F13-B844-0E14E2AEF915\|E6D6D379-F507-44C2-A23C-238F2A3DF928\|A19D880F-05FC-4D3B-A006-743F0F84911E\|0657FD6D-A4AB-43C4-84E5-0933C84B4F4F\|Linux')
-           BootFS=""
-           if [[ -n $Temp ]] ; then
-              echo "Found suspected Linux partition(s); installing ext4fs driver."
-              BootFS="ext4"
-           fi
-           ;;
-   esac
-} # SetBootFS()
-
-# Copy drivers from $BootDir/drivers_$1 to $InstallDir/$TargetDir/drivers_$1,
-# honoring the $InstallDrivers condition. Must be passed a suitable
-# architecture code (ia32 or x64).
-CopyDrivers() {
-   if [[ $InstallDrivers == "all" ]] ; then
-      mkdir -p "$InstallDir/$TargetDir/drivers_$1"
-      cp "$ThisDir"/drivers_"$1"/*_"$1".efi "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
-      cp "$BootDir"/drivers_"$1"/*_"$1".efi "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
-   elif [[ "$InstallDrivers" == "boot" ]] ; then
-      SetBootFS
-      DriverType=""
-      case $BootFS in
-         ext2 | ext3) DriverType="ext2"
-              # Could use ext4, but that can create unwanted entries from symbolic
-              # links in / to /boot/vmlinuz if a separate /boot partition is used.
-              ;;
-         ext4) DriverType="ext4"
-              ;;
-         reiserfs) DriverType="reiserfs"
-              ;;
-         btrfs) DriverType="btrfs"
-              ;;
-         hfsplus) DriverType="hfs"
-              ;;
-         ntfs) DriverType="ntfs"
-              ;;
-         *) BootFS=""
-      esac
-      if [[ -n $BootFS ]] ; then
-         echo "Installing driver for $BootFS (${DriverType}_$1.efi)"
-         mkdir -p "$InstallDir/$TargetDir/drivers_$1"
-         cp "$ThisDir/drivers_$1/${DriverType}_$1.efi" "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
-         cp "$BootDir/drivers_$1/${DriverType}_$1.efi" "$InstallDir/$TargetDir/drivers_$1"/ 2> /dev/null
-      fi
-   fi
-} # CopyDrivers()
-
 # Hash an EFI executable using utilities available under Linux or macOS.
 BootFileHash() {
    if command -v sha256sum &> /dev/null ; then
@@ -565,7 +482,9 @@ GuardDefaultBootLocation() {
    local marker="$dir/.infiltrator-boot-loader.sha256"
    local expected actual
    if [[ -L "$InstallDir/EFI" || -L "$InstallDir/EFI/InfiltratorOS" ||
-         -L "$dir" || -L "$existing" || -L "$marker" ]] ; then
+         -L "$dir" || -L "$existing" || -L "$marker" ||
+         -L "$dir/icons" || -L "$dir/keys" ||
+         -L "$dir/boot.conf" || -L "$dir/boot.conf-sample" ]] ; then
       echo "Refusing EFI installation through a symbolic link." >&2
       return 1
    fi
@@ -585,10 +504,6 @@ GuardDefaultBootLocation() {
          echo "BOOT's target executable differs from its recorded checksum; refusing replacement." >&2
          return 1
       fi
-   elif [[ "$TargetDir" == "/EFI/BOOT" && -d "$dir" &&
-           -n "$(find "$dir" -mindepth 1 -print -quit)" ]] ; then
-      echo "The shared UEFI fallback directory is already in use; refusing replacement." >&2
-      return 1
    elif [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -d "$dir" &&
            -n "$(find "$dir" -mindepth 1 -maxdepth 1 ! -name drivers_x64 -print -quit)" ]] ; then
       echo "BOOT's dedicated directory contains unrecognised files; refusing replacement." >&2
@@ -597,130 +512,114 @@ GuardDefaultBootLocation() {
 }
 
 CopyBootFiles() {
-   GuardDefaultBootLocation || exit 1
-   mkdir -p "$InstallDir/$TargetDir"
-   if [[ "$TargetDir" == '/EFI/BOOT' ]] ; then
-      if ! cp "$BootDir/boot_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" 2> /dev/null ; then
-         echo "Note: IA32 (x86) binary not installed!"
-      fi
-      if ! cp "$BootDir/boot_x64.efi" "$InstallDir/$TargetDir/$TargetX64" 2> /dev/null ; then
-         Problems=1
-      fi
-      cp "$BootDir/boot_aa64.efi" "$InstallDir/$TargetDir/$TargetAARCH64" 2> /dev/null
-      if [[ $? != 0 && $Platform == "aa64" ]] ; then
-         Problems=1
-      fi
-      if [[ "$ShimSource" != "none" ]] ; then
-         TargetShim="bootx64.efi"
-         CopyShimFiles
-      fi
-      if [[ $InstallDrivers == "all" ]] ; then
-         cp -r "$BootDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
-         cp -r "$ThisDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
-      elif [[ $Upgrade == 1 || $InstallToEspOnMac == 1 ]] ; then
-         CopyDrivers "$Platform"
-      fi
-      Boot="boot$Platform.efi"
-      CopyKeys
-   elif [[ $Platform == 'x64' || $TargetDir == "/EFI/Microsoft/Boot" ]] ; then
-      if ! cp "$BootDir/boot_x64.efi" "$InstallDir/$TargetDir/$TargetX64" ; then
-         Problems=1
-      fi
-      CopyDrivers x64
-      Boot="$TargetX64"
-      CopyKeys
-      if [[ "$ShimSource" != "none" ]] ; then
-         if [[ "$TargetShim" == "default" ]] ; then
-            TargetShim=$(basename "$ShimSource")
-         fi
-         CopyShimFiles
-         Boot="$TargetShim"
-         if [[ $LocalKeys == 0 ]] ; then
-            echo "Storing copies of BOOT Secure Boot public keys in $EtcKeysDir"
-            mkdir -p "$EtcKeysDir"
-            cp "$ThisDir/keys/boot.cer" "$EtcKeysDir" 2> /dev/null
-            cp "$ThisDir/keys/boot.crt" "$EtcKeysDir" 2> /dev/null
-         fi
-      fi
-      if [[ "$TargetDir" == '/System/Library/CoreServices' ]] ; then
-         SetupMacHfs $TargetX64
-      fi
-   elif [[ $Platform == 'ia32' || $Platform == 'aa64' ]] ; then
-      if [[ $Platform == 'ia32' ]] ; then
-         if ! cp "$BootDir/boot_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" ; then
-            Problems=1
-         fi
-      else
-         if ! cp "$BootDir/boot_aa64.efi" "$InstallDir/$TargetDir/$TargetAARCH64" ; then
-            Problems=1
-         fi
-      fi
-      CopyDrivers $Platform
-      CopyTools $Platform
-      Boot="$TargetIA32"
-      if [[ "$Platform" == "aa64" ]] ; then Boot="$TargetAARCH64"; fi
-      if [[ "$TargetDir" == '/System/Library/CoreServices' ]] ; then
-         SetupMacHfs $TargetIA32
-      fi
-   else
-      echo "Unknown platform! Aborting!"
-      exit 1
-   fi
-   echo "Copied BOOT binary files"
-   echo ""
-   if [[ -d "$InstallDir/$TargetDir/icons" ]] ; then
-      rm -rf "$InstallDir/$TargetDir/icons-backup" &> /dev/null
-      mv -f "$InstallDir/$TargetDir/icons" "$InstallDir/$TargetDir/icons-backup"
-      echo "Notice: Backed up existing icons directory as icons-backup."
-   fi
-   if ! cp -r "$IconsDir" "$InstallDir/$TargetDir" ; then
+   local directory final staged hash marker new_marker rollback
+   GuardDefaultBootLocation || return 1
+   [[ "$Platform" == "x64" ]] || {
+      echo "This BOOT native installer currently supports x86-64 only." >&2
       Problems=1
+      return 1
+   }
+   [[ -s "$BootDir/boot_x64.efi" ]] || {
+      echo "No compiled x86-64 BOOT image to install." >&2
+      Problems=1
+      return 1
+   }
+   directory="$InstallDir/$TargetDir"
+   final="$directory/$TargetX64"
+   marker="$directory/.infiltrator-boot-loader.sha256"
+   rollback="$directory/.BOOTX64.EFI.rollback"
+   if [[ -e "$rollback" || -L "$rollback" ]]; then
+      echo "An incomplete BOOT installation has a recovery image. Refusing replacement." >&2
+      Problems=1
+      return 1
    fi
-   mkdir -p "$InstallDir/$TargetDir/keys"
-   cp -rf "$ThisDir"/keys/*.[cd]er "$InstallDir/$TargetDir/keys/" 2> /dev/null
-   cp -rf "$EtcKeysDir"/*.[cd]er "$InstallDir/$TargetDir/keys/" 2> /dev/null
-   if [[ -f "$InstallDir/$TargetDir/boot.conf" ]] ; then
-      echo "Existing boot.conf file found; copying sample file as boot.conf-sample"
-      echo "to avoid overwriting your customizations."
-      echo ""
-      if ! cp -f "$ConfFile" "$InstallDir/$TargetDir" ; then
+   mkdir -p -- "$directory/icons" "$directory/keys" || { Problems=1; return 1; }
+   if ! cp -r "$IconsDir/." "$directory/icons/"; then
+      Problems=1
+      return 1
+   fi
+   # The existing configuration belongs to the user and is never replaced.
+   if [[ -f "$directory/boot.conf" ]]; then
+      if ! cp -f "$ConfFile" "$directory/boot.conf-sample"; then
          Problems=1
+         return 1
+      fi
+   elif ! cp -f "$ConfFile" "$directory/boot.conf"; then
+      Problems=1
+      return 1
+   fi
+   for certificate in "$ThisDir"/keys/*.cer "$ThisDir"/keys/*.crt; do
+      if [[ -f "$certificate" ]]; then
+         cp -f "$certificate" "$directory/keys/" || { Problems=1; return 1; }
+      fi
+   done
+   CopyKeys || { Problems=1; return 1; }
+   staged="$(mktemp "$directory/.BOOTX64.EFI.stage.XXXXXXXX")" || { Problems=1; return 1; }
+   if ! cp -f "$BootDir/boot_x64.efi" "$staged"; then
+      rm -f -- "$staged"
+      Problems=1
+      return 1
+   fi
+   hash="$(BootFileHash "$staged")" || { rm -f -- "$staged"; Problems=1; return 1; }
+   if [[ ! "$hash" =~ ^[a-f0-9]{64}$ ]]; then
+      rm -f -- "$staged"
+      Problems=1
+      return 1
+   fi
+   BootHadPrevious=0
+   if [[ -e "$final" ]]; then
+      if ! cp -p -- "$final" "$rollback"; then
+         rm -f -- "$staged"
+         Problems=1
+         return 1
+      fi
+      BootHadPrevious=1
+   fi
+   if ! mv -f -- "$staged" "$final"; then
+      rm -f -- "$staged"
+      [[ "$BootHadPrevious" == 1 ]] && mv -f -- "$rollback" "$final"
+      Problems=1
+      return 1
+   fi
+   new_marker="$(mktemp "$directory/.infiltrator-boot-loader.sha256.XXXXXXXX")" || {
+      Problems=1
+      RollbackBootFiles
+      return 1
+   }
+   if ! printf '%s\n' "$hash" > "$new_marker" ||
+      ! mv -f -- "$new_marker" "$marker"; then
+      rm -f -- "$new_marker"
+      Problems=1
+      RollbackBootFiles
+      return 1
+   fi
+   Boot="$TargetX64"
+   BootInstalledDir="$directory"
+   echo "Staged verified BOOT image at $final; firmware registration pending."
+   return 0
+} # CopyBootFiles()
+
+RollbackBootFiles() {
+   local directory="${BootInstalledDir:-$InstallDir/$TargetDir}"
+   local target="$directory/$TargetX64"
+   local marker="$directory/.infiltrator-boot-loader.sha256"
+   local rollback="$directory/.BOOTX64.EFI.rollback"
+   if [[ "${BootHadPrevious:-0}" == 1 && -s "$rollback" ]]; then
+      if mv -f -- "$rollback" "$target"; then
+         BootFileHash "$target" > "$marker" || return 1
+      else
+         echo "Could not restore previous BOOT executable; recovery file retained." >&2
+         return 1
       fi
    else
-      echo "Copying sample configuration file as boot.conf; edit this file to configure"
-      echo "BOOT."
-      echo ""
-      if ! cp -f "$ConfFile" "$InstallDir/$TargetDir/boot.conf" ; then
-         Problems=1
-      fi
+      rm -f -- "$target" "$marker"
    fi
-   # If installing to the fallback/EFI default filename, make a duplicate copy
-   # of boot.conf and edit the main copy to include the "install" and "bootorder"
-   # options, so that the system can be used to install BOOT if it's on a USB
-   # flash drive or CD-R....
-   if [[ "$TargetDir" == '/EFI/BOOT' ]] ; then
-      cp -f "$ConfFile" "$InstallDir/$TargetDir/boot.conf-sample"
-      sed -i 's/#showtools shell/showtools install, shell/g' "$InstallDir/$TargetDir/boot.conf"
-   fi
-   if [[ ( "$TargetDir" == "/EFI/InfiltratorOS/BOOT" || "$TargetDir" == "/EFI/BOOT" ) && -z "${Problems:-}" ]] ; then
-      # Record the exact executable produced by this installation. Future
-      # upgrades must match it before replacing the loader.
-      local verified marker temporary
-      verified=$(BootFileHash "$InstallDir/$TargetDir/$TargetX64") || exit 1
-      marker="$InstallDir/$TargetDir/.infiltrator-boot-loader.sha256"
-      temporary=$(mktemp "$marker.XXXXXXXX") || exit 1
-      if ! printf '%s\n' "$verified" > "$temporary" ||
-         ! mv -f -- "$temporary" "$marker" ; then
-         rm -f -- "$temporary"
-         echo "Unable to record EFI loader ownership." >&2
-         exit 1
-      fi
-   fi
-   if [[ $DeleteBootDir == 1 ]] ; then
-      echo "Deleting the temporary directory $BootDir"
-      rm -r "$BootDir"
-   fi
-} # CopyBootFiles()
+   echo "BOOT firmware registration failed; the previous executable was restored."
+}
+FinalizeBootFiles() {
+   local directory="${BootInstalledDir:-$InstallDir/$TargetDir}"
+   rm -f -- "$directory/.BOOTX64.EFI.rollback"
+}
 
 # Mount the partition the user specified with the --usedefault or --ownhfs option
 MountDefaultTarget() {
@@ -1356,10 +1255,18 @@ InstallOnLinux() {
    fi
 
    CheckSecureBoot
-   CopyBootFiles
-   if [[ "$TargetDir" != "/EFI/BOOT" && "$TargetDir" != "/EFI/Microsoft/Boot" ]] ; then
-      AddBootEntry
+   if ! CopyBootFiles; then
+      Problems=1
+      return 1
    fi
+   if ! AddBootEntry; then
+      Problems=1
+   fi
+   if [[ -n "${Problems:-}" ]]; then
+      RollbackBootFiles || true
+      return 1
+   fi
+   FinalizeBootFiles
    # Note that InstallSBKey may require the user to enter a password, so
    # it must NOT be called if --yes is passed to the script, since that
    # parameter is intended to eliminate user interaction. The user will
