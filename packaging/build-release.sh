@@ -41,7 +41,7 @@ for document in README.txt BUILDING.txt; do
         install -m 0644 "$document" "$root/docs/$document"
     fi
 done
-for script in boot-install boot-mkdefault boot-sb-healthcheck mountesp mvboot mkrlconf; do
+for script in boot-install boot-sb-healthcheck mountesp mkrlconf; do
     if [[ -f "$script" ]]; then install -m 0755 "$script" "$root/$script"; fi
 done
 cat > "$root/PREVIEW-NOTICE.txt" <<'NOTICE'

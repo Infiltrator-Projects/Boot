@@ -204,9 +204,8 @@ clean:
 	make -C $(FS_DIR) clean
 	make -C $(GPTSYNC_DIR) clean
 	rm -f include/*~
-	rm -rf $(EDK2BASE)/Build/Boot
+	# Never remove anything outside the BOOT checkout during clean.
 	rm -rf drivers_$(FILENAME_CODE)/*
-	[ ! -L $(EDK2BASE)/BootPkg ] || rm -v $(EDK2BASE)/BootPkg
 
 # NOTE TO DISTRIBUTION MAINTAINERS:
 # The "install" target installs the program directly to the ESP

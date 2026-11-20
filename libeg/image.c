@@ -90,6 +90,11 @@ EG_IMAGE * egCreateImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha)
 {
     EG_IMAGE        *NewImage;
 
+    /* Reject zero and product-overflow dimensions before pixel allocation. */
+    if (Width == 0 || Height == 0 ||
+        Width > ((UINTN)~(UINTN)0) / sizeof(EG_PIXEL) / Height)
+        return NULL;
+
     NewImage = (EG_IMAGE *) AllocatePool(sizeof(EG_IMAGE));
     if (NewImage == NULL)
         return NULL;

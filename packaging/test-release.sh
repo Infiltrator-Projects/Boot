@@ -21,6 +21,9 @@ trap 'rm -rf -- "$work"' EXIT
 dpkg-deb --contents "$deb" > "$work/package-files.txt"
 grep -Fq 'usr/share/infiltrator-boot/boot/boot_x64.efi' "$work/package-files.txt"
 grep -Fq 'usr/share/infiltrator-boot/docs/COPYING.txt' "$work/package-files.txt"
+if grep -Eq 'usr/share/infiltrator-boot/(mvboot|boot-mkdefault)( |$)' "$work/package-files.txt"; then
+    echo "Obsolete or Python-dependent helper was included" >&2; exit 1
+fi
 if grep -Eq 'usr/share/infiltrator-boot/docs/(LICENSE|CREDITS|NEWS)\.txt' "$work/package-files.txt"; then
     echo "Obsolete upstream text file was included in the BOOT package" >&2
     exit 1
