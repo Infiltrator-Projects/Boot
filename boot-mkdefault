@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Set rEFInd as the default boot loader, using Linux's efibootmgr tool.
+Set BOOT as the default boot loader, using Linux's efibootmgr tool.
 
 Copyright (c) 2016 Roderick W. Smith
 
@@ -69,10 +69,10 @@ def discover_data():
 
 
 def add_unordered_entry(boot_entries, boot_order, label):
-    """Find a rEFInd boot_entry and add it to the boot_order list.
+    """Find a BOOT boot_entry and add it to the boot_order list.
 
-    Run if the boot_order list includes no rEFInd entry, in the
-    hopes of finding an existing rEFInd boot_entry that can be
+    Run if the boot_order list includes no BOOT entry, in the
+    hopes of finding an existing BOOT boot_entry that can be
     used.
     :param boot_entries:
         Dictionary of boot entries, with string (hex-encoded number) as
@@ -80,7 +80,7 @@ def add_unordered_entry(boot_entries, boot_order, label):
     :param boot_order:
         List of boot numbers as strings, in boot order
     :param label:
-        String used to identify rEFInd entry in efibootmgr output
+        String used to identify BOOT entry in efibootmgr output
     :returns:
         True if an entry was added, False otherwise
     """
@@ -93,8 +93,8 @@ def add_unordered_entry(boot_entries, boot_order, label):
     return added
 
 
-def set_refind_first(boot_entries, boot_order, label):
-    """Adjust boot_order so that rEFInd is first.
+def set_boot_first(boot_entries, boot_order, label):
+    """Adjust boot_order so that BOOT is first.
 
     :param boot_entries:
         Dictionary of boot entries, with string (hex-encoded number) as
@@ -102,21 +102,21 @@ def set_refind_first(boot_entries, boot_order, label):
     :param boot_order:
         List of boot numbers as strings, in boot order
     :param label:
-        String used to identify rEFInd entry in efibootmgr output
+        String used to identify BOOT entry in efibootmgr output
     :returns:
         * -1 if order already OK
         * 0 if order adjusted
         * 3 if label was not found in available entries
     """
-    first_refind_number = i = -1
+    first_boot_number = i = -1
     retval = 0
-    found_first_refind = ""
+    found_first_boot = ""
     show_multiple_warning = True
     for entry in boot_order:
         i += 1
         try:
             if label.lower() in boot_entries[entry].lower():
-                if found_first_refind:
+                if found_first_boot:
                     if show_multiple_warning:
                         print("Found multiple {} entries! The earliest in the "
                               "boot order will be made".format(label))
@@ -125,23 +125,23 @@ def set_refind_first(boot_entries, boot_order, label):
                         print("efibootmgr is advisable!\n")
                         show_multiple_warning = False
                 else:
-                    found_first_refind = entry
-                    first_refind_number = i
+                    found_first_boot = entry
+                    first_boot_number = i
         except KeyError:
             print("Warning: BootOrder value {} is invalid!".format(entry))
             boot_order.remove(entry)
-    if first_refind_number == -1:
+    if first_boot_number == -1:
         if not add_unordered_entry(boot_entries, boot_order, label):
             print("{} was not found in the boot options list!".format(label))
             print("You should create a {} entry with efibootmgr or by re-installing".format(label))
-            print("(with refind-install, for example)")
+            print("(with boot-install, for example)")
             retval = 3
-    elif first_refind_number == 0:
+    elif first_boot_number == 0:
         print("{} is already the first entry".format(label))
         retval = -1
-    elif first_refind_number > 0:
-        del boot_order[first_refind_number]
-        boot_order.insert(0, found_first_refind)
+    elif first_boot_number > 0:
+        del boot_order[first_boot_number]
+        boot_order.insert(0, found_first_boot)
 
         print("{} is not the first boot entry; adjusting....".format(label))
     return retval
@@ -168,12 +168,12 @@ def save_changes(boot_order):
 
 
 def main():
-    """Set rEFInd as the default boot option."""
-    description = "Sets rEFInd as the default EFI boot option"
+    """Set BOOT as the default boot option."""
+    description = "Sets BOOT as the default EFI boot option"
     parser = ArgumentParser(description=description)
     parser.add_argument("-L", "--label",
-                        default="rEFInd",
-                        help=("The label used to identify rEFInd (default=rEFInd)"))
+                        default="BOOT",
+                        help=("The label used to identify BOOT (default=BOOT)"))
     args = parser.parse_args()
 
     if sys.platform != "linux":
@@ -195,7 +195,7 @@ def main():
         print("The EFI BootOrder variable is not available. This may indicate a firmware")
         print("problem.")
     if (retval == 0):
-        changed = set_refind_first(boot_entries, boot_order, args.label)
+        changed = set_boot_first(boot_entries, boot_order, args.label)
         if (changed == 0):
             retval = save_changes(boot_order)
         else:
