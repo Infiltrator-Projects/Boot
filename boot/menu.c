@@ -107,7 +107,7 @@ BOOLEAN PointerEnabled = FALSE;
 BOOLEAN PointerActive = FALSE;
 BOOLEAN DrawSelection = TRUE;
 
-extern EFI_GUID         RefindGuid;
+extern EFI_GUID         BootGuid;
 extern REFIT_MENU_ENTRY MenuEntryReturn;
 static REFIT_MENU_ENTRY MenuEntryYes = { L"Yes", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryNo = { L"No", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
@@ -1517,7 +1517,7 @@ static VOID SaveHiddenList(IN CHAR16 *HiddenList, IN CHAR16 *VarName) {
     UINTN i;
 
     i = HiddenList ? StrLen(HiddenList) : 0;
-    Status = EfivarSetRaw(&RefindGuid, VarName, (CHAR8 *) HiddenList, i * 2 + 2 * (i > 0), TRUE);
+    Status = EfivarSetRaw(&BootGuid, VarName, (CHAR8 *) HiddenList, i * 2 + 2 * (i > 0), TRUE);
     CheckError(Status, L"in SaveHiddenList()");
 } // VOID SaveHiddenList()
 
@@ -1599,7 +1599,7 @@ CHAR16* ReadHiddenTags(CHAR16 *VarName) {
     UINTN       Size;
     EFI_STATUS  Status;
 
-    Status = EfivarGetRaw(&RefindGuid, VarName, &Buffer, &Size);
+    Status = EfivarGetRaw(&BootGuid, VarName, &Buffer, &Size);
     if ((Status != EFI_SUCCESS) && (Status != EFI_NOT_FOUND))
         CheckError(Status, L"in ReadHiddenTags()");
     if ((Status == EFI_SUCCESS) && (Size == 0)) {
@@ -1617,7 +1617,7 @@ static VOID AddToHiddenTags(CHAR16 *VarName, CHAR16 *Pathname) {
     if (Pathname && (StrLen(Pathname) > 0)) {
         HiddenTags = ReadHiddenTags(VarName);
         MergeStrings(&HiddenTags, Pathname, L',');
-        Status = EfivarSetRaw(&RefindGuid, VarName, (CHAR8 *) HiddenTags, StrLen(HiddenTags) * 2 + 2, TRUE);
+        Status = EfivarSetRaw(&BootGuid, VarName, (CHAR8 *) HiddenTags, StrLen(HiddenTags) * 2 + 2, TRUE);
         CheckError(Status, L"in AddToHiddenTags()");
         MyFreePool(HiddenTags);
     } // if
@@ -1747,7 +1747,7 @@ static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
                 RescanAll(FALSE, FALSE);
             } else {
                 DisplaySimpleMessage(L"Cannot Hide Entry for Manual Boot Stanza",
-                                     L"You must edit refind.conf to remove this entry.");
+                                     L"You must edit boot.conf to remove this entry.");
             }
             break;
         case TAG_LEGACY:
@@ -1770,7 +1770,7 @@ static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
         case TAG_INSTALL:
         case TAG_HIDDEN:
             DisplaySimpleMessage(L"Unable to Comply",
-                                 L"To hide an internal tool, edit the 'showtools' line in refind.conf");
+                                 L"To hide an internal tool, edit the 'showtools' line in boot.conf");
             break;
         case TAG_TOOL:
             HideItemMenu.Title = L"Hide Tool Tag";
