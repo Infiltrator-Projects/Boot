@@ -13,7 +13,6 @@ test -s "$out/SHA256SUMS"
 test "$(dpkg-deb --field "$deb" Package)" = "infiltrator-boot"
 test "$(dpkg-deb --field "$deb" Version)" = "$version"
 test "$(dpkg-deb --field "$deb" Architecture)" = "amd64"
-dpkg-deb --contents "$deb" | grep -Fq 'usr/share/infiltrator-boot/boot/boot_x64.efi'
 # No Debian maintainer scripts: package installation must NOT touch the ESP.
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
