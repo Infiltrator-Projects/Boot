@@ -15,7 +15,7 @@
    version="1.1"
    inkscape:version="0.48.4 r9939"
    sodipodi:docname="tool_fwupdate-white-02.png"
-   inkscape:export-filename="/home/rodsmith/programming/refind/drawing.png"
+   inkscape:export-filename="/home/rodsmith/programming/boot/drawing.png"
    inkscape:export-xdpi="75.789474"
    inkscape:export-ydpi="75.789474">
   <defs
@@ -93,7 +93,7 @@
        style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;filter:url(#filter3146)"
        d="m 63.242387,975.31928 -7.873362,-13.63705 -7.87336,-13.63706 15.746722,-10e-6 15.74672,0 -7.87336,13.63707 z m -8.965104,-43.43653 17.930208,0 0,25.50635 -17.930208,0 z m -12.586878,101.84685 0,10.649 -1.180401,0 0,-10.649 z m 22.292381,-0.2314 0,10.6488 -1.180402,0 0,-10.6488 z m 22.798968,0.6945 0,10.6489 -1.180401,0 0,-10.6489 z m -22.798968,-54.40199 0,10.6489 -1.180402,0 0,-10.6489 z m -22.292381,0.23147 0,10.6489 -1.180401,0 0,-10.6489 z m 45.091356,0.23151 0,10.64891 -1.180402,0 0,-10.64891 z m 23.253909,20.25611 10.8597,0 0,1.1575 -10.8597,0 z m 0,20.1403 10.8597,0 0,1.1575 -10.8597,0 z m -102.9310369,-20.3719 10.8596969,0 0,1.1575 -10.8596969,0 z m -7e-7,20.4876 10.8596966,0 0,1.1575 -10.8596966,0 z m 15.7527096,-28.93722 81.070488,0 c 2.58948,0 4.67415,2.0442 4.67415,4.58342 l 0,32.0401 c 0,2.5392 -2.08467,4.5834 -4.67415,4.5834 l -81.070488,0 c -2.589481,0 -4.674153,-2.0442 -4.674153,-4.5834 l 0,-32.0401 c 0,-2.53922 2.084672,-4.58342 4.674153,-4.58342 z"
        inkscape:connector-curvature="0"
-       inkscape:export-filename="/home/rodsmith/programming/refind/current/themes/snowy/snowy/tool_fwupdate.png"
+       inkscape:export-filename="/home/rodsmith/programming/boot/current/themes/snowy/snowy/tool_fwupdate.png"
        inkscape:export-xdpi="75.789474"
        inkscape:export-ydpi="75.789474" />
   </g>
