@@ -56,9 +56,9 @@
  */
 
 #include "libegint.h"
-#include "../refind/screen.h"
-#include "../refind/lib.h"
-#include "../refind/mystrings.h"
+#include "../boot/screen.h"
+#include "../boot/lib.h"
+#include "../boot/mystrings.h"
 #include "../include/refit_call_wrapper.h"
 #include "libeg.h"
 #include "log.h"
