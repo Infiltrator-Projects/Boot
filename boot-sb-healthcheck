@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Script to check status of Secure Boot components and help keep them
-# up-to-date for a rEFInd installation
+# up-to-date for a BOOT installation
 #
 # This program is copyright (c) 2023 by Roderick W. Smith
 #
@@ -19,11 +19,11 @@ FOUND_EXPIRED_KEY="0"
 FOUND_SHORT_KEY="0"
 REBOOT_AFTER="0"
 
-ETC_KEYS_DIR="/etc/refind.d/keys"
-LOCAL_KEYS_BASE="refind_local"
-REFIND_PRIVATE_KEY="$ETC_KEYS_DIR/$LOCAL_KEYS_BASE.key"
-REFIND_CERT_KEY="$ETC_KEYS_DIR/$LOCAL_KEYS_BASE.crt"
-REFIND_DER_KEY="$ETC_KEYS_DIR/$LOCAL_KEYS_BASE.cer"
+ETC_KEYS_DIR="/etc/boot.d/keys"
+LOCAL_KEYS_BASE="boot_local"
+BOOT_PRIVATE_KEY="$ETC_KEYS_DIR/$LOCAL_KEYS_BASE.key"
+BOOT_CERT_KEY="$ETC_KEYS_DIR/$LOCAL_KEYS_BASE.crt"
+BOOT_DER_KEY="$ETC_KEYS_DIR/$LOCAL_KEYS_BASE.cer"
 
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
@@ -119,12 +119,12 @@ ParseBootLine() {
         echo "Terminating!"
         exit 1
     fi
-    if [[ ! $(echo "$1" | grep -i refind) ]] ; then
+    if [[ ! $(echo "$1" | grep -i boot) ]] ; then
         echo "The computer has booted from $BL_FULLNAME, and the current boot"
-        echo "description includes no mention of rEFInd. This script operates on rEFInd,"
-        echo "and it must be run from a rEFInd-mediated boot. If the computer did boot"
-        echo "through rEFInd, but the boot description simply doesn't mention this, then"
-        echo "this is fine; but if the computer did NOT boot through rEFInd, then you should"
+        echo "description includes no mention of BOOT. This script operates on BOOT,"
+        echo "and it must be run from a BOOT-mediated boot. If the computer did boot"
+        echo "through BOOT, but the boot description simply doesn't mention this, then"
+        echo "this is fine; but if the computer did NOT boot through BOOT, then you should"
         echo "terminate now to avoid damaging your installation."
         echo
         GetYN "Do you want to continue" "N"
@@ -271,12 +271,12 @@ CheckForShimUpdates() {
     fi
 } # CheckForShimUpdates()
 
-ReplaceLocalRefindKey() {
+ReplaceLocalBootKey() {
     mkdir -p "$ETC_KEYS_DIR/backup"
     chmod 0700 "$ETC_KEYS_DIR/backup"
-    mv -f "$REFIND_PRIVATE_KEY" "$ETC_KEYS_DIR/backup/" 2> /dev/null
-    mv -f "$REFIND_CERT_KEY" "$ETC_KEYS_DIR/backup/" 2> /dev/null
-    mv -f "$REFIND_DER_KEY" "$ETC_KEYS_DIR/backup/" 2> /dev/null
+    mv -f "$BOOT_PRIVATE_KEY" "$ETC_KEYS_DIR/backup/" 2> /dev/null
+    mv -f "$BOOT_CERT_KEY" "$ETC_KEYS_DIR/backup/" 2> /dev/null
+    mv -f "$BOOT_DER_KEY" "$ETC_KEYS_DIR/backup/" 2> /dev/null
 
     GetYN "Do you want to encrypt your new keys" "N"
     if [[ "$YN" == "Y" ]] ; then
@@ -292,10 +292,10 @@ ReplaceLocalRefindKey() {
     else
         KeyEncryptionArgument="-nodes"
     fi
-    "$OpenSsl" req -new -x509 -newkey rsa:2048 -keyout "$REFIND_PRIVATE_KEY" -out "$REFIND_CERT_KEY" \
-                    $KeyEncryptionArgument -days 3650 -subj "/CN=Locally-generated rEFInd key/"
-    "$OpenSsl" x509 -in "$REFIND_CERT_KEY" -out "$REFIND_DER_KEY" -outform DER
-    chmod 0600 "$REFIND_PRIVATE_KEY"
+    "$OpenSsl" req -new -x509 -newkey rsa:2048 -keyout "$BOOT_PRIVATE_KEY" -out "$BOOT_CERT_KEY" \
+                    $KeyEncryptionArgument -days 3650 -subj "/CN=Locally-generated BOOT key/"
+    "$OpenSsl" x509 -in "$BOOT_CERT_KEY" -out "$BOOT_DER_KEY" -outform DER
+    chmod 0600 "$BOOT_PRIVATE_KEY"
     echo
     echo "Once the new key is used to sign an EFI binary, the key must be available to"
     echo "the EFI to authenticate the newly-signed binaries."
@@ -303,7 +303,7 @@ ReplaceLocalRefindKey() {
     if [[ "$SHIM_STATE" == "SHIM" ]] ; then
         GetYN "Do you want to enroll the new key in your firmware as a MOK" "Y"
         if [[ "$YN" == "Y" ]] ; then
-            "$MokUtil" --import "$REFIND_DER_KEY"
+            "$MokUtil" --import "$BOOT_DER_KEY"
             REBOOT_AFTER="1"
             echo "You must reboot after running this program to finish enrolling the MOK."
             echo "Remember the password you just entered and opt to enroll the MOK in the"
@@ -314,7 +314,7 @@ ReplaceLocalRefindKey() {
         echo "This program does not support enrolling the key in a Secure Boot db store."
         echo "You may be able to do this manually from Linux with a command like this:"
         echo
-        echo "# efi-updatevar -a -c $REFIND_DER_KEY -k KEK.key db"
+        echo "# efi-updatevar -a -c $BOOT_DER_KEY -k KEK.key db"
         echo
         echo "You will need access to your platform's KEK.key file to do this; see"
         echo "https://www.rodsbooks.com/efi-bootloaders/controlling-sb.html for details."
@@ -322,13 +322,13 @@ ReplaceLocalRefindKey() {
         echo "firmware setup utility."
     fi
     mkdir -p "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/backup
-    mv "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/refind_local* "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/backup/ 2> /dev/null
+    mv "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/boot_local* "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/backup/ 2> /dev/null
     cp -a "$ETC_KEYS_DIR/$LOCAL_KEYS_BASE"* "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/
-} # ReplaceLocalRefindKey()
+} # ReplaceLocalBootKey()
 
-# Display the local rEFInd key's expiration date and time and offer to replace it.
+# Display the local BOOT key's expiration date and time and offer to replace it.
 # Also sets the global CURRENT_DATE and CURRENT_SECONDS variables.
-CheckRefindLocalKeyExpiration() {
+CheckBootLocalKeyExpiration() {
     local FullExpirationDate
     local ExpirationYear
     local ExpirationMonth
@@ -336,14 +336,14 @@ CheckRefindLocalKeyExpiration() {
     local ExpirationDate
 
     echo "*************************************************"
-    echo "* Checking the local rEFInd keys' expiration date"
+    echo "* Checking the local BOOT keys' expiration date"
     echo "*************************************************"
     echo
 
     CURRENT_DATE=$(date +%Y-%m-%d)
     CURRENT_SECONDS=$(date +%s)
-    if [[ -e "$REFIND_DER_KEY" ]] ; then
-        FullExpirationDate=$("$OpenSsl" x509 -enddate -noout -in "$REFIND_DER_KEY" | tr -s " " | cut -d "=" -f 2)
+    if [[ -e "$BOOT_DER_KEY" ]] ; then
+        FullExpirationDate=$("$OpenSsl" x509 -enddate -noout -in "$BOOT_DER_KEY" | tr -s " " | cut -d "=" -f 2)
         ExpirationYear=$(echo "$FullExpirationDate" | cut -d " " -f 4)
         ExpirationMonth=$(echo "$FullExpirationDate" | cut -d " " -f 1)
         ExpirationDay=$(echo "$FullExpirationDate" | cut -d " " -f 2)
@@ -351,32 +351,32 @@ CheckRefindLocalKeyExpiration() {
         ExpirationSeconds=$(date -d "$ExpirationMonth $ExpirationDay $ExpirationYear" "+%s")
     else
         echo
-        echo "*** WARNING: rEFInd local keys not found! Pretending that they're expired...."
+        echo "*** WARNING: BOOT local keys not found! Pretending that they're expired...."
         echo
         ExpirationDate=$(date -d "Jan 01 2000" "+%Y-%m-%d")
         ExpirationSeconds=$(date -d "Jan 01 2000" "+%s")
     fi
     echo "Current date is $CURRENT_DATE"
-    echo "rEFInd local key's expiration date is $ExpirationDate"
+    echo "BOOT local key's expiration date is $ExpirationDate"
     echo
     TimeToExpiration="(($ExpirationSeconds-$CURRENT_SECONDS))"
     if [[ "$TimeToExpiration" -lt $((365*24*60*60)) ]] ; then
         if [[ $TimeToExpiration -lt 0 ]] ; then
-            echo "rEFInd's local Secure Boot key has expired!"
+            echo "BOOT's local Secure Boot key has expired!"
             echo "Replacing this key with a new one is recommended!"
         else
-            echo "rEFInd's local Secure Boot key will expire within a year."
+            echo "BOOT's local Secure Boot key will expire within a year."
             echo "You should consider replacing this key soon."
         fi
-        GetYN "Do you want to replace the current rEFInd local key" "N"
+        GetYN "Do you want to replace the current BOOT local key" "N"
         if [[ "$YN" == "Y" ]] ; then
-            ReplaceLocalRefindKey
+            ReplaceLocalBootKey
         fi
     else
-        echo "rEFInd's local key will expire more than a year from today. Replacing it is"
+        echo "BOOT's local key will expire more than a year from today. Replacing it is"
         echo "not recommended at this time."
     fi
-} # CheckRefindLocalKeyExpiration()
+} # CheckBootLocalKeyExpiration()
 
 # Loops through an array of lines ($1) and parses it to find expired Secure Boot
 # keys (MOK, db, etc.). Displays a summary as it goes, including warning about
@@ -546,7 +546,7 @@ if [[ "$SHIM_STATE" == "SHIM" ]] ; then
     CheckForShimUpdates
     PauseForKey
 fi
-CheckRefindLocalKeyExpiration
+CheckBootLocalKeyExpiration
 PauseForKey
 CheckAllKeysExpiration
 if [[ "$REBOOT_AFTER" -eq 1 ]] ; then
