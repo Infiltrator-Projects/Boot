@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write
 
+# Do not overlap release uploads from rapid successive main commits.
+concurrency:
+  group: boot-main-release
+  cancel-in-progress: true
+
 jobs:
   build-package-release:
     runs-on: ubuntu-24.04
