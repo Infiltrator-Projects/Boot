@@ -7,7 +7,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-# Program to generate a PNG file suitable for use as a rEFInd font
+# Program to generate a PNG file suitable for use as a BOOT font
 # To obtain a list of available font names, type:
 #
 # convert -list font | less
@@ -18,8 +18,8 @@
 # Usage:
 # ./mkfont.sh font-name font-size font-Y-offset bitmap-filename.png
 #
-# This script is part of the rEFInd package. Version numbers refer to
-# the rEFInd version with which the script was released.
+# This script is part of the BOOT package. Version numbers refer to
+# the BOOT version with which the script was released.
 #
 # Version history:
 #
