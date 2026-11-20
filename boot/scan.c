@@ -1,5 +1,5 @@
 /*
- * refind/scan.c
+ * boot/scan.c
  * Code related to scanning for boot loaders
  *
  * Copyright (c) 2006-2010 Christoph Pfisterer
@@ -113,15 +113,15 @@
 
 EFI_GUID GlobalGuid = EFI_GLOBAL_VARIABLE;
 
-static REFIT_MENU_ENTRY MenuEntryAbout    = { L"About rEFInd", TAG_ABOUT, 1, 0, 'A', NULL, NULL, NULL };
+static REFIT_MENU_ENTRY MenuEntryAbout    = { L"About BOOT", TAG_ABOUT, 1, 0, 'A', NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryReset    = { L"Reboot Computer", TAG_REBOOT, 1, 0, 'R', NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryShutdown = { L"Shut Down Computer", TAG_SHUTDOWN, 1, 0, 'U', NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryRotateCsr = { L"Change SIP Policy", TAG_CSR_ROTATE, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryFirmware = { L"Reboot to Computer Setup Utility", TAG_FIRMWARE, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryManageHidden = { L"Manage Hidden Tags Menu", TAG_HIDDEN, 1, 0, 0, NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryInstall = { L"Install rEFInd to Disk", TAG_INSTALL, 1, 0, 0, NULL, NULL, NULL };
+static REFIT_MENU_ENTRY MenuEntryInstall = { L"Install BOOT to Disk", TAG_INSTALL, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryBootorder = { L"Manage EFI boot order", TAG_BOOTORDER, 1, 0, 0, NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryExit     = { L"Exit rEFInd", TAG_EXIT, 1, 0, 0, NULL, NULL, NULL };
+static REFIT_MENU_ENTRY MenuEntryExit     = { L"Exit BOOT", TAG_EXIT, 1, 0, 0, NULL, NULL, NULL };
 
 // Structure used to hold boot loader filenames and time stamps in
 // a linked list; used to sort entries within a directory.
@@ -530,8 +530,8 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
         MergeStrings(&OSIconName, L"refit", L',');
         Entry->OSType = 'R';
         ShortcutLetter = 'R';
-    } else if (StriSubCmp(L"refind", LoaderPath)) {
-        MergeStrings(&OSIconName, L"refind", L',');
+    } else if (StriSubCmp(L"boot", LoaderPath)) {
+        MergeStrings(&OSIconName, L"boot", L',');
         Entry->OSType = 'R';
         ShortcutLetter = 'R';
     } else if (StriSubCmp(MACOSX_LOADER_PATH, LoaderPath)) {
@@ -1013,7 +1013,7 @@ static CHAR16* RuniPXEDiscover(EFI_HANDLE Volume)
 
 // Scan for network (PXE) boot servers. This function relies on the presence
 // of the IPXE_DISCOVER_NAME and IPXE_NAME program files on the volume from
-// which rEFInd launched. As of December 6, 2014, these tools aren't entirely
+// which BOOT launched. As of December 6, 2014, these tools aren't entirely
 // reliable. See BUILDING.txt for information on building them.
 static VOID ScanNetboot() {
     CHAR16        *iPXEFileName = IPXE_NAME;
@@ -1161,7 +1161,7 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
             MyFreePool(Directory);
         } // while
 
-        // Don't scan the fallback loader if it's on the same volume and a duplicate of rEFInd itself....
+        // Don't scan the fallback loader if it's on the same volume and a duplicate of BOOT itself....
         SelfPath = DevicePathToStr(SelfLoadedImage->FilePath);
         CleanUpPathNameSlashes(SelfPath);
         if ((Volume->DeviceHandle == SelfLoadedImage->DeviceHandle) && DuplicatesFallback(Volume, SelfPath))
