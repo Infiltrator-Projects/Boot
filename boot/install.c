@@ -20,6 +20,49 @@
 #include "../include/refit_call_wrapper.h"
 #include "../include/Handle.h"
 
+/* Generic EFI file rename used by log rotation; it does not deploy BOOT. */
+EFI_STATUS BackupOldFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
+    EFI_FILE_PROTOCOL *FilePtr = NULL;
+    EFI_FILE_INFO *Original = NULL, *Replacement = NULL;
+    CHAR16 *BackupName = NULL;
+    UINTN InformationBytes;
+    EFI_STATUS Status;
+
+    if (!BaseDir || !FileName) return EFI_INVALID_PARAMETER;
+    BackupName = PoolPrint(L"%s-old", FileName);
+    if (!BackupName) return EFI_OUT_OF_RESOURCES;
+    if (FileExists(BaseDir, BackupName)) {
+        MyFreePool(BackupName);
+        return EFI_ALREADY_STARTED;
+    }
+    Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &FilePtr, FileName,
+                                 EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0);
+    if (EFI_ERROR(Status) || !FilePtr) goto finished;
+    Original = LibFileInfo(FilePtr);
+    if (!Original) {
+        Status = EFI_OUT_OF_RESOURCES;
+        goto finished;
+    }
+    InformationBytes = sizeof(EFI_FILE_INFO) + StrSize(BackupName);
+    Replacement = AllocateZeroPool(InformationBytes);
+    if (!Replacement) {
+        Status = EFI_OUT_OF_RESOURCES;
+        goto finished;
+    }
+    MyCopyMem(Replacement, Original, sizeof(EFI_FILE_INFO));
+    Replacement->Size = InformationBytes;
+    Replacement->FileName[0] = 0;
+    StrCat(Replacement->FileName, BackupName);
+    Status = refit_call4_wrapper(BaseDir->SetInfo, FilePtr,
+                                 &gEfiFileInfoGuid, InformationBytes, Replacement);
+finished:
+    if (FilePtr) refit_call1_wrapper(FilePtr->Close, FilePtr);
+    MyFreePool(Original);
+    MyFreePool(Replacement);
+    MyFreePool(BackupName);
+    return Status;
+}
+
 /* Firmware self-installation retired: only the native RUN deploys BOOT.
  * No firmware-side operation may write the shared EFI/BOOT fallback.
  */
