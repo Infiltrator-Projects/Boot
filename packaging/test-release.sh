@@ -31,6 +31,13 @@ fi
 # Its ONLY operation downloads the pinned source, recompiles, and calls the
 # existing boot-install. Never execute it in a GitHub runner.
 bash -n "$run"
+# Validate the original installer that the RUN fetches and executes.
+bash -n boot-install
+grep -Fq 'InstallationFailed=1' boot-install
+grep -Fq 'exit "$InstallationFailed"' boot-install
+# A machine without a usable ESP must fail, not report installation success.
+grep -A5 'create an ESP, and ideally boot in EFI mode, before installing BOOT.' boot-install |
+    grep -Fq 'exit 1'
 test "$(head -n 1 "$run")" = '#!/usr/bin/env bash'
 test "$(stat -c '%s' "$run")" -lt 16384
 expected=$(git rev-parse --verify HEAD)
