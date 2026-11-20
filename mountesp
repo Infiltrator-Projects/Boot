@@ -16,7 +16,7 @@
 # Revision history:
 #
 # 0.13.2  -- Fixed bug that caused failure with macOS 11.0 ("Big Sur")
-# 0.9.3   -- Initial release (with rEFInd 0.9.3)
+# 0.9.3   -- Initial release (with BOOT 0.9.3)
 
 # Mount the ESP at /Volumes/ESP or determine its current mount
 # point.
