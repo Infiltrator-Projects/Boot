@@ -65,58 +65,78 @@ EOF
 deb="$out/infiltrator-boot_${version}_amd64.deb"
 dpkg-deb --root-owner-group --build "$package" "$deb"
 
+# Keep the native RUN tiny: download a pinned source revision AT INSTALL
+# TIME. No source tarball or prebuilt EFI payload is embedded in the RUN.
+source_sha=$(git rev-parse --verify HEAD)
+[[ "$source_sha" =~ ^[a-f0-9]{40}$ ]] || { echo "Cannot pin BOOT source commit" >&2; exit 1; }
 run="$out/boot-$version-native-installer.run"
 cat > "$run" <<'RUN_HEADER'
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Native BOOT installer: build this machine's BOOT from bundled source and
-# hand installation to the original boot-install script. No separate modes.
+# BOOT native installer. Downloads exact GitHub source, compiles for local
+# hardware, then delegates firmware installation to the ORIGINAL boot-install.
 set -euo pipefail
 
-if [[ $(uname -m) != x86_64 ]]; then
-    echo "BOOT native installer requires an x86-64 host" >&2
+SOURCE_SHA="__BOOT_SOURCE_COMMIT__"
+SOURCE_URL='https://github.com/Infiltrator-Projects/Boot.git'
+
+if (($# != 0)); then
+    echo "BOOT native installer takes no arguments: running it builds and installs." >&2
     exit 2
 fi
-for program in make gcc ld objcopy awk tail tar mktemp; do
-    command -v "$program" >/dev/null || {
-        echo "BOOT native installer needs $program" >&2
-        exit 1
-    }
+[[ $(uname -m) == x86_64 ]] || { echo "BOOT native installer requires x86-64" >&2; exit 2; }
+
+required=(git make gcc ld objcopy tar mktemp)
+missing=()
+for program in "${required[@]}"; do
+    command -v "$program" >/dev/null 2>&1 || missing+=("$program")
 done
-if [[ ! -d /usr/include/efi ]]; then
-    echo "GNU-EFI development headers are missing (install gnu-efi)" >&2
-    exit 1
+if ((${#missing[@]})) || [[ ! -f /usr/include/efi/efi.h ]]; then
+    echo "Missing BOOT native build prerequisites: ${missing[*]} (and/or gnu-efi headers)" >&2
+    if ! command -v apt-get >/dev/null; then
+        echo "Install build-essential, binutils, git and gnu-efi before running BOOT." >&2
+        exit 1
+    fi
+    if ((EUID == 0)); then
+        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi
+    else
+        command -v sudo >/dev/null || { echo "sudo is required to install build dependencies" >&2; exit 1; }
+        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi
+    fi
 fi
+for program in "${required[@]}"; do
+    command -v "$program" >/dev/null || { echo "Still missing $program" >&2; exit 1; }
+done
+[[ -f /usr/include/efi/efi.h ]] || { echo "GNU-EFI headers are still missing" >&2; exit 1; }
 
-source_dir=$(mktemp -d)
-cleanup() { rm -rf -- "$source_dir"; }
-trap cleanup EXIT
-archive_line=$(LC_ALL=C awk '/^__BOOT_SOURCE_ARCHIVE_BELOW__$/ { print NR + 1; exit }' "$0")
-[[ -n $archive_line ]] || { echo "BOOT source archive marker missing" >&2; exit 1; }
-tail -n +"$archive_line" "$0" | tar -xz -C "$source_dir"
-cd "$source_dir"
-[[ -f Makefile && -f Make.common && -f boot-install && -f boot/main.c ]] || {
-    echo "The BOOT source bundle is incomplete" >&2
-    exit 1
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT
+source_dir="$work/Boot"
+git -C "$work" init -q Boot
+git -C "$source_dir" remote add origin "$SOURCE_URL"
+# Fetch only needed source/graphics from the pinned commit, not the whole
+# repository history or a source bundle in this installer.
+git -C "$source_dir" sparse-checkout init --cone
+git -C "$source_dir" sparse-checkout set boot EfiLib gptsync gzip libeg mok include icons fonts banners themes keys
+git -C "$source_dir" -c protocol.version=2 fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"
+git -C "$source_dir" -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD
+[[ $(git -C "$source_dir" rev-parse HEAD) == "$SOURCE_SHA" ]] || {
+    echo "BOOT source commit does not match the published installer" >&2; exit 1;
 }
-
-echo "Compiling BOOT locally for $(uname -m) with GNU-EFI..."
-# UEFI requires general-purpose registers; local CPU tuning must not cause
-# the compiler to emit vector instructions into firmware context.
+cd "$source_dir"
+[[ -f Makefile && -f Make.common && -f boot/main.c && -f boot-install ]] || {
+    echo "Downloaded BOOT source is incomplete" >&2; exit 1;
+}
+echo "Building BOOT natively from source commit $SOURCE_SHA..."
+# Native CPU code generation, while preventing floating/vector operations in
+# UEFI contexts where they are not necessarily available.
 make CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall" gnuefi
-[[ -s boot/boot_x64.efi ]] || { echo "Native BOOT compilation produced no EFI executable" >&2; exit 1; }
-
-echo "Invoking BOOT's existing boot-install script..."
-# Keep the repository's real installer (including its prompts and EFI/NVRAM
-# handling). Do not install legacy per-filesystem EFI drivers.
-bash ./boot-install --nodrivers "$@"
-echo "BOOT native build and installation completed."
-exit 0
-__BOOT_SOURCE_ARCHIVE_BELOW__
+[[ -s boot/boot_x64.efi ]] || { echo "Native BOOT EFI build failed" >&2; exit 1; }
+echo "Installing BOOT with the existing boot-install script..."
+bash ./boot-install --nodrivers
+echo "BOOT native compilation and installation completed."
 RUN_HEADER
-# The RUN contains the complete recorded source, not a precompiled EFI image.
-# git archive also preserves executable modes required by the original installer.
-git archive --format=tar HEAD | gzip -n -9 >> "$run"
+sed -i "s/__BOOT_SOURCE_COMMIT__/$source_sha/g" "$run"
 chmod 0755 "$run"
 
 (
