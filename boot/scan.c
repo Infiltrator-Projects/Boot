@@ -119,7 +119,6 @@ static REFIT_MENU_ENTRY MenuEntryShutdown = { L"Shut Down Computer", TAG_SHUTDOW
 static REFIT_MENU_ENTRY MenuEntryRotateCsr = { L"Change SIP Policy", TAG_CSR_ROTATE, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryFirmware = { L"Reboot to Computer Setup Utility", TAG_FIRMWARE, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryManageHidden = { L"Manage Hidden Tags Menu", TAG_HIDDEN, 1, 0, 0, NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryInstall = { L"Install BOOT to Disk", TAG_INSTALL, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryBootorder = { L"Manage EFI boot order", TAG_BOOTORDER, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryExit     = { L"Exit BOOT", TAG_EXIT, 1, 0, 0, NULL, NULL, NULL };
 
@@ -1660,12 +1659,6 @@ VOID ScanForTools(VOID) {
                     TempMenuEntry->Image = BuiltinIcon(BUILTIN_ICON_FUNC_CSR_ROTATE);
                     AddMenuEntry(&MainMenu, TempMenuEntry);
                 } // if
-                break;
-
-            case TAG_INSTALL:
-                TempMenuEntry = CopyMenuEntry(&MenuEntryInstall);
-                TempMenuEntry->Image = BuiltinIcon(BUILTIN_ICON_FUNC_INSTALL);
-                AddMenuEntry(&MainMenu, TempMenuEntry);
                 break;
 
             case TAG_BOOTORDER:

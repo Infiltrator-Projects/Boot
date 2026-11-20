@@ -624,11 +624,6 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
             case TAG_CSR_ROTATE:
                 RotateCsrValue();
                 break;
-
-            case TAG_INSTALL:
-                InstallBoot();
-                break;
-
             case TAG_BOOTORDER:
                 ManageBootorder();
                 break;

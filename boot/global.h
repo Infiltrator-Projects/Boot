@@ -77,7 +77,6 @@
 #define TAG_CSR_ROTATE       (19)
 #define TAG_FWUPDATE_TOOL    (20)
 #define TAG_HIDDEN           (21)
-#define TAG_INSTALL          (22)
 #define TAG_BOOTORDER        (23)
 #define NUM_TOOLS            (24)
 

@@ -13,28 +13,6 @@
 #ifndef __INSTALL_H_
 #define __INSTALL_H_
 
-#if defined (EFIX64)
-#define INST_DIRECTORIES L"\\EFI,\\EFI\\boot,\\EFI\\boot\\icons,\\EFI\\boot\\drivers_x64"
-#define INST_DRIVERS_SUBDIR L"drivers_x64"
-#define INST_BOOT_NAME L"boot_x64.efi"
-#define INST_PLATFORM_EXTENSION L"_x64.efi"
-#elif defined(EFI32)
-#define INST_DIRECTORIES L"\\EFI,\\EFI\\boot,\\EFI\\boot\\icons,\\EFI\\boot\\drivers_ia32"
-#define INST_DRIVERS_SUBDIR L"drivers_ia32"
-#define INST_BOOT_NAME L"boot_ia32.efi"
-#define INST_PLATFORM_EXTENSION L"_ia32.efi"
-#elif defined(EFIAARCH64)
-#define INST_DIRECTORIES L"\\EFI,\\EFI\\boot,\\EFI\\boot\\icons,\\EFI\\boot\\drivers_aa64"
-#define INST_DRIVERS_SUBDIR L"drivers_aa64"
-#define INST_BOOT_NAME L"boot_aa64.efi"
-#define INST_PLATFORM_EXTENSION L"_aa64.efi"
-#else
-#define INST_DIRECTORIES L"\\EFI,\\EFI\\boot,\\EFI\\boot\\icons,\\EFI\\boot\\drivers"
-#define INST_DRIVERS_SUBDIR L"drivers"
-#define INST_BOOT_NAME L"boot.efi"
-#define INST_PLATFORM_EXTENSION L".efi"
-#endif
-
 #define EFI_BOOT_OPTION_DO_NOTHING   0
 #define EFI_BOOT_OPTION_MAKE_DEFAULT 1
 #define EFI_BOOT_OPTION_DELETE       2
@@ -59,8 +37,6 @@ typedef struct _boot_entry_list {
     struct _boot_entry_list  *NextBootEntry;
 } BOOT_ENTRY_LIST;
 
-EFI_STATUS BackupOldFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName);
-VOID InstallBoot(VOID);
 BOOT_ENTRY_LIST * FindBootOrderEntries(VOID);
 VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries);
 VOID ManageBootorder(VOID);

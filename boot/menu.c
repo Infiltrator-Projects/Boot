@@ -1767,7 +1767,6 @@ static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
         case TAG_EXIT:
         case TAG_FIRMWARE:
         case TAG_CSR_ROTATE:
-        case TAG_INSTALL:
         case TAG_HIDDEN:
             DisplaySimpleMessage(L"Unable to Comply",
                                  L"To hide an internal tool, edit the 'showtools' line in boot.conf");

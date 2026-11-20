@@ -257,8 +257,7 @@ use_nvram false
 #                     tool, MokManager.efi, used on Secure Boot systems
 #  csr_rotate       - adjusts Apple System Integrity Protection (SIP)
 #                     policy. Requires "csr_values" to be set.
-#  install          - an option to install BOOT from the current location
-#                     to another ESP
+#  BOOT installation is performed only by the native .run installer.
 #  bootorder        - adjust the EFI's (NOT BOOT's) boot order
 #  about            - an "about this program" option
 #  hidden_tags      - manage hidden tags
