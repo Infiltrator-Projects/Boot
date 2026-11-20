@@ -1,5 +1,5 @@
 /*
- * refind/apple.h
+ * boot/apple.h
  *
  * Copyright (c) 2015 Roderick W. Smith
  *
