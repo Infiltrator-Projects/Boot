@@ -1,0 +1,14 @@
+# boot-install symlink is added to usr/sbin as well (see boot.links)
+banners usr/share/boot
+drivers_* usr/share/boot/boot
+fonts usr/share/boot
+icons/*.png usr/share/boot/boot/icons
+icons/README usr/share/boot/boot/icons
+keys etc/boot.d
+mkrlconf usr/sbin
+mvboot usr/sbin
+boot-sb-healthcheck usr/sbin
+boot-install usr/share/boot
+boot-mkdefault usr/sbin
+boot.conf-sample usr/share/boot/boot
+boot/boot*.efi usr/share/boot/boot
