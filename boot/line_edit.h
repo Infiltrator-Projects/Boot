@@ -1,5 +1,5 @@
 /*
- * refind/screen_edit.h
+ * boot/screen_edit.h
  *
  * Line-editing functions borrowed from gummiboot
  *
