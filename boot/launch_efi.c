@@ -1,5 +1,5 @@
 /*
- * refind/launch_efi.c
+ * boot/launch_efi.c
  * Code related to launching EFI programs
  *
  * Copyright (c) 2006-2010 Christoph Pfisterer
@@ -108,7 +108,7 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
         Print(L"   %s has already been signed.\n", Name);
         Print(L" * Use a MOK utility to register %s (\"enroll its hash\") without\n", Name);
         Print(L"   signing it.\n");
-        Print(L"\nSee http://www.rodsbooks.com/refind/secureboot.html for more information\n");
+        Print(L"\nSee https://github.com/Infiltrator-Projects/Bootsecureboot.html for more information\n");
         PauseForKey();
     } // if
 } // VOID WarnSecureBootError()
@@ -265,13 +265,13 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
             // which ties itself into the BS->LoadImage() and BS->StartImage() functions and
             // then unregisters itself from the EFI system table when its replacement
             // StartImage() function is called *IF* the previous LoadImage() was for the same
-            // program. The result is that rEFInd can validate only the first program it
-            // launches (often a filesystem driver). Loading a second program (rEFInd itself,
+            // program. The result is that BOOT can validate only the first program it
+            // launches (often a filesystem driver). Loading a second program (BOOT itself,
             // here, to keep it smaller than a kernel) works around this problem. See the
             // replacements.c file in Shim, and especially its start_image() function, for
             // the source of the problem.
             // NOTE: This doesn't check the return status or handle errors. It could
-            // conceivably do weird things if, say, rEFInd were on a USB drive that the
+            // conceivably do weird things if, say, BOOT were on a USB drive that the
             // user pulls before launching a program.
             LOG(3, LOG_LINE_NORMAL, L"Employing Shim LoadImage() hack");
             refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, GlobalConfig.SelfDevicePath,
@@ -304,7 +304,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     // TODO: (optionally) re-enable the EFI watchdog timer!
 
     if ((GlobalConfig.WriteSystemdVars) && ((OSType == 'L') || (OSType == 'E') || (OSType == 'G'))) {
-        // Tell systemd what ESP rEFInd used
+        // Tell systemd what ESP BOOT used
         EspGUID = GuidAsString(&(SelfVolume->PartGuid));
         LOG(1, LOG_LINE_NORMAL, L"Setting systemd's LoaderDevicePartUUID variable to %s", EspGUID);
         Status = EfivarSetRaw(&SystemdGuid, L"LoaderDevicePartUUID", (CHAR8 *) EspGUID,
