@@ -1,8 +1,8 @@
 /*
- * refind/log.c
+ * boot/log.c
  * 
- * Definitions to handle rEFInd's logging facility, activated by setting
- * log_level in refind.conf.
+ * Definitions to handle BOOT's logging facility, activated by setting
+ * log_level in boot.conf.
  * 
  */
 /*
@@ -60,9 +60,9 @@ EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
     return Status;
 } // EFI_STATUS RotateLogFile()
 
-// Open the logging file (refind.log).
+// Open the logging file (boot.log).
 // Sets the global gLogHandle variable to point to the file.
-// Returns EFI_STATUS of file open operation. This might error out if rEFInd
+// Returns EFI_STATUS of file open operation. This might error out if BOOT
 // is installed on a read-only filesystem, for instance.
 // If Restart == TRUE, then begin logging at the end of the file;
 // if Restart == FALSE, then delete the file and start a new one.
@@ -92,7 +92,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
         }
 
         if (EFI_ERROR(Status)) {
-            // Log file could not be opened in the main rEFInd directory, so
+            // Log file could not be opened in the main BOOT directory, so
             // try again in the root of the ESP....
             Status = egFindESP(&FoundEsp);
             if (!EFI_ERROR(Status)) {
@@ -110,7 +110,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
             PrintUglyText(L"Unable to open log file!", CENTER);
             PauseForKey();
         } else {
-            // File has been opened; however, if it already exists, then rEFInd
+            // File has been opened; however, if it already exists, then BOOT
             // will end up writing into the existing file, so it could end up
             // containing remnants of the earlier file if it was larger than
             // this one needs to be. To prevent that, check the file size. If
