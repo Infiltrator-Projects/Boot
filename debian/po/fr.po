@@ -1,12 +1,12 @@
-# Translation of refind debconf templates to French.
+# Translation of boot debconf templates to French.
 # Copyright (C) 2016, French l10n team <debian-l10n-french@lists.debian.org>
-# This file is distributed under the same license as the refind package.
+# This file is distributed under the same license as the boot package.
 # Julien Patriarca <leatherface@debian.org>, 2016.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: refind\n"
-"Report-Msgid-Bugs-To: refind@packages.debian.org\n"
+"Project-Id-Version: boot\n"
+"Report-Msgid-Bugs-To: boot@packages.debian.org\n"
 "POT-Creation-Date: 2015-12-12 18:35-0500\n"
 "PO-Revision-Date: 2016-08-03 09:14+0100\n"
 "Last-Translator: Julien Patriarca <leatherface@debian.org>\n"
@@ -20,30 +20,30 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../templates:1001
-msgid "Automatically install rEFInd to the ESP?"
-msgstr "Faut-il installer automatiquement rEFInd sur l'ESP ?"
+msgid "Automatically install BOOT to the ESP?"
+msgstr "Faut-il installer automatiquement BOOT sur l'ESP ?"
 
 #. Type: boolean
 #. Description
 #: ../templates:1001
 msgid ""
-"It is necessary to install rEFInd to the EFI System Partition (ESP) for it "
+"It is necessary to install BOOT to the EFI System Partition (ESP) for it "
 "to control the boot process."
 msgstr ""
-"Il faut installer rEFInd sur la Partition Système EFI (ESP) pour qu'il "
+"Il faut installer BOOT sur la Partition Système EFI (ESP) pour qu'il "
 "puisse gérer le processus de démarrage."
 
 #. Type: boolean
 #. Description
 #: ../templates:1001
 msgid ""
-"Not installing the new rEFInd binary on the ESP may leave the system in an "
-"unbootable state. Alternatives to automatically installing rEFInd include "
-"running /usr/sbin/refind-install by hand or installing the rEFInd binaries "
-"manually by copying them from subdirectories of /usr/share/refind-{version}."
+"Not installing the new BOOT binary on the ESP may leave the system in an "
+"unbootable state. Alternatives to automatically installing BOOT include "
+"running /usr/sbin/boot-install by hand or installing the BOOT binaries "
+"manually by copying them from subdirectories of /usr/share/boot-{version}."
 msgstr ""
-"Ne pas installer le nouvel exécutable rEFInd sur l'ESP pourrait laisser le "
+"Ne pas installer le nouvel exécutable BOOT sur l'ESP pourrait laisser le "
 "système dans un état non amorçable. Les alternatives pour installer "
-"automatiquement rEFInd comprennent le lancement manuel de /usr/sbin/refind-"
-"install ou l'installation manuelle des exécutables de rEFInd en les copiant "
-"depuis les sous-répertoires de /usr/share/refind-{version}."
+"automatiquement BOOT comprennent le lancement manuel de /usr/sbin/boot-"
+"install ou l'installation manuelle des exécutables de BOOT en les copiant "
+"depuis les sous-répertoires de /usr/share/boot-{version}."
