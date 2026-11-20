@@ -115,14 +115,16 @@
 # with which they first appeared.
 
 RootDir="/"
-TargetDir=/EFI/InfiltratorBoot
+TargetDir=/EFI/BOOT
 LocalKeysBase="boot_local"
 ShimSource="none"
 ShimType="none"
 KeepName=0
 TargetShim="default"
-TargetX64="boot_x64.efi"
-TargetIA32="boot_ia32.efi"
+TargetX64="bootx64.efi"
+TargetIA32="bootia32.efi"
+TargetAARCH64="bootaa64.efi"
+ExplicitDefault=0
 LocalKeys=0
 EncryptKeys=0
 DeleteBootDir=0
@@ -150,6 +152,7 @@ GetParams() {
               shift
               ;;
          --usedefault) TargetDir=/EFI/BOOT
+              ExplicitDefault=1
               TargetPart="$2"
               TargetX64="bootx64.efi"
               TargetIA32="bootia32.efi"
@@ -183,11 +186,11 @@ GetParams() {
       esac
       shift
    done
-   if [[ "$InstallToEspOnMac" == 0 && "$RootDir" == '/' && "$TargetDir" == '/EFI/BOOT' ]] ; then
+   if [[ "$InstallToEspOnMac" == 0 && "$RootDir" == '/' && "$ExplicitDefault" == 1 ]] ; then
       echo "You may use --notesp OR --usedefault, but not both! Aborting!"
       exit 1
    fi
-   if [[ "$RootDir" != '/' && "$TargetDir" == '/EFI/BOOT' ]] ; then
+   if [[ "$RootDir" != '/' && "$ExplicitDefault" == 1 ]] ; then
       echo "You may use --root OR --usedefault, but not both! Aborting!"
       exit 1
    fi
@@ -204,7 +207,7 @@ GetParams() {
       echo "The --keepname option is valid only under Linux! Aborting!"
       exit 1
    fi
-   if [[ "$KeepName" == 1 && "$TargetDir" == "/EFI/BOOT" ]] ; then
+   if [[ "$KeepName" == 1 && "$ExplicitDefault" == 1 ]] ; then
       echo "The --keepname option is incompatible with --usedefault! Aborting!"
       exit 1
    fi
@@ -504,72 +507,18 @@ SetVarsForMsBoot() {
    fi
 } # SetVarsForMsBoot()
 
-# TargetDir defaults to /EFI/InfiltratorBoot; however, this function adjusts it as follows:
-# - If an existing boot.conf is available in /EFI/BOOT or /EFI/Microsoft/Boot,
-#   install to that directory under the suitable name; but DO NOT do this if
-#   boot.conf is also in /EFI/InfiltratorBoot.
-# - If booted in BIOS mode and the ESP lacks any other EFI files, install to
-#   /EFI/BOOT
-# - If booted in BIOS mode and there's no boot.conf file and there is a
-#   /EFI/Microsoft/Boot/bootmgfw.efi file, move it down one level and
-#   install under that name, "hijacking" the Windows boot loader filename
+# BOOT installs to /EFI/BOOT as its selected directory. Historical
+# auto-detection that hijacked Microsoft Boot or relocated other loaders
+# is deliberately not used. Explicit --usedefault only selects a device.
 DetermineTargetDir() {
    Upgrade=0
-
-   if [[ -f $InstallDir/EFI/BOOT/boot.conf && ! -f $InstallDir/EFI/InfiltratorBoot/boot.conf ]] ; then
+   if [[ "$TargetDir" == "/EFI/BOOT" ]] ; then
       SetVarsForBoot
-      Upgrade=1
-   fi
-   if [[ -f $InstallDir/EFI/Microsoft/Boot/boot.conf && ! -f $InstallDir/EFI/InfiltratorBoot/boot.conf ]] ; then
-      SetVarsForMsBoot
-      Upgrade=1
-   fi
-   if [[ -f $InstallDir/EFI/InfiltratorBoot/boot.conf ]] ; then
-      TargetDir="/EFI/InfiltratorBoot"
-      if [[ $ShimSource == "none" || $KeepName == 1 ]] ; then
-         TargetX64="boot_x64.efi"
-         TargetIA32="boot_ia32.efi"
-         TargetAARCH64="boot_aa64.efi"
+      if [[ -f "$InstallDir/EFI/BOOT/boot.conf" ]] ; then
+         Upgrade=1
+         echo "Found BOOT configuration in $InstallDir/EFI/BOOT; preserving it."
       fi
-      Upgrade=1
    fi
-   if [[ $Upgrade == 1 ]] ; then
-      echo "Found BOOT installation in $InstallDir$TargetDir; upgrading it."
-   fi
-
-   if [[ ! -d /sys/firmware/efi && ! $OSTYPE == darwin* && $Upgrade == 0 ]] ; then     # BIOS-mode
-      FoundEfiFiles=$(find "$InstallDir/EFI/BOOT" -name "*.efi" 2> /dev/null)
-      FoundConfFiles=$(find "$InstallDir" -name "boot\.conf" 2> /dev/null)
-      if [[ -z "$FoundConfFiles" && -f "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi" ]] ; then
-         mv -n "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi" "$InstallDir/EFI/Microsoft" &> /dev/null
-         SetVarsForMsBoot
-         echo "Running in BIOS mode with a suspected Windows installation; moving boot loader"
-         echo "files so as to install to $InstallDir$TargetDir."
-      elif [[ -z "$FoundEfiFiles" ]] ; then  # In BIOS mode and no default loader; install as default loader
-         SetVarsForBoot
-         echo "Running in BIOS mode with no existing default boot loader; installing to"
-         echo "$InstallDir""$TargetDir"
-      else
-         echo "Running in BIOS mode with an existing default boot loader; backing it up and"
-         echo "installing BOOT in its place."
-         if [[ -d "$InstallDir/EFI/BOOT-BOOTBackup" ]] ; then
-            echo ""
-            echo "Caution: An existing backup of a default boot loader exists! If the current"
-            echo "default boot loader and the backup are different boot loaders, the current"
-            echo "one will become inaccessible."
-            echo ""
-            echo -n "Do you want to proceed with installation (Y/N)? "
-            ReadYesNo
-            if [[ $YesNo == "Y" || $YesNo == "y" ]] ; then
-               echo "OK; continuing with the installation..."
-            else
-               exit 0
-            fi
-         fi
-         mv -n "$InstallDir/EFI/BOOT" "$InstallDir/EFI/BOOT-BOOTBackup"
-         SetVarsForBoot
-      fi
-   fi # BIOS-mode
 } # DetermineTargetDir()
 
 # Determine (or guess) the filesystem used on the Linux /boot filesystem.
@@ -1460,7 +1409,7 @@ InstallOnLinux() {
    fi
    echo "Installing BOOT on Linux...."
    modprobe efivars &> /dev/null
-   if [[ $TargetDir == "/EFI/BOOT" ]] ; then
+   if [[ "$ExplicitDefault" == 1 ]] ; then
       MountDefaultTarget
    else
       FindMountedESP
@@ -1472,6 +1421,18 @@ InstallOnLinux() {
    fi
 
    CheckSecureBoot
+   # Preserve any existing default loader before installing BOOT. Keep this
+   # backup across upgrades rather than overwriting the last known fallback.
+   if [[ "$TargetDir" == "/EFI/BOOT" && -f "$InstallDir/EFI/BOOT/$TargetX64" ]] ; then
+      local previous="$InstallDir/EFI/BOOT/$TargetX64"
+      local backup="$previous.before-infiltrator-boot"
+      if [[ ! -e "$backup" ]] ; then
+         cp -p -- "$previous" "$backup" && cmp -s -- "$previous" "$backup" || {
+            echo "Could not preserve the existing default EFI loader." >&2
+            exit 1
+         }
+      fi
+   fi
    CopyBootFiles
    if [[ "$TargetDir" != "/EFI/BOOT" && "$TargetDir" != "/EFI/Microsoft/Boot" ]] ; then
       AddBootEntry
