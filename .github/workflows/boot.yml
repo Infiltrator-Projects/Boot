@@ -40,7 +40,12 @@ jobs:
           sudo apt-get install -y build-essential binutils gnu-efi file dpkg-dev
 
       - name: Compile BOOT with GNU-EFI
-        run: make gnuefi
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="0.1.${GITHUB_RUN_NUMBER}"
+          printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$version" > boot-sbat-release.csv
+          make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -fno-strict-aliasing -fno-tree-loop-distribute-patterns -fno-stack-protector -fshort-wchar -Wall -DBOOT_RELEASE_VERSION='L\\"$version\\"'" gnuefi
 
       - name: Check BOOT EFI binary
         run: |
@@ -57,7 +62,9 @@ jobs:
           git archive HEAD | tar -xf - -C "$native_dir"
           (
             cd "$native_dir"
-            make CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall" gnuefi
+            version="0.1.${GITHUB_RUN_NUMBER}"
+            printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$version" > boot-sbat-release.csv
+            make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\\"$version\\"'" gnuefi
             test -s boot/boot_x64.efi
             file boot/boot_x64.efi | grep -F 'PE32+'
           )
