@@ -34,6 +34,20 @@ jobs:
           file boot/boot_x64.efi
           file boot/boot_x64.efi | grep -F 'PE32+'
 
+      - name: Verify actual CPU-native build profile without touching firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          native_dir=$(mktemp -d)
+          trap 'rm -rf -- "$native_dir"' EXIT
+          git archive HEAD | tar -xf - -C "$native_dir"
+          (
+            cd "$native_dir"
+            make CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall" gnuefi
+            test -s boot/boot_x64.efi
+            file boot/boot_x64.efi | grep -F 'PE32+'
+          )
+
       - name: Build and test .run and .deb
         shell: bash
         run: |
