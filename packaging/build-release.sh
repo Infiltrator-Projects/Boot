@@ -33,9 +33,13 @@ for directory in icons fonts banners themes; do
     if [[ -d "$directory" ]]; then cp -a "$directory" "$root/boot/"; fi
 done
 install -m 0644 boot.conf-sample "$root/boot/boot.conf-sample"
-# Ship documentation that remains in the repository; do not require deleted upstream files.
-for document in COPYING.txt README.txt BUILDING.txt; do
-    install -m 0644 "$document" "$root/docs/$document"
+# COPYING.txt is the package's licence. Other documentation is optional:
+# deleting upstream prose must never break the native installer release.
+install -m 0644 COPYING.txt "$root/docs/COPYING.txt"
+for document in README.txt BUILDING.txt; do
+    if [[ -f "$document" ]]; then
+        install -m 0644 "$document" "$root/docs/$document"
+    fi
 done
 for script in boot-install boot-mkdefault boot-sb-healthcheck mountesp mvboot mkrlconf; do
     if [[ -f "$script" ]]; then install -m 0755 "$script" "$root/$script"; fi
