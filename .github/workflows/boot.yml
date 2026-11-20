@@ -65,8 +65,9 @@ jobs:
           operational boot managers. Firmware boot behaviour and Common V2
           filesystem integration remain under development.
 
-          - Native .run: bundles the exact BOOT source, compiles locally with
-            GNU-EFI and CPU-native settings, then executes the existing
+          - Native .run: a small downloader that retrieves the exact pinned
+            BOOT GitHub source on the target computer, compiles it with
+            GNU-EFI and CPU-native settings, then invokes the existing
             boot-install script. No build-only or staging mode.
           - Generic AMD64 .deb: stages the generic BOOT firmware image only.
           - SHA256SUMS: verifies the two downloadable assets.
