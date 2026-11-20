@@ -1,0 +1,27 @@
+name: BOOT source and firmware build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check BOOT identifiers
+        shell: bash
+        run: |
+          if git ls-files | grep -iE 're[f]ind'; then exit 1; fi
+          if git grep -n -i -I -E 're[f]ind' -- .; then exit 1; fi
+      - name: Install firmware build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential binutils gnu-efi
+      - name: Compile BOOT using GNU-EFI
+        run: make gnuefi
+      - name: Check BOOT EFI image
+        run: |
+          test -s boot/boot_x64.efi
+          file boot/boot_x64.efi
