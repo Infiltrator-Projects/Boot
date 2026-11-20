@@ -79,6 +79,10 @@ jobs:
           bash packaging/build-release.sh "0.1.${GITHUB_RUN_NUMBER}" dist
           bash packaging/test-release.sh "0.1.${GITHUB_RUN_NUMBER}" dist
 
+      - name: Verify native installer against disposable ESP
+        shell: bash
+        run: bash tests/install-safety.sh
+
       - name: Upload verified workflow artifacts
         uses: actions/upload-artifact@v4
         with:
