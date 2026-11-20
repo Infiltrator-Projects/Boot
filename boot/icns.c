@@ -40,7 +40,7 @@
 #include "log.h"
 #include "config.h"
 #include "mystrings.h"
-#include "../refind/screen.h"
+#include "../boot/screen.h"
 
 //
 // well-known icons
