@@ -1,5 +1,5 @@
 /*
- * refind/menu.h
+ * boot/menu.h
  * menu functions header file
  *
  * Copyright (c) 2006-2009 Christoph Pfisterer
@@ -42,8 +42,8 @@
  * 
  */
 
-#ifndef __REFIND_MENU_H_
-#define __REFIND_MENU_H_
+#ifndef __BOOT_MENU_H_
+#define __BOOT_MENU_H_
 
 #ifdef __MAKEWITH_GNUEFI
 #include "efi.h"
