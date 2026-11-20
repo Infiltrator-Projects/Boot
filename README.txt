@@ -15,7 +15,6 @@ is complete and its UEFI boot behaviour has been verified.
 BOOT must be installed independently of GRUB, without overwriting GRUB,
 the firmware fallback at EFI/BOOT, or manufacturer files.
 
-Build instructions are in BUILDING.txt. Original authors, provenance,
-and applicable licences are recorded in CREDITS.txt, COPYING.txt,
-LICENSE.txt, and the component licence notices. Retain those notices
-when distributing derivatives.
+Build instructions are in BUILDING.txt. Licence terms are recorded in
+COPYING.txt and the component-specific licence notices; retain applicable
+notices and copyright attribution when distributing derivatives.

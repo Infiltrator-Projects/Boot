@@ -19,11 +19,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check BOOT identifiers
+      - name: Check BOOT identifiers and clean packaging layout
         shell: bash
         run: |
           if git ls-files | grep -iE 're[f]ind'; then exit 1; fi
           if git grep -n -i -I -E 're[f]ind' -- .; then exit 1; fi
+          for legacy in debian boot.spec boot-alt.spec mkdistrib mkcdimage; do
+            if [[ -e "$legacy" ]]; then
+              echo "Obsolete legacy packaging remains: $legacy" >&2
+              exit 1
+            fi
+          done
+          for current in packaging/build-release.sh packaging/test-release.sh COPYING.txt; do
+            test -s "$current" || exit 1
+          done
 
       - name: Install firmware and packaging dependencies
         run: |

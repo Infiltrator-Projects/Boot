@@ -595,8 +595,11 @@ Placing the files directly in /boot/efi/EFI/{distname}/boot and then
 having a post-install script call efibootmgr could also work, but this
 assumes that the ESP is mounted at /boot/efi. Also, Debian packages try to
 create symbolic links when updating packages, which won't work on an ESP,
-which should use FAT. For packaging examples, see the boot.spec file and
-debian subdirectory of the BOOT source tarball.
+which should use FAT. For BOOT's current AMD64 packaging and release process, use
+packaging/build-release.sh and packaging/test-release.sh. These scripts
+produce the native source-downloading .run installer (with built-in
+installation logic) and a generic .deb that only stages firmware files.
+Do not run boot-install during package construction.
 
 Distribution packagers should create their own SBAT .csv filess, as
 described earlier, in "Preparing SBAT Support" and adjust the
