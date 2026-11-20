@@ -1,0 +1,8 @@
+Document: boot
+Title: The BOOT Boot Manager Manual
+Author: Roderick W. Smith
+Section: System/Administration
+
+Format: HTML
+Index: /usr/share/doc/boot/boot/index.html
+Files: /usr/share/doc/boot/boot/*.html
