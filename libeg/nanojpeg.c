@@ -318,7 +318,7 @@ typedef struct _nj_cmp {
 } nj_component_t;
 
 // Modified structure: Change vlctab[4][65536] to *vlctab[4] so as to minimize
-// stack use. (The original code caused the refind_x64.efi binary to blow up
+// stack use. (The original code caused the boot_x64.efi binary to blow up
 // from ~260KiB to ~790KiB!) This change, of course, also necessitates changes
 // to the njInit() and njDone() functions, as well.
 typedef struct _nj_ctx {
