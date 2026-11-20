@@ -16,8 +16,11 @@ test "$(dpkg-deb --field "$deb" Architecture)" = "amd64"
 # No Debian maintainer scripts: package installation must NOT touch the ESP.
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-dpkg-deb --ctrl-tarfile "$deb" | tar -tf - | grep -Eq '^\./control$|^control$'
-if dpkg-deb --ctrl-tarfile "$deb" | tar -tf - | grep -Eq '(^|/)(postinst|preinst|prerm|postrm)$'; then
+dpkg-deb --contents "$deb" > "$work/package-list.txt"
+grep -F "usr/share/infiltrator-boot/boot/boot_x64.efi" "$work/package-list.txt" > /dev/null
+dpkg-deb --ctrl-tarfile "$deb" | tar -tf - > "$work/control-list.txt"
+grep -Eq "^\\./control$|^control$" "$work/control-list.txt"
+if grep -Eq "(^|/)(postinst|preinst|prerm|postrm)$" "$work/control-list.txt"; then
     echo "Unexpected Debian maintainer script" >&2
     exit 1
 fi
