@@ -1,5 +1,5 @@
 /*
- * refind/linux.h
+ * boot/linux.h
  * Definitions related specifically to Linux loaders
  *
  * Copyright (c) 2006-2010 Christoph Pfisterer
@@ -55,8 +55,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __REFIND_LINUX_H_
-#define __REFIND_LINUX_H_
+#ifndef __BOOT_LINUX_H_
+#define __BOOT_LINUX_H_
 
 CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume);
 CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath);
