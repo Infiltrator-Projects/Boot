@@ -1,5 +1,5 @@
 /*
- * refind/config.c
+ * boot/config.c
  * Configuration file functions
  *
  * Copyright (c) 2006 Christoph Pfisterer
@@ -71,7 +71,7 @@
 
 // constants
 
-#define LINUX_OPTIONS_FILENAMES  L"refind_linux.conf,refind-linux.conf"
+#define LINUX_OPTIONS_FILENAMES  L"boot_linux.conf,boot-linux.conf"
 #define MAXCONFIGFILESIZE        (128*1024)
 
 #define ENCODING_ISO8859_1  (0)
@@ -944,7 +944,7 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
     Entry->me.SubScreen = SubScreen;
 } // VOID AddSubmenu()
 
-// Adds the options from a SINGLE refind.conf stanza to a new loader entry and returns
+// Adds the options from a SINGLE boot.conf stanza to a new loader entry and returns
 // that entry. The calling function is then responsible for adding the entry to the
 // list of entries.
 static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, CHAR16 *Title) {
@@ -1057,7 +1057,7 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
     return(Entry);
 } // static VOID AddStanzaEntries()
 
-// Read the user-configured menu entries from refind.conf and add or delete
+// Read the user-configured menu entries from boot.conf and add or delete
 // entries based on the contents of that file....
 VOID ScanUserConfigured(CHAR16 *FileName)
 {
@@ -1212,7 +1212,7 @@ static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
 // you pass this function the filename of the Linux kernel, initial RAM disk, or other
 // file in the target directory, and this function finds the file with a name in the
 // comma-delimited list of names specified by LINUX_OPTIONS_FILENAMES within that
-// directory and loads it. If a rEFInd options file can't be found, try to generate
+// directory and loads it. If a BOOT options file can't be found, try to generate
 // minimal options from /etc/fstab on the same volume as the kernel. This typically
 // works only if the kernel is being read from the Linux root filesystem.
 //
@@ -1249,7 +1249,7 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
         OptionsFilename = FullFilename = NULL;
     } while (GoOn);
     if (!FileFound) {
-        // No refind_linux.conf file; look for /etc/fstab and try to pull values from there....
+        // No boot_linux.conf file; look for /etc/fstab and try to pull values from there....
         File = GenerateOptionsFromEtcFstab(Volume);
         // If still no joy, try to use Freedesktop.org Discoverable Partitions Spec....
         if (!File)
