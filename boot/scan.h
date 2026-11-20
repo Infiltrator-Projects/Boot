@@ -1,5 +1,5 @@
 /*
- * refind/scan.h
+ * boot/scan.h
  * Headers related to scanning for boot loaders
  *
  * Copyright (c) 2006-2010 Christoph Pfisterer
