@@ -1269,7 +1269,7 @@ FindMountedESP() {
       else
          echo "The computer appears to be running in BIOS mode and has no ESP. You should"
          echo "create an ESP, and ideally boot in EFI mode, before installing BOOT."
-         exit 0
+         exit 1
       fi
    fi
    echo "ESP was found at $InstallDir using $EspFilesystem"
@@ -1528,7 +1528,9 @@ case "$OSTYPE" in
 esac
 CreateBootCsvFile
 
+InstallationFailed=0
 if [[ $Problems ]] ; then
+   InstallationFailed=1
    echo
    echo "ALERT:"
    echo "Installation has completed, but problems were detected. Review the output for"
@@ -1557,3 +1559,6 @@ if [[ "$InstallDir" == /tmp/boot_install ]] ; then
 #   sleep 5
    rmdir "$InstallDir"
 fi
+
+# Propagate installation errors to the native RUN and its caller.
+exit "$InstallationFailed"
