@@ -21,7 +21,7 @@ similar to those of OS X on a real Mac. Thus, you should use a hybrid MBR
 *ONLY* on a Mac that dual-boots with Windows or some other OS in BIOS mode
 or in very rare circumstances on other computers.
 
-The version of gptsync provided with rEFInd is heavily modified from the
+The version of gptsync provided with BOOT is heavily modified from the
 original rEFIt version of the program. Most notably, it's "smarter" about
 creating a hybrid MBR: It prioritizes placement of Windows (FAT and NTFS)
 partitions in the MBR side, followed by Linux partitions. Other partitions,
@@ -30,7 +30,7 @@ whereas they generally do appear in hybrid MBRs created by rEFIt's version
 of gptsync. In the rEFIt version of gptsync, OS X partitions can crowd out
 FAT or NTFS partitions, particularly on computers with shared FAT or NTFS
 partitions, multiple Windows installations, or triple-boots with OS X,
-Windows, and Linux. The rEFInd version of gptsync also checks the
+Windows, and Linux. The BOOT version of gptsync also checks the
 firmware's author and warns if you're trying to run the program on anything
 but Apple firmware, since in most such cases creating a hybrid MBR is *NOT*
 desirable.
