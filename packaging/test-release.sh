@@ -20,6 +20,11 @@ work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 dpkg-deb --contents "$deb" > "$work/package-files.txt"
 grep -Fq 'usr/share/infiltrator-boot/boot/boot_x64.efi' "$work/package-files.txt"
+grep -Fq 'usr/share/infiltrator-boot/docs/COPYING.txt' "$work/package-files.txt"
+if grep -Eq 'usr/share/infiltrator-boot/docs/(LICENSE|CREDITS|NEWS)\.txt' "$work/package-files.txt"; then
+    echo "Obsolete upstream text file was included in the BOOT package" >&2
+    exit 1
+fi
 dpkg-deb --ctrl-tarfile "$deb" | tar -tf - > "$work/control.txt"
 grep -Eq '^\./control$|^control$' "$work/control.txt"
 if grep -Eq '(^|/)(postinst|preinst|prerm|postrm)$' "$work/control.txt"; then
