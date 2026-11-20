@@ -47,6 +47,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential binutils gnu-efi file dpkg-dev
 
+      - name: Install disposable OVMF test tools
+        run: sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf dosfstools mtools gdisk
+
       - name: Compile BOOT with GNU-EFI
         shell: bash
         run: |
@@ -94,6 +97,10 @@ jobs:
       - name: Test firmware-entry preservation with fake NVRAM
         shell: bash
         run: sudo bash tests/nvram-safety.sh
+
+      - name: Smoke-test BOOT main menu in disposable OVMF firmware
+        shell: bash
+        run: bash tests/ovmf-smoke.sh
 
       - name: Upload verified workflow artifacts
         uses: actions/upload-artifact@v4
