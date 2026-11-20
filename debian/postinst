@@ -1,6 +1,6 @@
 #!/bin/bash
 # Post-installation script (run on USER'S system after installing the
-# main rEFInd package)
+# main BOOT package)
 
 set -e
 
@@ -14,7 +14,7 @@ install_to_esp() {
     # the current boot; it will be null otherwise
     BootShimFile=$(efibootmgr -v | grep Boot$BootCurrent | cut -f 2- -d '\' | cut -f 1 -d ')' | grep -i 'shim\|preloader' || true)
 
-    cd /usr/share/refind
+    cd /usr/share/boot
 
     if [[ -f /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c ]] ; then
         IsSecureBoot=$(od -An -t u1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c | awk '{print substr($0,length,1)}')
@@ -30,7 +30,7 @@ install_to_esp() {
     declare SBSign=`which sbsign 2> /dev/null`
     declare OpenSSL=`which openssl 2> /dev/null`
 
-    # Run the rEFInd installation script. Do so with the --shim option if
+    # Run the BOOT installation script. Do so with the --shim option if
     # Secure Boot mode is suspected, if a shim program can be found, and if
     # Shim was used for the current boot; or without it if not. If a shim
     # installation is attempted and the sbsign and openssl programs can be
@@ -41,15 +41,15 @@ install_to_esp() {
     # local keys.
     if [[ $IsSecureBoot == "1" && -n $ShimFile && -n "$BootShimFile" ]] ; then
         if [[ -n $SBSign && -n $OpenSSL ]] ; then
-            ./refind-install --shim $ShimFile --localkeys --yes > /dev/null
+            ./boot-install --shim $ShimFile --localkeys --yes > /dev/null
         else
-            ./refind-install --shim $ShimFile --yes > /dev/null
+            ./boot-install --shim $ShimFile --yes > /dev/null
         fi
     else
         if [[ -n $SBSign && -n $OpenSSL ]] ; then
-            ./refind-install --localkeys --yes > /dev/null
+            ./boot-install --localkeys --yes > /dev/null
         else
-            ./refind-install --yes > /dev/null
+            ./boot-install --yes > /dev/null
         fi
     fi
 } # install_to_esp()
@@ -60,26 +60,26 @@ install_to_esp() {
 
 case "$1" in
     configure)
-        db_get refind/install_to_esp || true;
+        db_get boot/install_to_esp || true;
         if [ x"$RET" = x"true" ]; then
-            echo "Installing rEFInd to the ESP..."
+            echo "Installing BOOT to the ESP..."
             install_to_esp
         else
-            echo "** Not installing rEFInd to the ESP! **"
-            echo "If you want rEFInd to control the boot process, you can do so by runing:"
+            echo "** Not installing BOOT to the ESP! **"
+            echo "If you want BOOT to control the boot process, you can do so by runing:"
             echo ""
-            echo "dpkg-reconfigure refind"
+            echo "dpkg-reconfigure boot"
             echo ""
         fi
     ;;
 
     reconfigure)
-        db_get refind/install_to_esp || true;
+        db_get boot/install_to_esp || true;
         if [ x"$RET" = x"true" ]; then
-            echo "Installing rEFInd to the ESP..."
+            echo "Installing BOOT to the ESP..."
             install_to_esp
         else
-            echo "If rEFInd was previously configured to be your primary boot manager, you must"
+            echo "If BOOT was previously configured to be your primary boot manager, you must"
             echo "use efibootmgr to set the computer to boot with something else."
         fi
     ;;
