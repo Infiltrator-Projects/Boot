@@ -33,7 +33,8 @@ for directory in icons fonts banners themes; do
     if [[ -d "$directory" ]]; then cp -a "$directory" "$root/boot/"; fi
 done
 install -m 0644 boot.conf-sample "$root/boot/boot.conf-sample"
-for document in COPYING.txt LICENSE.txt CREDITS.txt README.txt BUILDING.txt; do
+# Ship documentation that remains in the repository; do not require deleted upstream files.
+for document in COPYING.txt README.txt BUILDING.txt; do
     install -m 0644 "$document" "$root/docs/$document"
 done
 for script in boot-install boot-mkdefault boot-sb-healthcheck mountesp mvboot mkrlconf; do
