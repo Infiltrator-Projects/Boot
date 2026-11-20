@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# Linux/MacOS X script to install rEFInd
+# Linux/MacOS X script to install BOOT
 #
 # Usage:
 #
-# ./refind-install [options]
+# ./boot-install [options]
 #
 # options include:
 #    "--notesp" to install to the OS X root filesystem rather than to the ESP.
@@ -25,7 +25,7 @@
 #    "--encryptkeys" password-protects the Secure Boot private key.
 #    "--localkeys" to re-sign x86-64 binaries with a locally-generated key.
 #           Valid only under Linux.
-#    "--keepname" to keep refind_x64.efi name as such even when using shim.
+#    "--keepname" to keep boot_x64.efi name as such even when using shim.
 #           Valid only under Linux.
 #    "--yes" to assume a "yes" response to all prompts
 #
@@ -43,7 +43,7 @@
 # 0.14.0  -- Fix bug that caused failure to install filesystem driver in Linux
 # 0.13.3.1-- Fix bug that caused failure to detect mounted ESP in Linux
 # 0.13.3  -- Remove stray exit from CreateBootCsvFile()
-# 0.13.2  -- Add installation of rEFInd Secure Boot key as MOK; if installing
+# 0.13.2  -- Add installation of BOOT Secure Boot key as MOK; if installing
 #            with Shim, add backup direct boot NVRAM option
 # 0.12.0  -- Improve code to find ESPs; should help with NVMe drives. Also
 #            activate install and bootorder features when using --usedefault
@@ -66,7 +66,7 @@
 #            warning when --alldrivers used without --usedefault.
 # 0.10.0  -- Enable running under OS X's recovery system & add warning about
 #            SIP & brief instructions on how to deal with it if SIP is
-#            detected to be enabled. Also change way refind_linux.conf default
+#            detected to be enabled. Also change way boot_linux.conf default
 #            options are found; use /proc/cmdline as base.
 # 0.9.2   -- Added --keepname option.
 # 0.8.7   -- Better detection of Secure Boot mode & fixed errors when copying
@@ -78,7 +78,7 @@
 # 0.8.5   -- Refinement/cleanup of new OS X ESP-as-default policy
 # 0.8.4   -- OS X default changed to install to ESP under /EFI/BOOT
 # 0.7.9   -- Fixed bug that caused errors if dmraid utility not installed
-# 0.7.7   -- Fixed bug that created mangled refind_linux.conf file; added ability
+# 0.7.7   -- Fixed bug that created mangled boot_linux.conf file; added ability
 #            to locate and mount ESP on Linux, if it's not mounted
 # 0.7.6   -- Added --ownhfs {device-filename} option
 # 0.7.5   -- Fixed bug when installing to ESP on recent versions of OS X
@@ -92,16 +92,16 @@
 # 0.6.6   -- Bug fix: Upgrade drivers when installed to EFI/BOOT. Also enable
 #            copying shim.efi and MokManager.efi over themselves.
 # 0.6.4   -- Copies ext2 driver rather than ext4 driver for ext2/3fs
-# 0.6.3   -- Support for detecting rEFInd in EFI/BOOT and EFI/Microsoft/Boot
+# 0.6.3   -- Support for detecting BOOT in EFI/BOOT and EFI/Microsoft/Boot
 #            directories & for installing to EFI/BOOT in BIOS mode
 # 0.6.2-1 -- Added --yes option & tweaked key-copying for use with RPM install script
 # 0.6.1   -- Added --root option; minor bug fixes
 # 0.6.0   -- Changed --drivers to --alldrivers and added --nodrivers option;
 #            changed default driver installation behavior in Linux to install
 #            the driver needed to read /boot (if available)
-# 0.5.1.2 -- Fixed bug that caused failure to generate refind_linux.conf file
+# 0.5.1.2 -- Fixed bug that caused failure to generate boot_linux.conf file
 # 0.5.1.1 -- Fixed bug that caused script failure under OS X
-# 0.5.1   -- Added --shim & --localkeys options & create sample refind_linux.conf
+# 0.5.1   -- Added --shim & --localkeys options & create sample boot_linux.conf
 #            in /boot
 # 0.5.0   -- Added --usedefault & --drivers options & changed "esp" option to "--esp"
 # 0.4.5   -- Fixed check for rEFItBlesser in OS X
@@ -111,21 +111,21 @@
 # 0.3.2.1 -- Check for presence of source files; aborts if not present
 # 0.3.2   -- Initial version
 #
-# Note: install.sh version numbers match those of the rEFInd package
+# Note: install.sh version numbers match those of the BOOT package
 # with which they first appeared.
 
 RootDir="/"
-TargetDir=/EFI/refind
-LocalKeysBase="refind_local"
+TargetDir=/EFI/InfiltratorBoot
+LocalKeysBase="boot_local"
 ShimSource="none"
 ShimType="none"
 KeepName=0
 TargetShim="default"
-TargetX64="refind_x64.efi"
-TargetIA32="refind_ia32.efi"
+TargetX64="boot_x64.efi"
+TargetIA32="boot_ia32.efi"
 LocalKeys=0
 EncryptKeys=0
-DeleteRefindDir=0
+DeleteBootDir=0
 AlwaysYes=0
 EspGuid="C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
 
@@ -223,8 +223,8 @@ GetParams() {
       echo "The --encryptkeys option requires the use of --localkeys! Aborting!"
       exit 1
    fi
-   RLConfFile="$RootDir/boot/refind_linux.conf"
-   EtcKeysDir="$RootDir/etc/refind.d/keys"
+   RLConfFile="$RootDir/boot/boot_linux.conf"
+   EtcKeysDir="$RootDir/etc/boot.d/keys"
 } # GetParams()
 
 # Get a yes/no response from the user and place it in the YesNo variable.
@@ -313,7 +313,7 @@ DeterminePlatform() {
             echo "CAUTION: This Linux installation uses a 32-bit kernel. 32-bit EFI-based"
             echo "computers are VERY RARE. If you've installed a 32-bit version of Linux"
             echo "on a 64-bit computer, you should manually install the 64-bit version of"
-            echo "rEFInd. If you're positive you want to continue with this installation,"
+            echo "BOOT. If you're positive you want to continue with this installation,"
             echo "answer 'Y' to the following question..."
             echo
             echo -n "Are you sure you want to continue (Y/N)? "
@@ -338,12 +338,12 @@ DeterminePlatform() {
    esac # case "$OSTYPE"....
 } # DeterminePlatform()
 
-# Abort if the rEFInd files can't be found.
+# Abort if the BOOT files can't be found.
 # Also sets $ConfFile to point to the configuration file,
 # $IconsDir to point to the icons directory,
 # $ShimSource to the source of the shim.efi file (if necessary),
 # $ThisDir to point to the directory in which this script resides,
-# and $RefindDir to point to where the rEFInd binaries live
+# and $BootDir to point to where the BOOT binaries live
 CheckForFiles() {
    # Note: $ThisDir points to real (not symlinked) script home on Linux,
    # enabling creating a symlink in /usr/sbin (or wherever); but on OS X,
@@ -357,24 +357,24 @@ CheckForFiles() {
            ThisDir="$(dirname "$(readlink -f "$0")")"
            ;;
    esac
-   RefindDir="$ThisDir/refind"
+   BootDir="$ThisDir/boot"
 
-   if [[ ! -f "$RefindDir/refind_$Platform.efi" ]] ; then
-      echo "The rEFInd binary file is missing! Aborting installation!"
+   if [[ ! -f "$BootDir/boot_$Platform.efi" ]] ; then
+      echo "The BOOT binary file is missing! Aborting installation!"
       exit 1
    fi
 
-   if [[ -f "$RefindDir/refind.conf-sample" ]] ; then
-      ConfFile="$RefindDir/refind.conf-sample"
-   elif [[ -f "$ThisDir/refind.conf-sample" ]] ; then
-      ConfFile="$ThisDir/refind.conf-sample"
+   if [[ -f "$BootDir/boot.conf-sample" ]] ; then
+      ConfFile="$BootDir/boot.conf-sample"
+   elif [[ -f "$ThisDir/boot.conf-sample" ]] ; then
+      ConfFile="$ThisDir/boot.conf-sample"
    else
       echo "The sample configuration file is missing! Aborting installation!"
       exit 1
    fi
 
-   if [[ -d "$RefindDir/icons" ]] ; then
-      IconsDir="$RefindDir/icons"
+   if [[ -d "$BootDir/icons" ]] ; then
+      IconsDir="$BootDir/icons"
    elif [[ -d "$ThisDir/icons" ]] ; then
       IconsDir="$ThisDir/icons"
    else
@@ -411,7 +411,7 @@ CheckForFiles() {
    fi
 } # CheckForFiles()
 
-# Helper for CopyRefindFiles; copies shim files (including MokManager, if it's
+# Helper for CopyBootFiles; copies shim files (including MokManager, if it's
 # available) to target.
 CopyShimFiles() {
    local TargetMMName
@@ -504,42 +504,42 @@ SetVarsForMsBoot() {
    fi
 } # SetVarsForMsBoot()
 
-# TargetDir defaults to /EFI/refind; however, this function adjusts it as follows:
-# - If an existing refind.conf is available in /EFI/BOOT or /EFI/Microsoft/Boot,
+# TargetDir defaults to /EFI/InfiltratorBoot; however, this function adjusts it as follows:
+# - If an existing boot.conf is available in /EFI/BOOT or /EFI/Microsoft/Boot,
 #   install to that directory under the suitable name; but DO NOT do this if
-#   refind.conf is also in /EFI/refind.
+#   boot.conf is also in /EFI/InfiltratorBoot.
 # - If booted in BIOS mode and the ESP lacks any other EFI files, install to
 #   /EFI/BOOT
-# - If booted in BIOS mode and there's no refind.conf file and there is a
+# - If booted in BIOS mode and there's no boot.conf file and there is a
 #   /EFI/Microsoft/Boot/bootmgfw.efi file, move it down one level and
 #   install under that name, "hijacking" the Windows boot loader filename
 DetermineTargetDir() {
    Upgrade=0
 
-   if [[ -f $InstallDir/EFI/BOOT/refind.conf && ! -f $InstallDir/EFI/refind/refind.conf ]] ; then
+   if [[ -f $InstallDir/EFI/BOOT/boot.conf && ! -f $InstallDir/EFI/InfiltratorBoot/boot.conf ]] ; then
       SetVarsForBoot
       Upgrade=1
    fi
-   if [[ -f $InstallDir/EFI/Microsoft/Boot/refind.conf && ! -f $InstallDir/EFI/refind/refind.conf ]] ; then
+   if [[ -f $InstallDir/EFI/Microsoft/Boot/boot.conf && ! -f $InstallDir/EFI/InfiltratorBoot/boot.conf ]] ; then
       SetVarsForMsBoot
       Upgrade=1
    fi
-   if [[ -f $InstallDir/EFI/refind/refind.conf ]] ; then
-      TargetDir="/EFI/refind"
+   if [[ -f $InstallDir/EFI/InfiltratorBoot/boot.conf ]] ; then
+      TargetDir="/EFI/InfiltratorBoot"
       if [[ $ShimSource == "none" || $KeepName == 1 ]] ; then
-         TargetX64="refind_x64.efi"
-         TargetIA32="refind_ia32.efi"
-         TargetAARCH64="refind_aa64.efi"
+         TargetX64="boot_x64.efi"
+         TargetIA32="boot_ia32.efi"
+         TargetAARCH64="boot_aa64.efi"
       fi
       Upgrade=1
    fi
    if [[ $Upgrade == 1 ]] ; then
-      echo "Found rEFInd installation in $InstallDir$TargetDir; upgrading it."
+      echo "Found BOOT installation in $InstallDir$TargetDir; upgrading it."
    fi
 
    if [[ ! -d /sys/firmware/efi && ! $OSTYPE == darwin* && $Upgrade == 0 ]] ; then     # BIOS-mode
       FoundEfiFiles=$(find "$InstallDir/EFI/BOOT" -name "*.efi" 2> /dev/null)
-      FoundConfFiles=$(find "$InstallDir" -name "refind\.conf" 2> /dev/null)
+      FoundConfFiles=$(find "$InstallDir" -name "boot\.conf" 2> /dev/null)
       if [[ -z "$FoundConfFiles" && -f "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi" ]] ; then
          mv -n "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi" "$InstallDir/EFI/Microsoft" &> /dev/null
          SetVarsForMsBoot
@@ -551,8 +551,8 @@ DetermineTargetDir() {
          echo "$InstallDir""$TargetDir"
       else
          echo "Running in BIOS mode with an existing default boot loader; backing it up and"
-         echo "installing rEFInd in its place."
-         if [[ -d "$InstallDir/EFI/BOOT-rEFIndBackup" ]] ; then
+         echo "installing BOOT in its place."
+         if [[ -d "$InstallDir/EFI/BOOT-BOOTBackup" ]] ; then
             echo ""
             echo "Caution: An existing backup of a default boot loader exists! If the current"
             echo "default boot loader and the backup are different boot loaders, the current"
@@ -566,7 +566,7 @@ DetermineTargetDir() {
                exit 0
             fi
          fi
-         mv -n "$InstallDir/EFI/BOOT" "$InstallDir/EFI/BOOT-rEFIndBackup"
+         mv -n "$InstallDir/EFI/BOOT" "$InstallDir/EFI/BOOT-BOOTBackup"
          SetVarsForBoot
       fi
    fi # BIOS-mode
@@ -608,14 +608,14 @@ SetBootFS() {
    esac
 } # SetBootFS()
 
-# Copy drivers from $RefindDir/drivers_$1 to $InstallDir/$TargetDir/drivers_$1,
+# Copy drivers from $BootDir/drivers_$1 to $InstallDir/$TargetDir/drivers_$1,
 # honoring the $InstallDrivers condition. Must be passed a suitable
 # architecture code (ia32 or x64).
 CopyDrivers() {
    if [[ $InstallDrivers == "all" ]] ; then
       mkdir -p "$InstallDir/$TargetDir/drivers_$1"
       cp "$ThisDir"/drivers_"$1"/*_"$1".efi "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
-      cp "$RefindDir"/drivers_"$1"/*_"$1".efi "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
+      cp "$BootDir"/drivers_"$1"/*_"$1".efi "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
    elif [[ "$InstallDrivers" == "boot" ]] ; then
       SetBootFS
       DriverType=""
@@ -640,7 +640,7 @@ CopyDrivers() {
          echo "Installing driver for $BootFS (${DriverType}_$1.efi)"
          mkdir -p "$InstallDir/$TargetDir/drivers_$1"
          cp "$ThisDir/drivers_$1/${DriverType}_$1.efi" "$InstallDir/$TargetDir/drivers_$1/" 2> /dev/null
-         cp "$RefindDir/drivers_$1/${DriverType}_$1.efi" "$InstallDir/$TargetDir/drivers_$1"/ 2> /dev/null
+         cp "$BootDir/drivers_$1/${DriverType}_$1.efi" "$InstallDir/$TargetDir/drivers_$1"/ 2> /dev/null
       fi
    fi
 } # CopyDrivers()
@@ -651,7 +651,7 @@ CopyDrivers() {
 CopyTools() {
    mkdir -p "$InstallDir/EFI/tools"
    if [[ $OSTYPE == darwin* ]] ; then
-      cp -f "$RefindDir/tools_$1/gptsync_$1.efi" "$InstallDir/EFI/tools/"
+      cp -f "$BootDir/tools_$1/gptsync_$1.efi" "$InstallDir/EFI/tools/"
       if [[ -f "$InstallDir/EFI/tools/gptsync.efi" ]] ; then
          mv "$InstallDir/EFI/tools/gptsync.efi" "$InstallDir/EFI/tools/gptsync.efi-disabled"
          echo "Found old gptsync.efi; disabling it by renaming it to gptsync.efi-disabled"
@@ -659,18 +659,18 @@ CopyTools() {
    fi
 } # CopyTools()
 
-# Copy the rEFInd files to the ESP or OS X root partition.
+# Copy the BOOT files to the ESP or OS X root partition.
 # Sets Problems=1 if any critical commands fail.
-CopyRefindFiles() {
+CopyBootFiles() {
    mkdir -p "$InstallDir/$TargetDir"
    if [[ "$TargetDir" == '/EFI/BOOT' ]] ; then
-      if ! cp "$RefindDir/refind_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" 2> /dev/null ; then
+      if ! cp "$BootDir/boot_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" 2> /dev/null ; then
          echo "Note: IA32 (x86) binary not installed!"
       fi
-      if ! cp "$RefindDir/refind_x64.efi" "$InstallDir/$TargetDir/$TargetX64" 2> /dev/null ; then
+      if ! cp "$BootDir/boot_x64.efi" "$InstallDir/$TargetDir/$TargetX64" 2> /dev/null ; then
          Problems=1
       fi
-      cp "$RefindDir/refind_aa64.efi" "$InstallDir/$TargetDir/$TargetAARCH64" 2> /dev/null
+      cp "$BootDir/boot_aa64.efi" "$InstallDir/$TargetDir/$TargetAARCH64" 2> /dev/null
       if [[ $? != 0 && $Platform == "aa64" ]] ; then
          Problems=1
       fi
@@ -679,33 +679,33 @@ CopyRefindFiles() {
          CopyShimFiles
       fi
       if [[ $InstallDrivers == "all" ]] ; then
-         cp -r "$RefindDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
+         cp -r "$BootDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
          cp -r "$ThisDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
       elif [[ $Upgrade == 1 || $InstallToEspOnMac == 1 ]] ; then
          CopyDrivers "$Platform"
          CopyTools "$Platform"
       fi
-      Refind="boot$Platform.efi"
+      Boot="boot$Platform.efi"
       CopyKeys
    elif [[ $Platform == 'x64' || $TargetDir == "/EFI/Microsoft/Boot" ]] ; then
-      if ! cp "$RefindDir/refind_x64.efi" "$InstallDir/$TargetDir/$TargetX64" ; then
+      if ! cp "$BootDir/boot_x64.efi" "$InstallDir/$TargetDir/$TargetX64" ; then
          Problems=1
       fi
       CopyDrivers x64
       CopyTools x64
-      Refind="refind_x64.efi"
+      Boot="boot_x64.efi"
       CopyKeys
       if [[ "$ShimSource" != "none" ]] ; then
          if [[ "$TargetShim" == "default" ]] ; then
             TargetShim=$(basename "$ShimSource")
          fi
          CopyShimFiles
-         Refind="$TargetShim"
+         Boot="$TargetShim"
          if [[ $LocalKeys == 0 ]] ; then
-            echo "Storing copies of rEFInd Secure Boot public keys in $EtcKeysDir"
+            echo "Storing copies of BOOT Secure Boot public keys in $EtcKeysDir"
             mkdir -p "$EtcKeysDir"
-            cp "$ThisDir/keys/refind.cer" "$EtcKeysDir" 2> /dev/null
-            cp "$ThisDir/keys/refind.crt" "$EtcKeysDir" 2> /dev/null
+            cp "$ThisDir/keys/boot.cer" "$EtcKeysDir" 2> /dev/null
+            cp "$ThisDir/keys/boot.crt" "$EtcKeysDir" 2> /dev/null
          fi
       fi
       if [[ "$TargetDir" == '/System/Library/CoreServices' ]] ; then
@@ -713,17 +713,17 @@ CopyRefindFiles() {
       fi
    elif [[ $Platform == 'ia32' || $Platform == 'aa64' ]] ; then
       if [[ $Platform == 'ia32' ]] ; then
-         if ! cp "$RefindDir/refind_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" ; then
+         if ! cp "$BootDir/boot_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" ; then
             Problems=1
          fi
       else
-         if ! cp "$RefindDir/refind_aa64.efi" "$InstallDir/$TargetDir/$TargetAARCH64" ; then
+         if ! cp "$BootDir/boot_aa64.efi" "$InstallDir/$TargetDir/$TargetAARCH64" ; then
             Problems=1
          fi
       fi
       CopyDrivers $Platform
       CopyTools $Platform
-      Refind="refind_$Platform.efi"
+      Boot="boot_$Platform.efi"
       if [[ "$TargetDir" == '/System/Library/CoreServices' ]] ; then
          SetupMacHfs $TargetIA32
       fi
@@ -731,7 +731,7 @@ CopyRefindFiles() {
       echo "Unknown platform! Aborting!"
       exit 1
    fi
-   echo "Copied rEFInd binary files"
+   echo "Copied BOOT binary files"
    echo ""
    if [[ -d "$InstallDir/$TargetDir/icons" ]] ; then
       rm -rf "$InstallDir/$TargetDir/icons-backup" &> /dev/null
@@ -744,38 +744,38 @@ CopyRefindFiles() {
    mkdir -p "$InstallDir/$TargetDir/keys"
    cp -rf "$ThisDir"/keys/*.[cd]er "$InstallDir/$TargetDir/keys/" 2> /dev/null
    cp -rf "$EtcKeysDir"/*.[cd]er "$InstallDir/$TargetDir/keys/" 2> /dev/null
-   if [[ -f "$InstallDir/$TargetDir/refind.conf" ]] ; then
-      echo "Existing refind.conf file found; copying sample file as refind.conf-sample"
+   if [[ -f "$InstallDir/$TargetDir/boot.conf" ]] ; then
+      echo "Existing boot.conf file found; copying sample file as boot.conf-sample"
       echo "to avoid overwriting your customizations."
       echo ""
       if ! cp -f "$ConfFile" "$InstallDir/$TargetDir" ; then
          Problems=1
       fi
    else
-      echo "Copying sample configuration file as refind.conf; edit this file to configure"
-      echo "rEFInd."
+      echo "Copying sample configuration file as boot.conf; edit this file to configure"
+      echo "BOOT."
       echo ""
-      if ! cp -f "$ConfFile" "$InstallDir/$TargetDir/refind.conf" ; then
+      if ! cp -f "$ConfFile" "$InstallDir/$TargetDir/boot.conf" ; then
          Problems=1
       fi
    fi
    # If installing to the fallback/EFI default filename, make a duplicate copy
-   # of refind.conf and edit the main copy to include the "install" and "bootorder"
-   # options, so that the system can be used to install rEFInd if it's on a USB
+   # of boot.conf and edit the main copy to include the "install" and "bootorder"
+   # options, so that the system can be used to install BOOT if it's on a USB
    # flash drive or CD-R....
    if [[ "$TargetDir" == '/EFI/BOOT' ]] ; then
-      cp -f "$ConfFile" "$InstallDir/$TargetDir/refind.conf-sample"
-      sed -i 's/#showtools shell/showtools install, shell/g' "$InstallDir/$TargetDir/refind.conf"
+      cp -f "$ConfFile" "$InstallDir/$TargetDir/boot.conf-sample"
+      sed -i 's/#showtools shell/showtools install, shell/g' "$InstallDir/$TargetDir/boot.conf"
    fi
-   if [[ $DeleteRefindDir == 1 ]] ; then
-      echo "Deleting the temporary directory $RefindDir"
-      rm -r "$RefindDir"
+   if [[ $DeleteBootDir == 1 ]] ; then
+      echo "Deleting the temporary directory $BootDir"
+      rm -r "$BootDir"
    fi
-} # CopyRefindFiles()
+} # CopyBootFiles()
 
 # Mount the partition the user specified with the --usedefault or --ownhfs option
 MountDefaultTarget() {
-   InstallDir=/tmp/refind_install
+   InstallDir=/tmp/boot_install
    mkdir -p "$InstallDir"
    UnmountEsp=1
    if [[ $OSTYPE == darwin* ]] ; then
@@ -785,7 +785,7 @@ MountDefaultTarget() {
          # messes up the following "cut" operation!
          InstallDir=$(echo $Temp | cut -f 3-30 -d ' ' | sed 's/\/\+/\//g')
          if [[ $InstallDir == '' ]] ; then
-            InstallDir=/tmp/refind_install
+            InstallDir=/tmp/boot_install
             mount -t hfs "$TargetPart" "$InstallDir"
          else
             UnmountEsp=0
@@ -803,21 +803,21 @@ MountDefaultTarget() {
    fi
 } # MountDefaultTarget()
 
-# Create a BOOT.CSV file in the same directory as rEFInd, to help in recovery
+# Create a BOOT.CSV file in the same directory as BOOT, to help in recovery
 # should the system's boot entry list be lost
 CreateBootCsvFile() {
    IConv="$(command -v iconv 2> /dev/null)"
    if [[ -x "$IConv" ]] ; then
       if [[ "$Platform" == "x64" && -d "$InstallDir/$TargetDir" ]] ; then
-         echo "$TargetX64,rEFInd Boot Manager,,This is the boot entry for rEFInd" | \
+         echo "$TargetX64,BOOT Boot Manager,,This is the boot entry for BOOT" | \
               $IConv -t UCS-2 > "$InstallDir/$TargetDir/BOOT.CSV"
       fi
       if [[ "$Platform" == "ia32" && -d "$InstallDir/$TargetDir" ]] ; then
-         echo "$TargetIA32,rEFInd Boot Manager,,This is the boot entry for rEFInd" | \
+         echo "$TargetIA32,BOOT Boot Manager,,This is the boot entry for BOOT" | \
               $IConv -t UCS-2 > "$InstallDir/$TargetDir/BOOT.CSV"
       fi
       if [[ "$Platform" == "aarch64" && -d "$InstallDir/$TargetDir" ]] ; then
-         echo "$TargetAARCH64,rEFInd Boot Manager,,This is the boot entry for rEFInd" | \
+         echo "$TargetAARCH64,BOOT Boot Manager,,This is the boot entry for BOOT" | \
               $IConv -t UCS-2 > "$InstallDir/$TargetDir/BOOT.CSV"
       fi
    fi
@@ -874,12 +874,12 @@ MountOSXESP() {
    fi
 } # MountOSXESP()
 
-# Set up for booting from Mac HFS+ volume that boots rEFInd in MJG's way
+# Set up for booting from Mac HFS+ volume that boots BOOT in MJG's way
 # (http://mjg59.dreamwidth.org/7468.html)
-# Must be passed the original rEFInd binary filename (without a path).
+# Must be passed the original BOOT binary filename (without a path).
 SetupMacHfs() {
    if [[ -s "$InstallDir/mach_kernel" ]] ; then
-      echo "Attempt to install rEFInd to a partition with a /mach_kernel file! Aborting!"
+      echo "Attempt to install BOOT to a partition with a /mach_kernel file! Aborting!"
       exit 1
    fi
    cp -n "$InstallDir/$TargetDir/boot.efi" "$InstallDir/$TargetDir/boot.efi-backup" &> /dev/null
@@ -893,7 +893,7 @@ SetupMacHfs() {
         <key>ProductBuildVersion</key>
         <string></string>
         <key>ProductName</key>
-        <string>rEFInd</string>
+        <string>BOOT</string>
         <key>ProductVersion</key>
         <string>0.14.2</string>
 </dict>
@@ -914,14 +914,14 @@ CheckForSIP() {
          echo
          if [[ "$Upgrade" == "1" ]] ; then
             echo "You are attempting to upgrade an existing installation, but it appears that"
-            echo "System Integrity Protection (SIP) is enabled. If rEFInd is working now, then"
-            echo "this is fine; you can upgrade your existing rEFInd. If rEFInd is not working,"
-            echo "though, re-installing from this boot will not help. To re-enable rEFInd, you"
+            echo "System Integrity Protection (SIP) is enabled. If BOOT is working now, then"
+            echo "this is fine; you can upgrade your existing BOOT. If BOOT is not working,"
+            echo "though, re-installing from this boot will not help. To re-enable BOOT, you"
             echo "must re-install it from a Recovery system or from another OS. To enter the"
-            echo "Recovery system and re-install rEFInd:"
+            echo "Recovery system and re-install BOOT:"
          else
-            echo "rEFInd cannot be installed because System Integrity Protection (SIP) seems"
-            echo "to be enabled! You must install rEFInd from your Recovery installation or"
+            echo "BOOT cannot be installed because System Integrity Protection (SIP) seems"
+            echo "to be enabled! You must install BOOT from your Recovery installation or"
             echo "from another OS. To install from the Recovery system:"
          fi
          echo
@@ -942,7 +942,7 @@ CheckForSIP() {
             echo "but it may fail."
             echo
          fi
-         echo "For more on this subject, see http://www.rodsbooks.com/refind/sip.html"
+         echo "For more on this subject, see http://www.rodsbooks.com/boot/sip.html"
          echo
          echo -n "Do you want to attempt installation (Y/N)? "
          ReadYesNo
@@ -957,7 +957,7 @@ CheckForSIP() {
 # Control the OS X installation.
 # Sets Problems=1 if problems found during the installation.
 InstallOnOSX() {
-   echo "Installing rEFInd on macOS...."
+   echo "Installing BOOT on macOS...."
    if [[ "$InstallToEspOnMac" == "1" && -z "$TargetPart" ]] ; then
       MountOSXESP
    elif [[ "$TargetDir" == "/EFI/BOOT" || "$OwnHfs" == '1' ]] ; then
@@ -966,16 +966,16 @@ InstallOnOSX() {
       InstallDir="$RootDir/"
       InstallDir=$(echo "$InstallDir" | sed 's/\/\+/\//g')
    fi
-   echo "Installing rEFInd to the partition mounted at $InstallDir"
+   echo "Installing BOOT to the partition mounted at $InstallDir"
    DetermineTargetDir
    CheckForSIP
-   CopyRefindFiles
+   CopyBootFiles
    mkdir -p /usr/local/bin &> /dev/null
    cp "$ThisDir/mountesp" /usr/local/bin/ &> /dev/null
    if [[ $InstallToEspOnMac == "1" && -z "$TargetPart" ]] ; then
-      bless --mount "$InstallDir" --setBoot --file "$InstallDir/$TargetDir/$Refind" --shortform
+      bless --mount "$InstallDir" --setBoot --file "$InstallDir/$TargetDir/$Boot" --shortform
    elif [[ "$TargetDir" != "/EFI/BOOT" ]] ; then
-      bless --setBoot --folder "$InstallDir/$TargetDir" --file "$InstallDir/$TargetDir/$Refind"
+      bless --setBoot --folder "$InstallDir/$TargetDir" --file "$InstallDir/$TargetDir/$Boot"
    fi
    if [[ $? != 0 ]] ; then
       Problems=1
@@ -983,7 +983,7 @@ InstallOnOSX() {
    if [[ -f /Library/StartupItems/rEFItBlesser || -d /Library/StartupItems/rEFItBlesser ]] ; then
       echo
       echo "/Library/StartupItems/rEFItBlesser found!"
-      echo "This program is part of rEFIt, and will cause rEFInd to fail to work after"
+      echo "This program is part of rEFIt, and will cause BOOT to fail to work after"
       echo -n "its first boot. Do you want to remove rEFItBlesser (Y/N)? "
       ReadYesNo
       if [[ $YesNo == "Y" || $YesNo == "y" ]] ; then
@@ -1016,7 +1016,7 @@ CheckSecureBoot() {
       echo "CAUTION: Your computer appears to be booted with Secure Boot, but you haven't"
       echo "specified a valid shim.efi file source. Chances are you should re-run with"
       echo "the --shim option. You can read more about this topic at"
-      echo "http://www.rodsbooks.com/refind/secureboot.html."
+      echo "http://www.rodsbooks.com/boot/secureboot.html."
       echo ""
       echo -n "Do you want to proceed with installation (Y/N)? "
       ReadYesNo
@@ -1034,7 +1034,7 @@ CheckSecureBoot() {
       echo "should work, it's unnecessarily complex. You may continue, but unless you"
       echo "plan to enable Secure Boot, you should consider stopping and omitting the"
       echo "--shim option. You can read more about this topic at"
-      echo "http://www.rodsbooks.com/refind/secureboot.html."
+      echo "http://www.rodsbooks.com/boot/secureboot.html."
       echo ""
       echo -n "Do you want to proceed with installation (Y/N)? "
       ReadYesNo
@@ -1047,11 +1047,11 @@ CheckSecureBoot() {
 
    if [[ $LocalKeys != 0 && ! $IsSecureBoot == "1" ]] ; then
       echo ""
-      echo "You've specified re-signing your rEFInd binaries with locally-generated keys,"
+      echo "You've specified re-signing your BOOT binaries with locally-generated keys,"
       echo "but your computer does not appear to be running in Secure Boot mode. The"
       echo "keys you generate will be useless unless you enable Secure Boot. You may"
       echo "proceed with this installation, but before you do so, you may want to read"
-      echo "more about it at http://www.rodsbooks.com/refind/secureboot.html."
+      echo "more about it at http://www.rodsbooks.com/boot/secureboot.html."
       echo ""
       echo -n "Do you want to proceed with installation (Y/N)? "
       ReadYesNo
@@ -1065,7 +1065,7 @@ CheckSecureBoot() {
 } # CheckSecureBoot()
 
 # Check for the presence of locally-generated keys from a previous installation in
-# $EtcKeysDir (/etc/refind.d/keys). If they're not present, generate them using
+# $EtcKeysDir (/etc/boot.d/keys). If they're not present, generate them using
 # openssl.
 GenerateKeys() {
    PrivateKey="$EtcKeysDir/$LocalKeysBase.key"
@@ -1103,7 +1103,7 @@ GenerateKeys() {
          KeyEncryptionArgument="-nodes"
       fi
       "$OpenSSL" req -new -x509 -newkey rsa:2048 -keyout "$PrivateKey" -out "$CertKey" \
-                     $KeyEncryptionArgument -days 3650 -subj "/CN=Locally-generated rEFInd key/"
+                     $KeyEncryptionArgument -days 3650 -subj "/CN=Locally-generated BOOT key/"
       "$OpenSSL" x509 -in "$CertKey" -out "$DerKey" -outform DER
       chmod 0600 "$PrivateKey"
    else
@@ -1143,30 +1143,30 @@ SignOneBinary() {
 ReSignBinaries() {
    SBSign="$(command -v sbsign 2> /dev/null)"
    echo "Found sbsign at $SBSign"
-   TempDir="/tmp/refind_local"
+   TempDir="/tmp/boot_local"
    if [[ ! -x "$SBSign" ]] ; then
-      echo "Can't find sbsign, which is required to sign rEFInd with your own keys!"
+      echo "Can't find sbsign, which is required to sign BOOT with your own keys!"
       echo "Aborting!"
       exit 1
    fi
    GenerateKeys
    mkdir -p "$TempDir/drivers_$Platform"
-   cp "$RefindDir"/refind.conf-sample "$TempDir" 2> /dev/null
-   cp "$ThisDir"/refind.conf-sample "$TempDir" 2> /dev/null
-   cp "$RefindDir"/refind_ia32.efi "$TempDir" 2> /dev/null
-   cp -a "$RefindDir"/drivers_ia32 "$TempDir" 2> /dev/null
+   cp "$BootDir"/boot.conf-sample "$TempDir" 2> /dev/null
+   cp "$ThisDir"/boot.conf-sample "$TempDir" 2> /dev/null
+   cp "$BootDir"/boot_ia32.efi "$TempDir" 2> /dev/null
+   cp -a "$BootDir"/drivers_ia32 "$TempDir" 2> /dev/null
    cp -a "$ThisDir"/drivers_ia32 "$TempDir" 2> /dev/null
-   SignOneBinary "$RefindDir/refind_$Platform.efi" "$TempDir/refind_$Platform.efi"
+   SignOneBinary "$BootDir/boot_$Platform.efi" "$TempDir/boot_$Platform.efi"
    SaveIFS=$IFS
    IFS=$(echo -en "\n\b")
-   for Driver in "$RefindDir"/drivers_"$Platform"/*.efi "$ThisDir"/drivers_"$Platform"/*.efi ; do
+   for Driver in "$BootDir"/drivers_"$Platform"/*.efi "$ThisDir"/drivers_"$Platform"/*.efi ; do
       [[ -e "$Driver" ]] || break  # handle the case of no files
       TempName=$(basename "$Driver")
       SignOneBinary "$Driver" "$TempDir/drivers_$Platform/$TempName"
    done
    IFS=$SaveIFS
-   RefindDir="$TempDir"
-   DeleteRefindDir=1
+   BootDir="$TempDir"
+   DeleteBootDir=1
 } # ReSignBinaries()
 
 # Locate and mount an ESP, if possible. Should be called only if /boot/efi
@@ -1268,14 +1268,14 @@ FindMountedESP() {
          exit 1
       else
          echo "The computer appears to be running in BIOS mode and has no ESP. You should"
-         echo "create an ESP, and ideally boot in EFI mode, before installing rEFInd."
+         echo "create an ESP, and ideally boot in EFI mode, before installing BOOT."
          exit 0
       fi
    fi
    echo "ESP was found at $InstallDir using $EspFilesystem"
 } # FindMountedESP
 
-# Uses efibootmgr to add an entry for rEFInd to the EFI's NVRAM, if necessary.
+# Uses efibootmgr to add an entry for BOOT to the EFI's NVRAM, if necessary.
 # If this fails, sets Problems=1
 AddBootEntry() {
    local PartNum
@@ -1287,7 +1287,7 @@ AddBootEntry() {
    local KeepExistingEntry=0
    local ExistingEntryBootNum
    local FirstBoot
-   local RealRefindBinary
+   local RealBootBinary
 
    Efibootmgr="$(command -v efibootmgr 2> /dev/null)"
    if [[ "$Efibootmgr" ]] ; then
@@ -1305,7 +1305,7 @@ AddBootEntry() {
          Problems=1
          return 1
       fi
-      EntryFilename="$TargetDir/$Refind"
+      EntryFilename="$TargetDir/$Boot"
       EfiEntryFilename=$(echo "${EntryFilename}" | tr '/' '\\')
       # DO NOT change the below to use "$(...)" syntax; despite shellcheck's complaint,
       # such a change will BREAK IT!
@@ -1318,8 +1318,8 @@ AddBootEntry() {
       if [[ "$ExistingEntry" ]] ; then
          ExistingEntryBootNum=$(echo "$ExistingEntry" | cut -c 5-8)
          if [[ -z "$ExistingEntryFirstBoot" ]] ; then
-            echo "An existing rEFInd boot entry exists, but isn't set as the default boot"
-            echo "manager. The boot order is being adjusted to make rEFInd the default boot"
+            echo "An existing BOOT boot entry exists, but isn't set as the default boot"
+            echo "manager. The boot order is being adjusted to make BOOT the default boot"
             echo "manager. If this is NOT what you want, you should use efibootmgr to"
             echo "manually adjust your EFI's boot order."
             "$Efibootmgr" -b "$ExistingEntryBootNum" -B &> /dev/null
@@ -1331,24 +1331,24 @@ AddBootEntry() {
       if [[ "$KeepExistingEntry" == 0 ]] ; then
          echo "Creating new NVRAM entry"
          # If this is a Shim-based installation, then also create a direct
-         # entry to rEFInd's own binary as a fallback. This is helpful in
+         # entry to BOOT's own binary as a fallback. This is helpful in
          # case of package scripts that tend to pass --shim even when the
          # system is configured with custom SB variables, making use of Shim
          # inappropriate.
-         if [[ $Refind == *"shim"* ]]; then
+         if [[ $Boot == *"shim"* ]]; then
              if [[ "$KeepName" == 1 ]] ; then
-                 RealRefindBinary="$TargetDir/refind_$Platform.efi"
+                 RealBootBinary="$TargetDir/boot_$Platform.efi"
              else
-                 RealRefindBinary="$TargetDir/grub$Platform.efi"
+                 RealBootBinary="$TargetDir/grub$Platform.efi"
              fi
-             "$Efibootmgr" -c -l "$RealRefindBinary" -L "rEFInd Boot Manager (direct)" \
+             "$Efibootmgr" -c -l "$RealBootBinary" -L "BOOT Boot Manager (direct)" \
                            -d "$InstallDisk" -p "$PartNum" &> /dev/null
          fi
          if [[ "$KeepName" == 0 ]] ; then
-             "$Efibootmgr" -c -l "$EfiEntryFilename" -L "rEFInd Boot Manager" -d "$InstallDisk" \
+             "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" \
                            -p "$PartNum" &> /dev/null
          else
-             "$Efibootmgr" -c -l "$EfiEntryFilename" -L "rEFInd Boot Manager" -d "$InstallDisk" \
+             "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" \
                            -p "$PartNum" -u "$TargetShim $TargetX64" &> /dev/null
          fi
       else
@@ -1367,17 +1367,17 @@ AddBootEntry() {
    if [[ $EfibootmgrProblems ]] ; then
       echo
       echo "ALERT: There were problems running the efibootmgr program! You may need to"
-      echo "rename the $Refind binary to the default name (EFI/BOOT/bootx64.efi"
+      echo "rename the $Boot binary to the default name (EFI/BOOT/bootx64.efi"
       echo "on x86-64 systems, EFI/BOOT/bootia32.efi on x86 systems, or"
       echo "EFI/BOOT/bootaa64.efi on ARM64 systems) to have it run!"
       echo
    else
-      echo "rEFInd is set as the default boot manager."
+      echo "BOOT is set as the default boot manager."
    fi
 } # AddBootEntry()
 
-# Create a minimal/sample refind_linux.conf file in /boot.
-GenerateRefindLinuxConf() {
+# Create a minimal/sample boot_linux.conf file in /boot.
+GenerateBootLinuxConf() {
    if [[ -f "$RLConfFile" ]] ; then
       echo "Existing $RLConfFile found; not overwriting."
    else
@@ -1419,11 +1419,11 @@ InstallSBKey() {
     if [ "$LocalKeys" == "1" ] ; then
         UsedDerKey="$DerKey"
     else
-        UsedDerKey="$ThisDir/keys/refind.cer"
+        UsedDerKey="$ThisDir/keys/boot.cer"
     fi
     if command -v mokutil &>/dev/null ; then
        if mokutil --test-key "$UsedDerKey" &> /dev/null ; then
-            echo "rEFInd requires a Secure Boot key to be used with Secure Boot active. This"
+            echo "BOOT requires a Secure Boot key to be used with Secure Boot active. This"
             echo "script can install the key as a Machine Owner Key (MOK) for use with Shim."
             echo "If you've taken full control of Secure Boot on your computer and are NOT"
             echo "using Shim, you will instead need to add the key with efi-updatevar in"
@@ -1443,22 +1443,22 @@ InstallSBKey() {
                     Problems=1
                 fi
             fi
-            echo "For more on rEFInd and Secure Boot, see:"
-            echo "https://www.rodsbooks.com/refind/secureboot.html"
+            echo "For more on BOOT and Secure Boot, see:"
+            echo "https://www.rodsbooks.com/boot/secureboot.html"
         else
             echo "The appropriate Secure Boot key is already enrolled."
         fi
     fi
 } # InstallSBKey()
 
-# Controls rEFInd installation under Linux.
+# Controls BOOT installation under Linux.
 # Sets Problems=1 if something goes wrong.
 InstallOnLinux() {
    if [[ "$TargetDir" == "/System/Library/CoreServices" ]] ; then
       echo "You may not use the --ownhfs option under Linux! Aborting!"
       exit 1
    fi
-   echo "Installing rEFInd on Linux...."
+   echo "Installing BOOT on Linux...."
    modprobe efivars &> /dev/null
    if [[ $TargetDir == "/EFI/BOOT" ]] ; then
       MountDefaultTarget
@@ -1472,10 +1472,10 @@ InstallOnLinux() {
    fi
 
    CheckSecureBoot
-   CopyRefindFiles
+   CopyBootFiles
    if [[ "$TargetDir" != "/EFI/BOOT" && "$TargetDir" != "/EFI/Microsoft/Boot" ]] ; then
       AddBootEntry
-      GenerateRefindLinuxConf
+      GenerateBootLinuxConf
    fi
    # Note that InstallSBKey may require the user to enter a password, so
    # it must NOT be called if --yes is passed to the script, since that
@@ -1533,7 +1533,7 @@ if [[ $Problems ]] ; then
    echo "ALERT:"
    echo "Installation has completed, but problems were detected. Review the output for"
    echo "error messages and take corrective measures as necessary. You may need to"
-   echo "re-run this script or install manually before rEFInd will work."
+   echo "re-run this script or install manually before BOOT will work."
    echo
 else
    echo
@@ -1553,7 +1553,7 @@ if [[ $UnmountEsp == '1' ]] ; then
    esac
 fi
 
-if [[ "$InstallDir" == /tmp/refind_install ]] ; then
+if [[ "$InstallDir" == /tmp/boot_install ]] ; then
 #   sleep 5
    rmdir "$InstallDir"
 fi
