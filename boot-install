@@ -776,7 +776,7 @@ CopyBootFiles() {
       local verified marker temporary
       verified=$(BootFileHash "$InstallDir/$TargetDir/$TargetX64") || exit 1
       marker="$InstallDir/$TargetDir/.infiltrator-boot-loader.sha256"
-      temporary="$marker.$"
+      temporary=$(mktemp "$marker.XXXXXXXX") || exit 1
       if ! printf '%s\n' "$verified" > "$temporary" ||
          ! mv -f -- "$temporary" "$marker" ; then
          rm -f -- "$temporary"
