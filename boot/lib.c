@@ -1,5 +1,5 @@
 /*
- * refind/lib.c
+ * boot/lib.c
  * General library functions
  *
  * Copyright (c) 2006-2009 Christoph Pfisterer
@@ -119,7 +119,7 @@ CHAR16             *SelfDirPath;
 REFIT_VOLUME       *SelfVolume = NULL;
 REFIT_VOLUME       **Volumes = NULL;
 UINTN              VolumesCount = 0;
-extern EFI_GUID    RefindGuid;
+extern EFI_GUID    BootGuid;
 
 EFI_FILE_PROTOCOL  *gVarsDir = NULL;
 
@@ -388,9 +388,9 @@ EFI_STATUS ReinitRefitLib(VOID)
 // EFI variable read and write functions
 //
 
-// Create a directory for holding the rEFInd variables, if they're stored on
-// disk. This will be in the rEFInd install directory if possible, or on the
-// first ESP that rEFInd can identify if not (typically, this means rEFInd is
+// Create a directory for holding the BOOT variables, if they're stored on
+// disk. This will be in the BOOT install directory if possible, or on the
+// first ESP that BOOT can identify if not (typically, this means BOOT is
 // on a read-only filesystem, such as HFS+ on a Mac). If neither location can
 // be used, sets GlobalConfig.UseNvram to TRUE. Sets the pointer to the
 // directory in the file-global gVarsDir variable and returns the success of
@@ -408,8 +408,8 @@ EFI_STATUS CreateVarsDir(VOID) {
             Status = egFindESP(&EspRootDir);
             if (Status == EFI_SUCCESS) {
                 LOG(1, LOG_LINE_NORMAL,
-                    L"Trying to create a 'refind-vars' directory on the ESP in which to hold variables");
-                Status = refit_call5_wrapper(EspRootDir->Open, EspRootDir, &gVarsDir, L"refind-vars",
+                    L"Trying to create a 'boot-vars' directory on the ESP in which to hold variables");
+                Status = refit_call5_wrapper(EspRootDir->Open, EspRootDir, &gVarsDir, L"boot-vars",
                                              EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE,
                                              EFI_FILE_DIRECTORY);
             }
@@ -424,7 +424,7 @@ EFI_STATUS CreateVarsDir(VOID) {
 } // EFI_STATUS FindVarsDir()
 
 // Retrieve a raw EFI variable, either from NVRAM or from a disk file under
-// rEFInd's "vars" subdirectory, depending on GlobalConfig.UseNvram.
+// BOOT's "vars" subdirectory, depending on GlobalConfig.UseNvram.
 // Returns EFI status
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL) {
     UINT8 *buf = NULL;
@@ -432,7 +432,7 @@ EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer
     EFI_STATUS Status;
     BOOLEAN ReadFromNvram = TRUE;
 
-    if ((GlobalConfig.UseNvram == FALSE) && GuidsAreEqual(vendor, &RefindGuid)) {
+    if ((GlobalConfig.UseNvram == FALSE) && GuidsAreEqual(vendor, &BootGuid)) {
         ReadFromNvram = FALSE;
     }
     LOG(3, LOG_LINE_NORMAL, L"Getting EFI variable '%s' from %s", name,
@@ -472,7 +472,7 @@ EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer
     return Status;
 } // EFI_STATUS EfivarGetRaw()
 
-// Set an EFI variable. This is normally done to NVRAM; however, rEFInd-specific
+// Set an EFI variable. This is normally done to NVRAM; however, BOOT-specific
 // variables (as determined by the *vendor code) will be saved to a disk file IF
 // GlobalConfig.UseNvram == FALSE.
 // To minimize wear & tear on NVRAM, this function first reads the contents of
@@ -486,7 +486,7 @@ EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, 
     UINTN       OldSize;
     BOOLEAN     WriteToNvram = TRUE;
 
-    if ((GlobalConfig.UseNvram == FALSE) && GuidsAreEqual(vendor, &RefindGuid))
+    if ((GlobalConfig.UseNvram == FALSE) && GuidsAreEqual(vendor, &BootGuid))
         WriteToNvram = FALSE;
 
     OldStatus = EfivarGetRaw(vendor, name, &OldBuf, &OldSize);
@@ -886,7 +886,7 @@ static VOID ScanVolumeBootcode(REFIT_VOLUME *Volume, BOOLEAN *Bootable)
         }
 
         // NOTE: If you add an operating system with a name that starts with 'W' or 'L', you
-        //  need to fix AddLegacyEntry in refind/legacy.c.
+        //  need to fix AddLegacyEntry in boot/legacy.c.
 
         LOG(1, LOG_LINE_NORMAL, L"Result of bootcode detection: %s %s (%s)",
             Volume->HasBootCode ? L"bootable" : L"non-bootable", Volume->OSName,
@@ -1570,7 +1570,7 @@ BOOLEAN DirIterNext(IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR
     CHAR16  *OnePattern;
 
     if (DirIter->LastFileInfo != NULL) {
-        // NOTE: rEFIt and rEFInd through 0.13.3 called
+        // NOTE: rEFIt and BOOT through 0.13.3 called
         // FreePool(DirIter->LastFileInfo) here, but I now believe that was
         // improper. (It causes some systems to freeze.)
         DirIter->LastFileInfo = NULL;
