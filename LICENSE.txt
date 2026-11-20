@@ -46,8 +46,8 @@ directories for more information.
 =============================
 
 The preceding license terms apply to the original rEFIt program.
-Modifications to the program made in forking the project as rEFInd are
+Modifications to the program made in forking the original upstream boot-manager project are
 covered by the GNU GPL, version 3. See the file COPYING.txt for details of
-the GPLv3 license. The rEFInd documentation (HTML files) are covered by the
+the GPLv3 license. The BOOT documentation (HTML files) are covered by the
 GNU FDL, version 1.3. See the file FDL-1.3.txt in the documentation
 directory for details of the FDL license.
