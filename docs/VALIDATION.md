@@ -80,17 +80,17 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 
 | Contract or risk | Existing evidence | Missing regression evidence |
 | --- | --- | --- |
-| Fixed installation destination and preservation of other EFI vendors | `tests/install-safety.sh` uses a disposable ESP and checks three non-BOOT paths | A full Linux installation attempt with an unowned existing `BOOTX64.EFI` must reject *before any deletion*; the present code does not implement that ordering |
-| Existing loader marker and replacement | `GuardDefaultBootLocation` is exercised in isolation against fixture files | End-to-end check that the marker is consulted prior to `InstallOnLinux` clearing the old BOOT directory |
+| Fixed installation destination and preservation of other EFI vendors | `tests/install-safety.sh` uses a disposable ESP and checks three non-BOOT paths | Independent confirmation that the Linux reinstall removes only BOOT's dedicated directory and retains other vendors' files |
+| Existing loader marker and replacement | `GuardDefaultBootLocation` is exercised in isolation against fixture files | The Linux path deliberately clears the old BOOT directory first; its later marker helper does not authenticate the removed executable, and no extra pre-deletion ownership policy is required by this document |
 | Duplicate and ambiguous firmware entries | `tests/nvram-safety.sh`, workflow repeat-install checks | Physical firmware variable-write failure and partial-update recovery across different OEMs |
-| FSW mount on untrusted disk images | Filesystem readers and a POSIX test adapter exist | Fault-injected zero inode-group count, failed allocation and truncated metadata, with no divide-by-zero or null dereference |
-| FSW large-file reads | `filesystems/fsw_core.c` documents its current narrowing | Read at offsets below and above 4 GiB against independent expected bytes |
-| EFI directory buffer negotiation | `filesystems/fsw_efi.c` documents cursor advancement | An `EFI_BUFFER_TOO_SMALL` retry must return the same entry instead of skipping one |
+| FSW mount on untrusted disk images | EXT2 geometry checks and EFI mount allocation checks are implemented | Fault-injected zero inode-group counts, allocation failures and truncated metadata to confirm the new rejection paths |
+| FSW large-file reads | `filesystems/fsw_core.c` now preserves its full 64-bit stream position | Read at offsets below and above 4 GiB against independently generated reference bytes |
+| EFI directory buffer negotiation | `filesystems/fsw_efi.c` now restores the cursor on conversion error | An `EFI_BUFFER_TOO_SMALL` retry must return the same entry rather than skipping one |
 | EXT4 dirty filesystem | RECOVER is accepted by the current feature mask | Explicit tests of recovery-required images, plus a declared refusal or a validated read-only consistency policy |
 | OS menu and direct Linux boot | `tests/ovmf-smoke.sh` observes driver loading and main-menu entry | Multi-volume discovery, duplicate suppression, direct kernel/initrd arguments and successful OS userspace on actual hardware |
-| Decoder and filesystem metadata bounds | Format parsers exist for NTFS, ISO 9660, Btrfs and legacy EFI structures | Malformed-length, invalid-offset and pool-failure fixtures, including a null allocation for Btrfs master UUID registration |
-| Network discovery and multi-volume tools | Source includes iPXE child launch and tool search | Verify launch failures, iPXE exit data and allocation errors; verify same tool directory can be discovered on distinct volumes |
-| Controller reconnect topology | `boot/driver_support.c` enumerates firmware handles | Synthetic handle databases with global and per-query counts that differ, proving classification indexing cannot exceed its allocation |
+| Decoder and filesystem metadata bounds | Btrfs UUID registration returns a distinct error on allocation failure; legacy NTFS/ISO/EFI parsing remains | Malformed-length and invalid-offset fixtures; injected Btrfs pool failure confirming FSW_OUT_OF_MEMORY |
+| Network discovery and multi-volume tools | A network-volume allocation check is implemented | Verify launch failures, iPXE exit data, pool-failure handling and same-directory discovery on distinct volumes |
+| Controller reconnect topology | `boot/driver_support.c` now requests the selected controller's index from its own handle snapshot | Synthetic databases with differing enumeration counts and orders to verify correct classification and stale-handle skipping |
 | Secure Boot signing and key maintenance | Installer and healthcheck contain key generation, signing and enrollment operations | Fixture-driven status, passphrase, error and re-enrollment cases; firmware/shim validation on representative physical trust configurations |
 | Common V2 filesystem ABI | No end-to-end BOOT V2 module validation in this revision | Exact V2 ABI conformance, shared implementation, freestanding build, authentication, load and representative read-path tests |
 

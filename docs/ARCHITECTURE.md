@@ -72,11 +72,11 @@ The default file also contains disabled example menu stanzas. Their presence doe
 
 The published native `.run` is a single, complete installation script. It elevates when necessary, verifies a source revision pinned by the release, builds BOOT and the six drivers, and invokes its own existing install flow. It has no permitted alternate ESP destination and no build-only execution mode.
 
-The destination path is strictly `/EFI/InfiltratorOS/BOOT`, and the native executable's filename is `BOOTX64.EFI`. The installer contains a fixed-path and symbolic-link guard and a SHA-256 ownership-marker check (`.infiltrator-boot-loader.sha256`). These checks are effective only when run before the original executable is removed; see the Linux ordering defect below. On a Linux-host installation, `InstallOnLinux` currently removes and recreates BOOT's dedicated directory, so **existing BOOT configuration and assets in that directory are not preserved**. Critically, the Linux code calls `rm -rf` **before** `CopyBootFiles` invokes `GuardDefaultBootLocation`: the guard therefore cannot verify the previous loader's ownership marker before that deletion. This is a known ordering defect, not an established pre-deletion protection. The Windows, GRUB and standard `EFI/BOOT` paths remain outside this deletion scope.
+The destination path is strictly `/EFI/InfiltratorOS/BOOT`, and the native executable's filename is `BOOTX64.EFI`. On Linux, `InstallOnLinux` deliberately removes and recreates BOOT's dedicated directory; **the previous configuration and assets inside it are not preserved**. A fixed-path/symlink guard and SHA-256 ownership-marker helper remain in the source, but the latter is invoked by `CopyBootFiles` after that deletion and therefore cannot authenticate the removed previous executable. This is a description of the existing installation policy, **not an additional ownership-verification requirement or a newly established runtime bug**. Windows, GRUB and the standard `EFI/BOOT` paths are outside the deletion scope.
 
-The installer calls its firmware-entry management routines to establish BOOT as the preferred firmware choice. The tests exercise detection of duplicate/stale entries, preservation of non-BOOT entries and repeated installation ordering; those are distinct from the BOOT runtime menu's choices. Failure to identify ownership or firmware state correctly must not be papered over with a second BOOT entry.
+The installer calls its firmware-entry management routines to establish BOOT as the preferred firmware choice. The tests exercise detection of duplicate/stale entries, preservation of non-BOOT entries and repeated installation ordering; those are distinct from the BOOT runtime menu's choices. Failure to identify firmware state correctly must not be papered over with a second BOOT entry.
 
-The generic AMD64 `.deb` does not execute these installation operations. Its responsibility is staging the firmware image, drivers, configuration sample and other resources under `/usr/share/infiltrator-boot`. Packaging it is not equivalent to installing a UEFI boot manager.
+The generic AMD64 `.deb` does not execute these installation operations. Its responsibility is staging the firmware image, drivers, configuration sample, maintained Markdown documents and other resources under `/usr/share/infiltrator-boot`. Packaging it is not equivalent to installing a UEFI boot manager.
 
 ## Build and release ownership
 
@@ -92,7 +92,7 @@ Appearance changes must not alter scan ordering, delete other loaders, disable f
 
 ## Integrity and trust boundaries
 
-There are distinct integrity boundaries: the downloaded source is pinned to the release commit; the installer contains an existing-binary ownership-marker check, although its Linux reinstall ordering currently bypasses that check for the deleted prior directory; EFI images and drivers are handled through firmware execution and security mechanisms; and Secure Boot acceptance depends on the firmware's active trust configuration. A SHA-256 ownership marker is **not** equivalent to Secure Boot authentication.
+There are distinct integrity boundaries: the downloaded source is pinned to the release commit; the existing-binary ownership-marker helper is not a pre-deletion check in the Linux reinstall flow; EFI images and drivers are handled through firmware execution and security mechanisms; and Secure Boot acceptance depends on the firmware's active trust configuration. A SHA-256 ownership marker is **not** equivalent to Secure Boot authentication.
 
 Input surfaces include ESP directory entries, filesystem metadata, configuration text, EFI load options, firmware NVRAM state and optional hardware-dependent paths. Malformed or missing data must not be represented as successful OS discovery, authenticated execution or a verified firmware update.
 
@@ -120,7 +120,7 @@ The following table records code-level relationships rather than a promise of co
 | EFI launch | Candidate path, volume handle, optional UTF-16 load options | EFI image classification precedes authentication/firmware launch. Option buffers must survive the firmware call and statuses must propagate | `boot/launch_efi.c` |
 | Firmware Boot#### selection | Binary NVRAM option and device-path metadata | `BootNext` is a one-shot firmware selection; persistent `BootOrder` management is distinct and has its own failure modes | `boot/install.c`, `boot/launch_efi.c` |
 | Filesystem mount/read | Block and Disk I/O protocols, on-disk metadata, FSW dnodes/streams | Per-volume caches and open streams have separate lifetimes; a recognised magic number is not proof of a valid directory or file | `filesystems/fsw_efi.c`, `filesystems/fsw_core.c` |
-| Native reinstall | ESP path, old BOOT directory, ownership marker, boot entry records | The Linux path currently clears the old BOOT directory *before* its later marker guard. This is a known destructive-ordering exposure | `boot-native-installer.run` |
+| Native reinstall | ESP path, old BOOT directory, boot entry records | The Linux flow deliberately removes and recreates BOOT's fixed directory; the later marker helper does not inspect the removed installation | `boot-native-installer.run` |
 
 ### Filesystem read and error boundaries
 
@@ -128,18 +128,15 @@ The FSW core expresses a file as a stream over logical extents. A physical exten
 
 This is a reader design, **not Common V2 conformance**. The shipped driver-binding layer publishes UEFI Simple File System protocols. It does not authenticate, dynamically link or execute Common V2 `.so` modules.
 
-### Known correctness limits visible in source
+### Corrected runtime defects and still-open boundaries
 
-These are findings from static inspection; no new test result is implied.
+At commit `a5c680e`, the following source-level failures were corrected: the FSW large-file reader no longer narrows the 64-bit position; EXT2 rejects zero inode-group counts and unsupported block-size exponents before arithmetic; FSW EFI volume and file-handle allocations are checked; EFI directory information errors restore the prior cursor; Btrfs master registration and network volume cloning handle pool exhaustion; list expansion preserves the original vector on allocation failure; and GNU-EFI controller classification uses the selected handle's index in its own snapshot. These are **implemented corrections, not claims of a completed fault-injection or real-hardware validation campaign**.
 
-1. **Reinstall-before-ownership-check:** `InstallOnLinux` deletes BOOT's directory before the ownership guard inside `CopyBootFiles` runs. Mocking the guard separately does not establish pre-deletion safety.
-2. **EXT2 untrusted divisor:** `fsw_ext2_volume_mount` uses `s_inodes_per_group` in a division without an immediately preceding nonzero check. A malformed superblock can trigger invalid arithmetic.
-3. **FSW mount allocation:** `fsw_efi_DriverBinding_Start` dereferences `Volume` immediately after `AllocateZeroPool` without a null check in that path.
-4. **Large-file offset narrowing:** `fsw_shandle_read` casts a 64-bit stream position to `fsw_u32` before its read loop. At or above 4 GiB this can address the wrong data.
-5. **Directory retry semantics:** `fsw_efi_dir_read` can advance the directory cursor before discovering that `EFI_FILE_INFO` will not fit in the supplied buffer. A size-probe/retry can skip an entry.
-6. **EXT4 journal state:** `fsw_ext4_volume_mount` admits the RECOVER incompatibility flag but does not replay a journal; this may expose inconsistent on-disk state.
-7. **Controller classification index:** the GNU-EFI `ConnectAllDriversToAllControllers` path indexes the per-query `HandleType` array using an index from the outer handle enumeration. The ranges need not match and the index correspondence is not established in that function.
-8. **Additional parser/allocation boundaries:** `master_uuid_add` in the Btrfs backend dereferences an unchecked pool result; legacy ASCII-to-UTF-16 conversion and the NTFS attribute-name offset and ISO SUSP reader need input-length proof, not just format signatures.
-9. **Legacy targets:** `filesystems/Makefile` retains an independent `install` recipe targeting `EFI/refind/drivers`; the POSIX filesystem test makefile contains XFS object references not satisfied by the current source tree.
+The list API `AddListElement` remains `VOID`: it now avoids dereferencing a failed allocation but cannot report a dropped append to its caller. That limitation is not resolved by a comment.
 
-These findings should not be disguised as resolved by explanatory comments. The exact limitations and evidence requirements are carried into [Validation](VALIDATION.md).
+The EXT4 reader currently admits the RECOVER feature bit and does not replay a journal. This is the existing read-only behaviour, not proof that an observed boot has failed; consistency behaviour on recovery-required volumes remains unqualified. Separately, a few older parsing functions have unresolved input-boundary review questions (NTFS attribute names, ISO SUSP metadata and legacy conversion), but those are **not certified defects** without additional validation.
+
+`filesystems/Makefile` retains an older, independent `EFI/refind/drivers` installation target, while the release's native `.run` is restricted to BOOT's fixed path. `filesystems/test/Makefile` also contains references to an XFS source not shipped in the current tree; neither target is the active BOOT release installation path.
+
+Evidence and remaining regressions are listed in [Validation](VALIDATION.md).
+
