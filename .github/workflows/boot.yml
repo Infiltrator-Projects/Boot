@@ -104,6 +104,10 @@ jobs:
           bash packaging/build-release.sh "0.1.${GITHUB_RUN_NUMBER}" dist
           bash packaging/test-release.sh "0.1.${GITHUB_RUN_NUMBER}" dist
 
+      - name: Test source-isolated bounds and Btrfs ownership
+        shell: bash
+        run: bash tests/host-source-regressions.sh
+
       - name: Verify native installer against disposable ESP
         shell: bash
         run: bash tests/install-safety.sh

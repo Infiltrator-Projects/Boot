@@ -128,6 +128,11 @@ CHAR16* SplitDeviceString(IN OUT CHAR16 *InString) {
     return FileName;
 }  
 
+/**
+ * Open BOOT's EFI installation directory relative to the loaded image.
+ * Retain an existing root handle when present; propagate failure if the
+ * root or child cannot be opened, leaving SelfDir unusable.
+ */
 static EFI_STATUS FinishInitRefitLib(VOID)
 {
     EFI_STATUS  Status;
@@ -277,6 +282,11 @@ VOID UninitRefitLib(VOID)
     }
 }  
 
+/**
+ * Refresh volume records before reopening BOOT's own directory. Older
+ * firmware may alias SelfRootDir to SelfVolume's retained root. Restart
+ * logging only when the directory is successfully restored.
+ */
 EFI_STATUS ReinitRefitLib(VOID)
 {
     EFI_STATUS Status;
@@ -670,6 +680,11 @@ static VOID SetFilesystemData(IN UINT8 *Buffer, IN UINTN BufferSize, IN OUT REFI
     }  
 }  
 
+/**
+ * Use a fixed-size Block I/O sample to classify legacy boot candidates.
+ * Absent media, unsupported geometry and failed reads retain the explicit
+ * nonbootable default; signatures are not proof of EFI execution.
+ */
 static VOID ScanVolumeBootcode(REFIT_VOLUME *Volume, BOOLEAN *Bootable)
 {
     EFI_STATUS              Status;
@@ -1385,6 +1400,11 @@ EFI_STATUS DirNextEntry(IN EFI_FILE_PROTOCOL *Directory, IN OUT EFI_FILE_INFO **
     return Status;
 }
 
+/**
+ * Borrow BaseDir when no child path is requested; otherwise the iterator
+ * owns only a child successfully opened by firmware. CloseDirHandle records
+ * this contract so teardown never closes the caller's parent handle.
+ */
 VOID DirIterOpen(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath OPTIONAL, OUT REFIT_DIR_ITER *DirIter)
 {
     if (RelativePath == NULL) {
@@ -1478,6 +1498,11 @@ BOOLEAN DirIterNext(IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR
     return TRUE;
 }
 
+/**
+ * Release the retained EFI_FILE_INFO and close only an owned child
+ * directory. The result represents the last enumeration status, not
+ * the result of the optional firmware Close call.
+ */
 EFI_STATUS DirIterClose(IN OUT REFIT_DIR_ITER *DirIter)
 {
     if (DirIter->LastFileInfo != NULL) {
@@ -1489,6 +1514,11 @@ EFI_STATUS DirIterClose(IN OUT REFIT_DIR_ITER *DirIter)
     return DirIter->LastStatus;
 }
 
+/**
+ * Duplicate the last UTF-16 path component after either slash separator.
+ * The result is owned by the caller and does not alias its input; a trailing
+ * separator represents an empty final component.
+ */
 CHAR16 * Basename(IN CHAR16 *Path)
 {
     CHAR16  *FileName;
@@ -1521,18 +1551,27 @@ CHAR16 * StripEfiExtension(IN CHAR16 *FileName) {
     return Copy;
 }  
 
+/**
+ * Search a bounded sector sample, including the final valid start offset.
+ * Reject an oversized search term before subtracting unsigned lengths,
+ * otherwise malformed input may trigger an out-of-bounds memory scan.
+ * An empty term matches at zero; NULL nonempty inputs cannot match.
+ */
 INTN FindMem(IN VOID *Buffer, IN UINTN BufferLength, IN VOID *SearchString, IN UINTN SearchStringLength)
 {
     UINT8 *BufferPtr;
     UINTN Offset;
 
+    if (SearchStringLength == 0)
+        return 0;
+    if (Buffer == NULL || SearchString == NULL || SearchStringLength > BufferLength)
+        return -1;
+
     BufferPtr = Buffer;
-    BufferLength -= SearchStringLength;
-    for (Offset = 0; Offset < BufferLength; Offset++, BufferPtr++) {
+    for (Offset = 0; Offset <= BufferLength - SearchStringLength; Offset++, BufferPtr++) {
         if (CompareMem(BufferPtr, SearchString, SearchStringLength) == 0)
             return (INTN)Offset;
     }
-
     return -1;
 }
 

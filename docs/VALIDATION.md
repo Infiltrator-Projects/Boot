@@ -44,6 +44,10 @@ Reinstallation deliberately removes stale contents **inside** BOOT's directory, 
 
 The fixture places BOOT and a gzip-compressed copy of `btrfs_x64.efi` on a FAT32 ESP inside a disposable GPT disk. It records the original driver's byte size before compression and enables `support_gzipped_loaders`. After booting OVMF, the script reads the UTF-16LE startup log from the disk. It checks for a successful decode with that exact byte count, the Btrfs driver launch, a zero program return and entry into the menu loop. A timeout is allowed because the menu can wait for input. Reading the disk log distinguishes that state from firmware hanging earlier. [OVMF fixture and assertions](../tests/ovmf-smoke.sh)
 
+### Native source-isolated regressions
+
+`bash tests/host-source-regressions.sh` extracts and compiles FindMem and Btrfs cleanup/statistics from the production source against minimal host stubs. The tests cover byte bounds, free-space arithmetic and one release per recovery-cache slot. They do not qualify a Btrfs disk image, EFI firmware or the intended Common V2 ABI.
+
 ### Hosted FSW parser compilation
 
 The test-only `filesystems/test/Makefile` builds `lsroot` and `lslr` from the same selected FSW backend (`ext2` by default). Its former XFS default and invalid dot-prefixed object reference were unbuildable because that backend source is absent. Run `make -C filesystems/test clean all` to check hosted compilation. Use `make -C filesystems/test clean all DRIVERNAME=ext4` to rebuild against EXT4. These programs require explicit disk-image fixtures for functional read testing; neither compilation nor printing directory entries demonstrates EFI firmware or Common V2 compatibility. The POSIX adapter must also release each directory dnode and close the image descriptor on both success and failure paths.
@@ -84,13 +88,16 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 
 | Contract or risk | Existing evidence | Missing regression evidence |
 | --- | --- | --- |
-| Fixed installation destination and preservation of other EFI vendors | `tests/install-safety.sh` uses a disposable ESP and checks three non-BOOT paths | Independent confirmation that the Linux reinstall removes only BOOT's dedicated directory and retains other vendors' files |
+| Fixed installation destination and preservation of other EFI vendors | `tests/install-safety.sh` exercises Linux reinstall against a disposable ESP and verifies three separate vendor files remain unchanged | Interrupted installation and real firmware recovery |
 | Reinstallation without an ownership marker | `tests/install-safety.sh`, `tests/deb-install-safety.sh` | Both installers replace BOOT's fixed directory and reject symlink traversal without requiring old-file proof |
 | Duplicate and ambiguous firmware entries | `tests/nvram-safety.sh`, workflow repeat-install checks | Physical firmware variable-write failure and partial-update recovery across different OEMs |
 | Hosted FSW adapter resources | The test-only POSIX adapter closes its image descriptor on unmount or mount failure, releases directory dnodes and checks host `dirent` name capacity | Fault-injected allocation, malformed directory names and repeated mount/iteration leak checks |
 | Pointer enumeration and screen allocation failure | Pointer protocol and handle arrays now compact together; missing protocol-array allocations disable that category; freed cursor images are nulled and the console header tolerates failed blank-row allocation | Firmware protocol mock with failed opens, pool-failure injection, repeated cleanup, and text-only boot under allocation pressure |
 | Loader option substitution and textual GUID validation | `boot/mystrings.c` now assembles replacements transactionally, frees the old pool allocation only after success, checks output-size arithmetic and rejects non-hex GUID characters | EFI-hosted unit tests for replacement, escaped percent tokens, simulated pool allocation failure and malformed GUID strings |
 | FSW mount on untrusted disk images | EXT2 geometry checks and EFI mount allocation checks are implemented | Fault-injected zero inode-group counts, allocation failures and truncated metadata to confirm the new rejection paths |
+| Boot-signature scan bounds | `tests/host-source-regressions.sh` compiles FindMem and checks oversized, final-offset and empty needles | Real-device legacy detection |
+| Btrfs memory ownership and capacity | `tests/host-source-regressions.sh` compiles production cleanup/stat routines against mock volumes | Actual Btrfs disk images and firmware allocator faults |
+| Graphics allocation failure | The alpha compositor now returns without drawing when its image allocation fails | EFI fault-injection and graphical display replay |
 | FSW large-file reads | `filesystems/fsw_core.c` now preserves its full 64-bit stream position | Read at offsets below and above 4 GiB against independently generated reference bytes |
 | EFI directory buffer negotiation | `filesystems/fsw_efi.c` now restores the cursor on conversion error | An `EFI_BUFFER_TOO_SMALL` retry must return the same entry rather than skipping one |
 | EXT4 dirty filesystem | RECOVER is accepted by the current feature mask | Explicit tests of recovery-required images, plus a declared refusal or a validated read-only consistency policy |
@@ -103,7 +110,7 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 
 ### Reproducible checks and their limits
 
-From the repository root, `bash tests/install-safety.sh`, `bash tests/nvram-safety.sh`, `bash tests/deb-install-safety.sh` (with a built `.deb`), `bash packaging/test-release.sh` (with its expected release artifacts) and `bash tests/ovmf-smoke.sh` (with its QEMU, OVMF and prebuilt-image prerequisites) are the maintained entry points. `make gnuefi` compiles the firmware targets using the installed GNU-EFI toolchain. Some tests require setup or artifacts and should not be interpreted as executable on an arbitrary clean host without inspection of their scripts.
+From the repository root, `bash tests/host-source-regressions.sh`, `bash tests/install-safety.sh`, `bash tests/nvram-safety.sh`, `bash tests/deb-install-safety.sh` (with a built `.deb`), `bash packaging/test-release.sh` (with its expected release artifacts) and `bash tests/ovmf-smoke.sh` (with its QEMU, OVMF and prebuilt-image prerequisites) are the maintained entry points. `make gnuefi` compiles the firmware targets using the installed GNU-EFI toolchain. Some tests require setup or artifacts and should not be interpreted as executable on an arbitrary clean host without inspection of their scripts.
 
 A review of source text is not a fresh execution of those commands. For a meaningful claim, record the tested commit SHA, environment, command, exit status, fixture inputs and observed artifact or log. Link each claim to the relevant executable assertion rather than relying on a passing badge or a file's existence.
 

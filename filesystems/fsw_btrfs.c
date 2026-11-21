@@ -340,6 +340,11 @@ static void master_uuid_remove(struct fsw_btrfs_volume *vol) {
         }
 }
 
+/**
+ * Copy selected little-endian superblock metadata into the live volume.
+ * An unsupported sector size leaves sectorshift at zero: this helper
+ * does not independently validate the full disk geometry.
+ */
 static fsw_status_t btrfs_set_superblock_info(struct fsw_btrfs_volume *vol, struct btrfs_superblock *sb)
 {
     int i;
@@ -696,6 +701,11 @@ reiter:
     }
 }
 
+/**
+ * Reject duplicate member IDs, then transfer a cloned physical member
+ * into the master's table. Caller scan_disks_hook must already check both
+ * UUID equality and array capacity; neither is revalidated here.
+ */
 static int btrfs_add_multi_device(struct fsw_btrfs_volume *master, struct fsw_volume *slave, struct btrfs_superblock *sb)
 {
     int i;
@@ -798,6 +808,10 @@ static void stripe_xor(char *dst, struct stripe_table *stripe, int data_stripes,
     }
 }
 
+/**
+ * Unpin each cached stripe through its originating block device.
+ * The stripe array and the physical device remain caller-owned.
+ */
 static void stripe_release(struct stripe_table *stripe, int count, uint32_t offset)
 {
     unsigned i;
@@ -1400,6 +1414,11 @@ static fsw_status_t fsw_btrfs_volume_mount(struct fsw_volume *volg) {
     return FSW_SUCCESS;
 }
 
+/**
+ * Unregister a master and unmount attached slave volumes. Each recovery
+ * cache slot owns a distinct buffer and must be released once before the
+ * cache-array allocation is freed.
+ */
 static void fsw_btrfs_volume_free(struct fsw_volume *volg)
 {
     unsigned i;
@@ -1423,17 +1442,23 @@ static void fsw_btrfs_volume_free(struct fsw_volume *volg)
         FreePool (vol->extent);
     if(vol->rcache) {
 	for(i = 0; i < RECOVER_CACHE_SIZE; i++)
-	    if(vol->rcache->buffer)
-		FreePool(vol->rcache->buffer);
+	    if(vol->rcache[i].buffer)
+		FreePool(vol->rcache[i].buffer);
         FreePool (vol->rcache);
     }
 }
 
+/**
+ * Report logical free bytes as total minus used, clamping inconsistent
+ * used>total metadata to zero. Redundancy profiles and degraded devices
+ * can reduce practical writable capacity below this estimate.
+ */
 static fsw_status_t fsw_btrfs_volume_stat(struct fsw_volume *volg, struct fsw_volume_stat *sb)
 {
     struct fsw_btrfs_volume *vol = (struct fsw_btrfs_volume *)volg;
     sb->total_bytes = vol->total_bytes;
-    sb->free_bytes  = vol->bytes_used;
+    sb->free_bytes = (vol->bytes_used <= vol->total_bytes)
+                   ? vol->total_bytes - vol->bytes_used : 0;
     return FSW_SUCCESS;
 }
 

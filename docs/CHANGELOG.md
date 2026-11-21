@@ -2,6 +2,14 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Boot scanning and Btrfs memory-safety follow-up
+
+- Bounded FindMem input lengths and corrected the last valid search offset, with compiled host regression cases.
+- Freed individual Btrfs recovery-cache slots once each and corrected its logical free-byte statistic.
+- Skipped alpha image composition on failed allocation.
+- Strengthened source-level documentation of EFI directory ownership, firmware input semantics and Btrfs metadata handling.
+- Added native source-isolated regressions to CI without claiming physical firmware or Common V2 coverage.
+
 ## 2026-11-22 — Firmware input and display lifetime corrections
 
 - Kept pointer protocol interfaces paired with their successfully opened EFI handles, including skipped opens; a failed protocol-array allocation no longer leads to a NULL protocol slot.

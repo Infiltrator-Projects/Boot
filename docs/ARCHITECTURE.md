@@ -122,7 +122,13 @@ The following table records code-level relationships rather than a promise of co
 | Filesystem mount/read | Block and Disk I/O protocols, on-disk metadata, FSW dnodes/streams | Per-volume caches and open streams have separate lifetimes; a recognised magic number is not proof of a valid directory or file | `filesystems/fsw_efi.c`, `filesystems/fsw_core.c` |
 | Native or generic reinstall | Mounted ESP, BOOT directory and BootOrder records | The reserved BOOT directory is intentionally replaced; unrelated EFI bootloaders remain untouched | `boot-native-installer.run`, `packaging/install-generic.sh` |
 
+### Firmware image and directory ownership
+
+The directory iterator borrows its caller's parent directory and owns only a successfully opened relative child. Graphics retains a banner independently of the replaceable background snapshot; compositing owns its temporary image. A failed image allocation must not be dereferenced, but that source guard is not equivalent to an EFI fault-injection test.
+
 ### Filesystem read and error boundaries
+
+Btrfs cleanup frees every recovery-cache buffer through its own array slot rather than repeatedly freeing slot zero. Its EFI free-space statistic is now `max(total_bytes - bytes_used, 0)`, a logical-space estimate rather than a promise that profiled or degraded devices are writable. Native source-isolated tests exercise both rules, not full firmware execution.
 
 The FSW core expresses a file as a stream over logical extents. A physical extent translates through block caching, a buffered extent provides decoder- or backend-owned bytes, and a sparse extent supplies zero bytes. The backend's extent units and the host's physical block units must remain distinct. Open streams retain independent positions even where they share a volume cache. See `filesystems/design.dox` for a worked block-boundary example.
 

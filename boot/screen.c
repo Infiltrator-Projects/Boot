@@ -160,6 +160,11 @@ VOID SetupScreen(VOID)
     }
 }  
 
+/**
+ * Switch firmware output to text and apply cursor policy. Requery the
+ * console dimensions, using 80x25 on failure before allocating the
+ * optional row-clearing buffer.
+ */
 VOID SwitchToText(IN BOOLEAN CursorEnabled)
 {
     egSetGraphicsModeEnabled(FALSE);
@@ -252,6 +257,11 @@ VOID DrawScreenHeader(IN CHAR16 *Title)
     refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, 4);
 }
 
+/**
+ * Drain all queued EFI keystrokes. TRUE means one or more events were
+ * consumed, not that any constituted a valid selection. This operation
+ * deliberately mutates the firmware input queue.
+ */
 BOOLEAN ReadAllKeyStrokes(VOID)
 {
     BOOLEAN       GotKeyStrokes;
@@ -284,6 +294,11 @@ VOID PrintUglyText(IN CHAR16 *Text, IN UINTN PositionCode) {
     }  
 }  
 
+/**
+ * Prevent a stale queued key from acknowledging an error prompt. Drain
+ * input first; if keys were pending, pause and drain again before waiting
+ * without a timeout for a fresh input event.
+ */
 VOID PauseForKey(VOID)
 {
     UINTN index;
@@ -373,6 +388,11 @@ VOID SwitchToGraphicsAndClear(VOID)
         BltClearScreen(TRUE);
 }
 
+/**
+ * The banner persists between draws while ScreenBackground is recreated.
+ * A resized banner transfers ownership to its replacement. A failed
+ * screen-copy allocation may leave ScreenBackground unavailable.
+ */
 VOID BltClearScreen(BOOLEAN ShowBanner)
 {
     static EG_IMAGE *Banner = NULL;
@@ -436,11 +456,18 @@ VOID BltImage(IN EG_IMAGE *Image, IN UINTN XPos, IN UINTN YPos)
     GraphicsScreenDirty = TRUE;
 }
 
+/**
+ * Composite borrowed source pixels into an owned temporary buffer.
+ * If allocation fails, the framebuffer and its dirty flag stay unchanged;
+ * the temporary image must never be passed as NULL to egComposeImage.
+ */
 VOID BltImageAlpha(IN EG_IMAGE *Image, IN UINTN XPos, IN UINTN YPos, IN EG_PIXEL *BackgroundPixel)
 {
     EG_IMAGE *CompImage;
 
     CompImage = egCreateFilledImage(Image->Width, Image->Height, FALSE, BackgroundPixel);
+    if (CompImage == NULL)
+        return;
     egComposeImage(CompImage, Image, 0, 0);
 
     egDrawImage(CompImage, XPos, YPos);
