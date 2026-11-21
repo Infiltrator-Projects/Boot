@@ -313,6 +313,11 @@ UINTN NumCharsInCommon(IN CHAR16* String1, IN CHAR16* String2) {
  
  
  
+/*
+ * Extracts one comma-delimited configuration element. Callers iterate by
+ * index and release each returned allocation; list delimiters do not carry
+ * a guarantee that the resulting path or option is semantically valid.
+ */
 CHAR16 *FindCommaDelimited(IN CHAR16 *InString, IN UINTN Index) {
     UINTN    StartPos = 0, CurPos = 0, InLength;
     BOOLEAN  Found = FALSE;
@@ -412,6 +417,11 @@ BOOLEAN IsInSubstring(IN CHAR16 *BigString, IN CHAR16 *List) {
  
  
  
+/*
+ * Rewrites a mutable UTF-16 string through a pointer-to-pointer interface.
+ * The caller must treat MainString as an owning reference because its
+ * allocation may be replaced rather than edited in place.
+ */
 BOOLEAN ReplaceSubstring(IN OUT CHAR16 **MainString, IN CHAR16 *SearchString, IN CHAR16 *ReplString) {
     BOOLEAN WasReplaced = FALSE;
     CHAR16 *FoundSearchString = NULL, *NewString, *EndString;
@@ -499,6 +509,11 @@ UINT64 StrToHex(CHAR16 *Input, UINTN Pos, UINTN NumChars) {
  
  
  
+/*
+ * Recognises a textual GUID representation before conversion or matching.
+ * Syntactic acceptance is not proof that the GUID identifies an installed
+ * partition, device, image or expected firmware protocol.
+ */
 BOOLEAN IsGuid(CHAR16 *UnknownString) {
     UINTN   Length, i;
     BOOLEAN retval = TRUE;
