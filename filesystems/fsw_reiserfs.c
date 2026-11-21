@@ -11,6 +11,13 @@ static fsw_status_t fsw_reiserfs_volume_mount(struct fsw_reiserfs_volume *vol);
 static void         fsw_reiserfs_volume_free(struct fsw_reiserfs_volume *vol);
 static fsw_status_t fsw_reiserfs_volume_stat(struct fsw_reiserfs_volume *vol, struct fsw_volume_stat *sb);
 
+/*
+ * Lazily resolve a ReiserFS object's stat-data item. Both old and new stat
+ * formats are supported according to key version and item size; the chosen
+ * item is copied into the dnode's own allocation. A missing or wrong item
+ * is a corrupted-volume condition rather than an empty valid inode.
+ * Subsequent stat calls may reuse the retained record.
+ */
 static fsw_status_t fsw_reiserfs_dnode_fill(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno);
 static void         fsw_reiserfs_dnode_free(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno);
 static fsw_status_t fsw_reiserfs_dnode_stat(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno,

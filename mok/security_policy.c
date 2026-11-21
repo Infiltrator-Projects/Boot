@@ -52,15 +52,13 @@ static EFI_SECURITY_FILE_AUTHENTICATION_STATE esfas = NULL;
 static EFI_SECURITY2_FILE_AUTHENTICATION es2fa = NULL;
 
 /**
- * Firmware supplies the image bytes directly to Security2. Preserve an original
- * success. If the original callback rejects the image, offer those same bytes to
- * the shim verifier and preserve the original EFI status if it also rejects them.
+ * Intercept Security2 authentication of image bytes supplied by firmware.
+ * Preserve original policy acceptance. Only on rejection is the same buffer
+ * offered to shim; if shim also rejects it, propagate the original EFI status.
+ * This hook alters image execution policy and must not conflate UI selection
+ * with cryptographic verification or permanently outlive its installation.
  */
 static MSABI EFI_STATUS
-/*
- * Routes a Security2 file authentication request through the installed
- * policy. Successful status must reflect accepted validation, not UI intent.
- */
 security2_policy_authentication (
    const EFI_SECURITY2_PROTOCOL *This,
    const EFI_DEVICE_PATH_PROTOCOL *DevicePath,

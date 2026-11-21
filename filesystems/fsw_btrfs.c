@@ -302,6 +302,14 @@ static int uuid_eq(btrfs_uuid_t u1, btrfs_uuid_t u2) {
 
 static struct fsw_btrfs_uuid_list *master_uuid_list = NULL;
 
+/*
+ * Maintain a process-local map from filesystem UUID to one master volume
+ * for multidevice discovery. Returning zero means an existing master was
+ * found; a newly added volume becomes the master and remains on the list
+ * until removed. KNOWN LIMIT: AllocatePool is dereferenced without an
+ * allocation-failure guard, so this registration path is not safe under
+ * pool exhaustion.
+ */
 static int master_uuid_add(struct fsw_btrfs_volume *vol, struct fsw_btrfs_volume **master_out) {
     struct fsw_btrfs_uuid_list *l;
 
@@ -814,6 +822,13 @@ static void block_mulx_xor (char *dst, unsigned mul, const char *buf, uint32_t s
 	    *q ^= powx[mul + powx_inv[*p]];
 }
 
+/*
+ * Build byte-wise finite-field lookup tables used by RAID6 stripe
+ * reconstruction. The power table is duplicated across 255 indices for
+ * wraparound and indexed through a reverse table for nonzero operands. The
+ * one-time initialized flag is process-global; this function establishes
+ * arithmetic tables, not that all required stripes are available.
+ */
 static void raid6_init_table (void)
 {
     static int initialized = 0;

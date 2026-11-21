@@ -132,6 +132,7 @@ These are findings from static inspection; no new test result is implied.
 5. **Directory retry semantics:** `fsw_efi_dir_read` can advance the directory cursor before discovering that `EFI_FILE_INFO` will not fit in the supplied buffer. A size-probe/retry can skip an entry.
 6. **EXT4 journal state:** `fsw_ext4_volume_mount` admits the RECOVER incompatibility flag but does not replay a journal; this may expose inconsistent on-disk state.
 7. **Controller classification index:** the GNU-EFI `ConnectAllDriversToAllControllers` path indexes the per-query `HandleType` array using an index from the outer handle enumeration. The ranges need not match and the index correspondence is not established in that function.
-8. **Legacy targets:** `filesystems/Makefile` retains an independent `install` recipe targeting `EFI/refind/drivers`; the POSIX filesystem test makefile contains XFS object references not satisfied by the current source tree.
+8. **Additional parser/allocation boundaries:** `master_uuid_add` in the Btrfs backend dereferences an unchecked pool result; legacy ASCII-to-UTF-16 conversion and the NTFS attribute-name offset and ISO SUSP reader need input-length proof, not just format signatures.
+9. **Legacy targets:** `filesystems/Makefile` retains an independent `install` recipe targeting `EFI/refind/drivers`; the POSIX filesystem test makefile contains XFS object references not satisfied by the current source tree.
 
 These findings should not be disguised as resolved by explanatory comments. The exact limitations and evidence requirements are carried into [Validation](VALIDATION.md).

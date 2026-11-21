@@ -44,6 +44,13 @@ static fsw_status_t fsw_hfs_get_extent(struct fsw_hfs_volume *vol, struct fsw_hf
 
 static fsw_status_t fsw_hfs_dir_lookup(struct fsw_hfs_volume *vol, struct fsw_hfs_dnode *dno,
                                            struct fsw_string *lookup_name, struct fsw_hfs_dnode **child_dno);
+/*
+ * Enumerate catalog B-tree records whose parent ID equals the requested
+ * directory. The empty-name key positions the search before the children;
+ * the visitor carries the stream cursor and materialises one child. The
+ * case-sensitivity switch and B-tree node ownership follow the mounted HFS+
+ * variant, not generic POSIX ordering.
+ */
 static fsw_status_t fsw_hfs_dir_read(struct fsw_hfs_volume *vol, struct fsw_hfs_dnode *dno,
                                          struct fsw_shandle *shand, struct fsw_hfs_dnode **child_dno);
 #if 0

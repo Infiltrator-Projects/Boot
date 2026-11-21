@@ -39,6 +39,13 @@ static fsw_status_t fsw_iso9660_read_dirrec(struct fsw_iso9660_volume *vol, stru
 static fsw_status_t fsw_iso9660_readlink(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno,
                                          struct fsw_string *link);
 
+/*
+ * Locate the Rock Ridge SUSP SP marker inside one ISO directory record. Its
+ * signature and 0xBE/0xEF check select the extension mechanism. The record
+ * length is taken from media; this byte-scan does not separately prove that
+ * every possible candidate leaves enough bytes for the complete SP
+ * structure before dereferencing it.
+ */
 static fsw_status_t rr_find_sp(struct iso9660_dirrec *dirrec, struct fsw_rock_ridge_susp_sp **psp);
 static fsw_status_t rr_find_nm(struct fsw_iso9660_volume *vol, struct iso9660_dirrec *dirrec, int off, struct fsw_string *str);
 static fsw_status_t rr_read_ce(struct fsw_iso9660_volume *vol, union fsw_rock_ridge_susp_ce *ce, fsw_u8 *begin);

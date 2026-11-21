@@ -168,6 +168,14 @@ static fsw_status_t fixup(fsw_u8 *record, char *magic, int sectorsize, int size)
     return FSW_SUCCESS;
 }
 
+/*
+ * Search attribute records within an MFT record using the used-size and
+ * first-attribute offsets. Each record contributes its length to the next
+ * iteration; a zero, terminator or short length ends scanning. KNOWN REVIEW
+ * POINT: a named attribute's name pointer is formed from an on-record
+ * offset without a separate visible bounds check against ns * 2 in this
+ * routine.
+ */
 static fsw_status_t find_attribute_direct(fsw_u8 *mft, int mftsize, int type, fsw_u8 **outptr, int *outlen)
 {
     int namelen;

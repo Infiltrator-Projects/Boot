@@ -28,6 +28,14 @@ extern EFI_GUID gEfiLegacyBiosProtocolGuid;
 EFI_GUID gEfiLegacyDevOrderVariableGuid     = { 0xa56074db, 0x65fe, 0x45f7, {0xbd, 0x21, 0x2d, 0x2b, 0xdd, 0x8e, 0x96, 0x52 }};
 static EFI_GUID EfiGlobalVariableGuid = { 0x8BE4DF61, 0x93CA, 0x11D2, { 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C }};
 
+/*
+ * Convert a terminated single-byte string into UTF-16 code units. KNOWN
+ * LIMIT: the size comparison occurs after a source byte has already been
+ * read and written, and the terminator is written at the final index. The
+ * caller must provide appropriately terminated source data and sufficient
+ * destination capacity; this routine does not independently prove those
+ * bounds.
+ */
 VOID
 AsciiToUnicodeSize (
   IN UINT8              *AStr,
