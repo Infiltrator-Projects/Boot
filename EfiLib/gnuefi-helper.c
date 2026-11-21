@@ -115,6 +115,11 @@ UnicodeStrToAsciiStr (
 
 
 UINTN
+/*
+ * Counts bytes preceding the NUL terminator in an ASCII buffer.
+ * The argument must be a valid terminated string; the routine does not
+ * accept an explicit capacity or establish one for the caller.
+ */
 AsciiStrLen (
   IN      CONST CHAR8               *String
   )
@@ -209,6 +214,11 @@ IsDevicePathValid (
 
 UINTN
 EFIAPI
+/*
+ * Measures a sequence of variable-length EFI device-path nodes through
+ * its terminal end node. The path must satisfy the expected node structure;
+ * size discovery does not prove that the underlying device exists.
+ */
 GetDevicePathSize (
   IN CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
   )
