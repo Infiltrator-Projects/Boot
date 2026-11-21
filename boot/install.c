@@ -27,6 +27,12 @@
 #include "../include/Handle.h"
 
  
+/*
+ * Renames an existing EFI file to a sibling '-old' name by SetInfo rather
+ * than copying payload bytes. Refuses to overwrite an existing backup and
+ * releases the opened EFI file and all temporary pool allocations on exit.
+ * EFI firmware filesystem rename semantics determine persistence.
+ */
 EFI_STATUS BackupOldFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
     EFI_FILE_PROTOCOL *FilePtr = NULL;
     EFI_FILE_INFO *Original = NULL, *Replacement = NULL;
@@ -214,6 +220,11 @@ BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
 }
 
  
+/*
+ * Releases the owned label and device-path payload for each parsed Boot####
+ * entry, then the list node. Ownership does not extend to firmware NVRAM:
+ * this is memory cleanup and does not delete any boot option variable.
+ */
 VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries) {
     BOOT_ENTRY_LIST *Current;
 
@@ -235,6 +246,12 @@ VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries) {
  
  
  
+/*
+ * Translates parsed firmware boot options into menu entries. The operation
+ * and chosen Boot#### number are returned to the caller; displaying a menu
+ * must not itself write firmware variables. Volume names are descriptive
+ * and must not be mistaken for authenticated executable identities.
+ */
 static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOrderNum) {
     CHAR16              *Temp = NULL, *Filename = NULL;
     REFIT_VOLUME        *Volume = NULL;
@@ -296,6 +313,11 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
 
 
 
+/*
+ * Separates user selection from the persistent NVRAM mutation. Only the
+ * MAKE_DEFAULT result invokes SetBootDefault; parsed entries are freed
+ * regardless of selection, and SetVariable failures are shown to the user.
+ */
 VOID ManageBootorder(VOID) {
     BOOT_ENTRY_LIST *Entries = FindBootOrderEntries();
     UINTN BootNum = 0, Operation;
