@@ -172,6 +172,11 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
  * Returns a newly prepared options string, substituting version tokens or
  * appending initrd= only when applicable. The caller owns its allocation.
  */
+/*
+ * Incorporates a selected initramfs path into the kernel load-options text.
+ * This modifies a launch argument, not an initramfs image or filesystem;
+ * kernel acceptance depends on the loader's supported command-line syntax.
+ */
 CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
     CHAR16 *NewOptions = NULL;
 
@@ -217,6 +222,11 @@ CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume) {
  
  
  
+/*
+ * Interprets distribution identification data read from a candidate volume
+ * to refine menu artwork. These labels are heuristic presentation metadata,
+ * not executable provenance or operating-system identity attestation.
+ */
 static VOID ParseReleaseFile(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *FileName) {
     UINTN       FileSize = 0;
     REFIT_FILE  File;
@@ -308,6 +318,11 @@ VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOL
  
  
  
+/*
+ * Searches for an alternative filename associated with a signed loader.
+ * Naming alone does not verify a digital signature: firmware authentication
+ * still occurs at the subsequent EFI image-loading boundary.
+ */
 BOOLEAN HasSignedCounterpart(IN REFIT_VOLUME *Volume, IN CHAR16 *FullName) {
     CHAR16 *NewFile = NULL;
     BOOLEAN retval = FALSE;
