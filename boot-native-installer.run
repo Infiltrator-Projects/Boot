@@ -3,7 +3,7 @@
 # are accepted: successful execution elevates privileges, fetches the pinned
 # source commit, builds x86-64 EFI images, writes the ESP and updates firmware
 # NVRAM. /EFI/InfiltratorOS/BOOT is the only permitted installation target.
-# The generic .deb has a separate staging-only contract.
+# The generic .deb installs the prebuilt AMD64 image from its postinst.
 
 set -euo pipefail
 
@@ -22,7 +22,7 @@ if ((EUID != 0)); then
     exec sudo bash "$0"
 fi
 
-required=(git make gcc ld objcopy tar mktemp efibootmgr findmnt lsblk blkid realpath sha256sum od)
+required=(git make gcc ld objcopy tar mktemp efibootmgr findmnt lsblk blkid realpath od)
 missing=()
 for program in "${required[@]}"; do
     command -v "$program" >/dev/null 2>&1 || missing+=("$program")
@@ -460,55 +460,17 @@ CopyTools() {
    fi
 }
 
-BootFileHash() {
-   if command -v sha256sum &> /dev/null ; then
-      sha256sum "$1" | cut -d ' ' -f 1
-   elif command -v shasum &> /dev/null ; then
-      shasum -a 256 "$1" | cut -d ' ' -f 1
-   else
-      echo "A SHA-256 tool is required for safe EFI loader updates." >&2
+# BOOT has one fixed directory. Reject alternate targets and symbolic links
+# while allowing unconditional replacement of the directory's contents.
+CheckBootDestination() {
+   if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" || "$RootDir" != "/" ||
+         -z "$InstallDir" || ! -d "$InstallDir" ]]; then
+      echo "BOOT can install only to /EFI/InfiltratorOS/BOOT on a mounted ESP." >&2
       return 1
    fi
-}
-
-# Validate the fixed destination, symlink components and SHA-256 ownership
-# marker only while the prior executable still exists. On Linux, InstallOnLinux
-# calls rm -rf on its BOOT directory before CopyBootFiles calls this guard.
-# Consequently this guard cannot establish pre-deletion ownership for a Linux
-# reinstall; the stand-alone guard fixture does not exercise that ordering.
-GuardDefaultBootLocation() {
-   if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
-      echo "Refusing BOOT installation outside /EFI/InfiltratorOS/BOOT." >&2
-      return 1
-   fi
-   local dir="$InstallDir/$TargetDir"
-   local existing="$dir/$TargetX64"
-   local marker="$dir/.infiltrator-boot-loader.sha256"
-   local expected actual
    if [[ -L "$InstallDir/EFI" || -L "$InstallDir/EFI/InfiltratorOS" ||
-         -L "$dir" || -L "$existing" || -L "$marker" ]] ; then
-      echo "Refusing EFI installation through a symbolic link." >&2
-      return 1
-   fi
-   if [[ "$ShimSource" != "none" ]] ; then
-      echo "Shim installation requires verified ownership of all affected EFI executables." >&2
-      return 1
-   fi
-   if [[ -e "$existing" || -e "$marker" ]] ; then
-      if [[ ! -f "$existing" || ! -f "$marker" ]] ; then
-         echo "BOOT's target executable has no matching ownership record; refusing replacement." >&2
-         return 1
-      fi
-      expected=$(cat "$marker") || return 1
-      [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || return 1
-      actual=$(BootFileHash "$existing") || return 1
-      if [[ "$actual" != "$expected" ]] ; then
-         echo "BOOT's target executable differs from its recorded checksum; refusing replacement." >&2
-         return 1
-      fi
-   elif [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -d "$dir" &&
-           -n "$(find "$dir" -mindepth 1 -maxdepth 1 ! -name drivers_x64 -print -quit)" ]] ; then
-      echo "BOOT's dedicated directory contains unrecognised files; refusing replacement." >&2
+         -L "$InstallDir/$TargetDir" || -L "$InstallDir/$TargetDir/$TargetX64" ]]; then
+      echo "Refusing BOOT installation through an EFI symbolic link." >&2
       return 1
    fi
 }
@@ -517,7 +479,7 @@ GuardDefaultBootLocation() {
 # BOOT's selected directory. This copies resources; it does not establish
 # that a detected OS or compressed loader will later boot successfully.
 CopyBootFiles() {
-   GuardDefaultBootLocation || exit 1
+   CheckBootDestination || exit 1
    mkdir -p "$InstallDir/$TargetDir"
    if [[ $Platform == 'x64' ]] ; then
       if ! cp "$BootDir/boot_x64.efi" "$InstallDir/$TargetDir/$TargetX64" ; then
@@ -584,19 +546,6 @@ CopyBootFiles() {
       echo ""
       if ! cp -f "$ConfFile" "$InstallDir/$TargetDir/boot.conf" ; then
          Problems=1
-      fi
-   fi
-   if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -z "${Problems:-}" ]] ; then
-
-      local verified marker temporary
-      verified=$(BootFileHash "$InstallDir/$TargetDir/$TargetX64") || exit 1
-      marker="$InstallDir/$TargetDir/.infiltrator-boot-loader.sha256"
-      temporary=$(mktemp "$marker.XXXXXXXX") || exit 1
-      if ! printf '%s\n' "$verified" > "$temporary" ||
-         ! mv -f -- "$temporary" "$marker" ; then
-         rm -f -- "$temporary"
-         echo "Unable to record EFI loader ownership." >&2
-         exit 1
       fi
    fi
    if [[ $DeleteBootDir == 1 ]] ; then
@@ -1223,6 +1172,7 @@ InstallOnLinux() {
    echo "Installing BOOT from a Linux host into /EFI/InfiltratorOS/BOOT..."
    modprobe efivars &> /dev/null
    FindMountedESP
+   CheckBootDestination || return 1
 
    if [[ $LocalKeys == 1 ]] ; then
       ReSignBinaries

@@ -2,7 +2,7 @@
 # Runs extracted native-installer functions against a disposable fake ESP.
 # Fixtures include independent Windows, GRUB and EFI fallback files that must
 # remain intact when BOOT reinstalls its own dedicated directory. Also
-# exercises path/symlink guards and verifies the loader SHA-256 marker.
+# exercises the sole permitted installation path and symlink rejection.
 
 set -euo pipefail
 work=$(mktemp -d)
@@ -35,30 +35,24 @@ printf 'original-native-binary' > "$BootDir/boot_x64.efi"
 printf 'showtools about\n' > "$ConfFile"
 printf 'icon' > "$IconsDir/test.png"
 
-# This fixture calls CopyBootFiles and GuardDefaultBootLocation separately.
-# It does not seed an unowned previous BOOT directory and exercise a complete
-# InstallOnLinux refusal before any deletion. The delete-before-guard defect
-# therefore remains outside the assertions of this passing fixture.
+# Exercise the fixed path without requiring a marker or recognising previous
+# BOOT contents. A reinstall deliberately clears the complete BOOT directory.
 set +e +u
 set +o pipefail
-GuardDefaultBootLocation || exit 1
+CheckBootDestination || exit 1
 CopyBootFiles
 test -s "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
 for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     test -s "$InstallDir/EFI/InfiltratorOS/BOOT/drivers_x64/${filesystem}_x64.efi" || exit 1
 done
-marker="$InstallDir/EFI/InfiltratorOS/BOOT/.infiltrator-boot-loader.sha256"
-test "$(sha256sum "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" | cut -d ' ' -f1)" = "$(cat "$marker")" || exit 1
-GuardDefaultBootLocation || exit 1
-rm -f "$marker"
-if GuardDefaultBootLocation; then echo "Accepted unowned loader" >&2; exit 1; fi
+test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/.infiltrator-boot-loader.sha256" || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
 test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
 InstallDir="$work/link-esp"
 mkdir -p "$InstallDir"
 ln -s "$work/esp/EFI" "$InstallDir/EFI"
-if GuardDefaultBootLocation; then echo "Accepted symlinked EFI path" >&2; exit 1; fi
+if CheckBootDestination; then echo "Accepted symlinked EFI path" >&2; exit 1; fi
 
 InstallDir="$work/esp"
 TargetDir=/EFI/InfiltratorOS/BOOT
@@ -111,7 +105,7 @@ for arg in --usedefault --ownhfs --notesp --root; do
 done
 for forbidden in /EFI/BOOT /EFI/Microsoft/Boot /System/Library/CoreServices /EFI/other; do
     TargetDir="$forbidden"
-    if GuardDefaultBootLocation; then
+    if CheckBootDestination; then
         echo "Guard accepted forbidden installation path: $forbidden" >&2
         exit 1
     fi

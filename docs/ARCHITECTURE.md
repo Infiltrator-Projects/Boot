@@ -68,19 +68,19 @@ The default file also contains disabled example menu stanzas. Their presence doe
 
 `use_nvram false` is a BOOT runtime configuration setting; it is **not** a prohibition on the native installer using UEFI NVRAM to register and prioritise the BOOT firmware entry.
 
-## Installation and ownership boundaries
+## Installation boundaries
 
 The published native `.run` is a single, complete installation script. It elevates when necessary, verifies a source revision pinned by the release, builds BOOT and the six drivers, and invokes its own existing install flow. It has no permitted alternate ESP destination and no build-only execution mode.
 
-The destination path is strictly `/EFI/InfiltratorOS/BOOT`, and the native executable's filename is `BOOTX64.EFI`. On Linux, `InstallOnLinux` deliberately removes and recreates BOOT's dedicated directory; **the previous configuration and assets inside it are not preserved**. A fixed-path/symlink guard and SHA-256 ownership-marker helper remain in the source, but the latter is invoked by `CopyBootFiles` after that deletion and therefore cannot authenticate the removed previous executable. This is a description of the existing installation policy, **not an additional ownership-verification requirement or a newly established runtime bug**. Windows, GRUB and the standard `EFI/BOOT` paths are outside the deletion scope.
+The destination is strictly `/EFI/InfiltratorOS/BOOT`, with executable `BOOTX64.EFI`. Both the native `.run` and generic `.deb` replace the complete contents of BOOT's reserved directory, including previous configuration. No prior file-ownership check or checksum marker is required. The fixed destination and symbolic-link protections remain; Windows, GRUB and EFI fallback paths are left untouched.
 
 The installer calls its firmware-entry management routines to establish BOOT as the preferred firmware choice. The tests exercise detection of duplicate/stale entries, preservation of non-BOOT entries and repeated installation ordering; those are distinct from the BOOT runtime menu's choices. Failure to identify firmware state correctly must not be papered over with a second BOOT entry.
 
-The generic AMD64 `.deb` does not execute these installation operations. Its responsibility is staging the firmware image, drivers, configuration sample, maintained Markdown documents and other resources under `/usr/share/infiltrator-boot`. Packaging it is not equivalent to installing a UEFI boot manager.
+The generic AMD64 `.deb` installs its precompiled EFI binary, six drivers and resources at package configuration via `packaging/install-generic.sh`, registers BOOT in UEFI NVRAM and makes it first in BootOrder. It needs a mounted VFAT ESP and a UEFI-capable host; unlike `.run`, it does not build from source.
 
 ## Build and release ownership
 
-`Makefile` calls the GNU-EFI build for `libeg/`, `mok/`, `gzip/`, `EfiLib/`, `boot/` and `filesystems/`. `packaging/build-release.sh` pins the exact source commit in the downloadable `.run` and creates a staged `.deb` plus checksums. `packaging/test-release.sh` verifies artifact metadata, expected driver contents and native-install structure.
+`Makefile` calls the GNU-EFI build for `libeg/`, `mok/`, `gzip/`, `EfiLib/`, `boot/` and `filesystems/`. `packaging/build-release.sh` pins the exact source commit in the downloadable `.run` and creates an installing generic `.deb` plus checksums. `packaging/test-release.sh` verifies artifact metadata, expected driver contents and native-install structure.
 
 `.github/workflows/boot.yml` owns current AMD64 verification and automated prerelease publication. The source tree also includes older or alternative make targets; only the explicit native release path is authoritative for the shipped `.run`.
 
@@ -92,13 +92,13 @@ Appearance changes must not alter scan ordering, delete other loaders, disable f
 
 ## Integrity and trust boundaries
 
-There are distinct integrity boundaries: the downloaded source is pinned to the release commit; the existing-binary ownership-marker helper is not a pre-deletion check in the Linux reinstall flow; EFI images and drivers are handled through firmware execution and security mechanisms; and Secure Boot acceptance depends on the firmware's active trust configuration. A SHA-256 ownership marker is **not** equivalent to Secure Boot authentication.
+There are distinct integrity boundaries: the `.run` pins its downloaded source to the release commit; both installers restrict ESP writes to BOOT's fixed directory; EFI image and driver authentication depends on the active firmware trust configuration. Installation-path checks must not be confused with Secure Boot image authentication.
 
 Input surfaces include ESP directory entries, filesystem metadata, configuration text, EFI load options, firmware NVRAM state and optional hardware-dependent paths. Malformed or missing data must not be represented as successful OS discovery, authenticated execution or a verified firmware update.
 
 ## Secure Boot and signing side-effect boundaries
 
-BOOT's installer distinguishes a file digest used for **installation ownership**, a certificate/private-key pair used for **signing**, and firmware or shim **authentication of a launched EFI image**. These are independent mechanisms. `GenerateKeys` and `SignOneBinary` manipulate local material; `InstallSBKey` may request MOK enrollment requiring a later firmware confirmation. Neither a signed output file nor an import request establishes that a subsequent EFI launch will pass a particular machine's trust policy.
+BOOT's native installer distinguishes signing keys from firmware/shim authentication of launched EFI images. `GenerateKeys` and `SignOneBinary` handle signing material; `InstallSBKey` may request MOK enrollment requiring later firmware confirmation. The generic `.deb` installs its prebuilt image without claiming that Secure Boot will accept it.
 
 The separate `boot-sb-healthcheck` script reads trust-database and certificate metadata but also contains interactive paths that replace keys or initiate further administrative actions. It is not a purely observational scanner, and certificate expiry alone is not proof of a Secure Boot failure.
 
@@ -120,7 +120,7 @@ The following table records code-level relationships rather than a promise of co
 | EFI launch | Candidate path, volume handle, optional UTF-16 load options | EFI image classification precedes authentication/firmware launch. Option buffers must survive the firmware call and statuses must propagate | `boot/launch_efi.c` |
 | Firmware Boot#### selection | Binary NVRAM option and device-path metadata | `BootNext` is a one-shot firmware selection; persistent `BootOrder` management is distinct and has its own failure modes | `boot/install.c`, `boot/launch_efi.c` |
 | Filesystem mount/read | Block and Disk I/O protocols, on-disk metadata, FSW dnodes/streams | Per-volume caches and open streams have separate lifetimes; a recognised magic number is not proof of a valid directory or file | `filesystems/fsw_efi.c`, `filesystems/fsw_core.c` |
-| Native reinstall | ESP path, old BOOT directory, boot entry records | The Linux flow deliberately removes and recreates BOOT's fixed directory; the later marker helper does not inspect the removed installation | `boot-native-installer.run` |
+| Native or generic reinstall | Mounted ESP, BOOT directory and BootOrder records | The reserved BOOT directory is intentionally replaced; unrelated EFI bootloaders remain untouched | `boot-native-installer.run`, `packaging/install-generic.sh` |
 
 ### Filesystem read and error boundaries
 

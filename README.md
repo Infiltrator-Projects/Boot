@@ -23,7 +23,7 @@ BOOT has one intended official InfiltratorOS visual identity. The project is not
 | `EfiLib/`, `libeg/`, `gzip/`, `mok/` | Firmware support, graphics, decompression and security-related integration |
 | `include/`, `icons/`, `fonts/`, `banners/`, `keys/` | Shared headers and bundled resources |
 | `boot-native-installer.run` | Sole native source-build-and-install program for the published AMD64 `.run` |
-| `packaging/` | Generic staged package and source-pinned `.run` creation/verification |
+| `packaging/` | Generic `.deb` installer and source-pinned native `.run` creation/verification |
 | `tests/` | Disposable installation, NVRAM and OVMF checks |
 | `.github/workflows/boot.yml` | Native build, qualification and release automation |
 
@@ -45,7 +45,7 @@ Published `boot-VERSION-native-installer.run` files are different: executing one
 
 The installed executable is `BOOTX64.EFI`. Reinstallation replaces the contents of BOOT's dedicated directory, including its previous configuration; it does not remove the separate Windows, GRUB or `EFI/BOOT` firmware paths.
 
-The generic AMD64 `.deb` **stages** the executable, drivers, resources and maintained Markdown engineering documents under `/usr/share/infiltrator-boot`. It does not install an EFI boot entry or modify the ESP. A release publishes a `.run`, a `.deb` and `SHA256SUMS`; the release workflow labels these builds as prereleases pending broader hardware qualification.
+The generic AMD64 `.deb` supplies the prebuilt EFI executable, six drivers and resources under `/usr/share/infiltrator-boot`. Its `postinst` installs them to the same fixed `/EFI/InfiltratorOS/BOOT` directory and registers BOOT first in UEFI BootOrder. It requires a mounted VFAT ESP and UEFI firmware access; it does not compile on the target host. A release publishes a `.run`, a `.deb` and `SHA256SUMS`; the release workflow labels these builds as prereleases pending broader hardware qualification.
 
 ## Verification and limits
 

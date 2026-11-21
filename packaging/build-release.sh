@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Creates two fundamentally different deliverables: a generic AMD64 .deb
-# that stages files without writing firmware, and a version-pinned .run that
-# performs native installation when executed. The released source SHA must
+# Creates a generic AMD64 .deb that installs the prebuilt EFI binary from
+# its postinst, plus a version-pinned native .run that builds then installs. The released source SHA must
 # match this exact checkout; checksums protect the resulting artifact bytes.
 
 set -euo pipefail
@@ -34,7 +33,7 @@ for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     test -s "$driver" || { echo "Missing EFI filesystem driver $driver" >&2; exit 1; }
     install -m 0644 "$driver" "$root/boot/drivers_x64/"
 done
-for directory in icons fonts banners themes; do
+for directory in icons fonts banners themes keys; do
     if [[ -d "$directory" ]]; then cp -a "$directory" "$root/boot/"; fi
 done
 install -m 0644 boot.conf-sample "$root/boot/boot.conf-sample"
@@ -50,28 +49,38 @@ done
 for script in boot-sb-healthcheck mountesp; do
     if [[ -f "$script" ]]; then install -m 0755 "$script" "$root/$script"; fi
 done
-cat > "$root/PREVIEW-NOTICE.txt" <<'NOTICE'
-BOOT PREVIEW - DO NOT USE AS A VERIFIED BOOTLOADER
-These packages STAGE the built EFI executable and supporting files only.
-They never mount or modify the EFI System Partition, EFI/BOOT, GRUB, or NVRAM.
-The six standard EFI filesystem drivers are staged with BOOT.
-Direct kernel boot still requires verification on real hardware.
-NOTICE
-
 package="$work/debian-package"
 mkdir -p "$package/DEBIAN"
 cp -a "$payload/usr" "$package/usr"
+# Post-installation runs at dpkg configure time, on the host machine. No build
+# tools or source checkout are needed for the generic binary installation.
+install -d -m 0755 "$package/usr/lib/infiltrator-boot"
+install -m 0755 packaging/install-generic.sh "$package/usr/lib/infiltrator-boot/install-generic.sh"
+cat > "$package/DEBIAN/postinst" <<'POSTINST'
+#!/bin/sh
+set -e
+case "$1" in
+    configure)
+        exec /usr/lib/infiltrator-boot/install-generic.sh
+        ;;
+    *)
+        exit 0
+        ;;
+esac
+POSTINST
+chmod 0755 "$package/DEBIAN/postinst"
 cat > "$package/DEBIAN/control" <<EOF
 Package: infiltrator-boot
 Version: $version
 Section: admin
 Priority: optional
 Architecture: amd64
+Depends: bash, efibootmgr, util-linux, coreutils, libc-bin
 Maintainer: Infiltrator Projects
-Description: BOOT UEFI boot manager preview (staged assets only)
- This package stages the BOOT firmware image and resources in
- /usr/share/infiltrator-boot. It does not install to the EFI System
- Partition or modify EFI firmware boot entries.
+Description: BOOT generic AMD64 UEFI boot manager installer
+ This package supplies the generic AMD64 BOOT firmware image and drivers.
+ During package configuration, the installer copies them to
+ /EFI/InfiltratorOS/BOOT on the mounted ESP and registers a UEFI boot option.
 EOF
 deb="$out/infiltrator-boot_${version}_amd64.deb"
 dpkg-deb --root-owner-group --build "$package" "$deb"

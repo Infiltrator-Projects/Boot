@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Release invariants for the staged .deb and source-pinned native .run.
-# Tests assert the required six EFI filesystem drivers, no package-level
-# firmware installer hooks, correct metadata and the single permitted ESP
-# destination. Text searches are structural checks, not live boot proof.
+# Release invariants for both complete installers: generic .deb with its
+# configure-time UEFI installer, and the source-pinned CPU-native .run.
+# Firmware behaviour is exercised with disposable fixtures, not live NVRAM.
 
 set -euo pipefail
 
@@ -42,10 +41,19 @@ if grep -Eq 'usr/share/infiltrator-boot/docs/(LICENSE|CREDITS|NEWS)\.txt' "$work
 fi
 dpkg-deb --ctrl-tarfile "$deb" | tar -tf - > "$work/control.txt"
 grep -Eq '^\./control$|^control$' "$work/control.txt"
-if grep -Eq '(^|/)(postinst|preinst|prerm|postrm)$' "$work/control.txt"; then
-    echo "Generic package unexpectedly runs firmware installation scripts" >&2
+grep -Eq '^\./postinst$|^postinst$' "$work/control.txt"
+if grep -Eq '(^|/)(preinst|prerm|postrm)$' "$work/control.txt"; then
+    echo "Unexpected additional package maintainer scripts" >&2
     exit 1
 fi
+dpkg-deb -e "$deb" "$work/control"
+dpkg-deb -x "$deb" "$work/unpacked"
+test -x "$work/control/postinst"
+grep -Fq 'exec /usr/lib/infiltrator-boot/install-generic.sh' "$work/control/postinst"
+test -s "$work/unpacked/usr/lib/infiltrator-boot/install-generic.sh"
+bash -n "$work/unpacked/usr/lib/infiltrator-boot/install-generic.sh"
+grep -Fq 'Depends: bash, efibootmgr' <(dpkg-deb -f "$deb")
+bash tests/deb-install-safety.sh "$deb"
 
 bash -n "$run"
 bash -n boot-native-installer.run
@@ -76,7 +84,9 @@ grep -Fq 'sparse-checkout set boot EfiLib gzip libeg mok include icons fonts ban
 grep -Fxq 'TargetDir=/EFI/InfiltratorOS/BOOT' "$run"
 grep -Fxq 'TargetX64="BOOTX64.EFI"' "$run"
 grep -Fq 'rm -rf -- "$InstallDir/$TargetDir"' "$run"
-grep -Fq 'GuardDefaultBootLocation || exit 1' "$run"
+! grep -Fq "BootFileHash" "$run"
+! grep -Fq ".infiltrator-boot-loader.sha256" "$run"
+grep -Fq 'CheckBootDestination || exit 1' "$run"
 grep -Fq 'FindLinuxESP() {' "$run"
 grep -Fq 'FindMountedESP() {' "$run"
 grep -Fq 'AddBootEntry() {' "$run"
@@ -95,4 +105,4 @@ test "$(grep -Ec '^InstallOnLinux\(\) \{' "$run")" -eq 1
 ! grep -Fq 'cat boot-install' packaging/build-release.sh
 grep -Fq 'if (($# != 0)); then' "$run"
 grep -Fq 'The only permitted destination is /EFI/InfiltratorOS/BOOT.' "$run"
-echo "Verified one native RUN program and original installation behaviour"
+echo "Verified generic DEB and native RUN installation behaviour"

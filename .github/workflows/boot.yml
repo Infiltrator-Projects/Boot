@@ -3,8 +3,8 @@
 # menu smoke test establish distinct contracts; none independently proves
 # bootability on every physical firmware or installed operating system.
 # Successful pushes to main publish a prerelease with .run, .deb and checksums.
-# The .run performs actual ESP/NVRAM installation when executed, while the
-# .deb stages files only. Keep these semantics and the six EFI drivers intact.
+# The .run builds and installs natively; the generic .deb installs the prebuilt
+# image at package configuration. Both register BOOT and its six EFI drivers.
 name: BOOT native source installer and generic AMD64 package
 
 on:
@@ -45,7 +45,7 @@ jobs:
               exit 1
             fi
           done
-          for current in packaging/build-release.sh packaging/test-release.sh; do
+          for current in packaging/build-release.sh packaging/test-release.sh packaging/install-generic.sh tests/deb-install-safety.sh; do
             test -s "$current" || exit 1
           done
 
@@ -94,7 +94,7 @@ jobs:
             file boot/boot_x64.efi | grep -F 'PE32+'
           )
 
-      - name: Build and test .run and .deb
+      - name: Build and test both installing .run and .deb releases
         shell: bash
         run: |
           set -euo pipefail
@@ -141,13 +141,15 @@ jobs:
             It downloads pinned BOOT sources, compiles with GNU-EFI CPU-native
             settings, and installs under /EFI/InfiltratorOS/BOOT only.
             It has no build-only mode and executes no second installer.
-          - Generic AMD64 .deb: stages BOOT and six standard EFI filesystem drivers.
+          - Generic AMD64 .deb: installs the precompiled BOOT EFI image and six
+            EFI drivers under /EFI/InfiltratorOS/BOOT during dpkg configuration,
+            and sets BOOT first in firmware BootOrder without removing other loaders.
           - SHA256SUMS: verifies the two downloadable assets.
 
-          The native .run performs the installation itself, updating the ESP and
-          firmware entries. This is NOT yet validated for production UEFI
+          Both installers update the BOOT ESP directory and UEFI registration.
+          This is NOT yet validated for production UEFI
           use or direct-kernel launch on physical computers.
-          Do not execute it on a production boot environment until those
+          Do not install these releases on a production boot environment until those
           separate qualifications have been completed.
           NOTES
           gh release create "v${VERSION}" dist/*.run dist/*.deb dist/SHA256SUMS \
