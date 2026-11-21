@@ -272,27 +272,27 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
                                     Entries->BootEntry.BootNum,
                                     Entries->BootEntry.Label,
                                     Filename);
-                } // if/else
+                }
             } else {
                 Temp = PoolPrint(L"Boot%04x - %s",
                                  Entries->BootEntry.BootNum,
                                  Entries->BootEntry.Label);
-            } // if/else
+            }
 
             MyFreePool(Filename);
             Filename = NULL;
             Volume = NULL;
             MenuEntryItem->Title = StrDuplicate(Temp);
-            MenuEntryItem->Row = Entries->BootEntry.BootNum; // Not really the row; the Boot#### number
+            MenuEntryItem->Row = Entries->BootEntry.BootNum;
             AddMenuEntry(&Menu, MenuEntryItem);
             Entries = Entries->NextBootEntry;
             MyFreePool(Temp);
-        } // while
+        }
         MenuExit = RunGenericMenu(&Menu, Style, &DefaultEntry, &ChosenOption);
         if (MenuExit == MENU_EXIT_ENTER) {
             Operation = EFI_BOOT_OPTION_MAKE_DEFAULT;
             *BootOrderNum = ChosenOption->Row;
-        } // if
+        }
         if (MenuExit == MENU_EXIT_HIDE) {
             Operation = EFI_BOOT_OPTION_DELETE;
             *BootOrderNum = ChosenOption->Row;
@@ -300,15 +300,10 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
         MyFreePool(MenuEntryItem);
     } else {
         DisplaySimpleMessage(L"Information", L"EFI boot order list is unavailable");
-    } // if
+    }
     return Operation;
 }  
 
-/*
- * Separates user selection from the persistent NVRAM mutation. Only the
- * MAKE_DEFAULT result invokes SetBootDefault; parsed entries are freed
- * regardless of selection, and SetVariable failures are shown to the user.
- */
 static EFI_STATUS DeleteInvalidBootEntries(VOID) {
     UINTN    Status, VarSize, ListSize, i, j = 0;
     UINT16   *BootOrder, *NewBootOrder;
@@ -327,17 +322,22 @@ static EFI_STATUS DeleteInvalidBootEntries(VOID) {
             if (Status == EFI_SUCCESS) {
                 NewBootOrder[j++] = BootOrder[i];
                 MyFreePool(Contents);
-            } // if
-        } // for
+            }
+        }
         Status = EfivarSetRaw(&GlobalGuid, L"BootOrder", (CHAR8*) NewBootOrder,
                               j * sizeof(UINT16), TRUE);
         MyFreePool(NewBootOrder);
         MyFreePool(BootOrder);
-    } // if
+    }
 
     return Status;
 }
 
+/*
+ * Separates user selection from the persistent NVRAM mutation. Only the
+ * MAKE_DEFAULT result invokes SetBootDefault; parsed entries are freed
+ * regardless of selection, and SetVariable failures are shown to the user.
+ */
 VOID ManageBootorder(VOID) {
     BOOT_ENTRY_LIST *Entries;
     UINTN           BootNum = 0, Operation;
