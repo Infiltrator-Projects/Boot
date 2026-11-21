@@ -251,16 +251,15 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
     MENU_STYLE_FUNC     Style = TextMenuStyle;
     REFIT_MENU_ENTRY    *ChosenOption, *MenuEntryItem = NULL;
     REFIT_MENU_SCREEN   Menu = { L"Manage EFI Boot Order", NULL, 0, NULL, 0, NULL, 0, NULL,
-                                 L"Select an option and press Enter to make it the default, or",
-                                 L"press Esc to return without changes" };
+                                 L"Select an option and press Enter to make it the default, press '-' or",
+                                 L"Delete to delete it, or Esc to return to main menu without changes" };
     if (AllowGraphicsMode)
         Style = GraphicsMenuStyle;
 
     if (Entries) {
-        AddMenuInfoLine(&Menu, L"Select an option and press Enter to make it the default");
+        AddMenuInfoLine(&Menu, L"Select an option and press Enter to make it the default or '-' to delete it");
         while (Entries != NULL) {
             MenuEntryItem = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));
-            if (!MenuEntryItem) break;
             FindVolumeAndFilename(Entries->BootEntry.DevPath, &Volume, &Filename);
             if ((Filename != NULL) && (StrLen(Filename) > 0)) {
                 if ((Volume != NULL) && (Volume->VolName != NULL)) {
@@ -273,32 +272,35 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
                                     Entries->BootEntry.BootNum,
                                     Entries->BootEntry.Label,
                                     Filename);
-                }  
+                } // if/else
             } else {
                 Temp = PoolPrint(L"Boot%04x - %s",
                                  Entries->BootEntry.BootNum,
                                  Entries->BootEntry.Label);
-            }  
+            } // if/else
 
             MyFreePool(Filename);
             Filename = NULL;
             Volume = NULL;
             MenuEntryItem->Title = StrDuplicate(Temp);
-            MenuEntryItem->Row = Entries->BootEntry.BootNum;  
+            MenuEntryItem->Row = Entries->BootEntry.BootNum; // Not really the row; the Boot#### number
             AddMenuEntry(&Menu, MenuEntryItem);
             Entries = Entries->NextBootEntry;
             MyFreePool(Temp);
-        }  
+        } // while
         MenuExit = RunGenericMenu(&Menu, Style, &DefaultEntry, &ChosenOption);
-        if (MenuExit == MENU_EXIT_ENTER && ChosenOption) {
+        if (MenuExit == MENU_EXIT_ENTER) {
             Operation = EFI_BOOT_OPTION_MAKE_DEFAULT;
             *BootOrderNum = ChosenOption->Row;
-        }  
-
+        } // if
+        if (MenuExit == MENU_EXIT_HIDE) {
+            Operation = EFI_BOOT_OPTION_DELETE;
+            *BootOrderNum = ChosenOption->Row;
+        }
         MyFreePool(MenuEntryItem);
     } else {
         DisplaySimpleMessage(L"Information", L"EFI boot order list is unavailable");
-    }  
+    } // if
     return Operation;
 }  
 
@@ -307,24 +309,57 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
  * MAKE_DEFAULT result invokes SetBootDefault; parsed entries are freed
  * regardless of selection, and SetVariable failures are shown to the user.
  */
-VOID ManageBootorder(VOID) {
-    BOOT_ENTRY_LIST *Entries = FindBootOrderEntries();
-    UINTN BootNum = 0, Operation;
-    EFI_STATUS Status;
-    CHAR16 *Message;
+static EFI_STATUS DeleteInvalidBootEntries(VOID) {
+    UINTN    Status, VarSize, ListSize, i, j = 0;
+    UINT16   *BootOrder, *NewBootOrder;
+    CHAR8    *Contents;
+    CHAR16   *VarName;
 
+    LOG(1, LOG_LINE_NORMAL, L"Deleting invalid boot entries from internal BootOrder list");
+    Status = EfivarGetRaw(&GlobalGuid, L"BootOrder", (CHAR8**) &BootOrder, &VarSize);
+    if (Status == EFI_SUCCESS) {
+        ListSize = VarSize / sizeof(UINT16);
+        NewBootOrder = AllocateZeroPool(VarSize);
+        for (i = 0; i < ListSize; i++) {
+            VarName = PoolPrint(L"Boot%04x", BootOrder[i]);
+            Status = EfivarGetRaw(&GlobalGuid, VarName, &Contents, &VarSize);
+            MyFreePool(VarName);
+            if (Status == EFI_SUCCESS) {
+                NewBootOrder[j++] = BootOrder[i];
+                MyFreePool(Contents);
+            } // if
+        } // for
+        Status = EfivarSetRaw(&GlobalGuid, L"BootOrder", (CHAR8*) NewBootOrder,
+                              j * sizeof(UINT16), TRUE);
+        MyFreePool(NewBootOrder);
+        MyFreePool(BootOrder);
+    } // if
+
+    return Status;
+}
+
+VOID ManageBootorder(VOID) {
+    BOOT_ENTRY_LIST *Entries;
+    UINTN           BootNum = 0, Operation;
+    CHAR16          *Name, *Message;
+
+    LOG(1, LOG_LINE_NORMAL, L"Managing boot order list");
+    Entries = FindBootOrderEntries();
     Operation = PickOneBootOption(Entries, &BootNum);
+    if (Operation == EFI_BOOT_OPTION_DELETE) {
+        Name = PoolPrint(L"Boot%04x", BootNum);
+        EfivarSetRaw(&GlobalGuid, Name, NULL, 0, TRUE);
+        DeleteInvalidBootEntries();
+        Message = PoolPrint(L"Boot%04x has been deleted.", BootNum);
+        DisplaySimpleMessage(L"Information", Message);
+        MyFreePool(Name);
+        MyFreePool(Message);
+    }
     if (Operation == EFI_BOOT_OPTION_MAKE_DEFAULT) {
-        Status = SetBootDefault(BootNum);
-        if (EFI_ERROR(Status)) {
-            DisplaySimpleMessage(L"Warning", L"Unable to change EFI BootOrder");
-        } else {
-            Message = PoolPrint(L"Boot%04x is now the default EFI boot option.", BootNum);
-            if (Message) {
-                DisplaySimpleMessage(L"Information", Message);
-                MyFreePool(Message);
-            }
-        }
+        SetBootDefault(BootNum);
+        Message = PoolPrint(L"Boot%04x is now the default EFI boot option.", BootNum);
+        DisplaySimpleMessage(L"Information", Message);
+        MyFreePool(Message);
     }
     DeleteBootOrderEntries(Entries);
 }  
