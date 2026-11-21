@@ -185,6 +185,11 @@ static VOID InitScroll(OUT SCROLL_STATE *State, IN UINTN ItemCount, IN UINTN Vis
 
  
  
+/*
+ * Reconciles cursor and visible-window bounds after menu geometry changes.
+ * Scroll state is UI-local; its indices must not be interpreted as stable
+ * identifiers for boot entries after a rescan.
+ */
 static VOID AdjustScrollState(IN SCROLL_STATE *State) {
     if (State->CurrentSelection > State->LastVisible) {
         State->LastVisible = State->CurrentSelection;
@@ -392,6 +397,11 @@ static VOID SaveScreen(VOID) {
 /*
  * Consumes key/pointer events, scroll state and timeouts to choose an action.
  * An unselected or hidden entry must not become an implicit boot target.
+ */
+/*
+ * Central menu event loop for input, selection, timeout and redraw.
+ * The return value describes the user's menu action; callers decide whether
+ * that action launches an image, changes firmware state or simply exits.
  */
 UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
                      IN MENU_STYLE_FUNC StyleFunc,
@@ -987,6 +997,11 @@ static VOID ComputeSubScreenWindowSize(REFIT_MENU_SCREEN *Screen, IN SCROLL_STAT
 }  
 
  
+/*
+ * Renders a menu through UEFI graphics facilities using the current scroll
+ * and selection state. Painting an icon must never be treated as a successful
+ * validation or launch of the associated image.
+ */
 VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
                        IN SCROLL_STATE *State,
                        IN UINTN Function,
@@ -1541,6 +1556,11 @@ static VOID SaveHiddenList(IN CHAR16 *HiddenList, IN CHAR16 *VarName) {
 
  
  
+/*
+ * Presents and edits stored menu-visibility exclusions. Hiding an entry
+ * affects discovery and display, not the executable bytes, filesystem,
+ * Secure Boot policy or firmware BootOrder records.
+ */
 VOID ManageHiddenTags(VOID) {
     CHAR16              *AllTags = NULL, *HiddenTags, *HiddenTools;
     CHAR16              *HiddenLegacy, *HiddenFirmware, *OneElement = NULL;
@@ -1818,6 +1838,11 @@ UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry)
 /*
  * Matches a configured default against the discovered entry set. No
  * assumption about the number or operating systems represented is permitted.
+ */
+/*
+ * Applies default-selection policy to the main boot menu and returns the
+ * selected entry to the lifetime coordinator. A default entry is a user
+ * preference; it is not an implicit firmware NVRAM boot-order rewrite.
  */
 UINTN RunMainMenu(REFIT_MENU_SCREEN *Screen, CHAR16** DefaultSelection, REFIT_MENU_ENTRY **ChosenEntry)
 {
