@@ -229,8 +229,9 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_P
 /*
  * Opens a controller's block/disk protocols and mounts a backend before
  * installing Simple File System. An error must unwind the opened protocols.
- * AUDIT: Volume is dereferenced immediately after AllocateZeroPool; review
- * allocation-failure handling before calling this path resource-safe.
+ * KNOWN LIMIT: the Volume pointer is dereferenced immediately after
+ * AllocateZeroPool, without checking allocation success. This function does
+ * not safely return EFI_OUT_OF_RESOURCES for a failure at that point.
  */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                               IN EFI_HANDLE                   ControllerHandle,

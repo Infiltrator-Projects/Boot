@@ -56,6 +56,14 @@ extern REFIT_MENU_ENTRY MenuEntryReturn;
 static REFIT_MENU_ENTRY MenuEntryYes = { L"Yes", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryNo = { L"No", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
 
+/*
+ * Selection surfaces are cached in SelectionImages for subsequent repaint. An
+ * external small highlight takes priority over embedded artwork; the large
+ * highlight is independently loaded or derived from the smaller one. Only
+ * scaled images survive this call; the temporary source images are released.
+ * Graphics-disabled execution does not allocate these resources.
+ *
+ */
 static VOID InitSelection(VOID)
 {
     EG_IMAGE    *TempSmallImage = NULL, *TempBigImage = NULL;
@@ -94,6 +102,14 @@ static VOID InitSelection(VOID)
         egFreeImage(TempBigImage);
 }  
 
+/*
+ * Initialise the scroll window from the current inventory and display
+ * geometry. MaxIndex is an inclusive item index; MaxVisible is a viewport
+ * length. LastVisible follows from FirstVisible + MaxVisible - 1. The
+ * geometry assumes usable tile dimensions and screen space; the indices
+ * become invalid after a rescan.
+ *
+ */
 static VOID InitScroll(OUT SCROLL_STATE *State, IN UINTN ItemCount, IN UINTN VisibleSpace)
 {
     State->PreviousSelection = State->CurrentSelection = 0;
@@ -240,12 +256,26 @@ static VOID UpdateScroll(IN OUT SCROLL_STATE *State, IN UINTN Movement)
     State->LastVisible = State->FirstVisible + State->MaxVisible - 1;
 }  
 
+/*
+ * Append the supplied UTF-16 pointer without duplicating its text. The
+ * producer must keep the allocation valid through menu teardown; stack-backed
+ * temporary strings are unsuitable. The underlying pointer-vector append has
+ * no allocation-failure result to report.
+ *
+ */
 VOID AddMenuInfoLine(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine)
 {
     LOG(3, LOG_LINE_NORMAL, L"Adding menu info line: '%s'", InfoLine);
     AddListElement((VOID ***) &(Screen->InfoLines), &(Screen->InfoLineCount), InfoLine);
 }
 
+/*
+ * Retain a pointer to the caller's menu record rather than making a deep
+ * copy. Child screens, paths and icon references therefore keep their
+ * existing ownership rules. A selection pointer taken from this array must
+ * not survive a rebuilt inventory.
+ *
+ */
 VOID AddMenuEntry(IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry)
 {
     LOG(3, LOG_LINE_NORMAL, L"Adding menu entry for '%s'", Entry->Title);

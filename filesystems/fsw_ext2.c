@@ -47,8 +47,10 @@ struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(ext2) = {
 /*
  * Checks EXT2 superblock signature/revision and incompatible features,
  * then obtains inode-group table locations and creates the root dnode.
- * AUDIT: s_inodes_per_group is used as a divisor; malformed zero geometry
- * needs an explicit validity guard before this calculation.
+ * KNOWN LIMIT: s_inodes_per_group is used as a divisor with no preceding
+ * nonzero guard; s_inodes_count - 2 can also underflow on malformed metadata.
+ * Validating the signature and incompatibility mask is insufficient to
+ * establish usable allocation-group geometry.
  */
 static fsw_status_t fsw_ext2_volume_mount(struct fsw_ext2_volume *vol)
 {

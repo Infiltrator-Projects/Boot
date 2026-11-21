@@ -3351,6 +3351,14 @@ static void getPixelColorRGBA16(unsigned short* r, unsigned short* g, unsigned s
   }
 }
 
+/*
+ * Convert already-decoded pixels between PNG colour models. Dimensions,
+ * palette metadata and sample depth determine output capacity and per-pixel
+ * stride. The caller must provide sufficiently sized buffers; format
+ * conversion does not authenticate the original PNG or establish it was safe
+ * to decode.
+ *
+ */
 unsigned lodepng_convert(unsigned char* out, const unsigned char* in,
                          const LodePNGColorMode* mode_out, const LodePNGColorMode* mode_in,
                          unsigned w, unsigned h) {
@@ -4786,6 +4794,14 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
 /*
  * Combines chunk parsing, decompression and pixel conversion. Caller must
  * check the returned error before using width, height or output bytes.
+ */
+/*
+ * Public PNG decode boundary. Treat the output pointer, dimensions and error
+ * result as one transaction: do not consume decoded pixels after an error.
+ * Chunk parsing, DEFLATE decompression, scanline filtering and colour
+ * conversion act on untrusted resource bytes. The downstream firmware adapter
+ * is responsible for EG_IMAGE ownership and freeing decoded storage.
+ *
  */
 unsigned lodepng_decode(unsigned char** out, unsigned* w, unsigned* h,
                         LodePNGState* state,

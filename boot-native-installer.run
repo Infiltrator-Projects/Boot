@@ -446,11 +446,11 @@ BootFileHash() {
    fi
 }
 
-# Protects the dedicated installation path against alternate roots, links
-# and unexpected replacement using BOOT's SHA-256 ownership marker.
-# AUDIT: the Linux reinstall path removes its old directory before reaching
-# this guard through CopyBootFiles, so this guard cannot inspect those old
-# files at that later point. This ordering requires separate review.
+# Validate the fixed destination, symlink components and SHA-256 ownership
+# marker only while the prior executable still exists. On Linux, InstallOnLinux
+# calls rm -rf on its BOOT directory before CopyBootFiles calls this guard.
+# Consequently this guard cannot establish pre-deletion ownership for a Linux
+# reinstall; the stand-alone guard fixture does not exercise that ordering.
 GuardDefaultBootLocation() {
    if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
       echo "Refusing BOOT installation outside /EFI/InfiltratorOS/BOOT." >&2

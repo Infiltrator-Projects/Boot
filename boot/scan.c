@@ -170,6 +170,14 @@ LOADER_ENTRY *InitializeLoaderEntry(IN LOADER_ENTRY *Entry) {
     return (NewEntry);
 }  
 
+/*
+ * Lazily allocate an options submenu, or return the existing one unchanged.
+ * The submenu borrows the parent's image, while the default child has its own
+ * entry and initrd-substituted option string. The previous temporary options
+ * string is released. A null result indicates inability to build the menu,
+ * not proof that the loader is absent.
+ *
+ */
 REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
     CHAR16              *FileName, *MainOptions = NULL;
     REFIT_MENU_SCREEN   *SubScreen = NULL;
@@ -400,6 +408,15 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
     Entry->me.SubScreen = SubScreen;
 }  
 
+/*
+ * Derive presentation and launch defaults from filename, directory, volume
+ * kind and optional nearby resources. Icons, shortcuts and Linux option
+ * guesses are heuristics attached to an already discovered candidate. This
+ * routine does not authenticate an EFI image, validate its root filesystem or
+ * establish successful OS startup. Volume is borrowed from the current scan
+ * inventory.
+ *
+ */
 VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Volume) {
     CHAR16      *NameClues, *PathOnly, *NoExtension, *OSIconName = NULL, *Temp;
     CHAR16      ShortcutLetter = 0;

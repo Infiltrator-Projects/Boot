@@ -107,6 +107,14 @@ CHAR16 *gHiddenTools = NULL;
 
 EFI_GUID BootGuid = BOOT_GUID_VALUE;
 
+/*
+ * Construct the information menu on demand using the current firmware
+ * descriptors and compiled BOOT_VERSION. Its displayed vendor, version and
+ * security state describe observations, not a verified support or Secure Boot
+ * compatibility result. This path builds UI records; it does not select or
+ * launch an OS.
+ *
+ */
 VOID AboutBOOT(VOID)
 {
     CHAR16     *FirmwareVendor;

@@ -418,6 +418,14 @@ EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, 
     return Status;
 }  
 
+/*
+ * Expand a pointer vector in groups of sixteen slots. The vector owns its
+ * pointer array, not necessarily the objects it references; callers determine
+ * element lifetime. KNOWN LIMIT: allocation results are not checked before
+ * indexing the array, and this void API cannot return a resource error. Pool
+ * exhaustion can therefore cause a null-pointer access.
+ *
+ */
 VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID *NewElement)
 {
     UINTN AllocateCount;
@@ -436,6 +444,13 @@ VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID 
     (*ElementCount)++;
 }  
 
+/*
+ * Free each pointer as an independently pool-allocated object and finally
+ * free the vector storage. This is not suitable for lists of static or
+ * borrowed entries. The current routine does not reset its caller's pointer
+ * or count; reuse without resetting those values risks a second release.
+ *
+ */
 VOID FreeList(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount)
 {
     UINTN i;

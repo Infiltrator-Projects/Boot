@@ -7,6 +7,12 @@
 
 #include "Platform.h"
 
+/*
+ * Append diagnostic UTF-16 text through a fixed temporary buffer and an
+ * EFI pool allocation. The resulting pointer is returned without an EFI_STATUS:
+ * ASSERT and size-limit behaviour cannot be mistaken for validation of the
+ * underlying untrusted device-path nodes. This is a formatter, not a parser.
+ */
 CHAR16 *
 EFIAPI
 MyCatPrint (
