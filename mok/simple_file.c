@@ -105,6 +105,11 @@ error:
 }  
 
 EFI_STATUS
+/*
+ * Resolves an image-relative EFI pathname to a file handle using device
+ * protocols. The resolved firmware path and open result are separate from
+ * the identity and signature of the file's contents.
+ */
 simple_file_open(EFI_HANDLE image, CHAR16 *name, EFI_FILE_PROTOCOL **file, UINT64 mode)
 {
    EFI_STATUS efi_status;
@@ -140,6 +145,11 @@ EFI_STATUS
 /*
  * Allocates and reads the entire EFI file; returned length is the only safe
  * bound for subsequent certificate or image parsing.
+ */
+/*
+ * Materialises file bytes into a caller-visible buffer for subsequent
+ * inspection. Reported size and allocation must remain paired; consumers
+ * may not read beyond the actual data returned by firmware.
  */
 simple_file_read_all(EFI_FILE_PROTOCOL *file, UINTN *size, void **buffer)
 {
