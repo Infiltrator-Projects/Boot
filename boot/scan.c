@@ -176,7 +176,6 @@ LOADER_ENTRY *InitializeLoaderEntry(IN LOADER_ENTRY *Entry) {
  * entry and initrd-substituted option string. The previous temporary options
  * string is released. A null result indicates inability to build the menu,
  * not proof that the loader is absent.
- *
  */
 REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
     CHAR16              *FileName, *MainOptions = NULL;
@@ -415,7 +414,6 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
  * routine does not authenticate an EFI image, validate its root filesystem or
  * establish successful OS startup. Volume is borrowed from the current scan
  * inventory.
- *
  */
 VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Volume) {
     CHAR16      *NameClues, *PathOnly, *NoExtension, *OSIconName = NULL, *Temp;

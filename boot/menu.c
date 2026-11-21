@@ -62,7 +62,6 @@ static REFIT_MENU_ENTRY MenuEntryNo = { L"No", TAG_RETURN, 1, 0, 0, NULL, NULL, 
  * highlight is independently loaded or derived from the smaller one. Only
  * scaled images survive this call; the temporary source images are released.
  * Graphics-disabled execution does not allocate these resources.
- *
  */
 static VOID InitSelection(VOID)
 {
@@ -108,7 +107,6 @@ static VOID InitSelection(VOID)
  * length. LastVisible follows from FirstVisible + MaxVisible - 1. The
  * geometry assumes usable tile dimensions and screen space; the indices
  * become invalid after a rescan.
- *
  */
 static VOID InitScroll(OUT SCROLL_STATE *State, IN UINTN ItemCount, IN UINTN VisibleSpace)
 {
@@ -261,7 +259,6 @@ static VOID UpdateScroll(IN OUT SCROLL_STATE *State, IN UINTN Movement)
  * producer must keep the allocation valid through menu teardown; stack-backed
  * temporary strings are unsuitable. The underlying pointer-vector append has
  * no allocation-failure result to report.
- *
  */
 VOID AddMenuInfoLine(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine)
 {
@@ -274,7 +271,6 @@ VOID AddMenuInfoLine(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine)
  * copy. Child screens, paths and icon references therefore keep their
  * existing ownership rules. A selection pointer taken from this array must
  * not survive a rebuilt inventory.
- *
  */
 VOID AddMenuEntry(IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry)
 {
@@ -1009,6 +1005,13 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
     }
 }  
 
+/*
+ * Compose one entry from the selected-row highlight, OS icon and optional
+ * badge. The selected branch crops background into a temporary image,
+ * composites, blits and frees it. This is presentation using the current
+ * inventory; it does not validate a loader or own its referenced icon
+ * pixels.
+ */
 static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN XPos, UINTN YPos)
 {
     EG_IMAGE *Background;
@@ -1027,6 +1030,12 @@ static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN X
     }  
 }  
 
+/*
+ * Repaint using two index spaces: row-zero tile coordinates are relative to
+ * FirstVisible, whereas tool-row coordinates index the original entry
+ * array. Only row-zero entries within the viewport are drawn. Bounds depend
+ * on the current scan inventory and calculated geometry.
+ */
 static VOID PaintAll(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN *itemPosX,
                      UINTN row0PosY, UINTN row1PosY, UINTN textPosY) {
     INTN i;

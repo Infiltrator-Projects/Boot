@@ -356,6 +356,12 @@ typedef struct {
   unsigned buffer;  
 } LodePNGBitReader;
 
+/*
+ * Initialise a bit reader borrowing the source bytes. The conversion from
+ * byte length to bit count and additional lookahead size are checked for
+ * size_t overflow, but later refill paths must still honour the actual
+ * buffer extent. This step does not validate compressed-code syntax.
+ */
 static unsigned LodePNGBitReader_init(LodePNGBitReader* reader, const unsigned char* data, size_t size) {
   size_t temp;
   reader->data = data;
@@ -515,6 +521,12 @@ static void HuffmanTree_cleanup(HuffmanTree* tree) {
 
 #define INVALIDSYMBOL 65535u
 
+/*
+ * Construct the canonical Huffman lookup structure from code-length
+ * metadata. Invalid lengths, oversubscribed trees and allocation failures
+ * must be reported before lookup. This is one untrusted DEFLATE boundary
+ * reached during PNG decoding, not authentication of the image.
+ */
 static unsigned HuffmanTree_makeTable(HuffmanTree* tree) {
   static const unsigned headsize = 1u << FIRSTBITS;  
   static const unsigned mask = (1u << FIRSTBITS)   - 1u;
@@ -3357,7 +3369,6 @@ static void getPixelColorRGBA16(unsigned short* r, unsigned short* g, unsigned s
  * stride. The caller must provide sufficiently sized buffers; format
  * conversion does not authenticate the original PNG or establish it was safe
  * to decode.
- *
  */
 unsigned lodepng_convert(unsigned char* out, const unsigned char* in,
                          const LodePNGColorMode* mode_out, const LodePNGColorMode* mode_in,
@@ -4801,7 +4812,6 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
  * Chunk parsing, DEFLATE decompression, scanline filtering and colour
  * conversion act on untrusted resource bytes. The downstream firmware adapter
  * is responsible for EG_IMAGE ownership and freeing decoded storage.
- *
  */
 unsigned lodepng_decode(unsigned char** out, unsigned* w, unsigned* h,
                         LodePNGState* state,

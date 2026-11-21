@@ -174,6 +174,12 @@ EFI_STATUS InitRefitLib(IN EFI_HANDLE ImageHandle)
     return FinishInitRefitLib();
 }
 
+/*
+ * Before EFI handoff, close each open root directory and invalidate
+ * firmware handle references. Volume records and device paths remain
+ * allocated so that ReinitVolumes can restore the firmware-facing state if
+ * the child returns. This is not permanent destruction of the inventory.
+ */
 static VOID UninitVolumes(VOID)
 {
     REFIT_VOLUME            *Volume;
@@ -193,6 +199,12 @@ static VOID UninitVolumes(VOID)
     }
 }  
 
+/*
+ * Resolve retained device paths again after a child image returns: firmware
+ * controller bindings and handles may have changed during StartImage. A
+ * failed path lookup must not be treated as a still-usable prior RootDir or
+ * block protocol.
+ */
 VOID ReinitVolumes(VOID)
 {
     EFI_STATUS              Status;
@@ -424,7 +436,6 @@ EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, 
  * element lifetime. KNOWN LIMIT: allocation results are not checked before
  * indexing the array, and this void API cannot return a resource error. Pool
  * exhaustion can therefore cause a null-pointer access.
- *
  */
 VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID *NewElement)
 {
@@ -449,7 +460,6 @@ VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID 
  * free the vector storage. This is not suitable for lists of static or
  * borrowed entries. The current routine does not reset its caller's pointer
  * or count; reuse without resetting those values risks a second release.
- *
  */
 VOID FreeList(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount)
 {

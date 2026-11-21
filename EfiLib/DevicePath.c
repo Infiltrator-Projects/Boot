@@ -1081,7 +1081,9 @@ DEVICE_PATH_STRING_TABLE  DevPathTable[] = {
  * Prefer the firmware's DevicePathToText protocol. The local formatter walks
  * nodes by encoded length and picks a printer by type and subtype. Its separators
  * distinguish nodes within a path from instance boundaries. The resulting CHAR16
- * buffer is allocated for the caller.
+ * buffer is allocated for the caller. The fallback has no independently
+ * supplied total path length: it assumes node lengths eventually reach a
+ * valid terminator rather than establishing binary path well-formedness.
  */
 CHAR16 *
 EFIAPI

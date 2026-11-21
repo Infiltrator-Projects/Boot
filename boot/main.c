@@ -113,7 +113,6 @@ EFI_GUID BootGuid = BOOT_GUID_VALUE;
  * security state describe observations, not a verified support or Secure Boot
  * compatibility result. This path builds UI records; it does not select or
  * launch an OS.
- *
  */
 VOID AboutBOOT(VOID)
 {
