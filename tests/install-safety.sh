@@ -13,7 +13,7 @@ TargetX64=BOOTX64.EFI
 Platform=x64
 ShimSource=none
 LocalKeys=0
-InstallDrivers=none
+InstallDrivers=all
 InstallToEspOnMac=0
 Upgrade=0
 BootDir="$work/src/boot"
@@ -21,7 +21,10 @@ ThisDir="$work/src"
 IconsDir="$work/src/icons"
 ConfFile="$work/src/boot.conf-sample"
 EtcKeysDir="$work/empty-keys"
-mkdir -p "$InstallDir/EFI/BOOT" "$InstallDir/EFI/Microsoft/Boot" "$InstallDir/EFI/ubuntu" "$BootDir" "$IconsDir" "$EtcKeysDir"
+mkdir -p "$InstallDir/EFI/BOOT" "$InstallDir/EFI/Microsoft/Boot" "$InstallDir/EFI/ubuntu" "$BootDir" "$IconsDir" "$EtcKeysDir" "$ThisDir/drivers_x64"
+for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+    printf "driver-%s" "$filesystem" > "$ThisDir/drivers_x64/${filesystem}_x64.efi"
+done
 printf 'protected-Windows' > "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi"
 printf 'protected-fallback' > "$InstallDir/EFI/BOOT/BOOTX64.EFI"
 printf 'protected-grub' > "$InstallDir/EFI/ubuntu/grubx64.efi"
@@ -34,6 +37,9 @@ set +o pipefail
 GuardDefaultBootLocation || exit 1
 CopyBootFiles
 test -s "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
+for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+    test -s "$InstallDir/EFI/InfiltratorOS/BOOT/drivers_x64/${filesystem}_x64.efi" || exit 1
+done
 marker="$InstallDir/EFI/InfiltratorOS/BOOT/.infiltrator-boot-loader.sha256"
 test "$(sha256sum "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" | cut -d ' ' -f1)" = "$(cat "$marker")" || exit 1
 GuardDefaultBootLocation || exit 1
@@ -71,6 +77,9 @@ if grep -Fq "preserving it" "$work/reinstall-output.txt"; then
 fi
 test -s "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt" || exit 1
+for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+    test -s "$InstallDir/EFI/InfiltratorOS/BOOT/drivers_x64/${filesystem}_x64.efi" || exit 1
+done
 test ! -e "$InstallDir/EFI/tools" || { echo "Installer wrote outside BOOT directory" >&2; exit 1; }
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/icons/old.png" || exit 1
 test "$(cat "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf")" = 'showtools about' || exit 1

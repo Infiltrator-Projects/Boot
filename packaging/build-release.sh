@@ -25,6 +25,12 @@ payload="$work/payload"
 root="$payload/usr/share/infiltrator-boot"
 mkdir -p "$root/boot" "$root/docs"
 install -m 0644 boot/boot_x64.efi "$root/boot/boot_x64.efi"
+mkdir -p "$root/boot/drivers_x64"
+for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+    driver="drivers_x64/${filesystem}_x64.efi"
+    test -s "$driver" || { echo "Missing EFI filesystem driver $driver" >&2; exit 1; }
+    install -m 0644 "$driver" "$root/boot/drivers_x64/"
+done
 for directory in icons fonts banners themes; do
     if [[ -d "$directory" ]]; then cp -a "$directory" "$root/boot/"; fi
 done
@@ -44,8 +50,8 @@ cat > "$root/PREVIEW-NOTICE.txt" <<'NOTICE'
 BOOT PREVIEW - DO NOT USE AS A VERIFIED BOOTLOADER
 These packages STAGE the built EFI executable and supporting files only.
 They never mount or modify the EFI System Partition, EFI/BOOT, GRUB, or NVRAM.
-The BOOT source rename, UEFI operation, and Common V2 module integration
-remain to be independently validated before deployment.
+The six standard EFI filesystem drivers are staged with BOOT.
+Direct kernel boot still requires verification on real hardware.
 NOTICE
 
 package="$work/debian-package"

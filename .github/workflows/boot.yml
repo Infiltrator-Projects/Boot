@@ -22,14 +22,16 @@ jobs:
       - name: Check BOOT identifiers and clean packaging layout
         shell: bash
         run: |
-          if git ls-files | grep -iE 're[f]ind'; then exit 1; fi
-          if git grep -n -i -I -E 're[f]ind' -- .; then exit 1; fi
-          if grep -RInE 'LoadDrivers\(|ConnectFilesystemDriver\(' boot --include='*.c' --include='*.h'; then
-            echo "Legacy EFI driver runtime loading is prohibited" >&2
-            exit 1
-          fi
-          if [[ -d filesystems || -d gptsync || -e BootPkg.dsc ]]; then
-            echo "Vendored filesystem drivers or obsolete build system remain" >&2
+          # Restore original driver sources and preserve their attribution.
+          # Only BOOT's installed path and executable identity are mandated.
+          if git ls-files | grep -iE '(^|/)(refind|refind-install)(/|$)'; then exit 1; fi
+          test -s filesystems/fsw_ext4.c
+          test -s filesystems/Make.gnuefi
+          grep -Fq 'if (LoadDrivers())' boot/main.c
+          grep -Fq 'ConnectFilesystemDriver(ChildImageHandle);' boot/launch_efi.c
+          grep -Fq 'set -- --alldrivers' boot-native-installer.run
+          if [[ -d gptsync || -e BootPkg.dsc ]]; then
+            echo "Obsolete build system remains" >&2
             exit 1
           fi
           for legacy in debian boot.spec boot-alt.spec mkdistrib mkcdimage; do
@@ -61,6 +63,10 @@ jobs:
       - name: Check BOOT EFI binary
         run: |
           test -s boot/boot_x64.efi
+          for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+            test -s "drivers_x64/${filesystem}_x64.efi"
+            file "drivers_x64/${filesystem}_x64.efi" | grep -F "PE32+"
+          done
           file boot/boot_x64.efi
           file boot/boot_x64.efi | grep -F 'PE32+'
 
@@ -77,6 +83,9 @@ jobs:
             printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$version" > boot-sbat-release.csv
             make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$version\"'" gnuefi
             test -s boot/boot_x64.efi
+            for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+              test -s "drivers_x64/${filesystem}_x64.efi"
+            done
             file boot/boot_x64.efi | grep -F 'PE32+'
           )
 
@@ -119,21 +128,20 @@ jobs:
         run: |
           set -euo pipefail
           cat > release-notes.txt <<'NOTES'
-          BOOT AMD64 preview build. These packages are NOT verified as
-          operational boot managers. Firmware boot behaviour and Common V2
-          filesystem integration remain under development.
+          BOOT AMD64 build with original EFI filesystem driver support restored.
+          Direct Linux Mint boot still requires real hardware validation.
 
           - Native .run: single source file boot-native-installer.run, containing
             the complete build and existing native installation flow.
             It downloads pinned BOOT sources, compiles with GNU-EFI CPU-native
             settings, and installs under /EFI/InfiltratorOS/BOOT only.
             It has no build-only mode and executes no second installer.
-          - Generic AMD64 .deb: stages the generic BOOT firmware image only.
+          - Generic AMD64 .deb: stages BOOT and six standard EFI filesystem drivers.
           - SHA256SUMS: verifies the two downloadable assets.
 
           The native .run performs the installation itself, updating the ESP and
           firmware entries. This is NOT yet validated for production UEFI
-          use or Common V2 filesystem module compatibility.
+          use or direct-kernel launch on physical computers.
           Do not execute it on a production boot environment until those
           separate qualifications have been completed.
           NOTES

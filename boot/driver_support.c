@@ -77,6 +77,16 @@
 #include "log.h"
 #include "../include/refit_call_wrapper.h"
 
+#if defined (EFIX64)
+#define DRIVER_DIRS             L"drivers,drivers_x64"
+#elif defined (EFI32)
+#define DRIVER_DIRS             L"drivers,drivers_ia32"
+#elif defined (EFIAARCH64)
+#define DRIVER_DIRS             L"drivers,drivers_aa64"
+#else
+#define DRIVER_DIRS             L"drivers"
+#endif
+
 // Following "global" constants are from EDK2's AutoGen.c....
 EFI_GUID gMyEfiLoadedImageProtocolGuid = { 0x5B1B31A1, 0x9562, 0x11D2, { 0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
 EFI_GUID gMyEfiDriverBindingProtocolGuid = { 0x18A031AB, 0xB443, 0x4D1A, { 0xA5, 0xC0, 0x0C, 0x09, 0x26, 0x1E, 0x9F, 0x71 }};
@@ -422,3 +432,178 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
     return 0;
 }
 #endif
+
+/*
+ * ConnectFilesystemDriver() is modified from DisconnectInvalidDiskIoChildDrivers()
+ * in Clover (https://sourceforge.net/projects/cloverefiboot/), which is derived
+ * from rEFIt. The refit/main.c file from which this function was taken continues
+ * to bear rEFIt's original copyright/licence notice (BSD); modifications by
+ * Roderick Smith (2016) are GPLv3.
+ */
+/**
+ * Some UEFI's (like HPQ EFI from HP notebooks) have DiskIo protocols
+ * opened BY_DRIVER (by Partition driver in HP case) even when no file system
+ * is produced from this DiskIo. This then blocks our FS drivers from connecting
+ * and producing file systems.
+ * To fix it: we will disconnect drivers that connected to DiskIo BY_DRIVER
+ * if this is partition volume and if those drivers did not produce file system,
+ * then try to connect every unconnected device to the driver whose handle is
+ * passed to us. This should have no effect on systems unaffected by this EFI
+ * bug/quirk.
+ */
+VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
+    EFI_STATUS                            Status;
+    UINTN                                 HandleCount = 0;
+    UINTN                                 Index;
+    UINTN                                 OpenInfoIndex;
+    EFI_HANDLE                            *Handles = NULL;
+    MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL       *Fs;
+    MY_EFI_BLOCK_IO_PROTOCOL                 *BlockIo;
+    EFI_OPEN_PROTOCOL_INFORMATION_ENTRY   *OpenInfo;
+    UINTN                                 OpenInfoCount;
+    EFI_HANDLE                            DriverHandleList[2];
+
+    //
+    // Get all DiskIo handles
+    //
+    Status = refit_call5_wrapper(gBS->LocateHandleBuffer,
+                                 ByProtocol,
+                                 &gMyEfiDiskIoProtocolGuid,
+                                 NULL,
+                                 &HandleCount,
+                                 &Handles);
+    if (EFI_ERROR(Status) || HandleCount == 0)
+        return;
+
+    //
+    // Check every DiskIo handle
+    //
+    for (Index = 0; Index < HandleCount; Index++) {
+        //
+        // If this is not partition - skip it.
+        // This is then whole disk and DiskIo
+        // should be opened here BY_DRIVER by Partition driver
+        // to produce partition volumes.
+        //
+        Status = refit_call3_wrapper(gBS->HandleProtocol,
+                                     Handles[Index],
+                                     &gMyEfiBlockIoProtocolGuid,
+                                     (VOID **) &BlockIo);
+        if (EFI_ERROR (Status))
+            continue;
+        if (BlockIo->Media == NULL || !BlockIo->Media->LogicalPartition)
+            continue;
+
+        //
+        // If SimpleFileSystem is already produced - skip it, this is ok
+        //
+        Status = refit_call3_wrapper(gBS->HandleProtocol,
+                                     Handles[Index],
+                                     &gMyEfiSimpleFileSystemProtocolGuid,
+                                     (VOID **) &Fs);
+        if (Status == EFI_SUCCESS)
+            continue;
+
+        //
+        // If no SimpleFileSystem on this handle but DiskIo is opened BY_DRIVER
+        // then disconnect this connection and try to connect our driver to it
+        //
+        Status = refit_call4_wrapper(gBS->OpenProtocolInformation,
+                                     Handles[Index],
+                                     &gMyEfiDiskIoProtocolGuid,
+                                     &OpenInfo,
+                                     &OpenInfoCount);
+        if (EFI_ERROR (Status))
+            continue;
+        DriverHandleList[1] = NULL;
+        for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
+            if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
+                Status = refit_call3_wrapper(gBS->DisconnectController,
+                                             Handles[Index],
+                                             OpenInfo[OpenInfoIndex].AgentHandle,
+                                             NULL);
+                if (!(EFI_ERROR(Status))) {
+                    DriverHandleList[0] = DriverHandle;
+                    refit_call4_wrapper(gBS->ConnectController,
+                                        Handles[Index],
+                                        DriverHandleList,
+                                        NULL,
+                                        FALSE);
+                } // if
+            } // if
+        } // for
+        MyFreePool (OpenInfo);
+    }
+    MyFreePool(Handles);
+} // VOID ConnectFilesystemDriver()
+
+// Scan a directory for drivers.
+// Originally from rEFIt's main.c (BSD), but modified since then (GPLv3).
+static UINTN ScanDriverDir(IN CHAR16 *Path)
+{
+    EFI_STATUS              Status;
+    REFIT_DIR_ITER          DirIter;
+    UINTN                   NumFound = 0;
+    EFI_FILE_INFO           *DirEntry;
+    CHAR16                  *FileName;
+
+    CleanUpPathNameSlashes(Path);
+    // look through contents of the directory
+    DirIterOpen(SelfRootDir, Path, &DirIter);
+    while (DirIterNext(&DirIter, 2, LOADER_MATCH_PATTERNS, &DirEntry)) {
+        if (DirEntry->FileName[0] == '.')
+            continue;   // skip this
+
+        FileName = PoolPrint(L"%s\\%s", Path, DirEntry->FileName);
+        NumFound++;
+        Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE);
+        MyFreePool(DirEntry);
+        MyFreePool(FileName);
+    } // while
+    Status = DirIterClose(&DirIter);
+    if ((Status != EFI_NOT_FOUND) && (Status != EFI_INVALID_PARAMETER)) {
+        FileName = PoolPrint(L"while scanning the %s directory", Path);
+        CheckError(Status, FileName);
+        MyFreePool(FileName);
+    }
+    return (NumFound);
+} // static UINTN ScanDriverDir()
+
+
+// Load all EFI drivers from BOOT's "drivers" subdirectory and from the
+// directories specified by the user in the "scan_driver_dirs" configuration
+// file line.
+// Originally from rEFIt's main.c (BSD), but modified since then (GPLv3).
+// Returns TRUE if any drivers are loaded, FALSE otherwise.
+BOOLEAN LoadDrivers(VOID) {
+    CHAR16        *Directory, *SelfDirectory;
+    UINTN         i = 0, Length, NumFound = 0;
+
+    LOG(1, LOG_LINE_SEPARATOR, L"Loading drivers");
+    // load drivers from the subdirectories of BOOT's home directory specified
+    // in the DRIVER_DIRS constant.
+    while ((Directory = FindCommaDelimited(DRIVER_DIRS, i++)) != NULL) {
+        SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
+        CleanUpPathNameSlashes(SelfDirectory);
+        MergeStrings(&SelfDirectory, Directory, L'\\');
+        NumFound += ScanDriverDir(SelfDirectory);
+        MyFreePool(Directory);
+        MyFreePool(SelfDirectory);
+    }
+
+    // Scan additional user-specified driver directories....
+    i = 0;
+    while ((Directory = FindCommaDelimited(GlobalConfig.DriverDirs, i++)) != NULL) {
+        CleanUpPathNameSlashes(Directory);
+        Length = StrLen(Directory);
+        if (Length > 0) {
+            NumFound += ScanDriverDir(Directory);
+        } // if
+        MyFreePool(Directory);
+    } // while
+
+    // connect all devices
+    if (NumFound > 0)
+        ConnectAllDriversToAllControllers();
+    return (NumFound > 0);
+} /* BOOLEAN LoadDrivers() */

@@ -53,7 +53,7 @@ git -C "$source_dir" remote add origin "$SOURCE_URL"
 # Fetch only needed source/graphics from the pinned commit, not the whole
 # repository history or a source bundle in this installer.
 git -C "$source_dir" sparse-checkout init --cone
-git -C "$source_dir" sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys
+git -C "$source_dir" sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys filesystems
 git -C "$source_dir" -c protocol.version=2 fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"
 git -C "$source_dir" -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD
 [[ $(git -C "$source_dir" rev-parse HEAD) == "$SOURCE_SHA" ]] || {
@@ -69,6 +69,9 @@ echo "Building BOOT natively from source commit $SOURCE_SHA..."
 printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$RELEASE_VERSION" > boot-sbat-release.csv
 make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$RELEASE_VERSION\"'" gnuefi
 [[ -s boot/boot_x64.efi ]] || { echo "Native BOOT EFI build failed" >&2; exit 1; }
+for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+    [[ -s "drivers_x64/${filesystem}_x64.efi" ]] || { echo "Required EFI driver is missing: $filesystem" >&2; exit 1; }
+done
 echo "Running the native BOOT installation..."
 
 # Continue in this SAME script with the original, working installer logic.
@@ -77,8 +80,8 @@ export BOOT_INSTALL_SOURCE_DIR="$source_dir"
 # Keep the installation logic's historical error status and shell behaviour.
 set +e +u
 set +o pipefail
-# The RUN's only installation mode: no legacy filesystem driver deployment.
-set -- --nodrivers
+# Always install the standard EFI filesystem drivers.
+set -- --alldrivers
 
 #!/bin/bash
 #

@@ -21,9 +21,9 @@ assets in /usr/share/infiltrator-boot; it does not deploy them to the ESP.
 
 Filesystem architecture
 -----------------------
-Only Common V2 filesystem modules are an acceptable final architecture.
-The migration is NOT complete. Legacy EFI driver loading remains in the
-current firmware for compatibility; it is not evidence of Common V2 support.
+The standard EFI filesystem drivers remain supported, including EXT4.
+The native installer builds and deploys them within BOOT's own EFI directory.
+Additional filesystem interfaces can be integrated alongside them later.
 Do not treat firmware or Secure Boot integration as qualified on real
 hardware simply because GitHub Actions builds the executable.
 

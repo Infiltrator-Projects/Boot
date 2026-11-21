@@ -205,12 +205,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     long                    ReadSize = 0;
     EFI_GUID                SystemdGuid = SYSTEMD_GUID_VALUE;
 
-    /* BOOT no longer executes standalone filesystem-specific EFI drivers.
-     * Only qualified Common V2 readers will be permitted in firmware. */
-    if (IsDriver) {
-        LOG(1, LOG_LINE_NORMAL, L"Legacy EFI driver execution rejected");
-        return EFI_UNSUPPORTED;
-    }
+    // Standard EFI filesystem drivers remain fully supported.
     if (!Volume || !Volume->RootDir || !Filename)
         return EFI_INVALID_PARAMETER;
 
@@ -351,6 +346,13 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     ErrorInfo = PoolPrint(L"returned from %s", ImageTitle);
     CheckError(Status, ErrorInfo);
     MyFreePool(ErrorInfo);
+    if (IsDriver) {
+        // Below should have no effect on most systems, but works
+        // around bug with some EFIs that prevents filesystem drivers
+        // from binding to partitions.
+        ConnectFilesystemDriver(ChildImageHandle);
+    }
+
     // re-open file handles
     ReinitRefitLib();
     LOG(1, LOG_LINE_NORMAL, L"Program has returned %d", Status);

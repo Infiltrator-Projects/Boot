@@ -300,10 +300,17 @@ use_nvram false
 #
 #windows_recovery_files LRS_ESP:/EFI/Microsoft/Boot/LrsBootmgr.efi
 
-# BOOT no longer scans standalone legacy filesystem EFI drivers.
-# Common V2 .so filesystem loading remains unqualified; inaccessible
-# filesystems must fail closed instead of loading an obsolete driver.
-
+# Directories in which to search for EFI drivers. These drivers can
+# provide filesystem support, give access to hard disks on plug-in
+# controllers, etc. In most cases none are needed, but if you add
+# EFI drivers and you want BOOT to automatically load them, you
+# should specify one or more paths here. BOOT always scans the
+# "drivers" and "drivers_{arch}" subdirectories of its own installation
+# directory (where "{arch}" is your architecture code); this option
+# specifies ADDITIONAL directories to scan.
+# Default is to scan no additional directories for EFI drivers
+#
+#scan_driver_dirs EFI/tools/drivers,drivers
 
 # Which types of boot loaders to search, and in what order to display them:
 #  internal      - internal EFI disk-based boot loaders

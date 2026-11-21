@@ -20,6 +20,9 @@ work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 dpkg-deb --contents "$deb" > "$work/package-files.txt"
 grep -Fq 'usr/share/infiltrator-boot/boot/boot_x64.efi' "$work/package-files.txt"
+for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+    grep -Fq "usr/share/infiltrator-boot/boot/drivers_x64/${filesystem}_x64.efi" "$work/package-files.txt" || exit 1
+done
 grep -Fq 'usr/share/infiltrator-boot/docs/COPYING.txt' "$work/package-files.txt"
 if grep -Eq 'usr/share/infiltrator-boot/(mvboot|boot-mkdefault)( |$)' "$work/package-files.txt"; then
     echo "Obsolete or Python-dependent helper was included" >&2; exit 1
@@ -57,7 +60,9 @@ grep -Fq 'fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"' "$run
 grep -Fq 'rev-parse HEAD) == "$SOURCE_SHA"' "$run"
 grep -Fq -- '-march=native -mtune=native -mgeneral-regs-only' "$run"
 grep -Fq 'export BOOT_INSTALL_SOURCE_DIR="$source_dir"' "$run"
-grep -Fq 'set -- --nodrivers' "$run"
+grep -Fq 'set -- --alldrivers' "$run"
+! grep -Fq 'set -- --nodrivers' "$run"
+grep -Fq 'sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys filesystems' "$run"
 grep -Fxq 'TargetDir=/EFI/InfiltratorOS/BOOT' "$run"
 grep -Fxq 'TargetX64="BOOTX64.EFI"' "$run"
 grep -Fq 'rm -rf -- "$InstallDir/$TargetDir"' "$run"

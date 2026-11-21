@@ -53,12 +53,10 @@ it, and propagate errors. No old installations require automatic cleanup.
 
 Filesystem modules
 ------------------
-Common V2 is the sole target filesystem contract; independent format
-repositories own their implementations. BOOT must eventually authenticate
-and load the freestanding Common V2 profile through a purpose-built UEFI
-loader. An ordinary hosted ELF .so cannot simply be passed to UEFI LoadImage.
-This work is not yet implemented/qualified in BOOT, and historical .efi
-filesystem readers are not the accepted final architecture.
+The original EFI filesystem drivers build from the restored filesystem
+sources and are installed in BOOT's own drivers_x64 directory. EXT4 support
+is enabled by the standard firmware driver-loading mechanism. Additional
+filesystem interfaces may be added without replacing this support.
 
 Verification
 ------------
