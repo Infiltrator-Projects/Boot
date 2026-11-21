@@ -39,31 +39,6 @@ test "$(sha256sum "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" | cut -d ' ' 
 GuardDefaultBootLocation || exit 1
 rm -f "$marker"
 if GuardDefaultBootLocation; then echo "Accepted unowned loader" >&2; exit 1; fi
-# Reproduce v0.1.98 rollback residue: resources remain after BOOTX64.EFI
-# and its ownership record have been removed.
-rm -f "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI"
-printf 'BOOT CSV' > "$InstallDir/EFI/InfiltratorOS/BOOT/BOOT.CSV"
-printf 'sample' > "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf-sample"
-mkdir -p "$InstallDir/EFI/InfiltratorOS/BOOT/icons-backup"
-if ! GuardDefaultBootLocation; then
-    echo "Rejected BOOT resources after a previous rollback" >&2
-    exit 1
-fi
-printf 'unknown' > "$InstallDir/EFI/InfiltratorOS/BOOT/unknown.efi"
-if GuardDefaultBootLocation; then
-    echo "Accepted an unknown EFI executable" >&2
-    exit 1
-fi
-rm -f "$InstallDir/EFI/InfiltratorOS/BOOT/unknown.efi"
-mv "$InstallDir/EFI/InfiltratorOS/BOOT/icons" "$work/preserved-icons"
-ln -s "$work/preserved-icons" "$InstallDir/EFI/InfiltratorOS/BOOT/icons"
-if GuardDefaultBootLocation; then
-    echo "Accepted symlinked BOOT icons" >&2
-    exit 1
-fi
-rm -f "$InstallDir/EFI/InfiltratorOS/BOOT/icons"
-mv "$work/preserved-icons" "$InstallDir/EFI/InfiltratorOS/BOOT/icons"
-GuardDefaultBootLocation || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
 test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
@@ -71,4 +46,29 @@ InstallDir="$work/link-esp"
 mkdir -p "$InstallDir"
 ln -s "$work/esp/EFI" "$InstallDir/EFI"
 if GuardDefaultBootLocation; then echo "Accepted symlinked EFI path" >&2; exit 1; fi
+# End-to-end installation path: existing BOOT resources are removed before
+# the original CopyBootFiles runs, while other EFI vendors are untouched.
+InstallDir="$work/esp"
+TargetDir=/EFI/InfiltratorOS/BOOT
+printf 'obsolete' > "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt"
+printf 'previous config' > "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf"
+printf 'previous icons' > "$InstallDir/EFI/InfiltratorOS/BOOT/icons/old.png"
+printf 'new-clean-install' > "$BootDir/boot_x64.efi"
+modprobe() { :; }
+FindMountedESP() { EspFilesystem=vfat; }
+CheckSecureBoot() { IsSecureBoot=0; }
+AddBootEntry() { :; }
+GenerateBootLinuxConf() { :; }
+AlwaysYes=1
+ExplicitDefault=0
+Problems=""
+InstallOnLinux || exit 1
+test -s "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
+test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt" || exit 1
+test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/icons/old.png" || exit 1
+test "$(cat "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf")" = 'showtools about' || exit 1
+test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
+test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
+test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
+echo "BOOT native reinstall removed old BOOT directory and preserved GRUB/Windows/fallback"
 echo "Historical BOOT installer: disposable ESP safety checks passed"
