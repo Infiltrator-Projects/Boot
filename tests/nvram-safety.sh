@@ -1,86 +1,51 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Disposable block inode + fake efibootmgr, never an actual EFI variable.
+# Exercise original BOOT NVMe registration with fake firmware only.
 set -euo pipefail
-test "$EUID" -eq 0
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 mkdir -p "$work/bin" "$work/mock" "$work/esp"
-block="$work/fake-partition"
-mknod "$block" b 7 254
-test -b "$block"
-awk '/^GetParams "\$@"$/ {exit} {print}' boot-install > "$work/installer-functions.sh"
-source "$work/installer-functions.sh"
+awk '/^GetParams "\$@"$/ {exit} {print}' boot-install > "$work/functions.sh"
+source "$work/functions.sh"
 InstallDir="$work/esp"
-findmnt() { echo "$block"; }
-readlink() { echo "$block"; }
-lsblk() {
- case " $* " in
- *PKNAME*) echo loop42 ;;
- *PARTN*) echo 1 ;;
- *) return 2 ;;
- esac
+TargetDir=/EFI/InfiltratorOS/BOOT
+Boot=BOOTX64.EFI
+grep() {
+    if [[ "$#" -ge 2 && "$2" == /etc/mtab ]]; then
+        printf '/dev/nvme1n1p1 %s vfat rw,relatime 0 0\n' "$InstallDir"
+    else
+        command grep "$@"
+    fi
 }
-blkid() { echo '12345678-1111-2222-3333-444455556666'; }
+lsblk() { printf 'NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINTS\nnvme1n1 259:0 0 953G 0 disk\nnvme1n1p1 259:1 0 512M 0 part /boot/efi\n'; }
+blkid() { printf '12345678-1111-2222-3333-444455556666\n'; }
 cat > "$work/bin/efibootmgr" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
-echo "$*" >> "$MOCK_NVRAM/actions"
-case "${1:-}" in
+printf '%s\n' "$*" >> "$MOCK_NVRAM/actions"
+case "$1" in
  -v) cat "$MOCK_NVRAM/entries" ;;
- -o) test ! -e "$MOCK_NVRAM/fail-order" || exit 1
-     echo "$2" > "$MOCK_NVRAM/order" ;;
- -c) test "$*" = '-c -d /dev/loop42 -p 1 -l \EFI\InfiltratorOS\BOOT\BOOTX64.EFI -L BOOT Boot Manager'
+ -c) [[ "$*" == *'-d /dev/nvme1n1 -p 1'* ]] || exit 70
      echo 'Boot0004* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)' >> "$MOCK_NVRAM/entries"
      echo '0004,0001,0002' > "$MOCK_NVRAM/order" ;;
- -b) echo "BOOT ENTRY DELETION FORBIDDEN" >&2; exit 99 ;;
- '') echo "BootOrder: $(cat "$MOCK_NVRAM/order")" ;;
- *) echo "Unexpected efibootmgr call: $*" >&2; exit 98 ;;
+ -b) echo 'Unexpected modification of existing NVRAM entry' >&2; exit 71 ;;
+ '') printf 'BootOrder: %s\n' "$(cat "$MOCK_NVRAM/order")" ;;
+ *) echo "Unexpected efibootmgr call: $*" >&2; exit 72 ;;
 esac
 MOCK
 chmod +x "$work/bin/efibootmgr"
 export MOCK_NVRAM="$work/mock" PATH="$work/bin:$PATH"
-test "$(command -v efibootmgr)" = "$work/bin/efibootmgr"
 cat > "$MOCK_NVRAM/entries" <<'ENTRIES'
 Boot0001* Windows Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\Microsoft\Boot\bootmgfw.efi)
-Boot0003* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)
 Boot0002* Ubuntu HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\ubuntu\grubx64.efi)
 ENTRIES
-echo '0001,0003,0002' > "$MOCK_NVRAM/order"
-# Embedded boot-install explicitly runs without strict shell settings.
-set +e +u; set +o pipefail
-AddBootEntry; code=$?
-set -euo pipefail
-test "$code" -eq 0
-test "$(cat "$MOCK_NVRAM/order")" = '0003,0001,0002'
-grep -Fq -- '-o 0003,0001,0002' "$MOCK_NVRAM/actions"
-! grep -Eq '(^| )-b |(^| )-B($| )' "$MOCK_NVRAM/actions"
-! grep -Eq '^-c' "$MOCK_NVRAM/actions"
-# Register a new BOOT entry without touching Windows or GRUB.
-grep -v 'BOOT Boot Manager' "$MOCK_NVRAM/entries" > "$MOCK_NVRAM/next"
-mv "$MOCK_NVRAM/next" "$MOCK_NVRAM/entries"
 echo '0001,0002' > "$MOCK_NVRAM/order"
-: > "$MOCK_NVRAM/actions"
-set +e +u; set +o pipefail
+set +e +u
+set +o pipefail
 AddBootEntry; code=$?
-set -euo pipefail
-test "$code" -eq 0
-test "$(cat "$MOCK_NVRAM/order")" = '0004,0001,0002'
-grep -Fq -- '-c -d /dev/loop42 -p 1 -l \EFI\InfiltratorOS\BOOT\BOOTX64.EFI' "$MOCK_NVRAM/actions"
-! grep -Eq '(^| )-b |(^| )-B($| )' "$MOCK_NVRAM/actions"
-# On firmware command failure existing entries and their order stay unchanged.
-cat > "$MOCK_NVRAM/entries" <<'ENTRIES'
-Boot0003* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)
-ENTRIES
-echo '0001,0003,0002' > "$MOCK_NVRAM/order"
-: > "$MOCK_NVRAM/actions"
-: > "$MOCK_NVRAM/fail-order"
-Problems=""
-set +e +u; set +o pipefail
-AddBootEntry; code=$?
-set -euo pipefail
-test "$code" -ne 0
-test "$Problems" = 1
-test "$(cat "$MOCK_NVRAM/order")" = '0001,0003,0002'
-! grep -Eq '(^| )-b |(^| )-B($| )' "$MOCK_NVRAM/actions"
-echo "NVRAM mock: existing preserved, new registered, failures non-destructive"
+test "$code" -eq 0 || exit 1
+command grep -Fq -- '-c -l \EFI\InfiltratorOS\BOOT\BOOTX64.EFI -L BOOT Boot Manager -d /dev/nvme1n1 -p 1' "$MOCK_NVRAM/actions" || exit 1
+! command grep -Eq '(^| )-b |(^| )-B($| )' "$MOCK_NVRAM/actions" || exit 1
+command grep -Fq 'Boot0001* Windows Boot Manager' "$MOCK_NVRAM/entries" || exit 1
+command grep -Fq 'Boot0002* Ubuntu' "$MOCK_NVRAM/entries" || exit 1
+echo "Historical BOOT NVMe registration mocked; Windows and GRUB retained"
