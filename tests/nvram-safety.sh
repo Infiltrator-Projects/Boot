@@ -26,7 +26,9 @@ cat > "$work/bin/efibootmgr" <<'MOCK'
 set -euo pipefail
 printf '%s\n' "$*" >> "$MOCK_NVRAM/actions"
 case "${1:-}" in
- -v) cat "$MOCK_NVRAM/entries" ;;
+ -v) [[ "${MOCK_FAIL_READ:-0}" == 0 ]] || exit 79
+     printf 'BootOrder: %s\n' "$(cat "$MOCK_NVRAM/order")"
+     cat "$MOCK_NVRAM/entries" ;;
  -c)
      [[ "${MOCK_FAIL_CREATE:-0}" == 0 ]] || exit 70
      [[ "$*" == *'-d /dev/nvme1n1 -p 1'* ]] || exit 71
@@ -88,8 +90,42 @@ if AddBootEntry >/dev/null 2>&1; then
 fi
 test "$Problems" = 1 || exit 1
 
+# A duplicate BOOT entry must never trigger a third registration.
+echo "0004,0001,0002" > "$MOCK_NVRAM/order"
+printf '%s\n' 'Boot0007* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)' >> "$MOCK_NVRAM/entries"
+creates_before=$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")
+Problems=""
+if AddBootEntry >/dev/null 2>&1; then
+    echo "Installer accepted duplicate BOOT entries" >&2
+    exit 1
+fi
+test "$Problems" = 1 || exit 1
+test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = "$creates_before" || exit 1
+
+# If firmware listing fails, refuse creation rather than assuming BOOT absent.
+export MOCK_FAIL_READ=1
+Problems=""
+if AddBootEntry >/dev/null 2>&1; then
+    echo "Installer ignored firmware inspection failure" >&2
+    exit 1
+fi
+test "$Problems" = 1 || exit 1
+test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = "$creates_before" || exit 1
+unset MOCK_FAIL_READ
+
+# Even a BOOT-labelled entry on an unexpected EFI path is not a fresh install.
+command grep -v '^Boot0007' "$MOCK_NVRAM/entries" | command grep -v '^Boot0004' > "$MOCK_NVRAM/entries.tmp"
+mv "$MOCK_NVRAM/entries.tmp" "$MOCK_NVRAM/entries"
+printf '%s\n' 'Boot0008* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\OldBoot\BOOTX64.EFI)' >> "$MOCK_NVRAM/entries"
+Problems=""
+if AddBootEntry >/dev/null 2>&1; then
+    echo "Installer created another BOOT entry with a stale BOOT entry present" >&2
+    exit 1
+fi
+test "$Problems" = 1 || exit 1
+test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = "$creates_before" || exit 1
 # Other OS entries are never deleted and are retained in BootOrder.
 command grep -Fq "Boot0001* Windows Boot Manager" "$MOCK_NVRAM/entries" || exit 1
 command grep -Fq "Boot0002* Ubuntu" "$MOCK_NVRAM/entries" || exit 1
 ! command grep -Eq -- ' -B($| )' "$MOCK_NVRAM/actions" || exit 1
-echo "BOOT default reasserted over 50 reinstalls without duplicate entries; other OSes preserved"
+echo "BOOT is default on every install; missing, duplicate, or ambiguous firmware records cannot create extra entries"

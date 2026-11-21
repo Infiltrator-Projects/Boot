@@ -1214,10 +1214,52 @@ AddBootEntry() {
    fi
    EntryFilename="$TargetDir/$Boot"
    EfiEntryFilename="${EntryFilename//\//\\}"
-   ExistingEntry=$("$Efibootmgr" -v | grep -iF "$InstallPartGuid" | grep -iF "File($EfiEntryFilename)" | head -n1)
-   BootNum=$(printf "%s\n" "$ExistingEntry" | sed -nE 's/^Boot([[:xdigit:]]{4})\*?.*/\1/p')
-
-   if [[ -z "$BootNum" ]] ; then
+   local FirmwareEntries CurrentEntry LowerEntry CandidateNum
+   local MatchCount BootEntryCount Registered=0
+   # Always inspect the complete firmware entry list before considering -c.
+   # If inspection fails or an entry is ambiguous, do not create a duplicate.
+   while : ; do
+      if ! FirmwareEntries=$("$Efibootmgr" -v) ; then
+         echo "Cannot inspect firmware entries; refusing to create another BOOT entry." >&2
+         Problems=1
+         return 1
+      fi
+      if [[ "$FirmwareEntries" != *"BootOrder:"* ]] ; then
+         echo "Incomplete firmware entry listing; refusing to create another BOOT entry." >&2
+         Problems=1
+         return 1
+      fi
+      BootNum=""
+      MatchCount=0
+      BootEntryCount=0
+      while IFS= read -r CurrentEntry ; do
+         if [[ "$CurrentEntry" =~ ^Boot([[:xdigit:]]{4})\*?[[:space:]] ]] ; then
+            CandidateNum="${BASH_REMATCH[1]^^}"
+            LowerEntry="${CurrentEntry,,}"
+            if [[ "$LowerEntry" == *"file(${EfiEntryFilename,,})"* || "$LowerEntry" == *"boot boot manager"* ]] ; then
+               BootEntryCount=$((BootEntryCount + 1))
+               if [[ "$LowerEntry" == *"file(${EfiEntryFilename,,})"* && "$LowerEntry" == *"${InstallPartGuid,,}"* ]] ; then
+                  MatchCount=$((MatchCount + 1))
+                  BootNum="$CandidateNum"
+               fi
+            fi
+         fi
+      done <<< "$FirmwareEntries"
+      if [[ "$MatchCount" == 1 && "$BootEntryCount" == 1 ]] ; then
+         break
+      fi
+      if [[ "$BootEntryCount" != 0 ]] ; then
+         echo "BOOT firmware entry is duplicated or ambiguous; refusing to add another." >&2
+         Problems=1
+         return 1
+      fi
+      if [[ "$Registered" == 1 ]] ; then
+         echo "New BOOT firmware entry could not be verified; refusing another registration." >&2
+         Problems=1
+         return 1
+      fi
+      # Fresh install only: create one entry, then loop back to verify it.
+      Registered=1
       # Fresh installation: register BOOT just once.
       if [[ "$Boot" == *"shim"* ]] ; then
          if [[ "$KeepName" == 1 ]] ; then
@@ -1241,14 +1283,7 @@ AddBootEntry() {
             return 1
          }
       fi
-      ExistingEntry=$("$Efibootmgr" -v | grep -iF "$InstallPartGuid" | grep -iF "File($EfiEntryFilename)" | head -n1)
-      BootNum=$(printf "%s\n" "$ExistingEntry" | sed -nE 's/^Boot([[:xdigit:]]{4})\*?.*/\1/p')
-      if [[ -z "$BootNum" ]] ; then
-         echo "Could not identify newly registered BOOT entry." >&2
-         Problems=1
-         return 1
-      fi
-   fi
+   done
 
    # Every run must activate BOOT and write BootOrder, even if already first.
    BootNum="${BootNum^^}"
