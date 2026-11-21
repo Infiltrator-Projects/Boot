@@ -27,9 +27,12 @@ get_unaligned16(const unsigned short *p)
         return mm.us;
 }
 
-/*
- * Decodes several symbols per iteration using a bounded input/output
- * window; do not invoke it unless the caller established required headroom.
+/**
+ * The caller reserves six input bytes and 258 output bytes before entering this
+ * loop. That permits decoding one worst-case length/distance pair and copying its
+ * longest match without a capacity check per byte. A match may begin in saved
+ * history and finish in newly produced output. Preserve overlap for repeated byte
+ * patterns.
  */
 void inflate_fast(z_streamp strm, unsigned start)
 {

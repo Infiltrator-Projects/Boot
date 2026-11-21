@@ -226,6 +226,11 @@ Done:
 	return Status;
 }
 
+/**
+ * A connect pass can expose additional drivers for the DXE dispatcher. Run
+ * another pass after each successful dispatch. With no dispatch table the initial
+ * EFI_UNSUPPORTED value ends the loop after the first connection pass.
+ */
 VOID
 EFIAPI
 BdsLibConnectAllDriversToAllControllers (

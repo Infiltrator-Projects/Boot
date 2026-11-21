@@ -139,6 +139,12 @@ static fsw_status_t fsw_ext2_volume_stat(struct fsw_ext2_volume *vol, struct fsw
     return FSW_SUCCESS;
 }
 
+/**
+ * Inode numbers are one-based. Subtract one before dividing by
+ * s_inodes_per_group, then divide the group-relative index by the number of
+ * inodes per physical block. Duplicate the selected inode record while its table
+ * block is pinned. Only that private copy may survive fsw_block_release.
+ */
 static fsw_status_t fsw_ext2_dnode_fill(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno)
 {
     fsw_status_t    status;
@@ -196,9 +202,16 @@ static fsw_status_t fsw_ext2_dnode_stat(struct fsw_ext2_volume *vol, struct fsw_
     return FSW_SUCCESS;
 }
 
-/*
- * Maps an inode's logical file blocks through its direct and indirect
- * addressing. A valid extent must stay within the underlying volume.
+/**
+ * For 4-KiB blocks a 32-bit indirect table holds 1024 pointers. Logical blocks 0
+ * through 11 are direct, block 12 uses indirect slot 0, and block 1036 starts the
+ * double-indirect range. Subtract each preceding range before quotient/remainder
+ * decomposition.
+ *
+ * A zero pointer at any level produces a sparse run. Contiguous physical
+ * neighbours can extend a result only within the current pointer array. The
+ * second coalescing bound uses a bit mask on the rounded byte size, so file_bcnt
+ * is not a general rounded-up count of file blocks.
  */
 static fsw_status_t fsw_ext2_get_extent(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno,
                                         struct fsw_extent *extent)

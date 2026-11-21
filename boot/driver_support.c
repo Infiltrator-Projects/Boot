@@ -346,11 +346,12 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
 }
 #endif
 
-/*
- * Consider Disk I/O handles for logical partitions lacking Simple File
- * System. For each opener marked BY_DRIVER, disconnect that agent and, if
- * disconnection succeeds, ask firmware to connect the specified driver.
- * Already-readable partitions are skipped.
+/**
+ * Inspect partition handles exposing Disk I/O that currently lack Simple File
+ * System. For each driver-open record, disconnect its agent and, only on success,
+ * offer the newly started driver to ConnectController. Existing readable
+ * partition handles are skipped. Each OpenProtocolInformation array belongs to
+ * one enumeration iteration.
  */
 VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     EFI_STATUS                            Status;
@@ -420,11 +421,11 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     MyFreePool(Handles);
 }  
 
-/*
- * Return the number of visible matching filenames considered. NumFound
- * advances before StartEFIImage and its return status does not affect the
- * count. A positive result asks the caller to try reconnecting controllers
- * even if every image failed to start.
+/**
+ * Count non-hidden .efi candidates as they are discovered, before StartEFIImage
+ * returns. A positive count therefore means a directory yielded matching files.
+ * It triggers a controller connection and rescan even if firmware rejected a
+ * particular driver.
  */
 static UINTN ScanDriverDir(IN CHAR16 *Path)
 {
@@ -456,11 +457,11 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
     return (NumFound);
 }  
 
-/*
- * Resolve built-in driver directories relative to BOOT's own directory, then
- * scan the additional paths supplied by configuration. A positive aggregate
- * count triggers controller connection and tells the entry point to rescan
- * volumes.
+/**
+ * Resolve the built-in driver directories relative to BOOT's own path, then scan
+ * configured additional directories. Sum the numbers of matching files and
+ * connect controllers when the sum is nonzero. efi_main uses the returned Boolean
+ * to decide whether to scan volumes again.
  */
 BOOLEAN LoadDrivers(VOID) {
     CHAR16        *Directory, *SelfDirectory;

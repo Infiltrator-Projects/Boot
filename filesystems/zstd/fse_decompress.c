@@ -26,9 +26,11 @@
 #define FSE_FUNCTION_NAME(X, Y) FSE_CAT(X, Y)
 #define FSE_TYPE_NAME(X, Y) FSE_CAT(X, Y)
 
-/*
- * Constructs an entropy decoding table from normalised symbol frequencies.
- * Frequency sums and symbol maxima must be consistent with its table log.
+/**
+ * The state table has 2^tableLog slots. A normalised count of -1 reserves one
+ * slot at the top. Spread positive-count symbols over the remaining slots using
+ * the table step, then derive the bit count and base next state for each cell
+ * from that symbol's occurrence number.
  */
 size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsigned maxSymbolValue, unsigned tableLog, void *workspace, size_t workspaceSize)
 {
@@ -121,6 +123,12 @@ size_t FSE_buildDTable_rle(FSE_DTable *dt, BYTE symbolValue)
 	return 0;
 }
 
+/**
+ * Alternate two entropy states on one bitstream. Four output symbols per
+ * iteration correspond to state1, state2, state1, state2. The tail loop checks
+ * room for the paired terminal symbols, so the order of the final state
+ * transitions matters even for small outputs.
+ */
 FORCE_INLINE size_t FSE_decompress_usingDTable_generic(void *dst, size_t maxDstSize, const void *cSrc, size_t cSrcSize, const FSE_DTable *dt,
 						       const unsigned fast)
 {

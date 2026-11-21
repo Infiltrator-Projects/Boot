@@ -168,10 +168,11 @@ VOID AboutBOOT(VOID)
     RunMenu(&AboutMenu, NULL);
 }  
 
-/*
- * Persists the last selected menu label under BOOT's own vendor GUID.
- * The terminating UTF-16 code unit is included in the byte count; this
- * variable is a menu preference, not firmware BootNext or boot evidence.
+/**
+ * Persist the displayed title under BootGuid for the next "+" expansion. The
+ * length passed to EfivarSetRaw is a byte count including the CHAR16 terminator.
+ * This title participates in a later menu search and may match more than one
+ * entry.
  */
 VOID StoreLoaderName(IN CHAR16 *Name) {
 
@@ -180,9 +181,11 @@ VOID StoreLoaderName(IN CHAR16 *Name) {
     }  
 }  
 
-/*
- * Reconstructs firmware-derived volume and loader state; scanned entries
- * must not be reused as though device topology were immutable.
+/**
+ * Invalidate the menu entries before rediscovery. Reconnect requests a controller
+ * pass and a fresh Volumes array. Without it, the scan reuses the current volume
+ * inventory. ReadConfig precedes loader and tool discovery in both cases. A
+ * chosen entry from the previous menu cannot be retained as the new selection.
  */
 VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
     LOG(1, LOG_LINE_NORMAL, L"Re-scanning all boot loaders");
@@ -223,9 +226,11 @@ static VOID InitializeLib(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *System
 
 #endif
 
-/*
- * Changes Secure Boot-related menu state via EFI-facing routines, not via
- * the host installer. Firmware policy remains authoritative for image trust.
+/**
+ * The result records ownership of the policy installation for this invocation.
+ * Only an enabled secure mode, a present shim and a successful policy install set
+ * it. efi_main passes the flag to shutdown cleanup so it can restore the
+ * callbacks installed here.
  */
 static BOOLEAN SecureBootSetup(VOID) {
     EFI_STATUS Status;
@@ -264,11 +269,11 @@ static BOOLEAN SecureBootUninstall(VOID) {
     return Success;
 }  
 
-/*
- * Examines the image's firmware-supplied load options for a -c override.
- * A candidate configuration is selected only when visible in SelfDir;
- * absence falls back to the compiled default. Load options cross the
- * caller/firmware trust boundary and must not be treated as a path guarantee.
+/**
+ * Read the LoadedImage options as CHAR16 text and look for the literal separator
+ * " -c ". The remaining suffix is duplicated, shortened to 256 characters and
+ * tested relative to SelfDir. An absent file leaves the configured default in
+ * place.
  */
 static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
     EFI_LOADED_IMAGE *Info;
@@ -295,10 +300,11 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
     }  
 }  
 
-/*
- * Expand each '+' in the configured preference list to the saved PreviousBoot
- * name. A missing variable drops just that element. The rebuilt list is
- * consumed by menu selection. Firmware BootOrder is managed separately.
+/**
+ * Expand each "+" in the comma-delimited search order using the saved
+ * PreviousBoot title. If the variable cannot be read, that token contributes
+ * nothing. Rebuild the list in its original order because FindMenuShortcutEntry
+ * stops at the first matching preference.
  */
 static VOID AdjustDefaultSelection() {
     UINTN i = 0, j;
@@ -419,6 +425,17 @@ VOID LogBasicInfo(VOID) {
 #endif
 }  
 
+/**
+ * Initialise the firmware libraries and scan the existing handles before reading
+ * boot.conf. A volume directive can now resolve a name. Loading drivers can add
+ * filesystem protocols to handles already seen, so a positive LoadDrivers result
+ * triggers another volume inventory before loader discovery.
+ *
+ * The menu returns an entry and a reason. Escape rebuilds the inventory without
+ * dispatching the old pointer. A timeout can select shutdown. TAG_LOADER starts a
+ * child image in this firmware session, whereas TAG_FIRMWARE_LOADER writes
+ * BootNext and asks firmware to reset.
+ */
 EFI_STATUS
 /*
  * UEFI application entry point and lifetime owner. Initialisation precedes

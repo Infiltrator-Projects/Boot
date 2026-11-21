@@ -410,6 +410,12 @@ static fsw_status_t fsw_hfs_dnode_stat(struct fsw_hfs_volume *vol,
   return FSW_SUCCESS;
 }
 
+/**
+ * Walk the eight extents in a fork record and subtract each allocation block
+ * count from the requested logical block. On a hit return startBlock plus the
+ * residual index. On a miss write the residual back through lbno so the caller
+ * can continue at the extents-overflow record.
+ */
 static int
 fsw_hfs_find_block(HFSPlusExtentRecord * exts,
                    fsw_u32             * lbno,
@@ -437,6 +443,11 @@ fsw_hfs_find_block(HFSPlusExtentRecord * exts,
     return 0;
 }
 
+/**
+ * The node's record bodies grow from its front and the 16-bit offset table is
+ * indexed backwards from its end. Index zero reads the last two bytes of the
+ * node. The big-endian value is a byte offset from the start of this same node.
+ */
 static fsw_u32
 fsw_hfs_btree_recoffset (struct fsw_hfs_btree * btree,
                          BTNodeDescriptor     * node,
@@ -459,6 +470,16 @@ fsw_hfs_btree_rec (struct fsw_hfs_btree   * btree,
   return (BTreeKey *) (cnode + offset);
 }
 
+/**
+ * Scan records in an index node, retaining the last child whose separator is at
+ * or below the search key. A leaf returns an exact match, and the forward link
+ * permits continuation beyond its final record. The active build scans each
+ * visited node linearly.
+ *
+ * On a hit, result owns the allocated node and key_offset is the record index
+ * within it. On failure the search releases the buffer. Record pointers returned
+ * by fsw_hfs_btree_rec remain valid only while that node lives.
+ */
 static fsw_status_t
 /*
  * Searches variable-length catalog/extent records using on-disk node links.
@@ -848,6 +869,12 @@ fsw_hfs_cmp_catkey (BTreeKey *key1, BTreeKey *key2)
   }
 }
 
+/**
+ * Compare parent IDs before names, converting only the on-disk operand from big
+ * endian. Within one parent, compare successive folded code units and skip units
+ * that fold to zero. This is the comparator used for case-insensitive catalogue
+ * ordering.
+ */
 static int
 fsw_hfs_cmpi_catkey (BTreeKey *key1, BTreeKey *key2)
 {
@@ -898,9 +925,12 @@ fsw_hfs_cmpi_catkey (BTreeKey *key1, BTreeKey *key2)
   }
 }
 
-/*
- * Maps logical file regions through primary and overflow extents;
- * overflow-tree lookup depends on valid B-tree metadata and extent counts.
+/**
+ * Try the eight extents embedded in the fork first. A miss leaves a residual
+ * logical block. Its difference from the original request identifies where to
+ * search the overflow tree. Add emb_block_off after locating the physical
+ * allocation block so an HFS+ volume embedded in a wrapper is addressed from the
+ * correct origin.
  */
 static fsw_status_t fsw_hfs_get_extent(struct fsw_hfs_volume * vol,
                                        struct fsw_hfs_dnode  * dno,

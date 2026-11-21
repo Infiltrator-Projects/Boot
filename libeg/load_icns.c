@@ -8,9 +8,11 @@
 
 #define MAX_ICNS_SIZES 4
 
-/*
- * Expands ICNS run-length channel data within the caller's pixel count;
- * compressed input size and output capacity are separate bounds.
+/**
+ * Expand one colour plane while stepping four bytes per destination pixel. A
+ * control byte of 0x80 repeats the following value three times. A control byte of
+ * 0x02 copies three literal values. Advance the shared input cursor so the next
+ * plane starts immediately after this one.
  */
 VOID egDecompressIcnsRLE(IN OUT UINT8 **CompData, IN OUT UINTN *CompLen, IN UINT8 *PixelData, IN UINTN PixelCount)
 {

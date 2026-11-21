@@ -109,6 +109,12 @@ enum {
  * unterminated slices. A UTF-16 name occupies two bytes per code unit, so
  * copying len bytes would discard half the representation.
  */
+/*
+ * A counted name carries two lengths. For a native UTF-16 view containing three
+ * code units, len is 3 and size is 6 bytes. The data pointer may refer into a
+ * larger input buffer. fsw_strsplit borrows its source, while fsw_strdup_coerce
+ * creates storage that fsw_strfree can release.
+ */
 struct fsw_string {
     int         type;                
     int         len;                 
@@ -144,7 +150,12 @@ struct fsw_blockcache {
     fsw_u64     phys_bno;            
     void        *data;               
 };
-
+/*
+ * The host table provides raw physical block reads. The filesystem table
+ * interprets those bytes and maps logical file blocks. Each mounted volume owns
+ * its block cache and live-node list, so a physical block number has meaning only
+ * with its volume and physical block size.
+ */
 struct fsw_volume {
     fsw_u32     phys_blocksize;      
     fsw_u32     log_blocksize;       
@@ -162,7 +173,12 @@ struct fsw_volume {
     struct fsw_fstype_table *fstype_table;   
     int         host_string_type;    
 };
-
+/*
+ * Within one mounted volume, (tree_id, dnode_id) identifies a live node. Both
+ * fields are 64-bit. Keeping the tree component distinguishes equal inode numbers
+ * in different Btrfs subvolumes. A retained child also holds a reference to its
+ * parent.
+ */
 struct fsw_dnode {
     fsw_u32     refcount;            
 
@@ -206,7 +222,12 @@ enum {
     FSW_EXTENT_TYPE_PHYSBLOCK,
     FSW_EXTENT_TYPE_BUFFER
 };
-
+/*
+ * Each open stream keeps its own byte cursor and most recently resolved extent.
+ * Two opens of the same node may read different positions while sharing that node
+ * and the volume cache. Closing a stream releases its buffered extent and one
+ * node reference.
+ */
 struct fsw_shandle {
     struct fsw_dnode *dnode;         
 

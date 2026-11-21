@@ -136,6 +136,12 @@ BdsBuildLegacyDevNameString (
   }
 }
 
+/**
+ * Step over the attributes, 16-bit device-path byte length and terminated CHAR16
+ * description. For a BBS path the following optional data holds a BBS table
+ * record and a 16-bit index. The returned record aliases the original variable,
+ * whose lifetime and record bounds are the caller's responsibility.
+ */
 BOOLEAN
 /*
  * Inspects an EFI load option to classify legacy boot encoding.
@@ -430,6 +436,12 @@ BdsCreateOneLegacyBootOption (
   return Status;
 }
 
+/**
+ * Maintain the next insertion index for each BBS type already encountered. Move
+ * later options next to their group, shift the intervening options one slot, then
+ * update insertion indices affected by the shift. The order within each group
+ * follows the original BootOrder array.
+ */
 VOID
 GroupMultipleLegacyBootOption4SameType (
   UINT16                   *BootOption,

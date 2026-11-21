@@ -46,10 +46,10 @@ BUILTIN_ICON BuiltinIconTable[BUILTIN_ICON_COUNT] = {
    { NULL, L"mouse", ICON_SIZE_MOUSE }
 };
 
-/*
- * The built-in table stores a loaded image for each icon ID. Repeated
- * successful lookups return the cached pointer. Callers that need to alter
- * its pixels independently must first copy the image.
+/**
+ * The table caches one image per built-in ID, including the generated placeholder
+ * when disk lookup fails. A returned pointer is shared by all menu entries using
+ * that ID. Releasing or editing its pixel data affects subsequent draws.
  */
 EG_IMAGE * BuiltinIcon(IN UINTN Id)
 {
@@ -65,10 +65,11 @@ EG_IMAGE * BuiltinIcon(IN UINTN Id)
     return BuiltinIconTable[Id].Image;
 }
 
-/*
- * Try the comma-separated OS names in order, followed by the fallback name. A
- * boot-logo request can then use the fallback OS icon. Only after those
- * lookups fail does this path create the placeholder image.
+/**
+ * Try the comma-separated candidates in caller order using the boot_ or os_
+ * prefix. For a missing boot logo the fallback name is tried under both prefixes
+ * before generating a placeholder. Text-only mode skips lookup and allocation
+ * entirely.
  */
 EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconName, BOOLEAN BootLogo)
 {

@@ -17,9 +17,11 @@ typedef struct _jpeg_color {
    UINT8 blue;
 } jpeg_color;
 
-/*
- * Runs the JPEG decoder and converts output into a graphics surface;
- * errors must not be mistaken for failure to discover the associated OS.
+/**
+ * Allocate at the dimensions returned by NanoJPEG and copy its packed colour
+ * values into EG_PIXEL members. Requested alpha is initialised to fully opaque.
+ * IconSize does not scale this image here. The normal success path releases the
+ * decoded buffer after the copy.
  */
 EG_IMAGE * egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha) {
     EG_IMAGE *NewImage = NULL;

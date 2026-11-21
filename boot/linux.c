@@ -14,10 +14,12 @@
 #include "log.h"
 #include "scan.h"
 
-/*
- * Chooses an initrd by extracted version fragments and filename similarity.
- * Where multiple names match, its tie-breaks are heuristic, not an authority
- * on which initramfs actually corresponds to a particular installed kernel.
+/**
+ * Search the kernel's directory for init* and booster* names with the same
+ * extracted version, allowing two unversioned names to match. With multiple
+ * candidates, compare their common prefix starting at the version substring and
+ * prefer the shorter full path on a tie. A caller owns the returned path, which
+ * survives deletion of the temporary candidate list.
  */
 CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     CHAR16              *InitrdName = NULL, *FileName, *KernelVersion, *InitrdVersion, *Path;
@@ -94,10 +96,11 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     return (InitrdName);
 }  
 
-/*
- * Start with an owned copy of the existing options. When an initrd is
- * available, '%v' substitution takes precedence. Otherwise append an initrd=
- * argument only if one is absent. The caller owns the result.
+/**
+ * Work on an owned copy of the options. With an initrd present, a %v placeholder
+ * takes the substitution branch. Otherwise append one initrd= argument only when
+ * the options lack that substring. Thus an explicit initrd path in a stanza takes
+ * precedence over automatic discovery.
  */
 CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
     CHAR16 *NewOptions = NULL;
@@ -119,9 +122,11 @@ CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
     return NewOptions;
 }  
 
-/*
- * Resolves main kernel load options from available configuration and defaults.
- * A missing root parameter or inaccessible initrd can still make boot fail.
+/**
+ * Combine the first options-file entry with the initrd chosen for this kernel.
+ * The version substitution here is derived from the initrd name. Release the
+ * three intermediate strings after AddInitrdToOptions has produced the
+ * independently owned result.
  */
 CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume) {
     CHAR16 *Options = NULL, *InitrdName, *FullOptions = NULL, *KernelVersion;
@@ -178,9 +183,11 @@ VOID GuessLinuxDistribution(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *L
         MergeStrings(OSIconName, L"redhat", L',');
 }  
 
-/*
- * Groups additional Linux kernels as alternate launch entries while retaining
- * the volume context; folding entries must not erase independently bootable OSs.
+/**
+ * Use the first kernel's options file as the template for its folded siblings.
+ * For each label/options pair, create a child carrying this sibling's path,
+ * version and selected initrd. This preserves a separately launchable entry for
+ * each kernel under one top-level icon.
  */
 VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOLUME *Volume) {
     REFIT_FILE          *File;

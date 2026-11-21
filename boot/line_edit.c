@@ -34,11 +34,13 @@ static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
         (*first)++;
 }
 
-/*
- * Edit a private UTF-16 copy. first is the index of the leftmost visible
- * character and cursor is a screen-column offset, so insertions and deletions
- * use first + cursor. Enter transfers the buffer to line_out. Cancelling
- * releases the private copy.
+/**
+ * first is the index of the leftmost visible CHAR16 and cursor is its
+ * screen-relative column. Editing uses their sum as the offset in the full
+ * buffer. The viewport reserves two cells for an erasing space and a terminator.
+ *
+ * Enter transfers the edited allocation through line_out. Escape returns FALSE
+ * and frees the working copy, leaving the caller's prior options available.
  */
 BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
     CHAR16 *line;

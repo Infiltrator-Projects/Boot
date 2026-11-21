@@ -1,9 +1,9 @@
 /*
- * Shared EFI application model: firmware service pointers, global config,
- * menu tags and operating-system/volume descriptors. Tags distinguish loader,
- * firmware, legacy and utility actions; code must not treat these as one class.
- * Fields referring to EFI handles and allocated Unicode strings have firmware
- * or BOOT lifetime requirements, not process-independent ownership.
+ * Shared records used from volume discovery through menu dispatch.
+ * REFIT_VOLUME ties disk and partition identities to firmware handles.
+ * Loader and legacy records embed REFIT_MENU_ENTRY as their first member.
+ * RunMainMenu returns that member. Its tag tells efi_main how to recover
+ * the enclosing record and which operation the selected entry requests.
  */
 
 #ifndef __GLOBAL_H_
@@ -18,7 +18,12 @@
 #include "../EfiLib/GenericBdsLib.h"
 
 #include "../libeg/libeg.h"
-
+/*
+ * RunMainMenu returns a pointer to a base menu entry. efi_main uses its tag to
+ * select the enclosing structure and the dispatch method. In particular,
+ * TAG_LOADER carries a filesystem path, while TAG_FIRMWARE_LOADER selects a
+ * 16-bit firmware boot option.
+ */
 #define TAG_ABOUT            (1)
 #define TAG_REBOOT           (2)
 #define TAG_SHUTDOWN         (3)
@@ -42,7 +47,11 @@
 #define TAG_HIDDEN           (21)
 #define TAG_BOOTORDER        (23)
 #define NUM_TOOLS            (24)
-
+/*
+ * ScanFor is an ordered, fixed-width array of dispatch letters.
+ * ScanForBootloaders iterates NUM_SCAN_OPTIONS slots, including padding. Treating
+ * it as a NUL-terminated string would give it a different boundary.
+ */
 #define NUM_SCAN_OPTIONS 11
 
 #define DEFAULT_ICONS_DIR L"icons"
@@ -178,7 +187,12 @@ typedef struct _uint32_list {
     UINT32               Value;
     struct _uint32_list  *Next;
 } UINT32_LIST;
-
+/*
+ * The four partition descriptors begin at byte 446 of an MBR. StartLBA and Size
+ * are sector counts. In an extended-partition record the same StartLBA field has
+ * two origins, depending on whether it describes a logical partition or the next
+ * link in the chain.
+ */
 typedef struct {
    UINT8 Flags;
    UINT8 StartCHS1;
@@ -204,6 +218,12 @@ typedef struct {
    CHAR16              *PartName;  
    CHAR16              *FsName;    
    CHAR16              *VolName;   
+   /*
+    * VolUuid identifies a filesystem during duplicate-volume suppression.
+    * PartGuid identifies this GPT partition and forms the PARTUUID passed to
+    * Linux. PartTypeGuid identifies the partition's role. Two root partitions can
+    * share a type GUID and still require different kernel arguments.
+    */
    EFI_GUID            VolUuid;
    EFI_GUID            PartGuid;
    EFI_GUID            PartTypeGuid;
@@ -216,6 +236,12 @@ typedef struct {
    CHAR16              *OSName;
    BOOLEAN             IsMbrPartition;
    UINTN               MbrPartitionIndex;
+   /*
+    * BlockIO can address either a firmware partition or the containing disk. A
+    * synthetic logical partition borrows the whole-disk interface and adds
+    * BlockIOOffset in sectors. A native partition handle already has its own
+    * addressing origin.
+    */
    EFI_BLOCK_IO        *BlockIO;
    UINT64              BlockIOOffset;
    EFI_BLOCK_IO        *WholeDiskBlockIO;
@@ -224,7 +250,12 @@ typedef struct {
    BOOLEAN             IsReadable;
    UINT32              FSType;
 } REFIT_VOLUME;
-
+/*
+ * Menu painting and input use this common prefix. Row zero is the scrolling
+ * loader row and row one contains tools. A SubScreen is entered on the details
+ * action. Choosing an entry returns the existing pointer from the screen's
+ * Entries array.
+ */
 typedef struct _refit_menu_entry {
    CHAR16      *Title;
    UINTN       Tag;
@@ -235,7 +266,12 @@ typedef struct _refit_menu_entry {
    EG_IMAGE    *BadgeImage;
    struct _refit_menu_screen *SubScreen;
 } REFIT_MENU_ENTRY;
-
+/*
+ * Entries and InfoLines are counted pointer arrays. TimeoutSeconds uses zero for
+ * interactive selection, a positive countdown in seconds, and the UINTN
+ * representation of -1 for the pending-key shortcut. RunMainMenu disables the
+ * initial timeout when returning from a submenu.
+ */
 typedef struct _refit_menu_screen {
    CHAR16      *Title;  
    EG_IMAGE    *TitleImage;
@@ -264,6 +300,11 @@ typedef struct {
    CHAR16           *InitrdPath;  
    CHAR8            OSType;
    UINTN            DiscoveryType;
+   /*
+    * Firmware entries carry EfiBootNum for BootNext. A discovered firmware entry
+    * also retains a copied device path for display and diagnostics. File-backed
+    * entries carry Volume and LoaderPath for StartEFIImage instead.
+    */
    EFI_DEVICE_PATH  *EfiLoaderPath;  
    UINT16           EfiBootNum;  
 } LOADER_ENTRY;
@@ -275,7 +316,11 @@ typedef struct {
    CHAR16            *LoadOptions;
    BOOLEAN           Enabled;
 } LEGACY_ENTRY;
-
+/*
+ * ReadConfig updates this process-wide state in directive order. Some fields are
+ * derived later: ScanVolumes supplies DiscoveredRoot, scanning can extend
+ * ExtraToolLocations, and LinuxMatchPatterns is constructed from LinuxPrefixes.
+ */
 typedef struct {
    BOOLEAN          TextOnly;
    BOOLEAN          ScanAllLinux;
@@ -331,6 +376,12 @@ typedef struct {
    CHAR16           *ExtraKernelVersionStrings;
    CHAR16           *SpoofOSXVersion;
    UINT32_LIST      *CsrValues;
+   /*
+    * ShowTools holds action tags used while building row one. ScanFor holds
+    * single-byte letters in the user's discovery order. Their capacities bound
+    * loops in different consumers and their element values have different
+    * meanings.
+    */
    UINTN            ShowTools[NUM_TOOLS];
    CHAR8            ScanFor[NUM_SCAN_OPTIONS];  
 } REFIT_CONFIG;

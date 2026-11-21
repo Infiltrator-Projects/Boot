@@ -139,11 +139,12 @@ struct fsw_ntfs_dnode
     fsw_u8 *cbuf;		 
 };
 
-/*
- * Applies the NTFS update-sequence-array fixup to a multi-sector record.
- * The per-sector trailers must match the sequence value before replacement;
- * the record, offset and sector-count fields are disk-controlled and must
- * be bounded before the function dereferences the corresponding positions.
+/**
+ * Restore sector tails in an MFT or index record before interpreting its fields.
+ * The first update-sequence word is the expected marker. Each following word
+ * replaces the matching marker at a sector end. A later mismatch can occur after
+ * earlier sectors were already restored, so the caller must discard a failed
+ * record.
  */
 static fsw_status_t fixup(fsw_u8 *record, char *magic, int sectorsize, int size)
 {
@@ -238,11 +239,14 @@ static fsw_status_t find_attrlist_direct(fsw_u8 *atlst, int atlen, int type, fsw
     return FSW_NOT_FOUND;
 }
 
-/*
- * Decodes a variable-length NTFS runlist descriptor, producing logical
- * length and location information for a file attribute. Relative LCN
- * deltas and sparse runs are distinct cases, and truncated runlists must
- * never advance the input pointer beyond its remaining byte count.
+/**
+ * Decode one run from the mapping-pairs cursor. The low nibble specifies the byte
+ * width of the unsigned cluster count and the high nibble the width of the signed
+ * relative disk-cluster displacement. A missing displacement denotes a sparse run
+ * and leaves the previous physical position intact.
+ *
+ * On success advance both the pointer and remaining input count. An encoded
+ * length width of zero terminates the run list with FSW_NOT_FOUND.
  */
 static fsw_status_t get_extent(fsw_u8 **rlep, int *rlenp, fsw_u64 *lcnp, fsw_u64 *lenp, fsw_u64 *pos)
 {
@@ -1149,9 +1153,12 @@ static int ntfs_decomp(fsw_u8 *src, int slen, fsw_u8 *dst, int npage) {
     return 0;
 }
 
-/*
- * Handles compressed extent representation, which differs from resident,
- * sparse and uncompressed data. Untrusted sizes constrain decompression.
+/**
+ * Align the requested virtual cluster down to a 16-cluster compression unit and
+ * cache its mapping in the dnode. Fully allocated units can yield physical runs,
+ * while a unit with no allocated clusters yields a sparse run. A partially
+ * allocated unit is decoded and the requested cluster is copied into a separately
+ * owned extent buffer.
  */
 static fsw_status_t fsw_ntfs_get_extent_compressed(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dnode *dno, struct fsw_extent *extent)
 {
@@ -1364,6 +1371,12 @@ static fsw_status_t fsw_ntfs_create_subnode(struct fsw_ntfs_dnode *dno, fsw_u8 *
     return fsw_dnode_create(&dno->g, mftno, type, &s, child_dno);
 }
 
+/**
+ * The internal block argument is one-based, so (block - 1) * idxsz is the file
+ * offset. Reuse the node's buffer only for an identical previously validated
+ * block. Publish the new cached ID after a full read and successful INDX
+ * update-sequence fixup.
+ */
 static fsw_u8 *fsw_ntfs_read_index_block(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dnode *dno, fsw_u64 block)
 {
     if(dno->cbuf==NULL) {

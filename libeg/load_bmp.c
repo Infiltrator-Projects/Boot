@@ -170,6 +170,12 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
     return NewImage;
 }
 
+/**
+ * Write 24-bit BGR rows from the bottom of the image upwards. Round every output
+ * row to a multiple of four bytes. A three-pixel row therefore occupies twelve
+ * bytes, including three zero padding bytes supplied by AllocateZeroPool. The
+ * returned file allocation belongs to the caller.
+ */
 VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileDataReturn, OUT UINTN *FileDataLengthReturn)
 {
     BMP_IMAGE_HEADER    *BmpHeader;

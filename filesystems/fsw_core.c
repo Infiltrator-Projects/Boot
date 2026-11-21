@@ -12,11 +12,14 @@ static void fsw_blockcache_free(struct fsw_volume *vol);
 
 #define MAX_CACHE_LEVEL (5)
 
-/*
- * Allocate the volume using the selected backend's structure size. Attach the
- * host callbacks and provisional 512-byte geometry before invoking
- * volume_mount. Failure goes through fsw_unmount, so the backend's cleanup
- * must tolerate partially initialised state.
+/**
+ * Allocate the backend's declared volume_struct_size so that its private fields
+ * can follow the common fsw_volume prefix. Begin with 512-byte physical and
+ * logical blocks. A backend can replace that geometry while reading its
+ * superblock. Publish *vol_out only after volume_mount succeeds.
+ *
+ * A failed probe uses fsw_unmount on the partially initialised volume. Backend
+ * cleanup consequently needs to tolerate zeroed fields and a missing root.
  */
 fsw_status_t fsw_mount(void *host_data,
                        struct fsw_host_table *host_table,
@@ -67,11 +70,11 @@ fsw_status_t fsw_volume_stat(struct fsw_volume *vol, struct fsw_volume_stat *sb)
     return vol->fstype_table->volume_stat(vol, sb);
 }
 
-/*
- * A block number has meaning only with the geometry that produced it. Mount
- * code can switch from probe geometry to volume geometry. Drop old cache
- * entries and pass both geometries to the host before installing the new
- * sizes.
+/**
+ * Invalidate the old block cache before changing units. Cached block number 1
+ * denotes offset 512 at a 512-byte block size and offset 4096 at 4096 bytes.
+ * Notify the host of both pairs of sizes before publishing the new values to the
+ * volume.
  */
 void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 log_blocksize)
 {
@@ -86,11 +89,16 @@ void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 l
     vol->log_blocksize = log_blocksize;
 }
 
-/*
- * A hit pins the existing buffer and raises its retention level when
- * requested. On a miss, prefer unused slots, then unpinned entries starting
- * at the lowest retention level. Mark the chosen slot invalid until the host
- * read succeeds. Each successful acquisition needs a matching release.
+/**
+ * A successful call pins one cache entry. Hits increment the reference count and
+ * can raise its retention level. Misses prefer unused slots, then unpinned
+ * entries in increasing level order. If every entry is pinned, start with 16
+ * slots or double the existing table.
+ *
+ * Mark the victim invalid before calling read_block and set its physical block
+ * number only after success. Failed reads can leave reusable storage, but cannot
+ * advertise it as valid data for the requested block. Both lookup and victim
+ * selection scan the slot array.
  */
 fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 cache_level, void **buffer_out)
 {
@@ -168,9 +176,11 @@ fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 
     return FSW_SUCCESS;
 }
 
-/*
- * Decrements a matching cache entry reference; call only for a successfully
- * obtained block and do not retain its data after it becomes evictable.
+/**
+ * Drop one pin for a matching physical block number with a positive count. The
+ * data allocation stays with the volume and may be reused on a later miss. The
+ * implementation matches by number and does not use the buffer argument to
+ * establish identity.
  */
 void fsw_block_release(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, void *buffer)
 {
@@ -235,6 +245,13 @@ fsw_status_t fsw_dnode_create_root(struct fsw_volume *vol, fsw_u64 dnode_id, str
 	return fsw_dnode_create_root_with_tree( vol, 0, dnode_id, dno_out);
 }
 
+/**
+ * Search the volume's live-node list for the pair (tree_id, dnode_id). A hit
+ * returns another reference to the existing node. A new node holds a parent
+ * reference and an owned name converted to the host encoding. The
+ * conversion-failure branch frees the child allocation but leaves that parent
+ * reference outstanding.
+ */
 fsw_status_t fsw_dnode_create_with_tree(struct fsw_dnode *parent_dno, fsw_u64 tree_id, fsw_u64 dnode_id, int type,
                               struct fsw_string *name, struct fsw_dnode **dno_out)
 {
@@ -289,6 +306,12 @@ void fsw_dnode_retain(struct fsw_dnode *dno)
     dno->refcount++;
 }
 
+/**
+ * On the final reference, unlink the node from the live list, invoke backend
+ * cleanup and free the owned name and node. Save the parent pointer before
+ * freeing the child. Releasing that parent can recursively destroy more
+ * ancestors.
+ */
 void fsw_dnode_release(struct fsw_dnode *dno)
 {
     struct fsw_volume *vol = dno->vol;
@@ -351,11 +374,12 @@ fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
     return dno->vol->fstype_table->dir_lookup(dno->vol, dno, lookup_name, child_dno_out);
 }
 
-/*
- * Walk borrowed string slices while retaining the current dnode. An empty
- * first component selects the root, while an interior empty component retains
- * the current node. Resolve intermediate symlinks before asking the backend
- * to look up a child.
+/**
+ * Split the caller's counted name into borrowed components. A leading empty
+ * component starts at the volume root. Later empty components and "." preserve
+ * the current node. ".." requires a parent. Resolve an intermediate symbolic link
+ * before asking the backend to look up its next child. The returned node carries
+ * a reference for the caller.
  */
 fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
                                    struct fsw_string *lookup_path, char separator,
@@ -513,6 +537,12 @@ fsw_status_t fsw_dnode_readlink_data(struct fsw_dnode *dno, struct fsw_string *l
     return status;
 }
 
+/**
+ * Carry one retained reference through each link hop. Resolve relative target
+ * text from the link's parent using slash separators, release the old node, then
+ * examine the new one. The loop starts at 40 and pre-decrements before each
+ * examination, giving at most 39 examinations in this invocation.
+ */
 fsw_status_t fsw_dnode_resolve(struct fsw_dnode *dno, struct fsw_dnode **target_dno_out)
 {
     fsw_status_t    status;
@@ -558,6 +588,11 @@ errorexit:
     return status;
 }
 
+/**
+ * Fill the backend node before retaining it. A successful handle starts at byte
+ * zero with an invalid extent, so the first read must ask the backend to map a
+ * logical block. The handle owns its node reference until close.
+ */
 fsw_status_t fsw_shandle_open(struct fsw_dnode *dno, struct fsw_shandle *shand)
 {
     fsw_status_t    status;
@@ -576,6 +611,11 @@ fsw_status_t fsw_shandle_open(struct fsw_dnode *dno, struct fsw_shandle *shand)
     return FSW_SUCCESS;
 }
 
+/**
+ * Release a buffered extent if the backend transferred one, then drop the node
+ * reference. Physical and sparse extents describe storage with numbers and carry
+ * no allocation for this handle to release.
+ */
 void fsw_shandle_close(struct fsw_shandle *shand)
 {
     if (shand->extent.type == FSW_EXTENT_TYPE_BUFFER)
@@ -583,10 +623,16 @@ void fsw_shandle_close(struct fsw_shandle *shand)
     fsw_dnode_release(shand->dnode);
 }
 
-/*
- * Maps the file position through a backend extent into physical, buffer or
- * sparse-zero data; partial reads update position and returned byte count.
- * AUDIT: the local position is narrowed to fsw_u32; review files > 4 GiB.
+/**
+ * Map file byte offsets through the cached extent. A physical run borrows one
+ * volume block at a time, a buffered run copies from backend-owned data
+ * transferred to the handle, and a sparse run emits zeroes. All three advance by
+ * the number of bytes actually copied.
+ *
+ * EOF returns success with zero bytes. The public position is 64-bit, but the
+ * working position is initialised through fsw_u32, so offsets at or beyond 4 GiB
+ * can wrap. An intermediate error leaves the stored position unchanged even if
+ * earlier iterations filled part of the destination.
  */
 fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_inout, void *buffer_in)
 {

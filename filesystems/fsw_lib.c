@@ -42,6 +42,12 @@ int fsw_strlen(struct fsw_string *s)
     return s->len;
 }
 
+/**
+ * First compare logical lengths. Equal encodings also require equal byte lengths
+ * and then use a byte comparison. Mixed encodings dispatch to a generated
+ * pairwise comparator. Empty values compare equal across encodings, independently
+ * of their data pointers.
+ */
 int fsw_streq(struct fsw_string *s1, struct fsw_string *s2)
 {
     struct fsw_string temp_s;
@@ -101,9 +107,11 @@ int fsw_streq_cstr(struct fsw_string *s1, const char *s2)
     return fsw_streq(s1, &temp_s);
 }
 
-/*
- * Creates an owned string converted to the requested FSW encoding.
- * The source and destination may have different byte/character lengths.
+/**
+ * Construct independently owned, counted storage in the requested encoding.
+ * Identical encodings copy exactly src->size bytes and append no terminator. An
+ * empty input produces a typed zero-length result without an allocation.
+ * Unsupported conversion pairs return FSW_UNSUPPORTED.
  */
 fsw_status_t fsw_strdup_coerce(struct fsw_string *dest, int type, struct fsw_string *src)
 {
@@ -144,6 +152,12 @@ fsw_status_t fsw_strdup_coerce(struct fsw_string *dest, int type, struct fsw_str
     return FSW_UNSUPPORTED;
 }
 
+/**
+ * Return a view into the caller's existing name buffer. For native UTF-16, len
+ * advances in code units while size advances in bytes. The unconsumed view skips
+ * the separator. Neither view owns a fresh allocation, so its storage must
+ * outlive path traversal.
+ */
 void fsw_strsplit(struct fsw_string *element, struct fsw_string *buffer, char separator)
 {
     int i, maxlen;

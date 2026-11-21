@@ -51,11 +51,11 @@ VOID ClearGptData(GPT_DATA *Data) {
     }  
 }  
 
-/*
- * Require a protective MBR, the supported GPT revision and 128-byte entries.
- * Hash the smaller of the claimed header length and the local structure size
- * with the CRC field cleared, then restore that field even on mismatch. The
- * partition array has its own CRC.
+/**
+ * Require the protective MBR signature and at least one type-0xEE entry, the GPT
+ * signature, revision 1.0 and 128-byte entries. Compute the header CRC with the
+ * crc32 field temporarily zero, then restore it. The covered byte count is the
+ * smaller of the recorded header size and the compiled header buffer.
  */
 static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
     BOOLEAN IsValid;
@@ -89,11 +89,16 @@ static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
     return IsValid;
 }  
 
-/*
- * Read the protective MBR, primary header and partition array from a
- * whole-media Block I/O handle. The header supplies the array's starting LBA.
- * Publish the new GPT_DATA only after both checksums pass, keeping the
- * caller's previous result until then.
+/**
+ * Read the protective MBR from LBA 0, the primary header from LBA 1 and entries
+ * from entry_lba. Validate the table checksum on the original bytes before
+ * terminating the name field in each in-memory entry. ReadBlocks sizes are the
+ * fixed structure sizes and must suit the device's block granularity.
+ *
+ * On success replace the previous *Data. On failure free the provisional table
+ * and retain the caller's original pointer. BufferSize is 64-bit, but the
+ * entry_count * 128 expression is evaluated at the width of entry_count before
+ * assignment.
  */
 EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     EFI_STATUS Status = EFI_SUCCESS;
@@ -180,9 +185,11 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     return Status;
 }  
 
-/*
- * Looks up identity within parsed partition metadata; a matching GUID is
- * not proof of a mounted volume or a supported filesystem.
+/**
+ * Search each cached table by the unique partition GUID, in discovery order, and
+ * return a separately allocated entry for the first match. A caller may retain
+ * the copy after ForgetPartitionTables. Lookup cost is linear in the total number
+ * of entries examined.
  */
 GPT_ENTRY * FindPartWithGuid(EFI_GUID *Guid) {
     UINTN     i;

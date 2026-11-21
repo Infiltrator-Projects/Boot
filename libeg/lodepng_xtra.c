@@ -35,6 +35,12 @@ static size_t report_size(void *ptr) {
       return 0;
 }  
 
+/**
+ * Recover the old byte count from the prefix maintained by lodepng_malloc.
+ * Allocate the new region and copy the smaller of the two sizes. The old
+ * allocation is still live after a successful call because this implementation
+ * has no release of ptr.
+ */
 void* lodepng_realloc(void *ptr, size_t new_size) {
    size_t *new_pool;
    size_t old_size;
@@ -79,9 +85,11 @@ typedef struct _lode_color {
    UINT8 alpha;
 } lode_color;
 
-/*
- * Converts compressed PNG image bytes into the firmware image surface;
- * invalid image dimensions or decoder error must produce no usable icon.
+/**
+ * Request eight-bit RGBA pixels from LodePNG and copy channels into the EFI pixel
+ * structure by name. WantAlpha controls whether the destination alpha byte is
+ * populated. Image dimensions come from the decoded PNG, and icon resizing occurs
+ * later in the loading path.
  */
 EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha) {
    EG_IMAGE *NewImage = NULL;

@@ -778,6 +778,11 @@ initialize_tables (grub_gzio_t gzio)
   huft_free (gzio->td);
 }
 
+/**
+ * Btrfs zlib extents begin with CMF and FLG. Require DEFLATE, the two-byte header
+ * check modulo 31, and no preset dictionary. Save the two-byte data offset so
+ * reinitialising the inflater can resume at the first compressed block.
+ */
 static int
 test_zlib_header (grub_gzio_t gzio)
 {
@@ -807,6 +812,12 @@ test_zlib_header (grub_gzio_t gzio)
   return 1;
 }
 
+/**
+ * Serve a logical byte slice from a rolling DEFLATE window. Inflate forward until
+ * the requested offset is covered. A backward request outside the retained window
+ * restarts decoding, so access to arbitrary offsets within one compressed extent
+ * can require redoing prefix work.
+ */
 static grub_ssize_t
 grub_gzio_read_real (grub_gzio_t gzio, grub_off_t offset,
                      char *buf, grub_size_t len)

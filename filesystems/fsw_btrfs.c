@@ -369,6 +369,12 @@ static uint64_t superblock_pos[4] = {
 static fsw_status_t fsw_btrfs_read_logical(struct fsw_btrfs_volume *vol,
         uint64_t addr, void *buf, fsw_size_t size, int rdepth, int cache_level);
 
+/**
+ * Read mirror positions in units of 4096 bytes. The first usable superblock
+ * supplies a device size for bounding later mirror reads. Among the mirrors
+ * actually visited, keep the highest generation. An unreadable mirror or
+ * signature mismatch stops the loop, so later copies may never be examined.
+ */
 static fsw_status_t btrfs_read_superblock (struct fsw_volume *vol, struct btrfs_superblock *sb_out)
 {
     unsigned i;
@@ -418,6 +424,12 @@ static fsw_status_t btrfs_read_superblock (struct fsw_volume *vol, struct btrfs_
     return err;
 }
 
+/**
+ * Compare object ID, item type and offset in that order, converting the two
+ * multibyte fields from disk order. This ordering keeps an inode's keys adjacent
+ * while separating directory items, directory indices and extents. Matching only
+ * the numeric offset would mix independent records.
+ */
 static int key_cmp (const struct btrfs_key *a, const struct btrfs_key *b)
 {
     if (fsw_u64_le_swap (a->object_id) < fsw_u64_le_swap (b->object_id))
@@ -519,6 +531,17 @@ static int next (struct fsw_btrfs_volume *vol,
 }
 
 #define depth2cache(x)  ((x) >= 4 ? 1 : 5-(x))
+/**
+ * Find the greatest key less than or equal to the request. Internal nodes retain
+ * the last eligible separator, and leaves return an exact match or its
+ * predecessor. A request below the first key can return success with a zero key,
+ * size and address. Exact-lookup callers must compare key_out.
+ *
+ * Records within each visited node are scanned linearly. The optional descriptor
+ * saves node addresses and slot indices for subsequent iteration. rdepth bounds
+ * recursive logical-address translation during a tree read and is separate from
+ * descent through the tree's levels.
+ */
 static fsw_status_t lower_bound (struct fsw_btrfs_volume *vol,
         const struct btrfs_key *key_in,
         struct btrfs_key *key_out,
@@ -707,6 +730,11 @@ static int scan_disks_hook(struct fsw_volume *volg, struct fsw_volume *slave) {
     return btrfs_add_multi_device(vol, slave, &sb);
 }
 
+/**
+ * Clear the rescan flag before enumerating devices. Enumeration can itself lead
+ * back into the filesystem, so consuming the single attempt first prevents the
+ * same missing member from triggering recursive rescans.
+ */
 static int do_rescan_once(struct fsw_btrfs_volume *vol) {
     if(vol->rescan_once == 0 || vol->n_devices_attached >= vol->n_devices_allocated)
 	return 0;
@@ -808,6 +836,12 @@ static void raid6_init_table (void)
     initialized = 1;
 }
 
+/**
+ * A direct-mapped 17-slot cache holds reconstructed sectors. The hash chooses a
+ * candidate slot only. Device ID and byte offset must still match or the cached
+ * data is invalidated. Collisions reuse its allocation, which remains owned by
+ * the volume.
+ */
 static struct fsw_btrfs_recover_cache *get_recover_cache(struct fsw_btrfs_volume *vol, uint64_t device_id, uint64_t offset)
 {
     if(vol->rcache == NULL) {
@@ -1259,9 +1293,11 @@ io_error:
 }
 
 static fsw_status_t fsw_btrfs_get_default_root(struct fsw_btrfs_volume *vol, uint64_t root_dir_objectid);
-/*
- * Identifies the Btrfs superblock and prepares tree/root state used by later
- * lookups. Recognition does not imply support for every RAID or feature set.
+/**
+ * Group physical members by filesystem UUID. The first becomes the master and
+ * resolves the default root. Further members register their device IDs with that
+ * master and expose a placeholder root. A multi-device master's first
+ * missing-device read can trigger a single rescan.
  */
 static fsw_status_t fsw_btrfs_volume_mount(struct fsw_volume *volg) {
     struct btrfs_superblock sblock;
@@ -1564,9 +1600,16 @@ static fsw_ssize_t btrfs_decompress(uint8_t comp,
 	return btrfs_decompressor_table[comp-1](ibuf, isize, off, obuf, osize);
 }
 
-/*
- * Resolves inode file extents and their storage/compression representation;
- * missing or unsupported transformations must return an explicit error.
+/**
+ * Use the triple (tree, inode, file byte range) to reuse cached extent metadata.
+ * Inline data resides in the tree item. A regular extent supplies a logical disk
+ * address and an offset into its backing data. A regular record with address zero
+ * produces a sparse run.
+ *
+ * A compressed regular extent requires two distinct allocations, one for its
+ * stored bytes and one for the decoded result. The input is released after
+ * decoding. A length mismatch releases the output locally. Only success publishes
+ * the output pointer and its sector count to the stream handle.
  */
 static fsw_status_t fsw_btrfs_get_extent(struct fsw_volume *volg, struct fsw_dnode *dnog,
         struct fsw_extent *extent)
@@ -1812,6 +1855,12 @@ static fsw_status_t fsw_btrfs_readlink(struct fsw_volume *volg, struct fsw_dnode
     return FSW_SUCCESS;
 }
 
+/**
+ * Use the CRC-32C name hash as the directory-item key. Multiple names can share
+ * that key. Walk the packed candidates using their individual name and data
+ * lengths, then require an exact length and byte match before returning a pointer
+ * into the allocated item.
+ */
 static fsw_status_t fsw_btrfs_lookup_dir_item(struct fsw_btrfs_volume *vol,
         uint64_t tree_id, uint64_t object_id,
         struct fsw_string *lookup_name,

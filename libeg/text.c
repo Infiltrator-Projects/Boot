@@ -17,6 +17,11 @@ static EG_IMAGE *LightFontImage = NULL;
 
 static UINTN FontCellWidth = 7;
 
+/**
+ * Select the embedded atlas once, using the initial horizontal resolution to
+ * choose the HiDPI asset. Its width divided by FONT_NUM_CHARS gives the fixed
+ * glyph advance used by both measurement and painting.
+ */
 static VOID egPrepareFont() {
     UINTN UGAWidth, UGAHeight;
 
@@ -58,9 +63,11 @@ VOID egMeasureText(IN CHAR16 *Text, OUT UINTN *Width, OUT UINTN *Height) {
         *Height = BaseFontImage->Height;
 }
 
-/*
- * Draws a UTF-16 menu string into the destination image with calculated
- * cell metrics. Glyph fallback is visual and never a loader-validity test.
+/**
+ * The atlas contains fixed-width cells. Printable ASCII maps to indices 0 through
+ * 94 and other CHAR16 values select cell 95. The light font is a cached RGB
+ * inversion that preserves alpha. The width calculation clips whole glyphs.
+ * Callers supply a valid origin and room for the full glyph height.
  */
 VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN UINTN PosY, IN UINT8 BGBrightness)
 {

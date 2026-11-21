@@ -32,10 +32,16 @@ extern REFIT_MENU_SCREEN MainMenu;
 EFI_GUID EfiGlobalVariableGuid = { 0x8BE4DF61, 0x93CA, 0x11D2, { 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C }};
 
 #if defined(EFI32) || defined(EFIX64)
-/*
- * The Apple legacy launch path writes the active flag to sector zero before
- * it walks any extended partition records. Each EBR update is a separate disk
- * write. A later error can therefore leave an earlier flag change in place.
+/**
+ * Partition indices zero through three select primary MBR entries. Higher indices
+ * count logical partitions from four and require the containing extended entry to
+ * be active. Links in an extended record use the original extended partition as
+ * their LBA base.
+ *
+ * The master sector is written before visiting the extended chain. A later read,
+ * signature or write failure returns immediately. Earlier sectors may already
+ * contain their new flags. The 512-byte transfer size is fixed throughout this
+ * operation.
  */
 static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN PartitionIndex)
 {
@@ -157,6 +163,12 @@ static UINT8 LegacyLoaderMediaPathData[] = {
 };
 static EFI_DEVICE_PATH *LegacyLoaderMediaPath = (EFI_DEVICE_PATH *)LegacyLoaderMediaPathData;
 
+/**
+ * Reserve the final array slot for NULL. Discover candidates through memory-map
+ * device paths and compare their first nodes before appending the legacy media
+ * path. The discovered entries are allocations. The trailing hardcoded entries
+ * are borrowed pointers, so ownership depends on the entry's origin.
+ */
 static VOID ExtractLegacyLoaderPaths(EFI_DEVICE_PATH **PathList, UINTN MaxPaths, EFI_DEVICE_PATH **HardcodedPathList)
 {
     EFI_STATUS          Status;
@@ -274,6 +286,12 @@ static EFI_DEVICE_PATH *LegacyLoaderList[] = {
 
 #define MAX_DISCOVERED_PATHS (16)
 
+/**
+ * Try another device path only when LoadImage returns EFI_NOT_FOUND. ErrorInStep
+ * distinguishes image loading (1), access to the loaded-image protocol (2), and
+ * child execution (3). The duplicated options remain allocated until control
+ * returns and the child has been unloaded.
+ */
 static EFI_STATUS StartLegacyImageList(IN EFI_DEVICE_PATH **DevicePaths,
                                        IN CHAR16 *LoadOptions,
                                        OUT UINTN *ErrorInStep)
@@ -668,10 +686,11 @@ VOID ScanLegacyExternal(VOID)
 #endif
 }  
 
-/*
- * Determines which platform-specific compatibility boot mechanisms can be
- * offered. Its discovery result is a capability/selection hint, not a
- * guarantee that legacy firmware handoff will succeed on this hardware.
+/**
+ * On x86 the legacy BIOS protocol selects the BDS path. An Apple firmware vendor
+ * match is tested afterwards and takes precedence, selecting the Mac loader path
+ * even if the protocol was found. Other architectures retain the initial NONE
+ * value.
  */
 VOID FindLegacyBootType(VOID) {
     GlobalConfig.LegacyType = LEGACY_TYPE_NONE;

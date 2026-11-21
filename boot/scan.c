@@ -74,6 +74,12 @@ struct LOADER_LIST {
     struct LOADER_LIST  *NextEntry;
 };
 
+/**
+ * Duplicate the title, hints and information-line strings. The TitleImage copy
+ * contains the original pixel pointer, and child menu-entry pointers are appended
+ * by reference. EntryCount is copied before AddMenuEntry appends, so a populated
+ * source screen can leave empty slots before the appended children.
+ */
 static REFIT_MENU_SCREEN* CopyMenuScreen(REFIT_MENU_SCREEN *Entry) {
     REFIT_MENU_SCREEN *NewEntry;
     UINTN i;
@@ -104,6 +110,12 @@ static REFIT_MENU_SCREEN* CopyMenuScreen(REFIT_MENU_SCREEN *Entry) {
     return (NewEntry);
 }  
 
+/**
+ * The structure copy initially aliases every pointer. Title is then duplicated,
+ * image descriptors are separately allocated but still share their PixelData, and
+ * a subscreen goes through CopyMenuScreen. Independent ownership of the
+ * descriptors does not give the copy ownership of the underlying pixels.
+ */
 static REFIT_MENU_ENTRY* CopyMenuEntry(REFIT_MENU_ENTRY *Entry) {
     REFIT_MENU_ENTRY *NewEntry;
 
@@ -496,6 +508,12 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
     MyFreePool(NameClues);
 }  
 
+/**
+ * Represent a firmware option using TAG_FIRMWARE_LOADER, a duplicate device path
+ * and its 16-bit Boot#### number. LoaderPath and Volume are NULL. The dispatcher
+ * uses RebootIntoLoader, so discovery can present this option without a file
+ * handle on a mounted volume.
+ */
 static LOADER_ENTRY * AddEfiLoaderEntry(IN EFI_DEVICE_PATH *EfiLoaderPath,
                                         IN CHAR16 *LoaderTitle,
                                         IN UINT16 EfiBootNum,
@@ -543,6 +561,12 @@ static LOADER_ENTRY * AddEfiLoaderEntry(IN EFI_DEVICE_PATH *EfiLoaderPath,
     return Entry;
 }  
 
+/**
+ * Normalise the caller's mutable pathname, build a separately owned rooted
+ * LoaderPath and borrow the scanned REFIT_VOLUME and badge. Derive defaults and
+ * the subscreen before appending to MainMenu, so display and later dispatch refer
+ * to the same volume inventory.
+ */
 static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
                                      IN REFIT_VOLUME *Volume, IN BOOLEAN SubScreenReturn) {
     LOADER_ENTRY  *Entry;
@@ -580,6 +604,12 @@ static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *Loade
     return(Entry);
 }  
 
+/**
+ * Encode the calendar fields in fixed-width slots of 31 days per month and 12
+ * such months per year. This preserves the field ordering over ordinary
+ * representable timestamps. The scalar difference has no elapsed-time meaning
+ * across real calendar boundaries.
+ */
 static INTN TimeComp(IN EFI_TIME *Time1, IN EFI_TIME *Time2) {
     INT64 Time1InSeconds, Time2InSeconds;
 
@@ -595,6 +625,12 @@ static INTN TimeComp(IN EFI_TIME *Time1, IN EFI_TIME *Time2) {
     return 0;
 }  
 
+/**
+ * Insert regular candidates in descending modification-time order, ahead of
+ * rescue kernels. Equal timestamps insert ahead of the previous entry. A rescue
+ * entry walks past regular kernels regardless of its time. Sorting n discoveries
+ * by repeated linked-list insertion can require n(n-1)/2 comparisons.
+ */
 static struct LOADER_LIST * AddLoaderListEntry(struct LOADER_LIST *LoaderList, struct LOADER_LIST *NewEntry) {
     struct LOADER_LIST *LatestEntry, *CurrentEntry, *PrevEntry = NULL;
     BOOLEAN LinuxRescue = FALSE;
@@ -631,11 +667,11 @@ static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
     }  
 }  
 
-/*
- * Directory eligibility depends on both the volume and the path. Match volume
- * exclusions by identifiers available at runtime, and exclude BOOT's own
- * directory on its own device. The same path on another volume may
- * legitimately contain a loader.
+/**
+ * Screen a directory by filesystem label, partition name and partition GUID, then
+ * exclude BOOT's own directory on its own handle. Directory-specific exclusions
+ * may carry a volume qualifier. The same pathname on two firmware handles can
+ * therefore produce different decisions.
  */
 static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
     CHAR16   *VolName = NULL, *DontScanDir, *PathCopy = NULL, *VolGuid = NULL;
@@ -685,10 +721,11 @@ static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
     return ScanIt;
 }  
 
-/*
- * Guards against presenting the same fallback boot target more than once.
- * Duplicate suppression is confined to menu discovery and does not change
- * the firmware's registered Boot#### entries.
+/**
+ * Compare a candidate with the architecture's fallback file on the same volume.
+ * The fallback pathname itself returns FALSE. Equal metadata lengths trigger two
+ * whole-file allocations and reads. A TRUE result comes from comparing the first
+ * read's returned byte count, assuming both reads completed in full.
  */
 static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) {
     CHAR8           *FileContents, *FallbackContents;
@@ -788,11 +825,14 @@ static VOID LogMenuEntries(UINTN LogLevel) {
     }
 }  
 
-/*
- * Collect eligible filenames into a sorted list before creating menu entries.
- * With kernel folding enabled, the first qualifying Linux entry in that order
- * anchors the later kernels' submenu. The return value reports a duplicate of
- * the fallback loader found during this scan.
+/**
+ * Filter the directory entries before creating menu objects. Surviving candidates
+ * enter a timestamp-ordered list. The second pass makes the first Linux kernel
+ * the parent when folding is enabled, and gives later kernels to
+ * AddKernelToSubmenu.
+ *
+ * The Boolean result reports whether any candidate duplicated the fallback file.
+ * A directory can publish several valid loaders and still return FALSE.
  */
 static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16 *Pattern)
 {
@@ -1181,11 +1221,12 @@ static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, I
     return Entry;
 }  
 
-/*
- * Temporarily merge persisted hidden entries with the configured exclusions
- * for this scan. Dispatch the requested scan classes, then restore the
- * caller's original exclusion lists so rescanning cannot accumulate the same
- * hidden entries.
+/**
+ * Dispatch the scan letters in configuration order. Hidden EFI and legacy choices
+ * temporarily extend the configured exclusion lists. Restore the original lists
+ * after the scan, then assign digits 1 through 9 to the initial consecutive
+ * row-zero entries. Rescans can change a shortcut when the discovered order
+ * changes.
  */
 VOID ScanForBootloaders(BOOLEAN ShowMessage) {
     UINTN    i;

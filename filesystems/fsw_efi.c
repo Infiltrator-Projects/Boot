@@ -388,11 +388,15 @@ void EFIAPI fsw_efi_change_blocksize(struct fsw_volume *vol,
 
 }
 
-/*
- * Translate the FSW physical block number into a byte offset for EFI Disk
- * I/O. A cached window must match the volume and cover the requested
- * interval. When read-ahead cannot serve this request, the fallback asks
- * firmware for just the original block.
+/**
+ * Translate a physical block number to a byte offset before calling
+ * DiskIo.ReadDisk. This EFI adapter has two 128-KiB read-ahead windows in
+ * addition to FSW's per-volume pinned block cache. A hit must cover the full
+ * requested block and belong to the same volume.
+ *
+ * A failed wide read or buffer allocation triggers a single-block read, which
+ * also permits reads near the end of the device. LastIOStatus records the final
+ * firmware result for the status mapper.
  */
 fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno, void *buffer) {
    int              i, ReadCache = -1;
@@ -616,6 +620,12 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_Flush(IN EFI_FILE_PROTOCOL *This)
     return EFI_WRITE_PROTECTED;
 }
 
+/**
+ * Fill the node and accept only directories and ordinary files. The returned
+ * EFI_FILE_PROTOCOL is embedded in FSW_FILE_DATA, alongside a new stream handle
+ * that retains the node and owns its cursor. Closing one EFI handle therefore
+ * does not move a second handle on the same inode.
+ */
 EFI_STATUS fsw_efi_dnode_to_FileHandle(IN struct fsw_dnode *dno,
                                        OUT EFI_FILE_PROTOCOL **NewFileHandle)
 {
@@ -659,6 +669,11 @@ EFI_STATUS fsw_efi_dnode_to_FileHandle(IN struct fsw_dnode *dno,
     return EFI_SUCCESS;
 }
 
+/**
+ * A UINTN-sized EFI request is narrowed to fsw_u32 for the shared reader. Copy
+ * that in/out count back to BufferSize on return. A large request is not split
+ * into several operations by this adapter.
+ */
 EFI_STATUS fsw_efi_file_read(IN FSW_FILE_DATA *File,
                              IN OUT UINTN *BufferSize,
                              OUT VOID *Buffer)
@@ -694,6 +709,12 @@ EFI_STATUS fsw_efi_file_setpos(IN FSW_FILE_DATA *File, IN UINT64 Position)
     return EFI_SUCCESS;
 }
 
+/**
+ * Accept EFI_FILE_MODE_READ. Wrap the caller's CHAR16 path as a counted, borrowed
+ * fsw_string. Look up the node using EFI backslash separators, resolve a final
+ * symbolic link, and create an EFI handle. Each intermediate node reference is
+ * released after the next stage acquires its own.
+ */
 EFI_STATUS fsw_efi_dir_open(IN FSW_FILE_DATA *File,
                             OUT EFI_FILE_PROTOCOL **NewHandle,
                             IN CHAR16 *FileName,
@@ -733,6 +754,12 @@ EFI_STATUS fsw_efi_dir_open(IN FSW_FILE_DATA *File,
     return Status;
 }
 
+/**
+ * Translate FSW_NOT_FOUND at end of directory into EFI_SUCCESS with zero bytes.
+ * The backend advances the directory position before EFI_FILE_INFO is sized. If
+ * the caller's buffer is short, this routine returns EFI_BUFFER_TOO_SMALL without
+ * rewinding, so a retry may see the following child.
+ */
 EFI_STATUS fsw_efi_dir_read(IN FSW_FILE_DATA *File,
                             IN OUT UINTN *BufferSize,
                             OUT VOID *Buffer)
@@ -877,6 +904,12 @@ void fsw_store_attr_efi(struct fsw_dnode_stat *sb, fsw_u16 attr)
     FileInfo->Attribute |= attr;
 }
 
+/**
+ * RequiredSize includes the fixed EFI_FILE_INFO prefix and the filename with its
+ * CHAR16 terminator. A short buffer receives the required byte count. On success
+ * FileSize is the logical length from the node and PhysicalSize is supplied by
+ * the backend's used_bytes statistic.
+ */
 EFI_STATUS fsw_efi_dnode_fill_FileInfo(IN FSW_VOLUME_DATA *Volume,
                                        IN struct fsw_dnode *dno,
                                        IN OUT UINTN *BufferSize,

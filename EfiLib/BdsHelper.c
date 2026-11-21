@@ -13,9 +13,11 @@
 
 EFI_GUID gEfiLegacyBootProtocolGuid     = { 0xdb9a1e3d, 0x45cb, 0x4abb, { 0x85, 0x3b, 0xe5, 0x38, 0x7f, 0xdb, 0x2e, 0x2d }};
 
-/*
- * Adjusts BBS table information for a requested legacy boot option.
- * Firmware and device-order semantics must agree with the selected entry.
+/**
+ * Firmware's BBS table can have several devices of the same type. Among those,
+ * assign priority zero to a case-insensitive description match and one to the
+ * others. Demote a different device type previously at priority zero or one to
+ * two before issuing LegacyBoot.
  */
 VOID UpdateBbsTable (BDS_COMMON_OPTION *Option) {
    UINT16  Idx;

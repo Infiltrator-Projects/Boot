@@ -1,105 +1,88 @@
-/*
- * \file design.dox
- * Documentation title page with design information
- */
-
 /**
-\mainpage File System Wrapper Documentation
+\mainpage File System Wrapper
 
-Welcome to the documentation for FSW. This doxygen-generated documentation
-is intended for developers that either want to integrate FSW into their
-own project or want to write additional file system drivers.
+The EFI filesystem driver presents files through EFI_FILE_PROTOCOL. The shared
+reader translates those requests into operations on a mounted volume, a named
+filesystem node and an open stream. For an ordinary file read, the sequence is
+fsw_efi_file_read(), fsw_shandle_read(), the backend's get_extent callback and,
+for physical data, fsw_block_get(). Directory reads also use a stream, but its
+position can be a backend-specific iteration cookie.
 
-\section goals Design Goals
+\section identity Volumes, node identity and ownership
 
-File System Wrapper wants to provide reusable, read-only file system drivers
-for a range of common file systems. Reusability is achieved through a common
-abstraction layer (called the "core"), which serves as the API for the host
-environment driver. Once the required glue code is written for a host
-environment, that host has access to all file system types implemented by FSW,
-with no code to be written per file system type.
+A backend declares volume_struct_size and dnode_struct_size in its
+fsw_fstype_table. The core allocates the declared size. A backend-specific
+structure embeds the common structure first so both dispatch layers can use
+the same allocation. The volume owns the physical block cache and indexes its
+live nodes. Host-specific state is reached through the volume's host_data.
 
-Why read-only? There are a range of reasons why FSW only provides read-only
-access:
+Within a mounted volume the live-node key is the pair of 64-bit values
+(tree_id, dnode_id). This matters on Btrfs, where distinct subvolumes can
+reuse an inode number. fsw_dnode_create_with_tree() retains an existing match.
+A newly created node retains its parent. fsw_dnode_release() on the final
+reference unlinks the node, frees its backend-specific data and name, then
+releases the parent. Releasing a child can therefore release several ancestors.
 
-- Read-only drivers are much easier to write than read-write drivers.
-- Write access isn't easily abstracted in an OS-independent way because
-  of more delicate buffer I/O handling requirements and features like
-  journalling.
-- There is no risk of destroying data on the disk.
-- Having read access is much better than having no access at all.
-  (Read-only drivers for several file systems can be written in the time
-  it would take to develop a read-write driver for just one file system.)
-- Boot loaders only need read access in most cases.
+fsw_shandle_open() retains one node reference per open stream. Opening the same
+file twice shares the node and volume cache but creates independent positions
+and cached extent mappings. fsw_shandle_close() frees any extent buffer owned
+by that stream and drops its node reference.
 
-\section model Object and Data Model
+\section extents From a file offset to bytes
 
-\subsection main_objects Main Objects
+A file position and its length are measured in bytes. An extent's log_start and
+log_count are in logical filesystem blocks. A physical extent's phys_start is
+in the volume's physical blocks. The backend supplies both block sizes when it
+mounts. fsw_set_blocksize() discards old cache entries when those units change.
 
-There are three main "objects" that FSW works with: volume, dnode, and shandle.
+- A physical extent maps a contiguous run. The reader pins one physical block,
+  copies up to its boundary, then unpins it. Cache storage remains with the volume.
+- A buffered extent transfers allocated data to the stream on success. A
+  backend can use this for inline or compressed data. The stream frees it before
+  replacing the mapping or when it closes.
+- A sparse extent describes a hole. The reader fills the corresponding slice
+  of the destination with zeroes.
 
-The fsw_volume structure keeps the information that applies to a file
-system volume as a whole. Most importantly, it keeps pointers to the host driver
-and file system driver dispatch tables, which are used by the core to call
-the appropriate functions.
+\subsection split_read A read across a block boundary
 
-The fsw_dnode structure represents a "directory node", that is any file-like
-object in the file system: regular files, directories, symbolic links as well
-as special files like device nodes. When compared with Unix-style file systems,
-a dnode is very similar to an inode, but it retains some essential information
-from the directory: the canonical name and the parent directory. FSW requires that
-a dnode is uniquely identified by an integer number (currently 32 bit in size).
-Inode numbers can be used for this purpose, non-Unix file systems will have to
-come up with a unique number in some way.
+Consider a file of 4110 bytes with 4096-byte logical and physical blocks.
+Its extent has log_start 0, log_count 2 and phys_start 90. A request for
+20 bytes at file offset 4090 proceeds as follows.
 
-The fsw_shandle structure is used to access file data ("storage handle").
-A dnode only represents the file as such and doesn't offer access to its data.
-An shandle is linked to a certain dnode, but there may be several shandles per
-dnode. The shandle stores a file position pointer (byte offset) that can be changed
-at will. With the current design, an shandle is also used for directory iteration,
-even if the file system stores directory information in a central tree structure.
+- Offset 4090 lies six bytes before the end of physical block 90. Copy its
+  bytes 4090 through 4095 and release the pin.
+- Offset 4096 lies in the same extent, at the start of physical block 91.
+  Copy that block's first 14 bytes. No second extent lookup is needed.
+- The reader commits a returned size of 20 and a new stream position of 4110.
+  A subsequent read at that position succeeds with a returned size of zero.
 
-\subsection disk_access Disk Data Access
+A 20-byte request starting at 4106 instead returns four bytes. If block 91
+fails during the original request, the first six destination bytes may already
+have changed. The function returns the I/O error with the stream still at 4090
+and the caller's count still at 20. A caller must check the status before
+using the count or the destination.
 
-Data on the disk is accessed in blocks, addressed by a sequential number starting
-at zero. The block size to use can be set by the file system driver. FSW supports
-two separate block sizes: the "physical block size" is used when accessing the disk,
-the "logical block size" is used when accessing a file's data. For most file
-systems, these two are identical, but there may be some where the file allocation
-block size is larger than the sector or block size used to store metadata. (FAT
-comes to mind as an example.)
+The current implementation initially casts the stream position to fsw_u32
+for its working offset. A seek at or beyond 4 GiB within a larger file can
+therefore wrap. The EFI adapter also narrows a UINTN request length to fsw_u32.
+These are independent limits on position and on the length of one request.
 
-For accessing the actual file data, the file system driver doesn't handle the
-disk I/O, but merely returns information about the mapping from file logical
-blocks to disk physical blocks in the fsw_extent structure. This allows host OS
-buffer mechanisms to be used for file data. In special cases, like tail-packing,
-fragments or compressed file systems, the file system driver can return file data
-in an allocated buffer.
+\section paths Names and directory cursors
 
-\subsection data_hooks Data Extension Hooks
+An fsw_string carries its encoding, logical length, byte size and data pointer.
+A three-code-unit UTF-16 name has len 3 and size 6. A path component returned by
+fsw_strsplit() borrows its input. fsw_strdup_coerce() creates owned, counted
+storage. For identical encodings it copies exactly size bytes, so callers
+cannot assume a trailing NUL.
 
-File system specific data can be stored by extending the fsw_volume and fsw_dnode
-structures. The core code uses the structure sizes stored in the fsw_fstype_table
-to allocate memory for these structures. The fsw_shandle and fsw_extent structures
-are not designed to be extended.
+fsw_efi_dir_open() borrows the caller's CHAR16 path during lookup, resolves
+the final symbolic link and returns an EFI handle that retains the resulting
+node through a new stream. Intermediate node references can be released once
+the next layer has acquired its own.
 
-Host specific data must be stored in separate structures private to the host
-environment driver. The fsw_volume structure provides a host_data variable to
-store a pointer. The fsw_dnode structure has no such field, because it is assumed
-that all actions regarding dnodes are initiated on the host side and so the
-host-specific private structure is known.
-
-\section callconv Calling Conventions
-
-All functions that can fail return a status code in a fsw_status_t. This type is an
-integer. A boolean test yields true if there was an error and false if the function
-executed successfully, i.e. success is signalled by a 0 return value.
-
-Functions that return data do so either by filling a structure passed in by the caller,
-or by allocating a structure on the heap and returning a pointer through a
-double-indirect parameter. A returned object pointer is the last parameter in the
-parameter list.
-
-(More to be written about specific conventions for dnodes, shandles, strings.)
-
+At end of directory the backend returns FSW_NOT_FOUND. fsw_efi_dir_read()
+translates that result to EFI_SUCCESS with a size of zero. With a live child,
+the backend advances its cursor before the adapter measures EFI_FILE_INFO.
+EFI_BUFFER_TOO_SMALL reports the required size but leaves the cursor advanced.
+Retrying the same handle can therefore yield the following child.
 */

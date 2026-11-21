@@ -6,22 +6,20 @@ BOOT is the UEFI boot manager owned by InfiltratorOS and intended to launch **ot
 
 The present executable is `boot/boot_x64.efi`, packaged and installed as `/EFI/InfiltratorOS/BOOT/BOOTX64.EFI`. The current main AMD64 build uses GNU-EFI. Some source files still contain conditional code and alternate firmware build infrastructure; their presence does not establish independently qualified releases for those architectures.
 
-```text
-UEFI firmware / firmware BootOrder
-          |
-          v
-/EFI/InfiltratorOS/BOOT/BOOTX64.EFI
-          |
-          +-- BOOT configuration and EFI services
-          +-- EFI filesystem-driver loading
-          +-- Volume and bootloader discovery
-          +-- Operating-system / loader selection menu
-          |
-          +-- EFI image or EFI-stub kernel handoff
-                  |
-                  v
-          Selected operating system
-```
+## From firmware entry to a selected loader
+
+| Stage | State produced | Why the order matters |
+| --- | --- | --- |
+| `efi_main` calls `ScanVolumes`, then `ReadConfig` | A volume inventory and the configured scan order | Configuration can refer to a volume by name. Driver loading follows, and a positive `LoadDrivers` result triggers a fresh volume scan. |
+| `ScanForBootloaders` visits the configured sources | Menu entries carry either a volume and file path or a firmware option number | Directory candidates are sorted before kernel folding. A folded sibling keeps its own path and options in the submenu. |
+| `RunMainMenu` returns a selection and an exit reason | A pointer into the current menu inventory | Escape can rebuild that inventory. The old pointer belongs to the menu that supplied it. |
+| `efi_main` dispatches on the entry tag | A child EFI image or a request for a firmware reset | A direct loader and a firmware boot option can have similar titles and still require different firmware calls. |
+
+The branch point is visible in the two cases below. [Entry point](../boot/main.c) · [Menu records](../boot/global.h) · [Loader discovery](../boot/scan.c)
+
+**Selecting a Linux EFI-stub file.** `SetLoaderDefaults` asks `GetMainLinuxOptions` for the primary command line. The first options-file entry supplies the initial arguments. If the kernel directory has no readable options file, the parser tries the volume's fstab and then the discovered root partition. `FindInitrd` searches beside the selected kernel and matches its extracted version. `StartLoader` eventually passes the path and resulting options to `StartEFIImage`. Firmware's loaded-image protocol receives the options length in bytes, including the final CHAR16 terminator. [Options parser](../boot/config.c) · [Kernel and initrd selection](../boot/linux.c) · [EFI handoff](../boot/launch_efi.c)
+
+**Selecting a firmware entry.** Suppose the menu entry represents `Boot0007`. The entry contains numeric value 7. `RebootIntoLoader` writes that two-byte value to `BootNext` under the EFI global-variable GUID and requests a cold reset only after the write succeeds. The next firmware boot interprets `Boot0007`. Changing the persistent order uses a separate function, `SetBootDefault`. For example, promoting 7 in `[2, 7, 4, 7]` produces `[7, 2, 4]`. [Firmware option records](../boot/install.c) · [One-time selection](../boot/launch_efi.c)
 
 ## Runtime component ownership
 

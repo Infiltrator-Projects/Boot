@@ -10,9 +10,11 @@
 #include "../boot/lib.h"
 #include "../boot/screen.h"
 
-/*
- * Observes security-related firmware state; an unavailable variable must
- * not be interpreted as approval to bypass image authentication.
+/**
+ * Read SecureBoot and SetupMode in the EFI global variable namespace. SecureBoot
+ * must be a successful one-byte value of 1. A successful one-byte SetupMode value
+ * of 1 disables the result. Other SetupMode read outcomes do not veto a
+ * previously accepted SecureBoot value.
  */
 BOOLEAN secure_mode (VOID)
 {

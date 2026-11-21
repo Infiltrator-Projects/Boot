@@ -52,10 +52,11 @@ static UINT32 crc32_tab[] = {
    0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-/*
- * GPT calls this reflected CRC-32 with seed zero. Complementing at both
- * boundaries lets the result of one call seed the next chunk. Header
- * validation also clears the stored CRC field while hashing the header.
+/**
+ * Complement the incoming accumulator before processing the bytes and complement
+ * it again on return. Passing the previous return value into the next call
+ * therefore computes the same CRC as one call over the concatenation. A
+ * zero-length update returns its input unchanged.
  */
 UINT32 crc32(UINT32 crc, const VOID *buf, UINTN size)
 {

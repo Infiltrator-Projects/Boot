@@ -16,6 +16,12 @@
 
 EFI_GUID EfiDevicePathProtocolGuid = { 0x09576E91, 0x6D3F, 0x11D2, { 0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
 
+/**
+ * For each path instance, locate the handle matching the longest connected prefix
+ * and ask firmware to connect the remaining suffix. Repeating the lookup can then
+ * discover a longer prefix. Only the Tiano build dispatches additional drivers
+ * when the same handle is returned twice.
+ */
 EFI_STATUS
 /*
  * Walks a firmware device path, connecting controller instances where
@@ -103,6 +109,13 @@ BdsLibConnectDevicePath (
   return Status;
 }
 
+/**
+ * Split a firmware load option into attributes, path-list byte length, a
+ * terminated CHAR16 description and optional trailing data. Copy these fields
+ * into BDS-owned storage before dropping the variable buffer. Only active options
+ * are appended to the caller's list. This legacy decoder expects a structurally
+ * valid variable.
+ */
 BDS_COMMON_OPTION *
 /*
  * Decodes a firmware load-option variable; the data is externally supplied

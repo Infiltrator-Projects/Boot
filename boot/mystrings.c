@@ -190,6 +190,12 @@ BOOLEAN LimitStringLength(CHAR16 *TheString, UINTN Limit) {
     return HasChanged;
 }  
 
+/**
+ * Return the inclusive span covering every digit and the first configured extra
+ * version string found in the name. Punctuation between the outermost matches
+ * survives, so vmlinuz-6.12.3 yields 6.12.3. The end-index test also means a
+ * single digit at index zero by itself produces NULL.
+ */
 CHAR16 *FindNumbers(IN CHAR16 *InString) {
     UINTN i = 0, StartOfElement, EndOfElement = 0, CopyLength;
     CHAR16 *Found = NULL, *ExtraFound = NULL, *LookFor;
@@ -242,10 +248,11 @@ UINTN NumCharsInCommon(IN CHAR16* String1, IN CHAR16* String2) {
     return Count;
 }  
 
-/*
- * Extracts one comma-delimited configuration element. Callers iterate by
- * index and release each returned allocation; list delimiters do not carry
- * a guarantee that the resulting path or option is semantically valid.
+/**
+ * Return an owned copy of the zero-based field. Adjacent or trailing commas can
+ * produce a valid empty string. Running out of separators before reaching Index
+ * produces NULL. A caller iterating successive indices rescans the prefix on
+ * every call.
  */
 CHAR16 *FindCommaDelimited(IN CHAR16 *InString, IN UINTN Index) {
     UINTN    StartPos = 0, CurPos = 0, InLength;
@@ -335,10 +342,11 @@ BOOLEAN IsInSubstring(IN CHAR16 *BigString, IN CHAR16 *List) {
     return Found;
 }  
 
-/*
- * Rewrites a mutable UTF-16 string through a pointer-to-pointer interface.
- * The caller must treat MainString as an owning reference because its
- * allocation may be replaced rather than edited in place.
+/**
+ * Only the first match is considered. A preceding percent sign removes that
+ * escape and emits the search text itself, so %%v leaves a literal %v. The
+ * replacement branch passes MainString to MyFreePool. That is the address of the
+ * caller's pointer, while the original pool allocation is *MainString.
  */
 BOOLEAN ReplaceSubstring(IN OUT CHAR16 **MainString, IN CHAR16 *SearchString, IN CHAR16 *ReplString) {
     BOOLEAN WasReplaced = FALSE;

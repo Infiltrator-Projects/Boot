@@ -25,9 +25,16 @@ static long nofill(void *buffer, unsigned long len)
     return -1;
 }
 
-/*
- * Expands a bounded compressed buffer into caller-allocated storage.
- * A decoder error or an invalid resulting byte count must abort EFI loading.
+/**
+ * Decode one raw DEFLATE stream after the gzip wrapper has consumed the fixed
+ * header and optional filename. A memory destination supplies capacity. A flush
+ * callback instead receives chunks from reusable scratch storage, so its current
+ * write pointer cannot express cumulative output.
+ *
+ * Set decoded_size to zero before any allocation. Publish strm->total_out only at
+ * Z_STREAM_END after any pending flush succeeds. A full output buffer, a failed
+ * callback or a decoder error must never hand the firmware a partial image
+ * length.
  */
 int gunzip(unsigned char *buf, long len,
                long (*fill)(void*, unsigned long),

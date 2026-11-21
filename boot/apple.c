@@ -66,10 +66,10 @@ VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage) {
     }  
 }  
 
-/*
- * Read csr-active-config and find its mask in the configured sequence. An
- * unrecognised value or the last entry wraps to the first. Update the
- * displayed SIP state only after the four-byte persistent write succeeds.
+/**
+ * Advance from the current four-byte csr-active-config value to the next
+ * configured mask. A missing match or the end of the list selects its head.
+ * Refresh the displayed status only after the persistent variable write succeeds.
  */
 VOID RotateCsrValue(VOID) {
     UINT32       CurrentValue, TargetCsr;
@@ -113,10 +113,11 @@ typedef struct EfiAppleSetOsInterface {
     EFI_STATUS EFIAPI (*SetOsVendor) (IN CHAR8 *Vendor);
 } EfiAppleSetOsInterface;
 
-/*
- * Apple's set-OS protocol is optional. If located, its version gates the
- * calls. Version 1 accepts an OS version string, and version 2 or higher can
- * also receive the vendor after the version call succeeds.
+/**
+ * An absent Apple protocol is a successful no-op so a single launch path works
+ * across firmware vendors. A configured version enables the ASCII OS name call.
+ * Protocol revision 2 or later also accepts the vendor name after the version
+ * call succeeds.
  */
 EFI_STATUS SetAppleOSInfo() {
     CHAR16 *AppleOSVersion = NULL;

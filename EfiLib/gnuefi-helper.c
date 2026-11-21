@@ -55,6 +55,12 @@ AsciiStrLen (
   return Length;
 }
 
+/**
+ * Each nonterminal node must be at least the size of its header. A nonzero
+ * MaxSize also reserves room for the final end node while walking the sequence.
+ * Passing zero disables the external byte bound and therefore requires an already
+ * accessible, terminated allocation.
+ */
 BOOLEAN
 EFIAPI
 /*
@@ -119,6 +125,12 @@ GetDevicePathSize (
   return ((UINTN) DevicePath - (UINTN) Start) + DevicePathNodeLength (DevicePath);
 }
 
+/**
+ * Temporarily turn the current instance's end marker into an end-of-entire-path
+ * marker so DuplicateDevicePath copies one instance. Restore the source byte,
+ * then advance the caller's cursor or set it to NULL at the final instance. The
+ * returned path is an independent allocation.
+ */
 EFI_DEVICE_PATH_PROTOCOL *
 EFIAPI
 /*

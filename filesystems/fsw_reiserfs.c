@@ -235,9 +235,11 @@ static fsw_status_t fsw_reiserfs_dnode_stat(struct fsw_reiserfs_volume *vol, str
     return FSW_SUCCESS;
 }
 
-/*
- * Maps tree-item file data into the FSW extent representation, preserving
- * holes and file size rather than assuming a contiguous physical region.
+/**
+ * ReiserFS item offsets are one-based: logical block zero searches for byte
+ * offset 1. An indirect item contributes a physical block pointer. A direct item
+ * contains file bytes inside the tree leaf, so copy them before releasing its
+ * cache pin. The resulting buffer belongs to the stream handle.
  */
 static fsw_status_t fsw_reiserfs_get_extent(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno,
                                             struct fsw_extent *extent)
@@ -448,6 +450,12 @@ static fsw_status_t fsw_reiserfs_readlink(struct fsw_reiserfs_volume *vol, struc
     return fsw_dnode_readlink_data(dno, link_target);
 }
 
+/**
+ * Compare directory ID and object ID before decoding the offset. Recognised v2
+ * item types occupy the high nibble of the 64-bit word, leaving 60 offset bits.
+ * Other encodings read the v1 offset field. This makes both on-disk key formats
+ * usable by the same search.
+ */
 static int fsw_reiserfs_compare_key(struct reiserfs_key *key,
                                     fsw_u32 dir_id, fsw_u32 objectid, fsw_u64 offset)
 {
@@ -579,9 +587,11 @@ static fsw_status_t fsw_reiserfs_item_search(struct fsw_reiserfs_volume *vol,
     return FSW_SUCCESS;
 }
 
-/*
- * Advances an item iterator; node transitions must preserve caller-visible
- * state and release previous block references when moving between nodes.
+/**
+ * Increment the saved slot at the leaf. If exhausted, carry the increment upwards
+ * until an ancestor has another child, then descend again. Stop when the
+ * directory ID or object ID changes. A successful result pins one leaf that backs
+ * item_data until the next advance or release.
  */
 static fsw_status_t fsw_reiserfs_item_next(struct fsw_reiserfs_volume *vol,
                                           struct fsw_reiserfs_item *item)

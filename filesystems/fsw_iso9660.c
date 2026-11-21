@@ -332,9 +332,11 @@ static fsw_status_t fsw_iso9660_dnode_stat(struct fsw_iso9660_volume *vol, struc
     return FSW_SUCCESS;
 }
 
-/*
- * Maps a logical file extent to optical data blocks; this does not imply
- * that the containing EFI loader is valid on the executing CPU architecture.
+/**
+ * A directory record describes a contiguous run beginning at extent_location.
+ * Return that whole mapping with log_start zero and round the data length up to
+ * 2048-byte blocks. fsw_shandle_read separately clamps the final copy to the
+ * file's logical byte length.
  */
 static fsw_status_t fsw_iso9660_get_extent(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno,
                                            struct fsw_extent *extent)
@@ -391,6 +393,12 @@ errorexit:
     return status;
 }
 
+/**
+ * Skip zero-length sector padding and the reserved single-byte identifiers for
+ * the current and parent directory. Create the child dnode from the derived name
+ * and save the fixed directory record for later extent mapping. FSW_NOT_FOUND
+ * marks the end of the directory stream.
+ */
 static fsw_status_t fsw_iso9660_dir_read(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno,
                                          struct fsw_shandle *shand, struct fsw_iso9660_dnode **child_dno_out)
 {
@@ -425,9 +433,15 @@ static fsw_status_t fsw_iso9660_dir_read(struct fsw_iso9660_volume *vol, struct 
     return status;
 }
 
-/*
- * Consumes length-delimited directory records from optical media. The
- * record's own length must bound fields, names and subsequent iteration.
+/**
+ * Use the directory's byte position on the image as the synthetic inode number.
+ * Read the 33-byte prefix first, then the remaining record including its
+ * identifier. A zero length is a signal to the directory iterator to move to the
+ * following block.
+ *
+ * Prefer a successfully decoded Rock Ridge NM alternate name. Otherwise expose
+ * the counted ISO identifier with its version suffix and a trailing dot removed.
+ * This fallback string borrows storage in the caller's record buffer.
  */
 static fsw_status_t fsw_iso9660_read_dirrec(struct fsw_iso9660_volume *vol, struct fsw_shandle *shand, struct iso9660_dirrec_buffer *dirrec_buffer)
 {

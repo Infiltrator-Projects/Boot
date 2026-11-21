@@ -49,11 +49,11 @@ EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
     return Status;
 }  
 
-/*
- * Temporarily suppress logging while opening the logging destination. Fresh
- * sessions rotate and create a log. Restart reopens an existing one. If
- * BOOT's own directory fails, try the EFI System Partition before disabling
- * the log.
+/**
+ * A fresh session rotates the old log and writes a UTF-16LE byte-order mark to an
+ * empty file. A restart reopens the existing log and seeks to the firmware
+ * end-of-file sentinel. Both paths first try SelfDir and then the ESP if opening
+ * there fails.
  */
 EFI_STATUS StartLogging(BOOLEAN Restart) {
     EFI_STATUS      Status = EFI_SUCCESS;
@@ -134,9 +134,11 @@ VOID StopLogging(VOID) {
     gLogActive = FALSE;
 }  
 
-/*
- * Serialises a diagnostic record through the EFI file handle. A diagnostic
- * string may contain firmware/device state and should be handled deliberately.
+/**
+ * Consume the caller's allocated message and clear its pointer even when logging
+ * is inactive. Writes use the UTF-16 byte length without a terminator and flush
+ * immediately, allowing a later boot stage to inspect the last completed write.
+ * Write and flush statuses are discarded here.
  */
 VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
     CHAR16   *TimeStr;

@@ -58,6 +58,12 @@ int zlib_inflateReset(z_streamp strm)
     return Z_OK;
 }
 
+/**
+ * Negative windowBits selects raw DEFLATE, used after BOOT has parsed its gzip
+ * header. The absolute value sets the maximum history window as a power of two.
+ * Attach the caller's preallocated workspace, check the supported bit range and
+ * initialise the stream counters with zlib_inflateReset.
+ */
 int zlib_inflateInit2(z_streamp strm, int windowBits)
 {
     struct inflate_state *state;
@@ -98,10 +104,12 @@ static void zlib_fixedtables(struct inflate_state *state)
     state->distbits = 5;
 }
 
-/*
- * On return to a streaming caller, future match distances can still name
- * bytes produced in this call. Preserve the most recent window of output. If
- * it wrapped, write points to the oldest byte for the next refill.
+/**
+ * Retain exactly the history needed for future backward matches. If one output
+ * slice fills the window, keep only its suffix and reset the write index.
+ * Otherwise copy to the end, wrap the remainder to the beginning and update
+ * whave. With multiple flushes the next input block can still refer to bytes from
+ * an earlier output slice.
  */
 static void zlib_updatewindow(z_streamp strm, unsigned out)
 {

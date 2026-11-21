@@ -63,9 +63,11 @@ finished:
     return Status;
 }
 
-/*
- * Changes the firmware's preferred boot option persistently; this is not
- * the same operation as highlighting a default entry in the BOOT menu.
+/**
+ * Promote a Boot#### number in the UINT16 BootOrder array. Prepend it once, omit
+ * every matching old occurrence and preserve the order of the other entries. If
+ * it already heads the list, return immediately. For example, promoting 7 in
+ * [2,7,4,7] writes [7,2,4].
  */
 static EFI_STATUS SetBootDefault(UINTN BootNum) {
     UINTN Status, VarSize = 0, ListSize, i, j;
@@ -137,9 +139,15 @@ static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
     return FALSE;
 }
 
-/*
- * Parses firmware Boot#### load options and checks the UTF-16 label and
- * path bounds before constructing entries. Corrupt records are skipped.
+/**
+ * For each BootOrder number, unpack the attributes and the 16-bit device-path
+ * byte count, then locate the UTF-16 description terminator within the returned
+ * record. Validate the path span before copying it. The linked list owns both the
+ * label and the path independently of the variable buffer.
+ *
+ * A malformed or missing option skips only that number. Allocation failure ends
+ * enumeration and returns the valid prefix accumulated so far.
+ * DeleteBootOrderEntries releases that list.
  */
 BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
     UINTN Status, VarSize, OrderBytes = 0, i, charCount, pathOffset;

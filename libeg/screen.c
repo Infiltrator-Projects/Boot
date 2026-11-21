@@ -36,6 +36,12 @@ static BOOLEAN egHasGraphics  = FALSE;
 static UINTN   egScreenWidth  = 800;
 static UINTN   egScreenHeight = 600;
 
+/**
+ * On GOP firmware the current candidate is replaced only when both pixel
+ * dimensions increase. A wider, shorter mode is skipped and the result can depend
+ * on enumeration order. The older UGA interface simply supplies the geometry of
+ * its active mode.
+ */
 VOID egSetMaxResolution(VOID) {
     EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
 
@@ -499,9 +505,11 @@ EG_IMAGE * egCopyScreen(VOID) {
     return egCopyScreenArea(0, 0, egScreenWidth, egScreenHeight);
 }  
 
-/*
- * Copies a rectangular framebuffer region for later restoration; size and
- * origin are coupled to current screen mode and image allocations.
+/**
+ * Allocate an owned image and request a video-to-buffer transfer from the active
+ * graphics protocol. The firmware transfer status is ignored, so a non-NULL
+ * return establishes allocation but cannot establish that the framebuffer was
+ * successfully read.
  */
 EG_IMAGE * egCopyScreenArea(UINTN XPos, UINTN YPos, UINTN Width, UINTN Height) {
     EG_IMAGE *Image = NULL;

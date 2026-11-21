@@ -131,6 +131,13 @@ static VOID AdjustScrollState(IN SCROLL_STATE *State) {
     }  
 }  
 
+/**
+ * Preserve the old selection for a two-item repaint. In icon mode a vertical move
+ * projects the selection's relative horizontal position from one row onto the
+ * other using integer arithmetic. A single visible source item uses a special
+ * case to avoid dividing by zero. Text mode instead advances by item and adjusts
+ * its viewport.
+ */
 static VOID UpdateScroll(IN OUT SCROLL_STATE *State, IN UINTN Movement)
 {
     State->PreviousSelection = State->CurrentSelection;
@@ -245,6 +252,12 @@ VOID AddMenuEntry(IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry)
     AddListElement((VOID ***) &(Screen->Entries), &(Screen->EntryCount), Entry);
 }
 
+/**
+ * Resolve the comma-separated defaults left to right. A single character is
+ * matched against assigned shortcut keys, while a longer token is sought within
+ * each displayed title. Both searches stop at the first match. Return -1 when all
+ * preferences are exhausted.
+ */
 static INTN FindMenuShortcutEntry(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *Defaults) {
     UINTN i, j = 0, ShortcutLength;
     CHAR16 *Shortcut;
@@ -277,6 +290,12 @@ static INTN FindMenuShortcutEntry(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *Defau
     return -1;
 }  
 
+/**
+ * Record the last index on row zero and the first on row one. The painter and
+ * keyboard projection treat the rows as contiguous index ranges, as produced by
+ * adding loaders before tools. Icon mode also caps the visible loader count to
+ * the available row-zero items.
+ */
 static VOID IdentifyRows(IN SCROLL_STATE *State, IN REFIT_MENU_SCREEN *Screen) {
     UINTN i;
 
@@ -305,11 +324,15 @@ static VOID SaveScreen(VOID) {
     ReadAllKeyStrokes();
 }  
 
-/*
- * The menu owns the selection index while the selected style renders it. A
- * key, pointer action or timeout supplies the exit reason. The caller
- * interprets that reason together with the chosen entry, since selecting
- * details and starting the entry require different actions.
+/**
+ * Return a menu-exit reason together with the selected entry borrowed from
+ * Screen. Keyboard and pointer activity cancel a positive timeout. Countdown is
+ * stored in tenths of a second, while WaitForInput receives milliseconds and the
+ * displayed label is rounded to whole seconds.
+ *
+ * TimeoutSeconds equal to the unsigned representation of -1 requests an immediate
+ * decision using the pending keystroke. A zero timeout takes the ordinary
+ * interactive path. Both cases differ from a positive countdown expiring.
  */
 UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
                      IN MENU_STYLE_FUNC StyleFunc,
@@ -1170,6 +1193,12 @@ VOID MainMenuStyle(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
     }
 }  
 
+/**
+ * Map the pointer coordinates to one of the two icon rows. Row zero uses the
+ * visible-window index offset, while row one uses absolute entry indices. Areas
+ * to the left and right of the loader row return arrow sentinels. Tile gaps
+ * return POINTER_NO_ITEM.
+ */
 UINTN FindMainMenuItem(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN PosX, IN UINTN PosY)
 {
     UINTN i;
@@ -1246,6 +1275,11 @@ UINTN FindMainMenuItem(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN 
     return ItemIndex;
 }  
 
+/**
+ * Reserve one slot for the keyboard, one per pointer device, and a final slot for
+ * a relative timer. The timer handle is created by each timed wait. A call with
+ * no deadline passes one fewer slot to firmware.
+ */
 VOID GenerateWaitList() {
     UINTN PointerCount = pdCount();
     WaitListLength = 2 + PointerCount;
@@ -1260,6 +1294,12 @@ VOID GenerateWaitList() {
     }
 }  
 
+/**
+ * Convert the millisecond deadline to firmware intervals of 100 ns. Slot zero
+ * identifies the keyboard. With a timer the last active slot means timeout.
+ * Without a timer Length is decremented, but the same final-slot test is used, so
+ * the last pointer event can also be reported as a timeout.
+ */
 UINTN WaitForInput(UINTN Timeout) {
     UINTN Index = INPUT_TIMEOUT;
     UINTN Length = WaitListLength;
@@ -1661,11 +1701,11 @@ UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry)
     return RunGenericMenu(Screen, Style, &DefaultEntry, ChosenEntry);
 }
 
-/*
- * Run the main menu and any requested submenu in a loop. Returning from a
- * submenu or cancelling option editing resumes selection. Clear the main
- * timeout after the first pass so time spent in details cannot trigger a
- * subsequent automatic selection.
+/**
+ * Run the main screen and its optional subscreen using separate selection
+ * indices. Disable the initial timeout after the first return. Escaping a
+ * subscreen resumes its parent. The returned entry may be a child, while the
+ * saved selection title identifies the original top-level choice.
  */
 UINTN RunMainMenu(REFIT_MENU_SCREEN *Screen, CHAR16** DefaultSelection, REFIT_MENU_ENTRY **ChosenEntry)
 {

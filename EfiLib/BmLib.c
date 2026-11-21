@@ -112,6 +112,12 @@ EfiLibFileSystemInfo (
   return EFI_ERROR(Status)?NULL:FileSystemInfo;
 }
 
+/**
+ * Allocate zeroed replacement storage and copy the smaller of the old and new
+ * byte lengths. The old pool is freed even if replacement allocation fails. A
+ * caller must therefore treat the old pointer as consumed on every return,
+ * including a NULL result.
+ */
 VOID *
 /*
  * Allocate zero-filled replacement storage and copy min(OldSize, NewSize)

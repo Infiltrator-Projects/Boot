@@ -9,9 +9,12 @@
 
 #define MAXBITS 15
 
-/*
- * Builds decoding tables from source code lengths. Table log and capacity
- * must remain consistent with the stream's validated DEFLATE parameters.
+/**
+ * Count code lengths, sort symbol numbers within each length, and replicate short
+ * codes across all matching root-table slots. Prefixes longer than the root index
+ * select secondary tables. On success advance the caller's table pointer and
+ * report the root width actually used. An empty alphabet installs two invalid
+ * entries so an attempted decode can still report an error.
  */
 int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
                         code **table, unsigned *bits, unsigned short *work)

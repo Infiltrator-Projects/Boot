@@ -216,6 +216,12 @@ typedef struct {
 	U32 origSize;
 } blockProperties_t;
 
+/**
+ * Unpack a three-byte little-endian header. Bit zero terminates the frame, bits
+ * one and two select the block type, and the remaining bits carry its size. RLE
+ * uses one stored payload byte irrespective of its expanded byte count, which is
+ * retained in origSize.
+ */
 size_t ZSTD_getcBlockSize(const void *src, size_t srcSize, blockProperties_t *bpPtr)
 {
 	if (srcSize < ZSTD_blockHeaderSize)
@@ -1259,11 +1265,10 @@ static size_t ZSTD_decompressBlock_internal(ZSTD_DCtx *dctx, void *dst, size_t d
 	return ZSTD_decompressSequences(dctx, dst, dstCapacity, ip, srcSize);
 }
 
-/*
- * When adjacent blocks use disjoint destination buffers, keep the previous
- * prefix as dictionary history. The virtual base lets a match distance be
- * interpreted consistently when a match crosses into the current output
- * segment.
+/**
+ * A match can reference output from an earlier destination buffer. When dst no
+ * longer equals previousDstEnd, retain the old end as dictionary history and
+ * shift the virtual base so match distances still span the boundary.
  */
 static void ZSTD_checkContinuity(ZSTD_DCtx *dctx, const void *dst)
 {

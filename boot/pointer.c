@@ -155,11 +155,11 @@ EFI_EVENT pdWaitEvent(UINTN Index) {
     return APointerProtocol[Index]->WaitForInput;
 }
 
-/*
- * Absolute reports map device coordinates to screen coordinates. Relative
- * reports accumulate movement scaled by device resolution and configured
- * mouse speed. Press is a release edge computed from the previous and current
- * holding states.
+/**
+ * Poll absolute devices first, then relative devices. The first successful report
+ * supplies this pass's coordinates and button state. Relative displacements are
+ * scaled by MouseSpeed and hardware resolution, then clipped to screen pixels.
+ * Press is the transition from holding to released.
  */
 EFI_STATUS pdUpdateState() {
 #if defined(EFI32) && defined(__MAKEWITH_GNUEFI)
@@ -238,9 +238,11 @@ POINTER_STATE pdGetState() {
     return State;
 }
 
-/*
- * Preserves the under-cursor background for later restoration. This is a
- * visual operation and must not influence boot entry selection.
+/**
+ * Capture the screen under the cursor before compositing it. Clip the capture at
+ * the right and bottom screen edges and save the coordinates used on this frame.
+ * pdClear needs the old coordinates even if input has already moved State.X and
+ * State.Y.
  */
 VOID pdDraw() {
     if(Background) {
@@ -267,6 +269,11 @@ VOID pdDraw() {
     LastYPos = State.Y;
 }
 
+/**
+ * Restore the captured pixels at the last painted position, then release the
+ * capture. RunGenericMenu does this before painting the selection so an old
+ * cursor background cannot overwrite the new highlight.
+ */
 VOID pdClear() {
     if (Background) {
         egDrawImage(Background, LastXPos, LastYPos);

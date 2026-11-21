@@ -315,11 +315,15 @@ EFI_STATUS CreateVarsDir(VOID) {
     return Status;
 }  
 
-/*
- * use_nvram=false redirects only BOOT's GUID to its variable directory.
- * Failure to open that directory switches the read to firmware. On success
- * the caller owns the returned buffer. Although size is declared optional,
- * the error path writes through it.
+/**
+ * BOOT-owned variables use disk storage when UseNvram is false. Failure opening
+ * the variables directory falls back to firmware. Once the directory opens, a
+ * missing file is returned as a read failure. GlobalGuid variables such as
+ * BootOrder always use firmware.
+ *
+ * Success transfers a pool buffer to the caller. Although size is declared
+ * optional, the error path stores zero through it, so callers must currently
+ * provide storage for the size.
  */
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL) {
     UINT8 *buf = NULL;
@@ -365,11 +369,11 @@ EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer
     return Status;
 }  
 
-/*
- * Read the previous value before writing. Equal lengths and equal bytes
- * suppress the write. For firmware storage, persistent adds the nonvolatile
- * attribute to the boot-service and runtime attributes. BOOT's private
- * file-backed variables use the same byte comparison.
+/**
+ * Read the old value first. Equal lengths and equal payload bytes suppress a
+ * redundant write. For firmware variables, persistent adds
+ * EFI_VARIABLE_NON_VOLATILE to boot-service and runtime access. The BootGuid disk
+ * policy is the same as in EfivarGetRaw.
  */
 EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, BOOLEAN persistent) {
     UINT32      flags;
@@ -865,6 +869,12 @@ static CHAR16 *GetVolumeName(REFIT_VOLUME *Volume) {
     return FoundName;
 }  
 
+/**
+ * Use a hard-drive device path's GUID signature to find the GPT entry by unique
+ * partition ID. Copy out the human name and type GUID before freeing the
+ * temporary entry. The architecture's root type is eligible for automatic Linux
+ * selection only when the no-automount bit is clear.
+ */
 static VOID SetPartGuidAndName(REFIT_VOLUME *Volume, EFI_DEVICE_PATH_PROTOCOL *DevicePath) {
     HARDDRIVE_DEVICE_PATH    *HdDevicePath;
     GPT_ENTRY                *PartInfo;
@@ -1023,6 +1033,12 @@ VOID ScanVolume(REFIT_VOLUME *Volume)
 
 }  
 
+/**
+ * Walk the chain of extended boot records. A logical partition's first sector is
+ * relative to the current record, while a link to the next record is relative to
+ * the first extended partition. Each fabricated volume retains the whole-disk
+ * Block I/O interface and stores its sector offset explicitly.
+ */
 static VOID ScanExtendedPartition(REFIT_VOLUME *WholeDiskVolume, MBR_PARTITION_INFO *MbrEntry)
 {
     EFI_STATUS              Status;
@@ -1081,11 +1097,14 @@ static VOID ScanExtendedPartition(REFIT_VOLUME *WholeDiskVolume, MBR_PARTITION_I
     }  
 }  
 
-/*
- * Build the volume list from firmware Block I/O handles, then relate
- * partition handles back to whole disks. The later MBR matching compares
- * sector contents as well as partition size. A handle's position in the
- * firmware list is insufficient to identify its partition.
+/**
+ * Rebuild the array from firmware Block I/O handles. A repeated nonzero
+ * filesystem UUID marks later instances unreadable while retaining their volume
+ * records. The second pass associates partitions with whole disks and appends
+ * logical partitions found through extended MBR chains.
+ *
+ * The MBR association compares sector count, the first 512 bytes and a minimum
+ * byte sum. Equal lengths alone cannot distinguish partitions of the same size.
  */
 VOID ScanVolumes(VOID)
 {
@@ -1251,6 +1270,12 @@ BOOLEAN FileExists(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath)
     return FALSE;
 }
 
+/**
+ * Start with 256 bytes for one EFI_FILE_INFO. On EFI_BUFFER_TOO_SMALL use the
+ * reported size, doubling if the firmware did not increase it, for up to four
+ * reallocations. A successful zero-byte read ends enumeration. Filter mode 1
+ * keeps directories and 2 keeps non-directories.
+ */
 EFI_STATUS DirNextEntry(IN EFI_FILE_PROTOCOL *Directory, IN OUT EFI_FILE_INFO **DirEntry, IN UINTN FilterMode)
 {
     EFI_STATUS Status;
@@ -1364,10 +1389,11 @@ MetaiMatch (IN CHAR16 *String, IN CHAR16 *Pattern)
 
 #endif
 
-/*
- * Advances a directory iterator and applies caller-specified filters.
- * Returned file metadata belongs to the iterator/consumer ownership scheme;
- * filtering a name must not be mistaken for inspecting executable trust.
+/**
+ * Return an allocated EFI_FILE_INFO through DirEntry. A new call clears the
+ * iterator's previous pointer. Callers retaining a name must copy it or keep
+ * ownership of its record. Directories bypass filename wildcard matching after
+ * DirNextEntry applies the type filter.
  */
 BOOLEAN DirIterNext(IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR16 *FilePattern OPTIONAL,
                     OUT EFI_FILE_INFO **DirEntry)

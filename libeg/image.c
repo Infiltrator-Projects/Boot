@@ -99,6 +99,12 @@ EG_IMAGE * egCropImage(IN EG_IMAGE *Image, IN UINTN StartX, IN UINTN StartY, IN 
    return NewImage;
 }  
 
+/**
+ * Allocate a destination grid and interpolate four neighbouring source pixels for
+ * each output pixel using fixed-point weights. Equal dimensions yield a separate
+ * copy. The interpolation uses the right and lower neighbours unconditionally on
+ * the resize path, which assumes both source dimensions exceed one.
+ */
 EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeight) {
    EG_IMAGE *NewImage = NULL;
    EG_PIXEL a, b, c, d;
@@ -537,6 +543,12 @@ VOID egRawCopy(IN OUT EG_PIXEL *CompBasePtr, IN EG_PIXEL *TopBasePtr,
     }
 }
 
+/**
+ * Blend RGB in place using the top pixel's 0..255 alpha and the complementary
+ * background weight. The bias and two shifts approximate rounded division by 255
+ * without a per-channel divide. Both line offsets count pixels per source row.
+ * The destination alpha channel is left as supplied.
+ */
 VOID egRawCompose(IN OUT EG_PIXEL *CompBasePtr, IN EG_PIXEL *TopBasePtr,
                   IN UINTN Width, IN UINTN Height,
                   IN UINTN CompLineOffset, IN UINTN TopLineOffset)
@@ -574,9 +586,10 @@ VOID egRawCompose(IN OUT EG_PIXEL *CompBasePtr, IN EG_PIXEL *TopBasePtr,
     }
 }
 
-/*
- * Composites source pixels into an existing destination surface; coordinates
- * and alpha must be clipped to the destination dimensions.
+/**
+ * Clip the top image's footprint to the destination but retain the original
+ * source and destination row strides. A top image flagged HasAlpha takes the RGB
+ * blending path. An opaque image uses the direct rectangular copy.
  */
 VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN PosX, IN UINTN PosY)
 {

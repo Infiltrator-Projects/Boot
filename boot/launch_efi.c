@@ -61,9 +61,11 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
     }  
 }  
 
-/*
- * A preliminary header/type classification, not a Secure Boot trust verdict
- * and not evidence that firmware execution will succeed.
+/**
+ * Classify candidates during scanning. The native check requires a complete
+ * 4096-byte probe and recognises either the MZ/PE signature and target machine or
+ * the fat-image magic. With gzip enabled a matching two-byte gzip signature
+ * selects the decoder path. LoadImage performs the later firmware load decision.
  */
 UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     UINTN           LoaderType = LOADER_TYPE_EFI;
@@ -123,9 +125,16 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     return LoaderType;
 }  
 
-/*
- * Load native images by device path. For gzip, LoadImage receives a memory
- * buffer and the exact number of bytes the decoder wrote to it.
+/**
+ * Native images reach LoadImage by device path. Gzip inputs are read into memory
+ * and decoded into a bounded pool allocation. Firmware receives the exact number
+ * of output bytes from a successful gunzip call. The current allocation policy
+ * allows ten times the compressed size, up to 512 MiB.
+ *
+ * Once firmware supplies a child handle, its LoadedImage protocol borrows the
+ * option string until StartImage returns. BOOT closes its own open volume handles
+ * before transfer, then reacquires them on return. Returning applications are
+ * unloaded, while drivers remain resident for their protocol bindings.
  */
 EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR16 *Filename,
@@ -326,11 +335,11 @@ EFI_STATUS RebootIntoFirmware(VOID) {
     return err;
 }  
 
-/*
- * Programs the selected Boot#### identifier into the one-shot BootNext
- * variable and requests a cold reset. BootNext does not rewrite BootOrder;
- * accepted variable writes do not prove that the next firmware dispatch
- * will find, authenticate or run the referenced image.
+/**
+ * Write the selected UINT16 Boot#### number to BootNext, save the menu title and
+ * request a cold reset. A failure writing BootNext returns before the reset. If
+ * ResetSystem returns unexpectedly, reopen the BOOT library handles before
+ * reporting the failure.
  */
 VOID RebootIntoLoader(LOADER_ENTRY *Entry) {
     EFI_STATUS Status;

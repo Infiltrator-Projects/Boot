@@ -50,6 +50,16 @@ static inline void put_unaligned_le16(uint16_t v, void *s)
 #define ZSTD_BTRFS_MAX_WINDOWLOG 17
 #define ZSTD_BTRFS_MAX_INPUT (1 << ZSTD_BTRFS_MAX_WINDOWLOG)
 
+/**
+ * Retain a streaming decoder while consuming start_byte bytes into a discard
+ * buffer, then redirect the output to the requested extent slice. Skipping a
+ * prefix incurs decoding work because matches can refer to earlier output.
+ *
+ * The final stream call may produce fewer bytes than destlen. This wrapper
+ * zero-fills the remaining range and reports destlen on its success path. A
+ * caller comparing the return value with destlen cannot detect that distinction
+ * here.
+ */
 static fsw_ssize_t zstd_decompress(char *data_in, fsw_size_t srclen,
 		grub_off_t start_byte,
 		char *data_out, fsw_size_t destlen)

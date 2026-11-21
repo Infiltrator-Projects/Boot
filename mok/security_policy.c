@@ -51,6 +51,11 @@ struct _EFI_SECURITY_PROTOCOL {
 static EFI_SECURITY_FILE_AUTHENTICATION_STATE esfas = NULL;
 static EFI_SECURITY2_FILE_AUTHENTICATION es2fa = NULL;
 
+/**
+ * Firmware supplies the image bytes directly to Security2. Preserve an original
+ * success. If the original callback rejects the image, offer those same bytes to
+ * the shim verifier and preserve the original EFI status if it also rejects them.
+ */
 static MSABI EFI_STATUS
 /*
  * Routes a Security2 file authentication request through the installed
@@ -78,6 +83,12 @@ security2_policy_authentication (
    }
 }  
 
+/**
+ * The older Security callback supplies a device path. Duplicate its cursor,
+ * locate the filesystem, and open and read the file to obtain bytes for shim
+ * verification. A failed file operation returns its own status. If the bytes are
+ * available but shim declines them, call the saved firmware callback.
+ */
 static MSABI EFI_STATUS
 security_policy_authentication (
    const EFI_SECURITY_PROTOCOL *This,
@@ -163,11 +174,11 @@ security_policy_install(void)
    return EFI_SUCCESS;
 }
 
-/*
- * Restore Security first and clear its saved pointer immediately. If locating
- * Security2 then fails, its saved pointer survives but a later call will see
- * esfas cleared and return EFI_NOT_STARTED. Teardown can therefore be
- * partial.
+/**
+ * Restore callbacks through the currently located firmware protocol instances.
+ * Restore Security first and then Security2 if a hook was installed. A failed
+ * second lookup can therefore leave the first callback restored while the second
+ * remains installed.
  */
 EFI_STATUS
 security_policy_uninstall(void)

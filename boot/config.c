@@ -28,6 +28,16 @@
 #define GetTime ST->RuntimeServices->GetTime
 #define LAST_MINUTE 1439  
 
+/**
+ * Populate the byte and CHAR16 cursors over one pool buffer. File->BufferSize is
+ * the actual count returned by Read, while *size is set from file metadata before
+ * the read. The UTF-16 end cursor drops an odd trailing byte.
+ *
+ * A BOM is considered only when at least four bytes were read. Without one,
+ * zeroes in bytes 1 and 3 select UTF-16LE. All other input starts in the
+ * single-byte path. The allocation failure path assigns the local size pointer,
+ * so callers cannot use *size as an error indication.
+ */
 EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFIT_FILE *File, OUT UINTN *size)
 {
     EFI_STATUS      Status;
@@ -97,10 +107,15 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
     return EFI_SUCCESS;
 }
 
-/*
- * Extracts a logical configuration line from a firmware-visible file.
- * The returned UTF-16 representation is parser input, not validated syntax;
- * ownership and end-of-file behaviour must be respected by callers.
+/**
+ * Consume through the next CR or LF, then skip the entire run of line
+ * terminators. End pointers delimit the file without requiring a NUL on disk. A
+ * successful call returns a separately allocated, terminated CHAR16 line. A NULL
+ * result covers end of input and allocation failure.
+ *
+ * The UTF-8-labelled branch widens one input byte per output code unit just as
+ * the single-byte branch does. Only the UTF-16LE branch copies existing 16-bit
+ * units. This distinction matters for non-ASCII loader titles.
  */
 static CHAR16 *ReadLine(REFIT_FILE *File)
 {
@@ -177,6 +192,12 @@ static CHAR16 *ReadLine(REFIT_FILE *File)
     return Line;
 }
 
+/**
+ * Advance the tokenizer's quote state at one code unit. Space, tab, equals, comma
+ * and hash terminate an unquoted field. A doubled quote collapses to one literal
+ * quote in the mutable line, whereas a single quote changes the state and ends
+ * this token fragment.
+ */
 static BOOLEAN KeepReading(IN OUT CHAR16 *p, IN OUT BOOLEAN *IsQuoted) {
     BOOLEAN MoreToRead = FALSE;
     CHAR16  *Temp = NULL;
@@ -207,11 +228,15 @@ static BOOLEAN KeepReading(IN OUT CHAR16 *p, IN OUT BOOLEAN *IsQuoted) {
     return MoreToRead;
 }  
 
-/*
- * Return the next nonempty directive as separately allocated CHAR16 tokens.
- * Outside quotes the parser treats spaces, tabs, '=' and ',' as separators
- * and normalises '/' to the EFI path separator. Duplicating each token lets
- * the temporary input line be freed at the end of the iteration.
+/**
+ * Skip lines until at least one field is found. Outside quotes, equals and comma
+ * are separators, a hash ends the line, and forward slashes become EFI path
+ * separators. Quoted fields preserve spaces and forward slashes, which matters
+ * for Linux root arguments.
+ *
+ * Each token is duplicated before the temporary line is freed. The returned count
+ * bounds the array. FreeTokenLine releases the strings and array together. Zero
+ * also ends parsing when the line reader cannot allocate.
  */
 UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
 {
@@ -285,6 +310,12 @@ static VOID HandleString(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT CHAR16 
     }  
 }  
 
+/**
+ * A leading "+" with at least one following token appends to the current list.
+ * All other forms first discard the old value, so a directive with no arguments
+ * can clear it. Each retained field is path-normalised before being joined with
+ * commas.
+ */
 static VOID HandleStrings(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT CHAR16 **Target) {
     UINTN i;
     BOOLEAN AddMode = FALSE;
@@ -305,6 +336,12 @@ static VOID HandleStrings(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT CHAR16
     }  
 }  
 
+/**
+ * Replace the linked list unless a leading "+" requests an append. Accept only
+ * tokens that pass IsValidHex and whose parsed value is at most MaxValue.
+ * Allocation occurs per accepted value, so failure can leave a partially built
+ * list.
+ */
 static VOID HandleHexes(IN CHAR16 **TokenList,
                         IN UINTN TokenCount,
                         IN UINTN MaxValue,
@@ -345,6 +382,11 @@ static VOID HandleHexes(IN CHAR16 **TokenList,
     }  
 }  
 
+/**
+ * Accumulate decimal digits until a colon moves the current number into Hour. The
+ * return value is minutes since midnight. Fields are not validated individually
+ * here, so the caller's upper-bound check operates on the combined value.
+ */
 static UINTN HandleTime(IN CHAR16 *TimeString) {
     UINTN Hour = 0, Minute = 0, TimeLength, i = 0;
 
@@ -375,6 +417,12 @@ static BOOLEAN HandleBoolean(IN CHAR16 **TokenList, IN UINTN TokenCount) {
     return TruthValue;
 }  
 
+/**
+ * Convert the firmware clock and both endpoints to minutes. Both branches use the
+ * same inclusive comparison. Equal endpoints select one minute. An interval such
+ * as 22:00 to 06:00 never satisfies both comparisons. If the clock read fails the
+ * prior default remains in effect.
+ */
 static VOID SetDefaultByTime(IN CHAR16 **TokenList, OUT CHAR16 **Default) {
     EFI_STATUS            Status;
     EFI_TIME              CurrentTime;
@@ -416,6 +464,11 @@ static LOADER_ENTRY * AddPreparedLoaderEntry(LOADER_ENTRY *Entry) {
     return(Entry);
 }  
 
+/**
+ * Turn each Linux filename prefix into a wildcard by appending "*", then replace
+ * the comma-separated pattern list. Prefixes remain available separately for
+ * classifying candidates after directory enumeration.
+ */
 static VOID SetLinuxMatchPatterns(CHAR16 *Prefixes) {
     CHAR16 *Pattern, *PatternSet = NULL;
     UINTN i = 0;
@@ -793,6 +846,12 @@ VOID ReadConfig(CHAR16 *FileName)
     }
 }  
 
+/**
+ * Start from the parent loader's defaults and parse from the caller's current
+ * file cursor through the next closing brace. An empty options or initrd
+ * directive clears the inherited value. At completion any remaining initrd path
+ * is folded into LoadOptions, and an enabled entry is attached to the submenu.
+ */
 static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volume, CHAR16 *Title) {
     REFIT_MENU_SCREEN  *SubScreen;
     LOADER_ENTRY       *SubEntry;
@@ -865,6 +924,17 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
     Entry->me.SubScreen = SubScreen;
 }  
 
+/**
+ * Consume one menuentry body sequentially. A loader directive derives defaults
+ * from the then-current volume and clears inferred options so later options can
+ * replace them. A successful volume lookup updates the title, badge and loader
+ * volume. Nested submenu parsing advances the same cursor.
+ *
+ * A firmware_bootnum stanza stores a numeric Boot#### target and sets the
+ * firmware dispatch tag. Ordinary file stanzas retain a volume and loader path.
+ * This distinction determines whether selecting the entry starts an image or
+ * requests a firmware reboot.
+ */
 static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, CHAR16 *Title) {
     CHAR16       **TokenList;
     UINTN        TokenCount;
@@ -972,11 +1042,11 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
     return(Entry);
 }  
 
-/*
- * Walk manual stanzas with SelfVolume as their initial volume.
- * AddStanzaEntries consumes the stanza body. An enabled entry gets a
- * generated submenu only if the stanza did not supply one. Includes are
- * followed only from the primary configuration.
+/**
+ * Reopen the configuration for the manual discovery pass. Only enabled stanzas
+ * are published to MainMenu. Generate a subscreen when the stanza supplied none.
+ * Includes are followed from the main filename only and a self-include is
+ * ignored, bounding the include depth.
  */
 VOID ScanUserConfigured(CHAR16 *FileName)
 {
@@ -1018,6 +1088,12 @@ VOID ScanUserConfigured(CHAR16 *FileName)
     }  
 }  
 
+/**
+ * Recognise both a plain device path and a device specification split at "=" by
+ * ReadTokenLine. The root mount point arrives as a backslash because tokenisation
+ * normalises unquoted slashes. Convert the device string back to Linux separators
+ * before synthesising normal and single-user options.
+ */
 static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
     UINTN        TokenCount, i;
     REFIT_FILE   *Options = NULL, *Fstab = NULL;
@@ -1080,6 +1156,12 @@ static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
     return Options;
 }  
 
+/**
+ * Use the discovered root partition's unique PartGuid to form
+ * /dev/disk/by-partuuid/<guid>. Its GPT read-only attribute selects ro or rw. The
+ * generated CHAR16 text has the same label/options pairs as an on-disk Linux
+ * options file.
+ */
 static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
     REFIT_FILE   *Options = NULL;
     CHAR16       *Line, *GuidString, *WriteStatus;
@@ -1113,9 +1195,11 @@ static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
     return Options;
 }  
 
-/*
- * Reads kernel-specific command-line hints from a particular volume.
- * An initrd or root option is not necessarily transferable to another kernel.
+/**
+ * Search the kernel's own directory in LINUX_OPTIONS_FILENAMES order and stop on
+ * the first successful read. If none opens, try the volume's fstab and then the
+ * partition-type discovery result. Both synthetic sources use the same REFIT_FILE
+ * cursor contract as a physical file.
  */
 REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     CHAR16       *OptionsFilename, *FullFilename;
@@ -1161,6 +1245,11 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
     return (File);
 }  
 
+/**
+ * Read just the first token-bearing line and duplicate its second field for the
+ * primary boot entry. Further option lines belong to the submenu path. Missing
+ * files and a first line lacking a second field both yield NULL.
+ */
 CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     UINTN        TokenCount;
     CHAR16       *Options = NULL;

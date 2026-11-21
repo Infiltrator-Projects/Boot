@@ -16,7 +16,7 @@ This repository does not use System Monitor's `make check` contract. Here, compi
 | Release-package verification | `packaging/build-release.sh`, `packaging/test-release.sh` | Staged `.deb` contents, pinned `.run` source metadata, required files and SHA256SUMS | Native installation on a physical ESP |
 | Disposable installation | `tests/install-safety.sh` | Owned destination, six drivers, checksum marker, rejection of unsafe paths, preservation of Windows/GRUB/fallback | Every real partition layout or firmware behaviour |
 | Firmware entry handling | `tests/nvram-safety.sh` | BOOT preference and refusal of duplicate/ambiguous records, including repeated install checks | Every OEM NVRAM implementation |
-| UEFI launch smoke | `tests/ovmf-smoke.sh` | Emulated x86-64 firmware starts BOOT and reaches its main menu | Direct kernel boot, OS userspace boot or real display/device compatibility |
+| UEFI launch smoke | `tests/ovmf-smoke.sh` | OVMF boots BOOT, which logs the full decoded byte count for its gzipped Btrfs driver, launches that driver and enters its main menu | Reading a Btrfs volume, starting a kernel or reaching OS userspace |
 
 ## Test setup and mechanics
 
@@ -42,7 +42,7 @@ Reinstallation deliberately removes stale contents **inside** BOOT's directory, 
 
 ### UEFI menu
 
-`tests/ovmf-smoke.sh` creates disposable FAT32 and GPT-backed disk fixtures, copies the EFI binary, boots QEMU with OVMF and reads BOOT's startup log. The required success marker is reaching the **main menu**. The test does not load a real installed Windows or Linux system or establish all filesystem-driver read paths.
+The fixture places BOOT and a gzip-compressed copy of `btrfs_x64.efi` on a FAT32 ESP inside a disposable GPT disk. It records the original driver's byte size before compression and enables `support_gzipped_loaders`. After booting OVMF, the script reads the UTF-16LE startup log from the disk. It checks for a successful decode with that exact byte count, the Btrfs driver launch, a zero program return and entry into the menu loop. A timeout is allowed because the menu can wait for input. Reading the disk log distinguishes that state from firmware hanging earlier. [OVMF fixture and assertions](../tests/ovmf-smoke.sh)
 
 ## Configuration regression contract
 

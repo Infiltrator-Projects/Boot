@@ -74,10 +74,15 @@ fsw_ext4_group_first_block_no(struct ext4_super_block *sb, fsw_u32 group_no)
                 sb->s_first_data_block;
 }
 
-/*
- * Reads and checks superblock revision, incompatible feature flags and
- * block size before accessing group descriptors and creating the root inode.
- * The recovery-needed flag is observed but this code does not replay a journal.
+/**
+ * Probe the superblock using its fixed initial block units, then switch FSW to
+ * the filesystem's block size. Cache inode-table start blocks from the group
+ * descriptors. Descriptor size determines whether to combine high and low
+ * block-number fields.
+ *
+ * The feature test admits a filesystem marked for recovery and emits a debug
+ * message. The read-only mount does not replay its journal. Group count is
+ * computed from s_blocks_count_lo even when 64-bit descriptors are admitted.
  */
 static fsw_status_t fsw_ext4_volume_mount(struct fsw_ext4_volume *vol)
 {
@@ -293,9 +298,11 @@ static fsw_status_t fsw_ext4_dnode_stat(struct fsw_ext4_volume *vol, struct fsw_
     return FSW_SUCCESS;
 }
 
-/*
- * Dispatches block lookup according to the inode's EXTENTS flag; callers
- * must not interpret extent-tree data as legacy block pointers or vice versa.
+/**
+ * Choose the mapping per inode. EXT4_INODE_EXTENTS selects the tree rooted inside
+ * i_block. Older inodes reinterpret those same bytes as direct and indirect block
+ * pointers. The initial result spans one logical block unless the selected mapper
+ * can extend it.
  */
 static fsw_status_t fsw_ext4_get_extent(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                         struct fsw_extent *extent)
@@ -318,10 +325,17 @@ static fsw_status_t fsw_ext4_get_extent(struct fsw_ext4_volume *vol, struct fsw_
     }
 }
 
-/*
- * Walks extent headers/index nodes from untrusted disk data. Magic is checked.
- * AUDIT: traversal uses an unbounded while loop and requires additional
- * structural/depth checks to rule out malformed-tree nontermination.
+/**
+ * The inode contains the root header. At a matching leaf, subtract ee_block from
+ * the requested logical block. Add this displacement to the 48-bit physical start
+ * and subtract it from ee_len to report the remaining run. For a leaf mapping
+ * logical 100 to physical 900 for 8 blocks, a request for 103 yields physical 903
+ * and count 5.
+ *
+ * This implementation descends at the first index whose lower bound qualifies and
+ * uses ee_len as stored. An exhausted inner scan has no explicit not-found exit
+ * from the enclosing loop. These details matter for multi-index nodes, gaps and
+ * unwritten extents.
  */
 static fsw_status_t fsw_ext4_get_by_extent(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                         struct fsw_extent *extent)
@@ -551,9 +565,11 @@ static fsw_status_t fsw_ext4_dir_read(struct fsw_ext4_volume *vol, struct fsw_ex
     return status;
 }
 
-/*
- * Converts variable-length EXT4 directory records into filesystem dnodes.
- * Record boundaries and name lengths must constrain every advance.
+/**
+ * Read the eight-byte fixed prefix before interpreting the variable-length name.
+ * An unused inode skips the rest of its record. For live entries the declared
+ * name must fit in rec_len. Advance past alignment padding after copying the name
+ * so the next read starts at a record boundary.
  */
 static fsw_status_t fsw_ext4_read_dentry(struct fsw_shandle *shand, struct ext4_dir_entry *entry)
 {
@@ -596,6 +612,12 @@ static fsw_status_t fsw_ext4_read_dentry(struct fsw_shandle *shand, struct ext4_
     return FSW_SUCCESS;
 }
 
+/**
+ * Subtract external attribute blocks when deciding whether the link text fits in
+ * the inode itself. The size check against sizeof(i_block) precedes both
+ * branches. Even the separate data-read branch is therefore reached only for
+ * targets within that bound.
+ */
 static fsw_status_t fsw_ext4_readlink(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                       struct fsw_string *link_target)
 {

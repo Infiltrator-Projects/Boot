@@ -80,6 +80,12 @@ VOID InitScreen(VOID)
        DrawScreenHeader(L"Initializing...");
 }
 
+/**
+ * A requested width with zero height denotes a firmware mode number. Resolve it
+ * to dimensions before changing graphics mode. A text mode change can also alter
+ * the pixel geometry, so query the firmware again before sizing the menu.
+ * HaveResized prevents a second HiDPI doubling on a rescan.
+ */
 VOID SetupScreen(VOID)
 {
     UINTN NewWidth, NewHeight;
@@ -429,6 +435,12 @@ VOID BltImageAlpha(IN EG_IMAGE *Image, IN UINTN XPos, IN UINTN YPos, IN EG_PIXEL
     GraphicsScreenDirty = TRUE;
 }
 
+/**
+ * Centre the top icon in a private copy of the base tile. Position the badge
+ * relative to the clipped top icon and keep an eight-pixel inset. Only the
+ * composed copy is freed after drawing, allowing the same selection, icon and
+ * badge assets to be reused on the next repaint.
+ */
 VOID BltImageCompositeBadge(IN EG_IMAGE *BaseImage,
                             IN EG_IMAGE *TopImage,
                             IN EG_IMAGE *BadgeImage,
