@@ -393,6 +393,12 @@ bailout:
 }  
 
  
+/*
+ * Requests firmware setup on the next reset through OsIndications.
+ * OsIndications is a UINT64 UEFI variable; the firmware must support the
+ * requested capability, and SetVariable/ResetSystem may still fail.
+ * This path changes next-boot behaviour rather than invoking an EFI image.
+ */
 EFI_STATUS RebootIntoFirmware(VOID) {
     CHAR8 *b;
     UINTN size;
@@ -421,6 +427,12 @@ EFI_STATUS RebootIntoFirmware(VOID) {
 }  
 
  
+/*
+ * Programs the selected Boot#### identifier into the one-shot BootNext
+ * variable and requests a cold reset. BootNext does not rewrite BootOrder;
+ * accepted variable writes do not prove that the next firmware dispatch
+ * will find, authenticate or run the referenced image.
+ */
 VOID RebootIntoLoader(LOADER_ENTRY *Entry) {
     EFI_STATUS Status;
 
@@ -448,6 +460,12 @@ VOID RebootIntoLoader(LOADER_ENTRY *Entry) {
 
  
  
+/*
+ * On x86, manipulates IA32_FEATURE_CONTROL (MSR 0x3a) before image dispatch.
+ * Its lock bit is effectively irreversible until reset on supported CPUs;
+ * this is a firmware/processor side effect, not merely a menu preference.
+ * The caller gates this behaviour behind EnableAndLockVMX.
+ */
 static VOID DoEnableAndLockVMX(VOID) {
 #if defined (EFIX64) | defined (EFI32)
     UINT32 msr = 0x3a;
@@ -489,6 +507,11 @@ VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
 }  
 
  
+/*
+ * Uses the same EFI image-launch boundary as operating-system entries but
+ * presents the selected item as an external utility. Its return to BOOT is
+ * permissible and does not imply that firmware restarted the machine.
+ */
 VOID StartTool(IN LOADER_ENTRY *Entry) {
     CHAR16 *LoaderPath;
 
