@@ -8,7 +8,7 @@ on:
 permissions:
   contents: write
 
-# Do not overlap release uploads from rapid successive main commits.
+
 concurrency:
   group: boot-main-release
   cancel-in-progress: true
@@ -22,8 +22,8 @@ jobs:
       - name: Check BOOT identifiers and clean packaging layout
         shell: bash
         run: |
-          # Restore original driver sources and preserve their attribution.
-          # Only BOOT's installed path and executable identity are mandated.
+
+
           if git ls-files | grep -iE '(^|/)(refind|refind-install)(/|$)'; then exit 1; fi
           test -s filesystems/fsw_ext4.c
           test -s filesystems/Make.gnuefi

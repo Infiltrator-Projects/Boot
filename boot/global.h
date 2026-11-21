@@ -1,46 +1,46 @@
-/*
- * refit/global.h
- * Global header file
- *
- * Copyright (c) 2006-2009 Christoph Pfisterer
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the
- *    distribution.
- *
- *  * Neither the name of Christoph Pfisterer nor the names of the
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-/*
- * Modifications copyright (c) 2012-2024 Roderick W. Smith
- *
- * Modifications distributed under the terms of the GNU General Public
- * License (GPL) version 3 (GPLv3), a copy of which must be distributed
- * with this source code or binaries made from it.
- *
- */
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
 
 #ifndef __GLOBAL_H_
 #define __GLOBAL_H_
@@ -55,7 +55,7 @@
 
 #include "../libeg/libeg.h"
 
-// Tag classifications; used in various ways.
+ 
 #define TAG_ABOUT            (1)
 #define TAG_REBOOT           (2)
 #define TAG_SHUTDOWN         (3)
@@ -84,27 +84,27 @@
 
 #define DEFAULT_ICONS_DIR L"icons"
 
-// OS bit codes; used in GlobalConfig.GraphicsOn
+ 
 #define GRAPHICS_FOR_OSX        1
 #define GRAPHICS_FOR_LINUX      2
 #define GRAPHICS_FOR_ELILO      4
 #define GRAPHICS_FOR_GRUB       8
 #define GRAPHICS_FOR_WINDOWS   16
 
-// Type of legacy (BIOS) boot support detected
+ 
 #define LEGACY_TYPE_NONE 0
 #define LEGACY_TYPE_MAC  1
 #define LEGACY_TYPE_UEFI 2
 
-// How was a loader added to the menu?
+ 
 #define DISCOVERY_TYPE_UNKNOWN  0
 #define DISCOVERY_TYPE_AUTO     1
 #define DISCOVERY_TYPE_MANUAL   2
 
 #ifdef __MAKEWITH_GNUEFI
-//
-// define BBS Device Types
-//
+ 
+ 
+ 
 #define BBS_FLOPPY        0x01
 #define BBS_HARDDISK      0x02
 #define BBS_CDROM         0x03
@@ -115,15 +115,15 @@
 #define BBS_UNKNOWN       0xff
 #endif
 
-// BIOS Boot Specification (BBS) device types, as returned in DevicePath->Type field
+ 
 #define DEVICE_TYPE_HW         0x01
-#define DEVICE_TYPE_ACPI       0x02 /* returned by UEFI boot loader on USB */
+#define DEVICE_TYPE_ACPI       0x02  
 #define DEVICE_TYPE_MESSAGING  0x03
-#define DEVICE_TYPE_MEDIA      0x04 /* returned by EFI boot loaders on hard disk */
-#define DEVICE_TYPE_BIOS       0x05 /* returned by legacy (BIOS) boot loaders */
-#define DEVICE_TYPE_END        0x75 /* end of path */
+#define DEVICE_TYPE_MEDIA      0x04  
+#define DEVICE_TYPE_BIOS       0x05  
+#define DEVICE_TYPE_END        0x75  
 
-// Filesystem type identifiers. Not all are yet used....
+ 
 #define FS_TYPE_UNKNOWN        0
 #define FS_TYPE_WHOLEDISK      1
 #define FS_TYPE_FAT            2
@@ -140,29 +140,29 @@
 #define FS_TYPE_ISO9660        13
 #define NUM_FS_TYPES           14
 
-// How to scale banner images
+ 
 #define BANNER_NOSCALE         0
 #define BANNER_FILLSCREEN      1
 
-// Sizes of the default icons; badges are 1/4 the big icon size
+ 
 #define DEFAULT_SMALL_ICON_SIZE 48
 #define DEFAULT_BIG_ICON_SIZE   128
 #define DEFAULT_MOUSE_SIZE      16
 
-// Codes for types of icon sizes; used for indexing into GlobalConfig.IconSizes[]
+ 
 #define ICON_SIZE_BADGE 0
 #define ICON_SIZE_SMALL 1
 #define ICON_SIZE_BIG   2
 #define ICON_SIZE_MOUSE 3
 
-// Minimum horizontal resolution for a screen to be consider high-DPI
+ 
 #define HIDPI_MIN 1921
 
 #ifndef EFI_OS_INDICATIONS_BOOT_TO_FW_UI
 #define EFI_OS_INDICATIONS_BOOT_TO_FW_UI 0x0000000000000001ULL
 #endif
 
-// Names of some tool binaries....
+ 
 #if defined (EFIX64)
 #define FWUPDATE_NAMES          L"fwupx64.efi"
 #define MEMTEST_NAMES           L"memtest86.efi,memtest86_x64.efi,memtest86x64.efi,memtest86+x64.efi"
@@ -185,30 +185,30 @@
 #define SHELL_NAMES             L"shell.efi"
 #endif
 
-// Directories to search for tools....
+ 
 #define TOOL_LOCATIONS       L"EFI\\tools"
-// Files that may be Windows recovery files
+ 
 #define WINDOWS_RECOVERY_FILES  L"EFI\\Microsoft\\Boot\\LrsBootmgr.efi,Recovery:\\EFI\\BOOT\\bootx64.efi,Recovery:\\EFI\\BOOT\\bootia32.efi,\\EFI\\OEM\\Boot\\bootmgfw.efi"
-// Files that may be macOS recovery files
+ 
 #define MACOS_RECOVERY_FILES    L"com.apple.recovery.boot\\boot.efi"
 
-// Filename patterns that identify EFI boot loaders. Note that a single case (either L"*.efi" or
-// L"*.EFI") is fine for most systems; but Gigabyte's buggy Hybrid EFI does a case-sensitive
-// comparison when it should do a case-insensitive comparison, so I'm doubling this up. It does
-// no harm on other computers, AFAIK. In theory, every case variation should be done for
-// completeness, but that's ridiculous....
+ 
+ 
+ 
+ 
+ 
 #define LOADER_MATCH_PATTERNS   L"*.efi,*.EFI"
 
-// Patterns that identify Linux kernels. Added to the loader match pattern when the
-// scan_all_linux_kernels option is set in the configuration file. Causes kernels WITHOUT
-// a ".efi" extension to be found when scanning for boot loaders.
+ 
+ 
+ 
 #if defined(EFIAARCH64)
 #define LINUX_PREFIXES          L"vmlinuz,Image,kernel"
 #else
 #define LINUX_PREFIXES          L"vmlinuz,bzImage,kernel"
 #endif
 
-// Definitions for the "hideui" option in boot.conf
+ 
 #define HIDEUI_FLAG_NONE       (0x0000)
 #define HIDEUI_FLAG_BANNER     (0x0001)
 #define HIDEUI_FLAG_LABEL      (0x0002)
@@ -221,7 +221,7 @@
 #define HIDEUI_FLAG_BADGES     (0x0100)
 #define HIDEUI_FLAG_ALL       ((0xffff))
 
-// Default hint text for program-launch submenus
+ 
 #define SUBSCREEN_HINT1            L"Use arrow keys to move cursor; Enter to boot;"
 #define SUBSCREEN_HINT2            L"Insert or F2 to edit options; Esc to return to main menu"
 #define SUBSCREEN_HINT2_NO_EDITOR  L"Esc to return to main menu"
@@ -232,15 +232,15 @@
 #define SYSTEMD_GUID_VALUE { 0x4a67b082, 0x0a4c, 0x41cf, { 0xb6, 0xc7, 0x44, 0x0b, 0x29, 0xbb, 0x8c, 0x4f }};
 
 
-// Configuration file variables
+ 
 #define KERNEL_VERSION L"%v"
-#define MAX_RES_CODE 2147483647 /* 2^31 - 1 */
+#define MAX_RES_CODE 2147483647  
 
-//
-// global definitions
-//
+ 
+ 
+ 
 
-// global types
+ 
 
 typedef struct _uint32_list {
     UINT32               Value;
@@ -264,9 +264,9 @@ typedef struct {
    EFI_DEVICE_PATH     *DevicePath;
    EFI_HANDLE          DeviceHandle;
    EFI_FILE_PROTOCOL   *RootDir;
-   CHAR16              *PartName; // GPT partition name
-   CHAR16              *FsName;   // Filesystem name
-   CHAR16              *VolName;  // One of the two above OR fs description (e.g., "2 GiB FAT volume")
+   CHAR16              *PartName;  
+   CHAR16              *FsName;    
+   CHAR16              *VolName;   
    EFI_GUID            VolUuid;
    EFI_GUID            PartGuid;
    EFI_GUID            PartTypeGuid;
@@ -300,11 +300,11 @@ typedef struct _refit_menu_entry {
 } REFIT_MENU_ENTRY;
 
 typedef struct _refit_menu_screen {
-   CHAR16      *Title; // For EFI firmware entry, this includes "Reboot to" prefix
+   CHAR16      *Title;  
    EG_IMAGE    *TitleImage;
    UINTN       InfoLineCount;
    CHAR16      **InfoLines;
-   UINTN       EntryCount;     // total number of entries registered
+   UINTN       EntryCount;      
    REFIT_MENU_ENTRY **Entries;
    UINTN       TimeoutSeconds;
    CHAR16      *TimeoutText;
@@ -314,17 +314,17 @@ typedef struct _refit_menu_screen {
 
 typedef struct {
    REFIT_MENU_ENTRY me;
-   CHAR16           *Title; // For EFI firmware entry, this is "raw" title
+   CHAR16           *Title;  
    CHAR16           *LoaderPath;
    REFIT_VOLUME     *Volume;
    BOOLEAN          UseGraphicsMode;
    BOOLEAN          Enabled;
    CHAR16           *LoadOptions;
-   CHAR16           *InitrdPath; // Linux stub loader only
+   CHAR16           *InitrdPath;  
    CHAR8            OSType;
    UINTN            DiscoveryType;
-   EFI_DEVICE_PATH  *EfiLoaderPath; // path to NVRAM-defined loader
-   UINT16           EfiBootNum; // Boot#### number for NVRAM-defined loader
+   EFI_DEVICE_PATH  *EfiLoaderPath;  
+   UINT16           EfiBootNum;  
 } LOADER_ENTRY;
 
 typedef struct {
@@ -356,7 +356,7 @@ typedef struct {
    UINTN            RequestedTextMode;
    UINTN            Timeout;
    UINTN            HideUIFlags;
-   UINTN            MaxTags;     // max. number of OS entries to show simultaneously in graphics mode
+   UINTN            MaxTags;      
    UINTN            GraphicsFor;
    UINTN            LegacyType;
    UINTN            ScanDelay;
@@ -385,16 +385,16 @@ typedef struct {
    CHAR16           *MacOSRecoveryFiles;
    CHAR16           *DriverDirs;
    CHAR16           *IconsDir;
-   CHAR16           *LinuxPrefixes;      // Linux prefixes (e.g., L"vmlinuz,bzImage"
-   CHAR16           *LinuxMatchPatterns; // Linux prefixes PLUS wildcards (e.g., L"vmlinuz*,bzImage*")
+   CHAR16           *LinuxPrefixes;       
+   CHAR16           *LinuxMatchPatterns;  
    CHAR16           *ExtraKernelVersionStrings;
    CHAR16           *SpoofOSXVersion;
    UINT32_LIST      *CsrValues;
    UINTN            ShowTools[NUM_TOOLS];
-   CHAR8            ScanFor[NUM_SCAN_OPTIONS]; // codes of types of loaders for which to scan
+   CHAR8            ScanFor[NUM_SCAN_OPTIONS];  
 } REFIT_CONFIG;
 
-// Global variables
+ 
 
 extern EFI_HANDLE         SelfImageHandle;
 extern EFI_LOADED_IMAGE   *SelfLoadedImage;
@@ -420,7 +420,7 @@ extern EFI_GUID BootGuid;
 extern REFIT_MENU_SCREEN MainMenu;
 extern REFIT_MENU_ENTRY MenuEntryReturn;
 
-// Global function definitions....
+ 
 
 VOID AboutBOOT(VOID);
 EG_IMAGE * GetDiskBadge(IN UINTN DiskType);
@@ -436,4 +436,4 @@ int gunzip(unsigned char *buf, long len,
 
 #endif
 
-/* EOF */
+ 

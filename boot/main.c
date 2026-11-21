@@ -1,59 +1,59 @@
-/*
- * boot/main.c
- * Main code for the boot menu
- *
- * Copyright (c) 2006-2010 Christoph Pfisterer
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the
- *    distribution.
- *
- *  * Neither the name of Christoph Pfisterer nor the names of the
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-/*
- * Modifications copyright (c) 2012-2024 Roderick W. Smith
- *
- * Modifications distributed under the terms of the GNU General Public
- * License (GPL) version 3 (GPLv3), or (at your option) any later version.
- *
- */
-/*
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "global.h"
 #include "config.h"
@@ -80,8 +80,8 @@
 #define LibLocateProtocol EfiLibLocateProtocol
 #endif
 
-//
-// Some built-in menu definitions....
+ 
+ 
 
 REFIT_MENU_ENTRY MenuEntryReturn   = { L"Return to Main Menu", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
 
@@ -90,68 +90,68 @@ REFIT_MENU_SCREEN MainMenu       = { L"Main Menu", NULL, 0, NULL, 0, NULL, 0, L"
                                      L"Insert, Tab, or F2 for more options; Esc or Backspace to refresh" };
 static REFIT_MENU_SCREEN AboutMenu      = { L"About", NULL, 0, NULL, 0, NULL, 0, NULL, L"Press Enter to return to main menu", L"" };
 
-REFIT_CONFIG GlobalConfig = { /* TextOnly = */ FALSE,
-                              /* ScanAllLinux = */ TRUE,
-                              /* DeepLegacyScan = */ FALSE,
-                              /* EnableAndLockVMX = */ FALSE,
-                              /* FoldLinuxKernels = */ TRUE,
-                              /* EnableMouse = */ FALSE,
-                              /* EnableTouch = */ FALSE,
-                              /* HiddenTags = */ TRUE,
-                              /* UseNvram = */ TRUE,
-                              /* ShutdownAfterTimeout = */ FALSE,
-                              /* Install = */ FALSE,
-                              /* WriteSystemdVars = */ FALSE,
-                              /* FollowSymlinks = */ FALSE,
+REFIT_CONFIG GlobalConfig = {   FALSE,
+                                TRUE,
+                                FALSE,
+                                FALSE,
+                                TRUE,
+                                FALSE,
+                                FALSE,
+                                TRUE,
+                                TRUE,
+                                FALSE,
+                                FALSE,
+                                FALSE,
+                                FALSE,
 #ifdef EFIAARCH64
-                              /* GzippedLoaders = */ TRUE,
+                                TRUE,
 #else
-                              /* GzippedLoaders = */ FALSE,
+                                FALSE,
 #endif
-                              /* RequestedScreenWidth = */ 0,
-                              /* RequestedScreenHeight = */ 0,
-                              /* BannerBottomEdge = */ 0,
-                              /* RequestedTextMode = */ DONT_CHANGE_TEXT_MODE,
-                              /* Timeout = */ 20,
-                              /* HideUIFlags = */ 0,
-                              /* MaxTags = */ 0,
-                              /* GraphicsFor = */ GRAPHICS_FOR_OSX,
-                              /* LegacyType = */ LEGACY_TYPE_MAC,
-                              /* ScanDelay = */ 0,
-                              /* ScreensaverTime = */ 0,
-                              /* MouseSpeed = */ 4,
-                              /* IconSizes = */ { DEFAULT_BIG_ICON_SIZE / 4,
+                                0,
+                                0,
+                                0,
+                                DONT_CHANGE_TEXT_MODE,
+                                20,
+                                0,
+                                0,
+                                GRAPHICS_FOR_OSX,
+                                LEGACY_TYPE_MAC,
+                                0,
+                                0,
+                                4,
+                                { DEFAULT_BIG_ICON_SIZE / 4,
                                                   DEFAULT_SMALL_ICON_SIZE,
                                                   DEFAULT_BIG_ICON_SIZE,
                                                   DEFAULT_MOUSE_SIZE },
-                              /* BannerScale = */ BANNER_NOSCALE,
-                              /* LogLevel = */ 0,
-                              /* *DiscoveredRoot = */ NULL,
-                              /* *SelfDevicePath = */ NULL,
-                              /* *BannerFileName = */ NULL,
-                              /* *ScreenBackground = */ NULL,
-                              /* *ConfigFilename = */ CONFIG_FILE_NAME,
-                              /* *SelectionSmallFileName = */ NULL,
-                              /* *SelectionBigFileName = */ NULL,
-                              /* *DefaultSelection = */ NULL,
-                              /* *AlsoScan = */ NULL,
-                              /* ToolLocations = */ NULL,
-                              /* *ExtraToolLocations = */ NULL,
-                              /* *DontScanVolumes = */ NULL,
-                              /* *DontScanDirs = */ NULL,
-                              /* *DontScanFiles = */ NULL,
-                              /* *DontScanTools = */ NULL,
-                              /* *DontScanFirmware = */ NULL,
-                              /* *WindowsRecoveryFiles = */ NULL,
-                              /* *MacOSRecoveryFiles = */ NULL,
-                              /* *DriverDirs = */ NULL,
-                              /* *IconsDir = */ NULL,
-                              /* *LinuxPrefixes = */ NULL,
-                              /* *LinuxMatchPatterns = */ NULL,
-                              /* *ExtraKernelVersionStrings = */ NULL,
-                              /* *SpoofOSXVersion = */ NULL,
-                              /* CsrValues = */ NULL,
-                              /* ShowTools = */ { TAG_SHELL, TAG_MEMTEST, TAG_GDISK, TAG_APPLE_RECOVERY, TAG_WINDOWS_RECOVERY,
+                                BANNER_NOSCALE,
+                                0,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                CONFIG_FILE_NAME,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                { TAG_SHELL, TAG_MEMTEST, TAG_GDISK, TAG_APPLE_RECOVERY, TAG_WINDOWS_RECOVERY,
                                                   TAG_MOK_TOOL, TAG_ABOUT, TAG_HIDDEN, TAG_SHUTDOWN, TAG_REBOOT, TAG_FIRMWARE,
                                                   TAG_FWUPDATE_TOOL, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
                             };
@@ -160,9 +160,9 @@ CHAR16 *gHiddenTools = NULL;
 
 EFI_GUID BootGuid = BOOT_GUID_VALUE;
 
-//
-// misc functions
-//
+ 
+ 
+ 
 
 VOID AboutBOOT(VOID)
 {
@@ -182,7 +182,7 @@ VOID AboutBOOT(VOID)
         AddMenuInfoLine(&AboutMenu, L"");
         AddMenuInfoLine(&AboutMenu, L"Running on:");
         FirmwareVendor = StrDuplicate(ST->FirmwareVendor);
-        LimitStringLength(FirmwareVendor, MAX_LINE_LENGTH); // More than ~65 causes empty info page on 800x600 display
+        LimitStringLength(FirmwareVendor, MAX_LINE_LENGTH);  
         AddMenuInfoLine(&AboutMenu, PoolPrint(L" Firmware: %s %d.%02d", FirmwareVendor,
                                               ST->FirmwareRevision >> 16,
                                               ST->FirmwareRevision & ((1 << 16) - 1)));
@@ -223,25 +223,25 @@ VOID AboutBOOT(VOID)
     }
 
     RunMenu(&AboutMenu, NULL);
-} /* VOID AboutBOOT() */
+}  
 
-// Record the value of the loader's name/description in BOOT's "PreviousBoot" EFI variable,
-// if it's different from what's already stored there.
+ 
+ 
 VOID StoreLoaderName(IN CHAR16 *Name) {
 
     if (Name) {
         EfivarSetRaw(&BootGuid, L"PreviousBoot", (CHAR8*) Name, StrLen(Name) * 2 + 2, TRUE);
-    } // if
-} // VOID StoreLoaderName()
+    }  
+}  
 
-// Rescan for boot loaders
+ 
 VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
     LOG(1, LOG_LINE_NORMAL, L"Re-scanning all boot loaders");
     FreeList((VOID ***) &(MainMenu.Entries), &MainMenu.EntryCount);
     MainMenu.Entries = NULL;
     MainMenu.EntryCount = 0;
-    // ConnectAllDriversToAllControllers() can cause system hangs with some
-    // buggy filesystem drivers, so do it only if necessary....
+     
+     
     if (Reconnect) {
         ConnectAllDriversToAllControllers();
         ScanVolumes();
@@ -250,31 +250,31 @@ VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
     SetVolumeIcons();
     ScanForBootloaders(DisplayMessage);
     ScanForTools();
-} // VOID RescanAll()
+}  
 
 #ifdef __MAKEWITH_TIANO
 
-// Minimal initialization function
+ 
 static VOID InitializeLib(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable) {
     EFI_STATUS Status;
 
     gST            = SystemTable;
-    //    gImageHandle   = ImageHandle;
+     
     gBS            = SystemTable->BootServices;
-    //    gRS            = SystemTable->RuntimeServices;
-    gRT = SystemTable->RuntimeServices; // Some BDS functions need gRT to be set
+     
+    gRT = SystemTable->RuntimeServices;  
     Status = EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **) &gDS);
     if (EFI_ERROR(Status)) {
-        // Be sure that gDS isn't pointing to some random place; check it
-        // before each use....
+         
+         
         gDS = 0;
     }
 }
 
 #endif
 
-// Set up our own Secure Boot extensions....
-// Returns TRUE on success, FALSE otherwise
+ 
+ 
 static BOOLEAN SecureBootSetup(VOID) {
     EFI_STATUS Status;
     BOOLEAN    Success = FALSE;
@@ -293,10 +293,10 @@ static BOOLEAN SecureBootSetup(VOID) {
         LOG(2, LOG_LINE_NORMAL, L"Secure boot disabled; doing nothing");
     }
     return Success;
-} // VOID SecureBootSetup()
+}  
 
-// Remove our own Secure Boot extensions....
-// Returns TRUE on success, FALSE otherwise
+ 
+ 
 static BOOLEAN SecureBootUninstall(VOID) {
     EFI_STATUS Status;
     BOOLEAN    Success = TRUE;
@@ -312,12 +312,12 @@ static BOOLEAN SecureBootUninstall(VOID) {
         }
     }
     return Success;
-} // VOID SecureBootUninstall
+}  
 
-// Sets the global configuration filename; will be CONFIG_FILE_NAME unless the
-// "-c" command-line option is set, in which case that takes precedence.
-// If an error is encountered, leaves the value alone (it should be set to
-// CONFIG_FILE_NAME when GlobalConfig is initialized).
+ 
+ 
+ 
+ 
 static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
     EFI_LOADED_IMAGE *Info;
     CHAR16 *Options, *FileName, *SubString;
@@ -338,14 +338,14 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
             } else {
                 Print(L"Specified configuration file (%s) doesn't exist; using\n'boot.conf' default\n", FileName);
                 MyFreePool(FileName);
-            } // if/else
-        } // if
-    } // if
-} // VOID SetConfigFilename()
+            }  
+        }  
+    }  
+}  
 
-// Adjust the GlobalConfig.DefaultSelection variable: Replace all "+" elements with the
-// BOOT PreviousBoot variable, if it's available. If it's not available, delete that
-// element.
+ 
+ 
+ 
 static VOID AdjustDefaultSelection() {
     UINTN i = 0, j;
     CHAR16 *Element = NULL, *NewCommaDelimited = NULL, *PreviousBoot = NULL;
@@ -361,17 +361,17 @@ static VOID AdjustDefaultSelection() {
             } else {
                 Element = NULL;
             }
-        } // if
+        }  
         if (Element && StrLen(Element)) {
             MergeStrings(&NewCommaDelimited, Element, L',');
-        } // if
+        }  
         MyFreePool(Element);
-    } // while
+    }  
     MyFreePool(GlobalConfig.DefaultSelection);
     GlobalConfig.DefaultSelection = NewCommaDelimited;
-} // AdjustDefaultSelection()
+}  
 
-// Log basic information (BOOT version, EFI version, etc.) to the log file.
+ 
 VOID LogBasicInfo(VOID) {
     EFI_STATUS Status;
     UINT64     MaximumVariableStorageSize;
@@ -419,12 +419,12 @@ VOID LogBasicInfo(VOID) {
         case LEGACY_TYPE_NONE:
             TempStr = L"CSM is not available";
             break;
-        default: // should never happen; just in case....
+        default:  
             TempStr = L"CSM type: unknown";
             break;
     }
     LOG(1, LOG_LINE_NORMAL, TempStr);
-    if (EfiMajorVersion > 1) { // QueryVariableInfo() is not supported in EFI 1.x
+    if (EfiMajorVersion > 1) {  
         LOG(3, LOG_LINE_NORMAL, L"Trying to get variable info....");
         Status = refit_call4_wrapper(RT->QueryVariableInfo, EFI_VARIABLE_NON_VOLATILE,
                                      &MaximumVariableStorageSize, &RemainingVariableStorageSize,
@@ -441,8 +441,8 @@ VOID LogBasicInfo(VOID) {
         LOG(1, LOG_LINE_NORMAL, L"EFI 1.x; EFI non-volatile storage information is unavailable");
     }
 
-    // Report which video output devices are available. We don't actually
-    // use them, so just use TempStr as a throwaway pointer to the protocol.
+     
+     
     Status = LibLocateProtocol(&ConsoleControlProtocolGuid, (VOID **) &TempStr);
     LOG(1, LOG_LINE_NORMAL, L"System does%s support text mode",
         EFI_ERROR(Status) ? L" not" : L"");
@@ -461,11 +461,11 @@ VOID LogBasicInfo(VOID) {
         LOG(1, LOG_LINE_NORMAL, L"         Some functionality will be impaired!");
     }
 #endif
-} // VOID LogBasicInfo()
+}  
 
-//
-// main entry point
-//
+ 
+ 
+ 
 EFI_STATUS
 EFIAPI
 efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
@@ -478,23 +478,23 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     CHAR16             *SelectionName = NULL;
     EG_PIXEL           BGColor = COLOR_LIGHTBLUE;
 
-    // bootstrap
+     
     InitializeLib(ImageHandle, SystemTable);
     Status = InitRefitLib(ImageHandle);
     if (EFI_ERROR(Status))
         return Status;
 
-    // read configuration
+     
     MyCopyMem(GlobalConfig.ScanFor, "ieom       ", NUM_SCAN_OPTIONS);
     FindLegacyBootType();
     if (GlobalConfig.LegacyType == LEGACY_TYPE_MAC)
        MyCopyMem(GlobalConfig.ScanFor, "ihebocm    ", NUM_SCAN_OPTIONS);
     SetConfigFilename(ImageHandle);
 
-    // Scan volumes first to find SelfVolume, which is needed by LoadDrivers()
-    // and ReadConfig(); however, if drivers are loaded, a second call to
-    // ScanVolumes() is needed to register the new filesystem(s) accessed
-    // by the drivers.
+     
+     
+     
+     
     ScanVolumes();
     ReadConfig(GlobalConfig.ConfigFilename);
     if (GlobalConfig.LogLevel > 0) {
@@ -516,18 +516,18 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     WarnIfLegacyProblems();
     MainMenu.TimeoutSeconds = GlobalConfig.Timeout;
 
-    // disable EFI watchdog timer
+     
     LOG(1, LOG_LINE_NORMAL, L"Setting watchdog timer");
     refit_call4_wrapper(BS->SetWatchdogTimer, 0x0000, 0x0000, 0x0000, NULL);
 
-    // further bootstrap (now with config available)
+     
     SetupScreen();
     SetVolumeIcons();
     ScanForBootloaders(FALSE);
     ScanForTools();
 
-    // SetupScreen() clears the screen; but ScanForBootloaders() may display a
-    // message that must be deleted, so do so
+     
+     
     BltClearScreen(TRUE);
     pdInitialize();
 
@@ -540,7 +540,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
           refit_call1_wrapper(BS->Stall, 1000000);
        RescanAll(GlobalConfig.ScanDelay > 1, TRUE);
        BltClearScreen(TRUE);
-    } // if
+    }  
 
     if (GlobalConfig.DefaultSelection)
        SelectionName = StrDuplicate(GlobalConfig.DefaultSelection);
@@ -551,7 +551,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     while (MainLoopRunning) {
         MenuExit = RunMainMenu(&MainMenu, &SelectionName, &ChosenEntry);
 
-        // The Escape key triggers a re-scan operation....
+         
         if (MenuExit == MENU_EXIT_ESCAPE) {
             MenuExit = 0;
             RescanAll(TRUE, TRUE);
@@ -564,60 +564,60 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 
         switch (ChosenEntry->Tag) {
 
-            case TAG_REBOOT:    // Reboot
+            case TAG_REBOOT:     
                 TerminateScreen();
                 LOG(1, LOG_LINE_SEPARATOR, L"Rebooting system");
                 refit_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
                 LOG(1, LOG_LINE_NORMAL, L"Reboot FAILED!");
-                MainLoopRunning = FALSE;   // just in case we get this far
+                MainLoopRunning = FALSE;    
                 break;
 
-            case TAG_SHUTDOWN: // Shut Down
+            case TAG_SHUTDOWN:  
                 TerminateScreen();
                 LOG(1, LOG_LINE_SEPARATOR, L"Shutting down system");
                 refit_call4_wrapper(RT->ResetSystem, EfiResetShutdown, EFI_SUCCESS, 0, NULL);
                 LOG(1, LOG_LINE_NORMAL, L"Shutdown FAILED!");
-                MainLoopRunning = FALSE;   // just in case we get this far
+                MainLoopRunning = FALSE;    
                 break;
 
-            case TAG_ABOUT:    // About BOOT
+            case TAG_ABOUT:     
                 AboutBOOT();
                 break;
 
-            case TAG_LOADER:   // Boot OS via .EFI loader
+            case TAG_LOADER:    
                 StartLoader((LOADER_ENTRY *)ChosenEntry, SelectionName);
                 break;
 
-            case TAG_LEGACY:   // Boot legacy OS
+            case TAG_LEGACY:    
                 StartLegacy((LEGACY_ENTRY *)ChosenEntry, SelectionName);
                 break;
 
-            case TAG_LEGACY_UEFI: // Boot a legacy OS on a non-Mac
+            case TAG_LEGACY_UEFI:  
                 StartLegacyUEFI((LEGACY_ENTRY *)ChosenEntry, SelectionName);
                 break;
 
-            case TAG_FIRMWARE_LOADER: // Reboot to a loader defined in the EFI UseNVRAM
+            case TAG_FIRMWARE_LOADER:  
                 RebootIntoLoader((LOADER_ENTRY *)ChosenEntry);
                 break;
 
-            case TAG_TOOL:     // Start a EFI tool
+            case TAG_TOOL:      
                 StartTool((LOADER_ENTRY *)ChosenEntry);
                 break;
 
-            case TAG_HIDDEN:  // Manage hidden tag entries
+            case TAG_HIDDEN:   
                 ManageHiddenTags();
                 break;
 
-            case TAG_EXIT:    // Terminate BOOT
+            case TAG_EXIT:     
                 if ((MokProtocol) && !SecureBootUninstall()) {
-                   MainLoopRunning = FALSE;   // just in case we get this far
+                   MainLoopRunning = FALSE;    
                 } else {
                    BeginTextScreen(L" ");
                    return EFI_SUCCESS;
                 }
                 break;
 
-            case TAG_FIRMWARE: // Reboot into firmware's user interface
+            case TAG_FIRMWARE:  
                 RebootIntoFirmware();
                 break;
 
@@ -628,12 +628,12 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
                 ManageBootorder();
                 break;
 
-        } // switch()
-    } // while()
+        }  
+    }  
     MyFreePool(SelectionName);
 
-    // If we end up here, things have gone wrong. Try to reboot, and if that
-    // fails, go into an endless loop.
+     
+     
     LOG(1, LOG_LINE_SEPARATOR, L"Main loop has exited, but it should not have!");
     UninitRefitLib();
     refit_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
@@ -643,4 +643,4 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     EndlessIdleLoop();
 
     return EFI_SUCCESS;
-} /* efi_main() */
+}  

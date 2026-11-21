@@ -1,15 +1,15 @@
-/*
- * boot/gpt.h
- * Functions related to GPT data structures
- *
- * Copyright (c) 2014-2015 Roderick W. Smith
- * All rights reserved.
- *
- * This program is distributed under the terms of the GNU General Public
- * License (GPL) version 3 (GPLv3), a copy of which must be distributed
- * with this source code or binaries made from it.
- *
- */
+ 
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef __GPT_H_
 #define __GPT_H_
@@ -33,8 +33,8 @@ typedef struct {
    UINT32  size;
 } MBR_PART_INFO;
 
-// A 512-byte data structure into which the MBR can be loaded in one
-// go. Also used when loading logical partitions.
+ 
+ 
 
 typedef struct {
    UINT8            code[440];
@@ -82,7 +82,7 @@ typedef struct _gpt_data {
 
 VOID ClearGptData(GPT_DATA *Data);
 EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data);
-// CHAR16 * PartNameFromGuid(EFI_GUID *Guid);
+ 
 GPT_ENTRY * FindPartWithGuid(EFI_GUID *Guid);
 VOID ForgetPartitionTables(VOID);
 VOID AddPartitionTable(REFIT_VOLUME *Volume);

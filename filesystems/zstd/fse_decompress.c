@@ -1,72 +1,72 @@
-/*
- * FSE : Finite State Entropy decoder
- * Copyright (C) 2013-2015, Yann Collet.
- *
- * BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *   * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following disclaimer
- * in the documentation and/or other materials provided with the
- * distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation. This program is dual-licensed; you may select
- * either version 2 of the GNU General Public License ("GPL") or BSD license
- * ("BSD").
- *
- * You can contact the author at :
- * - Source repository : https://github.com/Cyan4973/FiniteStateEntropy
- */
+ 
 
-/* **************************************************************
-*  Compiler specifics
-****************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
 #define FORCE_INLINE static __always_inline
 
-/* **************************************************************
-*  Includes
-****************************************************************/
+ 
+
+
 #include "bitstream.h"
 #include "fse.h"
 
-/* **************************************************************
-*  Error Management
-****************************************************************/
+ 
+
+
 #define FSE_STATIC_ASSERT(c)                                   \
 	{                                                      \
 		enum { FSE_static_assert = 1 / (int)(!!(c)) }; \
-	} /* use only *after* variable declarations */
+	}  
 
 
-/* **************************************************************
-*  Templates
-****************************************************************/
-/*
-  designed to be included
-  for type-specific functions (template emulation in C)
-  Objective is to write these functions only once, for improved maintenance
-*/
+ 
 
-/* safety checks */
+
+ 
+
+
+
+
+
+ 
 #ifndef FSE_FUNCTION_EXTENSION
 #error "FSE_FUNCTION_EXTENSION must be defined"
 #endif
@@ -74,16 +74,16 @@
 #error "FSE_FUNCTION_TYPE must be defined"
 #endif
 
-/* Function names */
+ 
 #define FSE_CAT(X, Y) X##Y
 #define FSE_FUNCTION_NAME(X, Y) FSE_CAT(X, Y)
 #define FSE_TYPE_NAME(X, Y) FSE_CAT(X, Y)
 
-/* Function templates */
+ 
 
 size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsigned maxSymbolValue, unsigned tableLog, void *workspace, size_t workspaceSize)
 {
-	void *const tdPtr = dt + 1; /* because *dt is unsigned, 32-bits aligned on 32-bits */
+	void *const tdPtr = dt + 1;  
 	FSE_DECODE_TYPE *const tableDecode = (FSE_DECODE_TYPE *)(tdPtr);
 	U16 *symbolNext = (U16 *)workspace;
 
@@ -91,7 +91,7 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 	U32 const tableSize = 1 << tableLog;
 	U32 highThreshold = tableSize - 1;
 
-	/* Sanity Checks */
+	 
 	if (workspaceSize < sizeof(U16) * (FSE_MAX_SYMBOL_VALUE + 1))
 		return ERROR(tableLog_tooLarge);
 	if (maxSymbolValue > FSE_MAX_SYMBOL_VALUE)
@@ -99,7 +99,7 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 	if (tableLog > FSE_MAX_TABLELOG)
 		return ERROR(tableLog_tooLarge);
 
-	/* Init, lay down lowprob symbols */
+	 
 	{
 		FSE_DTableHeader DTableH;
 		DTableH.tableLog = (U16)tableLog;
@@ -121,7 +121,7 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 		memcpy(dt, &DTableH, sizeof(DTableH));
 	}
 
-	/* Spread symbols */
+	 
 	{
 		U32 const tableMask = tableSize - 1;
 		U32 const step = FSE_TABLESTEP(tableSize);
@@ -132,14 +132,14 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 				tableDecode[position].symbol = (FSE_FUNCTION_TYPE)s;
 				position = (position + step) & tableMask;
 				while (position > highThreshold)
-					position = (position + step) & tableMask; /* lowprob area */
+					position = (position + step) & tableMask;  
 			}
 		}
 		if (position != 0)
-			return ERROR(GENERIC); /* position must reach all cells once, otherwise normalizedCounter is incorrect */
+			return ERROR(GENERIC);  
 	}
 
-	/* Build Decoding table */
+	 
 	{
 		U32 u;
 		for (u = 0; u < tableSize; u++) {
@@ -153,9 +153,9 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 	return 0;
 }
 
-/*-*******************************************************
-*  Decompression (Byte symbols)
-*********************************************************/
+ 
+
+
 size_t FSE_buildDTable_rle(FSE_DTable *dt, BYTE symbolValue)
 {
 	void *ptr = dt;
@@ -185,7 +185,7 @@ FORCE_INLINE size_t FSE_decompress_usingDTable_generic(void *dst, size_t maxDstS
 	FSE_DState_t state1;
 	FSE_DState_t state2;
 
-	/* Init */
+	 
 	CHECK_F(BIT_initDStream(&bitD, cSrc, cSrcSize));
 
 	FSE_initDState(&state1, &bitD, dt);
@@ -193,16 +193,16 @@ FORCE_INLINE size_t FSE_decompress_usingDTable_generic(void *dst, size_t maxDstS
 
 #define FSE_GETSYMBOL(statePtr) fast ? FSE_decodeSymbolFast(statePtr, &bitD) : FSE_decodeSymbol(statePtr, &bitD)
 
-	/* 4 symbols per loop */
+	 
 	for (; (BIT_reloadDStream(&bitD) == BIT_DStream_unfinished) & (op < olimit); op += 4) {
 		op[0] = FSE_GETSYMBOL(&state1);
 
-		if (FSE_MAX_TABLELOG * 2 + 7 > sizeof(bitD.bitContainer) * 8) /* This test must be static */
+		if (FSE_MAX_TABLELOG * 2 + 7 > sizeof(bitD.bitContainer) * 8)  
 			BIT_reloadDStream(&bitD);
 
 		op[1] = FSE_GETSYMBOL(&state2);
 
-		if (FSE_MAX_TABLELOG * 4 + 7 > sizeof(bitD.bitContainer) * 8) /* This test must be static */
+		if (FSE_MAX_TABLELOG * 4 + 7 > sizeof(bitD.bitContainer) * 8)  
 		{
 			if (BIT_reloadDStream(&bitD) > BIT_DStream_unfinished) {
 				op += 2;
@@ -212,14 +212,14 @@ FORCE_INLINE size_t FSE_decompress_usingDTable_generic(void *dst, size_t maxDstS
 
 		op[2] = FSE_GETSYMBOL(&state1);
 
-		if (FSE_MAX_TABLELOG * 2 + 7 > sizeof(bitD.bitContainer) * 8) /* This test must be static */
+		if (FSE_MAX_TABLELOG * 2 + 7 > sizeof(bitD.bitContainer) * 8)  
 			BIT_reloadDStream(&bitD);
 
 		op[3] = FSE_GETSYMBOL(&state2);
 	}
 
-	/* tail */
-	/* note : BIT_reloadDStream(&bitD) >= FSE_DStream_partiallyFilled; Ends at exactly BIT_DStream_completed */
+	 
+	 
 	while (1) {
 		if (op > (omax - 2))
 			return ERROR(dstSize_tooSmall);
@@ -247,7 +247,7 @@ size_t FSE_decompress_usingDTable(void *dst, size_t originalSize, const void *cS
 	const FSE_DTableHeader *DTableH = (const FSE_DTableHeader *)ptr;
 	const U32 fastMode = DTableH->fastMode;
 
-	/* select fast mode (static) */
+	 
 	if (fastMode)
 		return FSE_decompress_usingDTable_generic(dst, originalSize, cSrc, cSrcSize, dt, 1);
 	return FSE_decompress_usingDTable_generic(dst, originalSize, cSrc, cSrcSize, dt, 0);
@@ -277,12 +277,12 @@ size_t FSE_decompress_wksp(void *dst, size_t dstCapacity, const void *cSrc, size
 	workspace = (U32 *)workspace + spaceUsed32;
 	workspaceSize -= (spaceUsed32 << 2);
 
-	/* normal FSE decoding mode */
+	 
 	NCountLength = FSE_readNCount(counting, &maxSymbolValue, &tableLog, istart, cSrcSize);
 	if (FSE_isError(NCountLength))
 		return NCountLength;
-	// if (NCountLength >= cSrcSize) return ERROR(srcSize_wrong);   /* too small input size; supposed to be already checked in NCountLength, only remaining
-	// case : NCountLength==cSrcSize */
+	 
+	 
 	if (tableLog > maxLog)
 		return ERROR(tableLog_tooLarge);
 	ip += NCountLength;
@@ -290,12 +290,12 @@ size_t FSE_decompress_wksp(void *dst, size_t dstCapacity, const void *cSrc, size
 
 	CHECK_F(FSE_buildDTable_wksp(dt, counting, maxSymbolValue, tableLog, workspace, workspaceSize));
 
-	return FSE_decompress_usingDTable(dst, dstCapacity, ip, cSrcSize, dt); /* always return, even if it is an error code */
+	return FSE_decompress_usingDTable(dst, dstCapacity, ip, cSrcSize, dt);  
 }
 
-/*-**************************************************************
-*  FSE NCount encoding-decoding
-****************************************************************/
+ 
+
+
 size_t FSE_readNCount(short *normalizedCounter, unsigned *maxSVPtr, unsigned *tableLogPtr, const void *headerBuffer, size_t hbSize)
 {
 	const BYTE *const istart = (const BYTE *)headerBuffer;
@@ -312,7 +312,7 @@ size_t FSE_readNCount(short *normalizedCounter, unsigned *maxSVPtr, unsigned *ta
 	if (hbSize < 4)
 		return ERROR(srcSize_wrong);
 	bitStream = ZSTD_readLE32(ip);
-	nbBits = (bitStream & 0xF) + FSE_MIN_TABLELOG; /* extract tableLog */
+	nbBits = (bitStream & 0xF) + FSE_MIN_TABLELOG;  
 	if (nbBits > FSE_TABLELOG_ABSOLUTE_MAX)
 		return ERROR(tableLog_tooLarge);
 	bitStream >>= 4;
@@ -368,8 +368,8 @@ size_t FSE_readNCount(short *normalizedCounter, unsigned *maxSVPtr, unsigned *ta
 				bitCount += nbBits;
 			}
 
-			count--;				 /* extra accuracy */
-			remaining -= count < 0 ? -count : count; /* -1 means +1 */
+			count--;				  
+			remaining -= count < 0 ? -count : count;  
 			normalizedCounter[charnum++] = (short)count;
 			previous0 = !count;
 			while (remaining < threshold) {
@@ -386,7 +386,7 @@ size_t FSE_readNCount(short *normalizedCounter, unsigned *maxSVPtr, unsigned *ta
 			}
 			bitStream = ZSTD_readLE32(ip) >> (bitCount & 31);
 		}
-	} /* while ((remaining>1) & (charnum<=*maxSVPtr)) */
+	}  
 	if (remaining != 1)
 		return ERROR(corruption_detected);
 	if (bitCount > 32)

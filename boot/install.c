@@ -1,14 +1,14 @@
-/*
- * boot/install.c
- * Functions related to installation of BOOT and management of EFI boot order
- *
- * Copyright (c) 2020-2024 by Roderick W. Smith
- *
- * Distributed under the terms of the GNU General Public License (GPL)
- * version 3 (GPLv3), a copy of which must be distributed with this source
- * code or binaries made from it.
- *
- */
+ 
+
+
+
+
+
+
+
+
+
+
 
 #include "global.h"
 #include "lib.h"
@@ -20,7 +20,7 @@
 #include "../include/refit_call_wrapper.h"
 #include "../include/Handle.h"
 
-/* Generic EFI file rename used by log rotation; it does not deploy BOOT. */
+ 
 EFI_STATUS BackupOldFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
     EFI_FILE_PROTOCOL *FilePtr = NULL;
     EFI_FILE_INFO *Original = NULL, *Replacement = NULL;
@@ -63,9 +63,9 @@ finished:
     return Status;
 }
 
-/* Firmware self-installation retired: only the native RUN deploys BOOT.
- * No firmware-side operation may write the shared EFI/BOOT fallback.
- */
+ 
+
+
 
 static EFI_STATUS SetBootDefault(UINTN BootNum) {
     UINTN Status, VarSize = 0, ListSize, i, j;
@@ -104,9 +104,9 @@ static EFI_STATUS SetBootDefault(UINTN BootNum) {
     MyFreePool(NewBootOrder);
     MyFreePool(BootOrder);
     return Status;
-} // EFI_STATUS SetBootDefault()
+}  
 
-/* EFI device-path nodes are untrusted firmware variable contents. */
+ 
 static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
     UINTN Offset = 0;
     UINTN Length;
@@ -120,7 +120,7 @@ static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
                  ((UINTN)(UINT8)Path[Offset + 3] << 8);
         if (Length < 4 || Length > PathBytes - Offset) return FALSE;
         if (Type == 0x7f) {
-            /* Require the terminal END_ENTIRE node and no trailing bytes. */
+             
             return SubType == 0xff && Length == 4 &&
                    Offset + Length == PathBytes;
         }
@@ -129,7 +129,7 @@ static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
     return FALSE;
 }
 
-/* Validate the complete firmware Boot#### record before accessing any member. */
+ 
 BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
     UINTN Status, VarSize, OrderBytes = 0, i, charCount, pathOffset;
     UINT16 *BootOrder = NULL, pathBytes;
@@ -195,7 +195,7 @@ BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
     return ListStart;
 }
 
-// Delete a linked-list BOOT_ENTRY_LIST data structure
+ 
 VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries) {
     BOOT_ENTRY_LIST *Current;
 
@@ -206,17 +206,17 @@ VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries) {
         Entries = Entries->NextBootEntry;
         MyFreePool(Current);
     }
-} // VOID DeleteBootOrderEntries()
+}  
 
-// Enable the user to pick one boot option to move to the top of the boot
-// order list (via Enter) or delete (via Delete or '-'). This function does
-// not actually call those options, though; that's left to the calling
-// function.
-// Returns the operation (EFI_BOOT_OPTION_MAKE_DEFAULT, EFI_BOOT_OPTION_DELETE,
-// or EFI_BOOT_OPTION_DO_NOTHING).
-// Input variables:
-//  - *Entries: Linked-list set of boot entries. Unmodified.
-//  - *BootOrderNum: Returns the Boot#### number to be promoted or deleted.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOrderNum) {
     CHAR16              *Temp = NULL, *Filename = NULL;
     REFIT_VOLUME        *Volume = NULL;
@@ -247,34 +247,34 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
                                     Entries->BootEntry.BootNum,
                                     Entries->BootEntry.Label,
                                     Filename);
-                } // if/else
+                }  
             } else {
                 Temp = PoolPrint(L"Boot%04x - %s",
                                  Entries->BootEntry.BootNum,
                                  Entries->BootEntry.Label);
-            } // if/else
+            }  
 
             MyFreePool(Filename);
             Filename = NULL;
             Volume = NULL;
             MenuEntryItem->Title = StrDuplicate(Temp);
-            MenuEntryItem->Row = Entries->BootEntry.BootNum; // Not really the row; the Boot#### number
+            MenuEntryItem->Row = Entries->BootEntry.BootNum;  
             AddMenuEntry(&Menu, MenuEntryItem);
             Entries = Entries->NextBootEntry;
             MyFreePool(Temp);
-        } // while
+        }  
         MenuExit = RunGenericMenu(&Menu, Style, &DefaultEntry, &ChosenOption);
         if (MenuExit == MENU_EXIT_ENTER && ChosenOption) {
             Operation = EFI_BOOT_OPTION_MAKE_DEFAULT;
             *BootOrderNum = ChosenOption->Row;
-        } // if
-        /* Firmware entries are never deleted from this interface. */
+        }  
+         
         MyFreePool(MenuEntryItem);
     } else {
         DisplaySimpleMessage(L"Information", L"EFI boot order list is unavailable");
-    } // if
+    }  
     return Operation;
-} // REFIT_VOLUME *PickOneBootOption()
+}  
 
 
 
@@ -298,4 +298,4 @@ VOID ManageBootorder(VOID) {
         }
     }
     DeleteBootOrderEntries(Entries);
-} // VOID ManageBootorder()
+}  

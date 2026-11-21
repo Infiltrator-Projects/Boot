@@ -1,7 +1,7 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-# BOOT: native GNU-EFI x86-64 firmware executable.
-# Standard EFI filesystem drivers are built alongside BOOT; other interfaces can coexist.
-# Firmware and disk tools are never installed by a build or clean target.
+
+
+
+
 include Make.common
 
 .PHONY: all gnuefi clean

@@ -1,16 +1,16 @@
-/** @file
-  This file defines BMP file header data structures.
+ 
 
-Copyright (c) 2006 - 2008, Intel Corporation. <BR>
-All rights reserved. This program and the accompanying materials
-are licensed and made available under the terms and conditions of the BSD License
-which accompanies this distribution.  The full text of the license may be found at
-http://opensource.org/licenses/bsd-license.php
 
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
-WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-**/
+
+
+
+
+
+
+
+
+
 
 #ifndef _BMP_H__
 #define _BMP_H__
@@ -36,10 +36,10 @@ typedef struct {
   UINT32        HeaderSize;
   UINT32        PixelWidth;
   UINT32        PixelHeight;
-  UINT16        Planes;          ///> Must be 1
-  UINT16        BitPerPixel;     ///> 1, 4, 8, or 24
+  UINT16        Planes;           
+  UINT16        BitPerPixel;      
   UINT32        CompressionType;
-  UINT32        ImageSize;       ///> Compressed image size in bytes
+  UINT32        ImageSize;        
   UINT32        XPixelsPerMeter;
   UINT32        YPixelsPerMeter;
   UINT32        NumberOfColors;

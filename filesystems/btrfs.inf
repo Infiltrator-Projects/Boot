@@ -1,13 +1,13 @@
-## @file
-#
-# btrfs.inf file to build rEFInd's Btrfs driver using the EDK2/UDK201#
-# development kit.
-#
-# Copyright (c) 2012-2017 by Roderick W. Smith
-# Released under the terms of the GPLv3 (or, at your discretion, any later
-# version), a copy of which should come with this file.
-#
-##
+
+
+
+
+
+
+
+
+
+
 
 [Defines]
   INF_VERSION                   = 0x00010005
@@ -20,11 +20,11 @@
   ENTRY_POINT                   = fsw_efi_main
   FSTYPE                        = btrfs
 
-#
-# The following information is for reference only and not required by the build tools.
-#
-#  VALID_ARCHITECTURES           = IA32 X64 IPF EBC
-#
+
+
+
+
+
 
 [Sources]
   fsw_efi.c
@@ -48,7 +48,7 @@
 
 [LibraryClasses.AARCH64]
   BaseStackCheckLib
-# Comment out CompilerIntrinsicsLib when compiling for AARCH64 using UDK2014
+
   CompilerIntrinsicsLib
 
 [Guids]

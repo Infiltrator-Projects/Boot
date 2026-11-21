@@ -1,49 +1,49 @@
-/*
- * this file take from grub 2.0
- * for btrfs UEFI driver
- */
+ 
 
-/* lzodefs.h -- architecture, OS and compiler specific defines
 
-   This file is part of the LZO real-time data compression library.
 
-   Copyright (C) 2011 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2010 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2009 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2008 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2007 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2006 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2005 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2004 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2003 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2002 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2001 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 2000 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 1999 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 1998 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 1997 Markus Franz Xaver Johannes Oberhumer
-   Copyright (C) 1996 Markus Franz Xaver Johannes Oberhumer
-   All Rights Reserved.
 
-   The LZO library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License as
-   published by the Free Software Foundation; either version 2 of
-   the License, or (at your option) any later version.
+ 
 
-   The LZO library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with the LZO library; see the file COPYING.
-   If not, write to the Free Software Foundation, Inc.,
-   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-   Markus F.X.J. Oberhumer
-   <markus@oberhumer.com>
-   http://www.oberhumer.com/opensource/lzo/
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #ifndef __LZODEFS_H_INCLUDED
@@ -1367,7 +1367,7 @@ extern "C" {
 #elif (LZO_CC_CLANG || LZO_CC_LLVM || LZO_CC_PATHSCALE)
 #  define __lzo_gnuc_extension__    __extension__
 #else
-#  define __lzo_gnuc_extension__    /*empty*/
+#  define __lzo_gnuc_extension__     
 #endif
 #endif
 #if !defined(__lzo_ua_volatile)
@@ -1439,7 +1439,7 @@ extern "C" {
 #if defined(__lzo_inline)
 #  define __lzo_HAVE_inline 1
 #else
-#  define __lzo_inline          /*empty*/
+#  define __lzo_inline           
 #endif
 #if !defined(__lzo_forceinline)
 #if (LZO_CC_GNUC >= 0x030200ul)
@@ -1459,7 +1459,7 @@ extern "C" {
 #if defined(__lzo_forceinline)
 #  define __lzo_HAVE_forceinline 1
 #else
-#  define __lzo_forceinline     /*empty*/
+#  define __lzo_forceinline      
 #endif
 #if !defined(__lzo_noinline)
 #if 1 && (LZO_ARCH_I386) && (LZO_CC_GNUC >= 0x040000ul) && (LZO_CC_GNUC < 0x040003ul)
@@ -1486,7 +1486,7 @@ extern "C" {
 #if defined(__lzo_noinline)
 #  define __lzo_HAVE_noinline 1
 #else
-#  define __lzo_noinline        /*empty*/
+#  define __lzo_noinline         
 #endif
 #if (__lzo_HAVE_forceinline || __lzo_HAVE_noinline) && !(__lzo_HAVE_inline)
 #  error "this should not happen"
@@ -1507,7 +1507,7 @@ extern "C" {
 #if defined(__lzo_noreturn)
 #  define __lzo_HAVE_noreturn 1
 #else
-#  define __lzo_noreturn        /*empty*/
+#  define __lzo_noreturn         
 #endif
 #if !defined(__lzo_nothrow)
 #if (LZO_CC_GNUC >= 0x030300ul)
@@ -1525,7 +1525,7 @@ extern "C" {
 #if defined(__lzo_nothrow)
 #  define __lzo_HAVE_nothrow 1
 #else
-#  define __lzo_nothrow         /*empty*/
+#  define __lzo_nothrow          
 #endif
 #if !defined(__lzo_restrict)
 #if (LZO_CC_GNUC >= 0x030400ul)
@@ -1541,7 +1541,7 @@ extern "C" {
 #if defined(__lzo_restrict)
 #  define __lzo_HAVE_restrict 1
 #else
-#  define __lzo_restrict        /*empty*/
+#  define __lzo_restrict         
 #endif
 #if !defined(__lzo_likely) && !defined(__lzo_unlikely)
 #if (LZO_CC_GNUC >= 0x030200ul)
@@ -1656,7 +1656,7 @@ extern "C" {
 #  if (LZO_CC_GNUC || LZO_CC_HIGHC || LZO_CC_NDPC || LZO_CC_PACIFICC)
 #  elif (LZO_CC_DMC || LZO_CC_SYMANTECC || LZO_CC_ZORTECHC)
 #    define __lzo_cdecl                 __cdecl
-#    define __lzo_cdecl_atexit          /*empty*/
+#    define __lzo_cdecl_atexit           
 #    define __lzo_cdecl_main            __cdecl
 #    if (LZO_OS_OS2 && (LZO_CC_DMC || LZO_CC_SYMANTECC))
 #      define __lzo_cdecl_qsort         __pascal
@@ -1697,19 +1697,19 @@ extern "C" {
 #  define __lzo_cdecl                   cdecl
 #endif
 #if !defined(__lzo_cdecl)
-#  define __lzo_cdecl                   /*empty*/
+#  define __lzo_cdecl                    
 #endif
 #if !defined(__lzo_cdecl_atexit)
-#  define __lzo_cdecl_atexit            /*empty*/
+#  define __lzo_cdecl_atexit             
 #endif
 #if !defined(__lzo_cdecl_main)
-#  define __lzo_cdecl_main              /*empty*/
+#  define __lzo_cdecl_main               
 #endif
 #if !defined(__lzo_cdecl_qsort)
-#  define __lzo_cdecl_qsort             /*empty*/
+#  define __lzo_cdecl_qsort              
 #endif
 #if !defined(__lzo_cdecl_sighandler)
-#  define __lzo_cdecl_sighandler        /*empty*/
+#  define __lzo_cdecl_sighandler         
 #endif
 #if !defined(__lzo_cdecl_va)
 #  define __lzo_cdecl_va                __lzo_cdecl
@@ -1852,6 +1852,6 @@ extern "C" {
     LZO_INFO_ARCH __LZO_INFOSTR_MM __LZO_INFOSTR_PM __LZO_INFOSTR_ENDIAN \
     " " __LZO_INFOSTR_OSNAME __LZO_INFOSTR_LIBC " " LZO_INFO_CC __LZO_INFOSTR_CCVER
 
-#endif /* already included */
+#endif  
 
-/* vim:set ts=4 et: */
+ 

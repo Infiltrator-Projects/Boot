@@ -1,16 +1,16 @@
-/** @file
-  BDS Lib functions which relate with connect the device
+ 
 
-Copyright (c) 2004 - 2008, Intel Corporation. All rights reserved.<BR>
-This program and the accompanying materials
-are licensed and made available under the terms and conditions of the BSD License
-which accompanies this distribution.  The full text of the license may be found at
-http://opensource.org/licenses/bsd-license.php
 
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
-WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-**/
+
+
+
+
+
+
+
+
+
 
 #include "Platform.h"
 
@@ -34,9 +34,9 @@ EFI_STATUS ScanDeviceHandles(EFI_HANDLE ControllerHandle,
   *HandleBuffer = NULL;
   *HandleType   = NULL;
 
-  //
-  // Retrieve the list of all handles from the handle database
-  //
+   
+   
+   
   Status = gBS->LocateHandleBuffer (AllHandles, NULL, NULL, HandleCount, HandleBuffer);
   if (EFI_ERROR (Status)) goto Error;
 
@@ -45,9 +45,9 @@ EFI_STATUS ScanDeviceHandles(EFI_HANDLE ControllerHandle,
 
   for (HandleIndex = 0; HandleIndex < *HandleCount; HandleIndex++) {
     (*HandleType)[HandleIndex] = EFI_HANDLE_TYPE_UNKNOWN;
-    //
-    // Retrieve the list of all the protocols on each handle
-    //
+     
+     
+     
     Status = gBS->ProtocolsPerHandle (
                   (*HandleBuffer)[HandleIndex],
                   &ProtocolGuidArray,
@@ -92,9 +92,9 @@ EFI_STATUS ScanDeviceHandles(EFI_HANDLE ControllerHandle,
           (*HandleType)[HandleIndex] |= EFI_HANDLE_TYPE_DEVICE_HANDLE;
         }
 
-        //
-        // Retrieve the list of agents that have opened each protocol
-        //
+         
+         
+         
         Status = gBS->OpenProtocolInformation (
                                                (*HandleBuffer)[HandleIndex],
                                                ProtocolGuidArray[ProtocolIndex],
@@ -234,13 +234,13 @@ Done:
 }
 
 
-/**
-  Connects all drivers to all controllers.
-  This function make sure all the current system driver will manage
-  the correspoinding controllers if have. And at the same time, make
-  sure all the system controllers have driver to manage it if have.
+ 
 
-**/
+
+
+
+
+
 VOID
 EFIAPI
 BdsLibConnectAllDriversToAllControllers (
@@ -250,18 +250,18 @@ BdsLibConnectAllDriversToAllControllers (
   EFI_STATUS  Status = EFI_UNSUPPORTED;
 
   do {
-    //
-    // Connect All EFI 1.10 drivers following EFI 1.10 algorithm
-    //
-    //BdsLibConnectAllEfi ();
+     
+     
+     
+     
     BdsLibConnectMostlyAllEfi ();
 
-    //
-    // Check to see if it's possible to dispatch an more DXE drivers.
-    // The BdsLibConnectAllEfi () may have made new DXE drivers show up.
-    // If anything is Dispatched Status == EFI_SUCCESS and we will try
-    // the connect again.
-    //
+     
+     
+     
+     
+     
+     
     if (gDS)
         Status = gDS->Dispatch ();
 

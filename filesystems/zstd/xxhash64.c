@@ -1,48 +1,48 @@
-/*
- * xxHash - Extremely Fast Hash algorithm
- * Copyright (C) 2012-2016, Yann Collet.
- *
- * BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation. This program is dual-licensed; you may select
- * either version 2 of the GNU General Public License ("GPL") or BSD license
- * ("BSD").
- *
- * You can contact the author at:
- * - xxHash homepage: http://cyan4973.github.io/xxHash/
- * - xxHash source repository: https://github.com/Cyan4973/xxHash
- */
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "xxhash.h"
 
-/*-*************************************
- * Macros
- **************************************/
+ 
+
+
 #define xxh_rotl64(x, r) ((x << r) | (x >> (64 - r)))
 
 #ifdef __LITTLE_ENDIAN
@@ -51,18 +51,18 @@
 # define XXH_CPU_LITTLE_ENDIAN 0
 #endif
 
-/*-*************************************
- * Constants
- **************************************/
+ 
+
+
 static const uint64_t PRIME64_1 = 11400714785074694791ULL;
 static const uint64_t PRIME64_2 = 14029467366897019727ULL;
 static const uint64_t PRIME64_3 =  1609587929392839161ULL;
 static const uint64_t PRIME64_4 =  9650029242287828579ULL;
 static const uint64_t PRIME64_5 =  2870177450012600261ULL;
 
-/*-**************************
- *  Utils
- ***************************/
+ 
+
+
 
 static uint64_t xxh64_round(uint64_t acc, const uint64_t input)
 {
@@ -80,13 +80,13 @@ static uint64_t xxh64_merge_round(uint64_t acc, uint64_t val)
 	return acc;
 }
 
-/*-**************************************************
- * Advanced Hash Functions
- ***************************************************/
+ 
+
+
 
 void xxh64_reset(struct xxh64_state *statePtr, const uint64_t seed)
 {
-	/* use a local state for memcpy() to avoid strict-aliasing warnings */
+	 
 	struct xxh64_state state;
 
 	memset(&state, 0, sizeof(state));
@@ -107,13 +107,13 @@ int xxh64_update(struct xxh64_state *state, const void *input, const size_t len)
 
 	state->total_len += len;
 
-	if (state->memsize + len < 32) { /* fill in tmp buffer */
+	if (state->memsize + len < 32) {  
 		memcpy(((uint8_t *)state->mem64) + state->memsize, input, len);
 		state->memsize += (uint32_t)len;
 		return 0;
 	}
 
-	if (state->memsize) { /* tmp buffer is full */
+	if (state->memsize) {  
 		uint64_t *p64 = state->mem64;
 
 		memcpy(((uint8_t *)p64) + state->memsize, input,

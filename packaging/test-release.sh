@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: GPL-3.0-or-later
-# Verify native RUN metadata and generic package without running boot-install.
+
+
 set -euo pipefail
 
 version="${1:?Usage: packaging/test-release.sh VERSION [OUTPUT_DIRECTORY]}"
@@ -38,7 +38,7 @@ if grep -Eq '(^|/)(postinst|preinst|prerm|postrm)$' "$work/control.txt"; then
     exit 1
 fi
 
-# Test the one maintained RUN file, not an embedded or duplicated installer.
+
 bash -n "$run"
 bash -n boot-native-installer.run
 test "$(head -n 1 "$run")" = '#!/usr/bin/env bash'

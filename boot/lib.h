@@ -1,46 +1,46 @@
-/*
- * refit/lib.h
- * General header file
- *
- * Copyright (c) 2006-2009 Christoph Pfisterer
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the
- *    distribution.
- *
- *  * Neither the name of Christoph Pfisterer nor the names of the
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-/*
- * Modifications copyright (c) 2012-2024 Roderick W. Smith
- *
- * Modifications distributed under the terms of the GNU General Public
- * License (GPL) version 3 (GPLv3), a copy of which must be distributed
- * with this source code or binaries made from it.
- *
- */
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
 
 #ifndef __LIB_H_
 #define __LIB_H_
@@ -57,11 +57,11 @@
 
 #include "libeg.h"
 
-//
-// lib module
-//
+ 
+ 
+ 
 
-// types
+ 
 
 typedef struct {
     EFI_STATUS          LastStatus;
@@ -79,12 +79,12 @@ typedef struct {
 
 #define IS_EXTENDED_PART_TYPE(type) ((type) == 0x05 || (type) == 0x0f || (type) == 0x85)
 
-// GPT attributes of interest to us for Freedesktop.org Discoverable
-// Partitions Specification....
+ 
+ 
 #define GPT_READ_ONLY     0x1000000000000000
 #define GPT_NO_AUTOMOUNT  0x8000000000000000
 
-// Partition names to be ignored when setting volume name
+ 
 #define IGNORE_PARTITION_NAMES L"Microsoft basic data,Linux filesystem,Apple HFS/HFS+"
 
 extern EFI_GUID gFreedesktopRootGuid;
@@ -131,8 +131,8 @@ BOOLEAN VolumeMatchesDescription(REFIT_VOLUME *Volume, CHAR16 *Description);
 BOOLEAN FilenameIn(IN REFIT_VOLUME *Volume, IN CHAR16 *Directory, IN CHAR16 *Filename, IN CHAR16 *List);
 VOID MyFreePool(IN OUT VOID *Pointer);
 
-// When using GNU-EFI, call the EFI's built-in gBS->CopyMem() function, because
-// GNU-EFI 3.0.18 changed its CopyMem() definition in a way that broke BOOT.
+ 
+ 
 #ifdef __MAKEWITH_GNUEFI
 #define MyCopyMem(Dest, Src, len) refit_call3_wrapper(gBS->CopyMem, Dest, Src, len)
 #else

@@ -1,18 +1,18 @@
-/*
- * boot/log.h
- * 
- * Definitions to handle BOOT's logging facility, activated by setting
- * log_level in boot.conf.
- * 
- */
-/*
- * Copyright (c) 2012-2024 Roderick W. Smith
- *
- * Distributed under the terms of the GNU General Public License (GPL)
- * version 3 (GPLv3), a copy of which must be distributed with this source
- * code or binaries made from it.
- *
- */
+ 
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
 
 #ifndef __LOG_H_
 #define __LOG_H_
@@ -34,7 +34,7 @@ extern CHAR16           *gLogTemp;
 #define LOGFILE L"boot.log"
 #define LOGFILE_OLD L"boot.log-old"
 
-// Note: gLogTemp is freed within WriteToLog()
+ 
 #define LOG(level, type, ...) \
     if (level <= GlobalConfig.LogLevel) { \
         gLogTemp = PoolPrint(__VA_ARGS__); \

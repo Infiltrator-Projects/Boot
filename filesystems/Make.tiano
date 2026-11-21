@@ -1,17 +1,17 @@
-#
-# filesystems/Make.tiano
-# Build control file for rEFInd's EFI filesystem drivers
-#
 
-# This program is licensed under the terms of the GNU GPL, version 3,
-# or (at your option) any later version.
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+
+
+
+
+
+
 
 include ../Make.common
 
-# Below file defines TARGET (RELEASE or DEBUG) and TOOL_CHAIN_TAG (GCC44, GCC45, or GCC46)
-#include $(TIANOBASE)/Conf/target.txt
+
+
 
 EFILIB          = $(TIANOBASE)/Build/Mde/$(TARGET)_$(TOOL_CHAIN_TAG)/$(UC_ARCH)/MdePkg/Library
 ALL_EFILIBS     = $(EFILIB)/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib/OUTPUT/BaseDebugPrintErrorLevelLib.lib \
@@ -39,7 +39,7 @@ TIANO_INCLUDE_DIRS = -I $(TIANOBASE)/MdePkg \
 
 FSW_NAMES       = fsw_efi fsw_core fsw_efi_lib fsw_lib AutoGen
 OBJS            = $(FSW_NAMES:=.obj)
-#DRIVERNAME      = ext2
+
 BUILDME          = $(DRIVERNAME)_$(FILENAME_CODE).efi
 
 ENTRYPOINT = _ModuleEntryPoint

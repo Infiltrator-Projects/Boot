@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: GPL-3.0-or-later
-# This OVMF test operates ONLY on two disposable disk image files.
+
+
 set -euo pipefail
 export LC_ALL=C
 test -s boot/boot_x64.efi
@@ -17,7 +17,7 @@ disk="$work/disk.img"
 truncate -s 64M "$esp"
 mkfs.fat -F32 "$esp"
 mmd -i "$esp" ::/EFI ::/EFI/BOOT
-# Fallback path here belongs exclusively to QEMU's throwaway disk image.
+
 mcopy -i "$esp" boot/boot_x64.efi ::/EFI/BOOT/BOOTX64.EFI
 cat > "$work/boot.conf" <<'CONFIG'
 timeout 3
@@ -54,7 +54,7 @@ if ! mcopy -i "$work/after.img" ::/EFI/BOOT/BOOT.log "$work/BOOT.log"; then
  tail -n 60 "$work/serial.log" >&2 || true
  exit 1
 fi
-# BOOT firmware logging writes UTF-16LE; decode before checking messages.
+
 iconv -f UTF-16LE -t UTF-8 "$work/BOOT.log" > "$work/log.txt"
 if ! grep -Fq 'Entering main loop' "$work/log.txt"; then
  echo "BOOT did not reach main menu under OVMF" >&2

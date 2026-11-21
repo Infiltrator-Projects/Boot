@@ -1,18 +1,18 @@
-/*
- * boot/log.c
- * 
- * Definitions to handle BOOT's logging facility, activated by setting
- * log_level in boot.conf.
- * 
- */
-/*
- * Copyright (c) 2012-2024 Roderick W. Smith
- *
- * Distributed under the terms of the GNU General Public License (GPL)
- * version 3 (GPLv3), a copy of which must be distributed with this source
- * code or binaries made from it.
- *
- */
+ 
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
 
 #include "log.h"
 #include "global.h"
@@ -39,13 +39,13 @@ EFI_STATUS DeleteFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
         Status = refit_call1_wrapper(FileHandle->Delete, FileHandle);
     }
     return Status;
-} // EFI_STATUS DeleteFile()
+}  
 
-// Rename LOGFILE to LOGFILE_OLD. If an error occurs, try to delete LOGFILE
-// instead.
-// Returns success status (claiming success if log file was deleted rather
-// than rotated, or if it doesn't exist to begin with). If unsuccessful,
-// logging should be disabled by the calling function.
+ 
+ 
+ 
+ 
+ 
 EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
     EFI_STATUS Status = EFI_SUCCESS;
 
@@ -58,14 +58,14 @@ EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
         }
     }
     return Status;
-} // EFI_STATUS RotateLogFile()
+}  
 
-// Open the logging file (boot.log).
-// Sets the global gLogHandle variable to point to the file.
-// Returns EFI_STATUS of file open operation. This might error out if BOOT
-// is installed on a read-only filesystem, for instance.
-// If Restart == TRUE, then begin logging at the end of the file;
-// if Restart == FALSE, then delete the file and start a new one.
+ 
+ 
+ 
+ 
+ 
+ 
 EFI_STATUS StartLogging(BOOLEAN Restart) {
     EFI_STATUS      Status = EFI_SUCCESS;
     UINT64          FileMode;
@@ -73,11 +73,11 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
     UINTN           gcLogLevel;
     EFI_FILE_HANDLE FoundEsp;
     EFI_FILE_INFO   *FileInfo;
-    UINT8           Utf16[2]; // String to hold ID for UTF-16 file start
+    UINT8           Utf16[2];  
 
     if (GlobalConfig.LogLevel > 0) {
-        // store the log level; we set it to 0 globally so called functions don't
-        // try to log while the log file isn't available....
+         
+         
         gcLogLevel = GlobalConfig.LogLevel;
         GlobalConfig.LogLevel = 0;
         if (Restart) {
@@ -92,8 +92,8 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
         }
 
         if (EFI_ERROR(Status)) {
-            // Log file could not be opened in the main BOOT directory, so
-            // try again in the root of the ESP....
+             
+             
             Status = egFindESP(&FoundEsp);
             if (!EFI_ERROR(Status)) {
                 if (!Restart) {
@@ -110,11 +110,11 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
             PrintUglyText(L"Unable to open log file!", CENTER);
             PauseForKey();
         } else {
-            // File has been opened; however, if it already exists, then BOOT
-            // will end up writing into the existing file, so it could end up
-            // containing remnants of the earlier file if it was larger than
-            // this one needs to be. To prevent that, check the file size. If
-            // it's bigger than 0, delete it and start again....
+             
+             
+             
+             
+             
             FileInfo = LibFileInfo(gLogHandle);
             if ((FileInfo != NULL) && (FileInfo->FileSize > 0)) {
                 if (!Restart) {
@@ -122,35 +122,35 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
                     StartLogging(FALSE);
                 }
             } else {
-                // UTF-16 files begin with these two bytes, so write them....
+                 
                 Utf16[0] = 0xFF;
                 Utf16[1] = 0xFE;
                 BufferSize = 2;
                 refit_call3_wrapper(gLogHandle->Write, gLogHandle, &BufferSize, Utf16);
                 gLogActive = TRUE;
                 LOG(1, LOG_LINE_SEPARATOR, L"Beginning logging");
-            } // if/else
+            }  
             if (Restart) {
                 refit_call2_wrapper(gLogHandle->SetPosition, gLogHandle, 0xFFFFFFFFFFFFFFFF);
             }
             gLogActive = TRUE;
-        } // if/else
+        }  
         GlobalConfig.LogLevel = gcLogLevel;
-    } // if (GlobalConfig.LogLevel > 0)
+    }  
     return Status;
-} // EFI_STATUS StartLogging()
+}  
 
 VOID StopLogging(VOID) {
     if (GlobalConfig.LogLevel > 0)
-        refit_call1_wrapper(gLogHandle->Close, gLogHandle); // close logging file
+        refit_call1_wrapper(gLogHandle->Close, gLogHandle);  
     gLogActive = FALSE;
-} // VOID StopLogging()
+}  
 
-// Write a message (*Message) to the log file. (This pointer is freed
-// and set to NULL by this function, the point being to keep these
-// operations outside of the macro that calls this function.)
-// LogLineType specifies the type of the log line, as specified by the
-// LOG_LINE_* constants defined in log.h.
+ 
+ 
+ 
+ 
+ 
 VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
     CHAR16   *TimeStr;
     CHAR16   *FinalMessage = NULL;
@@ -164,13 +164,13 @@ VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
             case LOG_LINE_THIN_SEP:
                 FinalMessage = PoolPrint(L"\n----------%s----------\n", *Message);
                 break;
-            default: /* Normally LOG_LINE_NORMAL, but if there's a coding error, use this.... */
+            default:  
                 TimeStr = GetTimeString();
                 FinalMessage = PoolPrint(L"%s - %s\n", TimeStr, *Message);
                 if (TimeStr)
                     FreePool(TimeStr);
                 break;
-        } // switch
+        }  
 
         if (FinalMessage) {
             BufferSize = StrLen(FinalMessage) * 2;
@@ -183,4 +183,4 @@ VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
         FreePool(*Message);
         *Message = NULL;
     }
-} // VOID WriteToLog()
+}  

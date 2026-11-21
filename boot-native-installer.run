@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: GPL-3.0-or-later
-# BOOT native installer. Downloads pinned build sources and compiles natively.
-# This file is BOOT's sole, complete native build and install program.
+
+
+
 set -euo pipefail
 
 SOURCE_SHA="__BOOT_SOURCE_COMMIT__"
@@ -14,7 +14,7 @@ if (($# != 0)); then
 fi
 [[ $(uname -m) == x86_64 ]] || { echo "BOOT native installer requires x86-64" >&2; exit 2; }
 
-# Elevate this same script before native compilation and EFI installation.
+
 if ((EUID != 0)); then
     command -v sudo >/dev/null || { echo "sudo is required for EFI installation" >&2; exit 1; }
     exec sudo bash "$0"
@@ -50,8 +50,8 @@ trap 'rm -rf -- "$work"' EXIT
 source_dir="$work/Boot"
 git -C "$work" init -q Boot
 git -C "$source_dir" remote add origin "$SOURCE_URL"
-# Fetch only needed source/graphics from the pinned commit, not the whole
-# repository history or a source bundle in this installer.
+
+
 git -C "$source_dir" sparse-checkout init --cone
 git -C "$source_dir" sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys filesystems
 git -C "$source_dir" -c protocol.version=2 fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"
@@ -64,8 +64,8 @@ cd "$source_dir"
     echo "Downloaded BOOT build source is incomplete" >&2; exit 1;
 }
 echo "Building BOOT natively from source commit $SOURCE_SHA..."
-# Native CPU code generation, while preventing floating/vector operations in
-# UEFI contexts where they are not necessarily available.
+
+
 printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$RELEASE_VERSION" > boot-sbat-release.csv
 make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$RELEASE_VERSION\"'" gnuefi
 [[ -s boot/boot_x64.efi ]] || { echo "Native BOOT EFI build failed" >&2; exit 1; }
@@ -74,129 +74,129 @@ for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
 done
 echo "Running the native BOOT installation..."
 
-# Continue in this SAME script with the original, working installer logic.
-# These functions and the installation flow are retained without restructuring.
+
+
 export BOOT_INSTALL_SOURCE_DIR="$source_dir"
-# Keep the installation logic's historical error status and shell behaviour.
+
 set +e +u
 set +o pipefail
-# Always install the standard EFI filesystem drivers.
+
 set -- --alldrivers
 
-#!/bin/bash
-#
-# Linux/MacOS X script to install BOOT
-#
-# Usage:
-#
-# ./boot-install [options]
-#
-# options include:
-#    BOOT always installs to the dedicated directory on the ESP.
-#           This option is valid only under OS X.
-#    Alternate EFI installation paths are not supported.
-#           (/dev/sdd1 or whatever) without registering with the NVRAM.
-#    "--ownhfs {devicefile}" to install to an HFS+ volume that's NOT currently
-#           an OS X boot volume. Valid only in OS X.
-#    Custom installation roots are not supported.
-#           as the system's root
-#    "--alldrivers" to install all drivers along with regular files
-#    "--nodrivers" to suppress driver installation (default in Linux is
-#           driver used on /boot; --nodrivers is OS X default).
-#    "--shim {shimfile}" to install a shim.efi file for Secure Boot. Valid
-#           only under Linux.
-#    "--preloader" is synonymous with "--shim". Valid only under Linux.
-#    "--encryptkeys" password-protects the Secure Boot private key.
-#    "--localkeys" to re-sign x86-64 binaries with a locally-generated key.
-#           Valid only under Linux.
-#    "--keepname" to keep boot_x64.efi name as such even when using shim.
-#           Valid only under Linux.
-#    "--yes" to assume a "yes" response to all prompts
-#
-# This program is copyright (c) 2012-2024 by Roderick W. Smith
-#
-# This program is licensed under the terms of the GNU GPL, version 3,
-# or (at your option) any later version.
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-# Revision history:
-#
-# 0.14.1  -- Fix bug that caused --ownhfs option to fail
-# 0.14.0.2-- Fix bug that caused failure to detect mounted ESP in Linux (AGAIN)
-# 0.14.0  -- Fix bug that caused failure to install filesystem driver in Linux
-# 0.13.3.1-- Fix bug that caused failure to detect mounted ESP in Linux
-# 0.13.3  -- Remove stray exit from CreateBootCsvFile()
-# 0.13.2  -- Add installation of BOOT Secure Boot key as MOK; if installing
-#            with Shim, add backup direct boot NVRAM option
-# 0.12.0  -- Improve code to find ESPs; should help with NVMe drives. Also
-#            activate install and bootorder features when using --usedefault
-#            option.
-# 0.11.5  -- Remove excessive slashes (/) from some filenames
-# 0.11.4  -- Fixed generation of GUID when automount of ESP in use on Linux
-# 0.11.3  -- Added support for ESP mounted at /efi under Linux
-# 0.11.1  -- In Linux, be less aggressive about replacing existing NVRAM entries
-# 0.11.0  -- Create BOOT.CSV file and option to encrypt SB private key
-# 0.10.8  -- Enabled use of shimx64.efi.signed as Shim source file
-# 0.10.7  -- Added mm{arch}.efi as equivalent of MokManager.efi
-# 0.10.6  -- Improved identification of the root device under macOS.
-# 0.10.5  -- More improvement to handling of disks (other than /dev/[sh]d? disks).
-# 0.10.4  -- Improved handling of disks (other than /dev/[sh]d? disks).
-# 0.10.2  -- Improved Secure Boot detection in Linux, fixed --usedefault in OS X,
-#            and fixed bug that could cause mountesp to be installed as a FILE
-#            called /usr/local/bin in OS X.
-# 0.10.1  -- Improve extraction of default kernel options from /proc/cmdline.
-#            Add support for AMD64 (aka AARCH64, aa64) platform. Added
-#            warning when --alldrivers used without --usedefault.
-# 0.10.0  -- Enable running under OS X's recovery system & add warning about
-#            SIP & brief instructions on how to deal with it if SIP is
-#            detected to be enabled. Also change way boot_linux.conf default
-#            options are found; use /proc/cmdline as base.
-# 0.9.2   -- Added --keepname option.
-# 0.8.7   -- Better detection of Secure Boot mode & fixed errors when copying
-#            Shim & MokManager files over themselves; fixed bug that caused
-#            inappropriate installation to EFI/BOOT/bootx64.efi
-# 0.8.6   -- Fixed bugs that caused misidentification of ESP on disks with
-#            partition numbers over 10 on OS X and misidentification of mount
-#            point if already-mounted ESP had space in path.
-# 0.8.5   -- Refinement/cleanup of new OS X ESP-as-default policy
-# 0.8.4   -- OS X default changed to install to ESP under /EFI/BOOT
-# 0.7.9   -- Fixed bug that caused errors if dmraid utility not installed
-# 0.7.7   -- Fixed bug that created mangled boot_linux.conf file; added ability
-#            to locate and mount ESP on Linux, if it's not mounted
-# 0.7.6   -- Added --ownhfs {device-filename} option
-# 0.7.5   -- Fixed bug when installing to ESP on recent versions of OS X
-# 0.7.2   -- Fixed code that could be confused by use of autofs to mount the ESP
-# 0.7.0   -- Added support for the new Btrfs driver
-# 0.6.12  -- Added support for PreLoader as well as for shim
-# 0.6.11  -- Improvements in script's ability to handle directories with spaces
-#            in their names
-# 0.6.9   -- Install gptsync on Macs
-# 0.6.8   -- Bug fix: ESP scan now uses "uniq".
-# 0.6.6   -- Bug fix: Upgrade drivers when installed to EFI/BOOT. Also enable
-#            copying shim.efi and MokManager.efi over themselves.
-# 0.6.4   -- Copies ext2 driver rather than ext4 driver for ext2/3fs
-# 0.6.3   -- Support for detecting BOOT in EFI/BOOT and EFI/Microsoft/Boot
-#            directories & for installing to EFI/BOOT in BIOS mode
-# 0.6.2-1 -- Added --yes option & tweaked key-copying for use with RPM install script
-# 0.6.1   -- Added --root option; minor bug fixes
-# 0.6.0   -- Changed --drivers to --alldrivers and added --nodrivers option;
-#            changed default driver installation behavior in Linux to install
-#            the driver needed to read /boot (if available)
-# 0.5.1.2 -- Fixed bug that caused failure to generate boot_linux.conf file
-# 0.5.1.1 -- Fixed bug that caused script failure under OS X
-# 0.5.1   -- Added --shim & --localkeys options & create sample boot_linux.conf
-#            in /boot
-# 0.5.0   -- Added --usedefault & --drivers options & changed "esp" option to "--esp"
-# 0.4.5   -- Fixed check for rEFItBlesser in OS X
-# 0.4.2   -- Added notice about BIOS-based OSes & made NVRAM changes in Linux smarter
-# 0.4.1   -- Added check for rEFItBlesser in OS X
-# 0.3.3.1 -- Fixed OS X 10.7 bug; also works as make target
-# 0.3.2.1 -- Check for presence of source files; aborts if not present
-# 0.3.2   -- Initial version
-#
-# Note: install.sh version numbers match those of the BOOT package
-# with which they first appeared.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 RootDir="/"
 TargetDir=/EFI/InfiltratorOS/BOOT
@@ -215,9 +215,9 @@ DeleteBootDir=0
 AlwaysYes=0
 EspGuid="C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
 
-#
-# Functions used by both OS X and Linux....
-#
+
+
+
 
 GetParams() {
    InstallToEspOnMac=1
@@ -261,11 +261,11 @@ GetParams() {
       exit 1
    fi
    EtcKeysDir="$RootDir/etc/boot.d/keys"
-} # GetParams()
+}
 
-# Get a yes/no response from the user and place it in the YesNo variable.
-# If the AlwaysYes variable is set to 1, skip the user input and set "Y"
-# in the YesNo variable.
+
+
+
 ReadYesNo() {
    if [[ $AlwaysYes == 1 ]] ; then
       YesNo="Y"
@@ -276,9 +276,9 @@ ReadYesNo() {
 }
 
 
-# Get a passphrase for decrpyting a private key, and store it in the
-# KeyPassphrase variable.
-#   $1   Set to "--no-confirm" to skip passphrase input confirmation.
+
+
+
 ReadKeyPassphrase() {
    if [[ $EncryptKeys == 1 ]]  && [ -z "$KeyPassphrase" ]; then
       while true; do
@@ -302,9 +302,9 @@ ReadKeyPassphrase() {
    fi
 }
 
-# Determine what CPU type and EFI bit depth we're using.
-# Sets Platform global variable to lowercase EFI platform code (currently
-# "x64", "ia32", or "aa64") -- the same code used in filenames.
+
+
+
 DeterminePlatform() {
    local CpuType
    case "$OSTYPE" in
@@ -334,9 +334,9 @@ DeterminePlatform() {
          ;;
       i?86)
          Platform="ia32"
-         # If we're in EFI mode, do some sanity checks, and alert the user or even
-         # abort. Not in BIOS mode, though, since that could be used on an emergency
-         # disc to try to recover a troubled Linux installation.
+
+
+
          if [[ -d /sys/firmware/efi ]] ; then
             if [[ "$ShimSource" != "none" && "$TargetDir" != "/BOOT/EFI" ]] ; then
                echo ""
@@ -359,35 +359,35 @@ DeterminePlatform() {
             else
                exit 0
             fi
-         fi # In EFI mode
+         fi
          ;;
       *)
          echo "Unknown CPU type '$CpuType'; aborting!"
          exit 1
          ;;
-      esac # case "$CpuType"....
+      esac
       ;;
    *)
       echo "Unknown OS; aborting!"
       exit 1
       ;;
-   esac # case "$OSTYPE"....
-} # DeterminePlatform()
+   esac
+}
 
-# Abort if the BOOT files can't be found.
-# Also sets $ConfFile to point to the configuration file,
-# $IconsDir to point to the icons directory,
-# $ShimSource to the source of the shim.efi file (if necessary),
-# $ThisDir to point to the directory in which this script resides,
-# and $BootDir to point to where the BOOT binaries live
+
+
+
+
+
+
 CheckForFiles() {
-   # Note: $ThisDir points to real (not symlinked) script home on Linux,
-   # enabling creating a symlink in /usr/sbin (or wherever); but on OS X,
-   # "readlink" doesn't do the same thing as under Linux, so the script
-   # must not be a symlink under OS X.
+
+
+
+
    if [[ -n "${BOOT_INSTALL_SOURCE_DIR:-}" ]] ; then
-      # When the source-downloading native RUN executes this logic inline,
-      # use its verified build directory, not the path to the RUN itself.
+
+
       ThisDir="$(cd -P "$BOOT_INSTALL_SOURCE_DIR" && pwd)" || exit 1
    else
       case "$OSTYPE" in
@@ -451,10 +451,10 @@ CheckForFiles() {
          exit 1
       fi
    fi
-} # CheckForFiles()
+}
 
-# Helper for CopyBootFiles; copies shim files (including MokManager, if it's
-# available) to target.
+
+
 CopyShimFiles() {
    local TargetMMName
    local inode1
@@ -481,25 +481,25 @@ CopyShimFiles() {
          Problems=1
       fi
    fi
-} # CopyShimFiles()
+}
 
-# Copy the public keys to the installation medium
+
 CopyKeys() {
    if [[ $LocalKeys == 1 ]] ; then
       mkdir -p "$InstallDir/$TargetDir/keys/"
       cp "$EtcKeysDir/$LocalKeysBase.cer" "$InstallDir/$TargetDir/keys/"
       cp "$EtcKeysDir/$LocalKeysBase.crt" "$InstallDir/$TargetDir/keys/"
    fi
-} # CopyKeys()
-
-# Set varaibles for installation in EFI/BOOT directory
+}
 
 
-# Set variables for installation in EFI/Microsoft/Boot directory
 
 
-# BOOT installs only under /EFI/InfiltratorOS/BOOT on the ESP.
-# EFI/BOOT, Microsoft Boot and GRUB are never install destinations.
+
+
+
+
+
 DetermineTargetDir() {
    Upgrade=0
    if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] ; then
@@ -508,10 +508,10 @@ DetermineTargetDir() {
          echo "Found BOOT configuration in $InstallDir/$TargetDir; preserving it."
       fi
    fi
-} # DetermineTargetDir()
+}
 
-# Determine (or guess) the filesystem used on the Linux /boot filesystem.
-# Store the result in the BootFS global variable.
+
+
 SetBootFS() {
    BootFS=""
    case "$OSTYPE" in
@@ -519,23 +519,23 @@ SetBootFS() {
            if command -v blkid &>/dev/null; then
               BootPart=$(df "$RootDir"/boot | grep dev | cut -f 1 -d " ")
               BootFS=$(blkid -o export "$BootPart" 2> /dev/null | grep TYPE= | cut -f 2 -d =)
-              # The above line fails in Ubuntu 22.04, but is OK in 20.10 and 22.10;
-              # the "-o export" option seems to have temporarily disappeared. In case
-              # it fails, try another approach (which I think uses newer grep features,
-              # so don't rely 100% on it, either; but at least it works in Ubuntu
-              # 22.04)....
+
+
+
+
+
               if [[ -z "$BootFS" ]] ; then
                  BootFS=$(blkid "$BootPart" 2> /dev/null | grep -Po 'TYPE=\"\K[^\"]*')
               fi
            fi
            ;;
       darwin*)
-           # 0FC63DAF-8483-4772-8E79-3D69D8477DE4 = Linux filesystem
-           # BC13C2FF-59E6-4262-A352-B275FD6F7172 = Freedesktop $boot partition
-           # 933AC7E1-2EB4-4F13-B844-0E14E2AEF915 = Freedesktop Linux /home
-           # E6D6D379-F507-44C2-A23C-238F2A3DF928 = Linux LVM
-           # A19D880F-05FC-4D3B-A006-743F0F84911E = Linux RAID
-           # 0657FD6D-A4AB-43C4-84E5-0933C84B4F4F = Linux swap
+
+
+
+
+
+
            Temp=$(diskutil list | grep -i '0FC63DAF-8483-4772-8E79-3D69D8477DE4\|BC13C2FF-59E6-4262-A352-B275FD6F7172\|933AC7E1-2EB4-4F13-B844-0E14E2AEF915\|E6D6D379-F507-44C2-A23C-238F2A3DF928\|A19D880F-05FC-4D3B-A006-743F0F84911E\|0657FD6D-A4AB-43C4-84E5-0933C84B4F4F\|Linux')
            BootFS=""
            if [[ -n $Temp ]] ; then
@@ -544,11 +544,11 @@ SetBootFS() {
            fi
            ;;
    esac
-} # SetBootFS()
+}
 
-# Copy drivers from $BootDir/drivers_$1 to $InstallDir/$TargetDir/drivers_$1,
-# honoring the $InstallDrivers condition. Must be passed a suitable
-# architecture code (ia32 or x64).
+
+
+
 CopyDrivers() {
    if [[ $InstallDrivers == "all" ]] ; then
       mkdir -p "$InstallDir/$TargetDir/drivers_$1"
@@ -559,8 +559,8 @@ CopyDrivers() {
       DriverType=""
       case $BootFS in
          ext2 | ext3) DriverType="ext2"
-              # Could use ext4, but that can create unwanted entries from symbolic
-              # links in / to /boot/vmlinuz if a separate /boot partition is used.
+
+
               ;;
          ext4) DriverType="ext4"
               ;;
@@ -581,10 +581,10 @@ CopyDrivers() {
          cp "$BootDir/drivers_$1/${DriverType}_$1.efi" "$InstallDir/$TargetDir/drivers_$1"/ 2> /dev/null
       fi
    fi
-} # CopyDrivers()
+}
 
-# macOS installs the optional gptsync utility alongside BOOT itself.
-# The installer never creates or modifies the shared /EFI/tools directory.
+
+
 CopyTools() {
    if [[ $OSTYPE == darwin* && -f "$BootDir/tools_$1/gptsync_$1.efi" ]] ; then
       cp -f "$BootDir/tools_$1/gptsync_$1.efi" "$InstallDir/$TargetDir/" || {
@@ -592,11 +592,11 @@ CopyTools() {
          Problems=1
       }
    fi
-} # CopyTools()
+}
 
-# Copy the BOOT files to the ESP or OS X root partition.
-# Sets Problems=1 if any critical commands fail.
-# Hash an EFI executable using utilities available under Linux or macOS.
+
+
+
 BootFileHash() {
    if command -v sha256sum &> /dev/null ; then
       sha256sum "$1" | cut -d ' ' -f 1
@@ -608,7 +608,7 @@ BootFileHash() {
    fi
 }
 
-# Verify any existing BOOT executable in the sole permitted directory.
+
 GuardDefaultBootLocation() {
    if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
       echo "Refusing BOOT installation outside /EFI/InfiltratorOS/BOOT." >&2
@@ -717,8 +717,8 @@ CopyBootFiles() {
       fi
    fi
    if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -z "${Problems:-}" ]] ; then
-      # Record the exact executable produced by this installation. Future
-      # upgrades must match it before replacing the loader.
+
+
       local verified marker temporary
       verified=$(BootFileHash "$InstallDir/$TargetDir/$TargetX64") || exit 1
       marker="$InstallDir/$TargetDir/.infiltrator-boot-loader.sha256"
@@ -734,13 +734,13 @@ CopyBootFiles() {
       echo "Deleting the temporary directory $BootDir"
       rm -r "$BootDir"
    fi
-} # CopyBootFiles()
-
-# Mounting custom EFI installation targets is prohibited.
+}
 
 
-# Create a BOOT.CSV file in the same directory as BOOT, to help in recovery
-# should the system's boot entry list be lost
+
+
+
+
 CreateBootCsvFile() {
    IConv="$(command -v iconv 2> /dev/null)"
    if [[ -x "$IConv" ]] ; then
@@ -757,19 +757,19 @@ CreateBootCsvFile() {
               $IConv -t UCS-2 > "$InstallDir/$TargetDir/BOOT.CSV"
       fi
    fi
-} # CreateBootCsvFile()
+}
 
-#
-# A series of OS X support functions....
-#
 
-# Mount the ESP at /Volumes/ESP or determine its current mount
-# point.
-# Sets InstallDir to the ESP mount point
-# Sets UnmountEsp if we mounted it
+
+
+
+
+
+
+
 MountOSXESP() {
-   # Identify the ESP. Note: This returns the FIRST ESP found;
-   # if the system has multiple disks, this could be wrong!
+
+
    Temp=$(mount | sed -n -E "/^(\/dev\/disk.*) on \/ \(.*$/s//\1/p")
    if [ "$Temp" ]; then
       Temp=$(diskutil list | grep " EFI " | grep -o 'disk.*' | head -n 1)
@@ -790,13 +790,13 @@ MountOSXESP() {
       fi
    fi
    Esp=/dev/"$Temp"
-   # If the ESP is mounted, use its current mount point....
+
    Temp=$(df -P | grep "$Esp ")
    InstallDir=$(echo "$Temp" | cut -f 6- -d ' ' | sed 's/\/\+/\//g')
    if [[ "$InstallDir" == '' ]] ; then
       mkdir /Volumes/ESP &> /dev/null
-      # Some systems have HFS+ "ESPs." They shouldn't, but they do. If this is
-      # detected, mount it as such and set appropriate options.
+
+
       if ! mount -t msdos "$Esp" /Volumes/ESP ; then
          OwnHfs=1
          InstallToEspOnMac=0
@@ -808,11 +808,11 @@ MountOSXESP() {
       UnmountEsp=1
       InstallDir="/Volumes/ESP"
    fi
-} # MountOSXESP()
+}
 
-# Set up for booting from Mac HFS+ volume that boots BOOT in MJG's way
-# (http://mjg59.dreamwidth.org/7468.html)
-# Must be passed the original BOOT binary filename (without a path).
+
+
+
 
 
 CheckForSIP() {
@@ -864,12 +864,12 @@ CheckForSIP() {
             echo "Exiting!"
             exit
          fi
-      fi # csrutil status suggests OK to install
-   fi # csrutil exists
-} # CheckForSIP()
+      fi
+   fi
+}
 
-# Control the OS X installation.
-# Sets Problems=1 if problems found during the installation.
+
+
 InstallOnOSX() {
    echo "Installing BOOT on macOS...."
    [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] || {
@@ -900,17 +900,17 @@ InstallOnOSX() {
          echo "Not deleting rEFItBlesser."
       fi
    fi
-} # InstallOnOSX()
+}
 
 
-#
-# Now a series of Linux support functions....
-#
 
-# Check for evidence that we're running in Secure Boot mode. If so, and if
-# appropriate options haven't been set, warn the user and offer to abort.
-# If we're NOT in Secure Boot mode but the user HAS specified the --shim
-# or --localkeys option, warn the user and offer to abort.
+
+
+
+
+
+
+
 CheckSecureBoot() {
    IsSecureBoot="0"
    if [[ -f /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c ]] ; then
@@ -969,20 +969,20 @@ CheckSecureBoot() {
       fi
    fi
 
-} # CheckSecureBoot()
+}
 
-# Check for the presence of locally-generated keys from a previous installation in
-# $EtcKeysDir (/etc/boot.d/keys). If they're not present, generate them using
-# openssl.
+
+
+
 GenerateKeys() {
    PrivateKey="$EtcKeysDir/$LocalKeysBase.key"
    CertKey="$EtcKeysDir/$LocalKeysBase.crt"
    DerKey="$EtcKeysDir/$LocalKeysBase.cer"
    OpenSSL="$(command -v openssl 2> /dev/null)"
 
-   # Do the work only if one or more of the necessary keys is missing
-   # TODO: Technically, we don't need the DerKey; but if it's missing and openssl
-   # is also missing, this will fail. This could be improved.
+
+
+
    if [[ ! -f "$PrivateKey" || ! -f "$CertKey" || ! -f "$DerKey" ]] ; then
       echo "Generating a fresh set of local keys...."
       mkdir -p "$EtcKeysDir"
@@ -1016,20 +1016,20 @@ GenerateKeys() {
    else
       echo "Using existing local keys...."
    fi
-} # GenerateKeys()
+}
 
-# Sign a single binary. Requires parameters:
-#   $1 = source file
-#   $2 = destination file
-# Also assumes that the SBSign and various key variables are set appropriately.
-# Aborts script on error
+
+
+
+
+
 SignOneBinary() {
    ReadKeyPassphrase --no-confirm
    if [[ "$EncryptKeys" == 1 ]] ; then
       SbSignCommand=$(printf "%q " "$SBSign" --key "$PrivateKey" --cert "$CertKey" --output "$2" "$1")
       echo "$KeyPassphrase" |
          script -qefc "$SbSignCommand" --force /dev/null 2>&1 | ( \
-              head -n 2 >/dev/null # Skip the first two lines (incl. passphrase).
+              head -n 2 >/dev/null
               grep -v "data remaining.*gaps between PE/COFF sections"
             )
        local status="${PIPESTATUS[1]}"
@@ -1042,11 +1042,11 @@ SignOneBinary() {
       echo "Problem signing the binary $1! Aborting!"
       exit 1
    fi
-} # SignOneBinary()
+}
 
-# Re-sign the x86-64 binaries with a locally-generated key, First look for appropriate
-# key files in $EtcKeysDir. If they're present, use them to re-sign the binaries. If
-# not, try to generate new keys and store them in $EtcKeysDir.
+
+
+
 ReSignBinaries() {
    SBSign="$(command -v sbsign 2> /dev/null)"
    echo "Found sbsign at $SBSign"
@@ -1067,20 +1067,20 @@ ReSignBinaries() {
    SaveIFS=$IFS
    IFS=$(echo -en "\n\b")
    for Driver in "$BootDir"/drivers_"$Platform"/*.efi "$ThisDir"/drivers_"$Platform"/*.efi ; do
-      [[ -e "$Driver" ]] || break  # handle the case of no files
+      [[ -e "$Driver" ]] || break
       TempName=$(basename "$Driver")
       SignOneBinary "$Driver" "$TempDir/drivers_$Platform/$TempName"
    done
    IFS=$SaveIFS
    BootDir="$TempDir"
    DeleteBootDir=1
-} # ReSignBinaries()
+}
 
-# Locate and mount an ESP, if possible. Should be called only if /boot/efi
-# is NOT an acceptable ESP. If successful, sets:
-# * InstallDir to the mounted ESP's path ($RootDir/boot/efi)
-# * EspFilesystem to the filesystem (always "vfat")
-# Neither variable is altered if no ESP could be found
+
+
+
+
+
 FindLinuxESP() {
    local Dmraid
    local DmStatus
@@ -1100,26 +1100,26 @@ FindLinuxESP() {
       echo "install it and try again."
       exit 1
    fi
-   # Iterate through all FAT partitions in the hopes of finding an ESP....
-   # (Note: FatPart with be set to "/dev/{whatever}".)
+
+
    for FatPart in $(blkid -t TYPE="vfat" -o device) ; do
-      # For each FAT partition, find its parent disk device, since we need
-      # the disk device and partition number as separate components to feed
-      # to efibootmgr....
-      # (Note: PotentialParent will be lacking "/dev/" prefix.)
+
+
+
+
       for PotentialParent in $(lsblk | grep disk | cut -f 1 -d " ") ; do
          IsItRaid=0
-         # Exclude anything that looks like it's on software RAID....
+
          if [[ -x "$Dmraid" ]] ; then
             DmStatus=$(dmraid -r | grep "$PotentialParent")
             if [ -n "$DmStatus" ] ; then
                echo "/dev/$PotentialParent seems to be part of a RAID array; skipping!"
                IsItRaid=1
             fi
-         fi # if dmraid utility exists
-         # If FAT partition is in the $PotentialParent disk & it's NOT part
-         # of a software RAID setup, then we've found what we want; set it
-         # and break out of the loop....
+         fi
+
+
+
          if [[ $FatPart == *"/dev/$PotentialParent"* && $IsItRaid == 0 ]] ; then
             ParentDisk=$PotentialParent
             break
@@ -1142,12 +1142,12 @@ FindLinuxESP() {
          shopt -u nocasematch
       fi
    done
-} # FindLinuxESP()
+}
 
-# Identifies the ESP's location (/boot, /boot/efi, /efi, or these locations
-# on the host; aborts if the ESP isn't mounted at
-# any of these locations.
-# Sets InstallDir to the ESP mount point.
+
+
+
+
 FindMountedESP() {
    mount /boot &> /dev/null
    mount /boot/efi &> /dev/null
@@ -1180,10 +1180,10 @@ FindMountedESP() {
       fi
    fi
    echo "ESP was found at $InstallDir using $EspFilesystem"
-} # FindMountedESP
+}
 
-# Always set BOOT as default in UEFI BootOrder on every installation.
-# Create an entry only if one for this ESP and BOOT executable does not exist.
+
+
 AddBootEntry() {
    local InstallPart InstallDisk="" PartNum="" Name InstallPartGuid
    local EntryFilename EfiEntryFilename ExistingEntry BootNum BootOrder NewOrder Candidate
@@ -1219,8 +1219,8 @@ AddBootEntry() {
    EfiEntryFilename="${EntryFilename//\//\\}"
    local FirmwareEntries CurrentEntry LowerEntry CandidateNum
    local MatchCount BootEntryCount Registered=0
-   # Always inspect the complete firmware entry list before considering -c.
-   # If inspection fails or an entry is ambiguous, do not create a duplicate.
+
+
    while : ; do
       if ! FirmwareEntries=$("$Efibootmgr" -v) ; then
          echo "Cannot inspect firmware entries; refusing to create another BOOT entry." >&2
@@ -1261,9 +1261,9 @@ AddBootEntry() {
          Problems=1
          return 1
       fi
-      # Fresh install only: create one entry, then loop back to verify it.
+
       Registered=1
-      # Fresh installation: register BOOT just once.
+
       if [[ "$Boot" == *"shim"* ]] ; then
          if [[ "$KeepName" == 1 ]] ; then
             RealBootBinary="$TargetDir/boot_$Platform.efi"
@@ -1288,7 +1288,7 @@ AddBootEntry() {
       fi
    done
 
-   # Every run must activate BOOT and write BootOrder, even if already first.
+
    BootNum="${BootNum^^}"
    if ! "$Efibootmgr" -b "$BootNum" -a ; then
       echo "Could not activate BOOT UEFI entry." >&2
@@ -1325,9 +1325,9 @@ AddBootEntry() {
       return 1
    fi
    echo "BOOT (Boot${BootNum}) explicitly set first in UEFI BootOrder."
-} # AddBootEntry()
+}
 
-# Install a Secure Boot key as a MOK
+
 InstallSBKey() {
     local UsedDerKey
     if [ "$LocalKeys" == "1" ] ; then
@@ -1363,10 +1363,10 @@ InstallSBKey() {
             echo "The appropriate Secure Boot key is already enrolled."
         fi
     fi
-} # InstallSBKey()
+}
 
-# Controls BOOT installation under Linux.
-# Sets Problems=1 if something goes wrong.
+
+
 InstallOnLinux() {
    if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
       echo "Refusing installation outside /EFI/InfiltratorOS/BOOT." >&2
@@ -1381,8 +1381,8 @@ InstallOnLinux() {
    fi
 
    CheckSecureBoot
-   # Reinstall BOOT from a clean dedicated EFI directory. Never remove the
-   # shared EFI/BOOT fallback, another vendor's loader, or an EFI symlink.
+
+
    if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] ; then
       if [[ -L "$InstallDir/EFI" || -L "$InstallDir/EFI/InfiltratorOS" ||
             -L "$InstallDir/$TargetDir" ]] ; then
@@ -1404,21 +1404,21 @@ InstallOnLinux() {
    fi
    CopyBootFiles
    AddBootEntry
-   # Note that InstallSBKey may require the user to enter a password, so
-   # it must NOT be called if --yes is passed to the script, since that
-   # parameter is intended to eliminate user interaction. The user will
-   # just have to enroll any necessary Secure Boot key manually in this
-   # case.
+
+
+
+
+
    if [[ "$IsSecureBoot" == "1" && "$AlwaysYes" == "0" ]] ; then
       InstallSBKey
    fi
-} # InstallOnLinux()
+}
 
-#
-# The main part of the script. Sets a few environment variables,
-# performs a few startup checks, and then calls functions to
-# install under OS X or Linux, depending on the detected platform.
-#
+
+
+
+
+
 GetParams "$@"
 if [[ $UID != 0 ]] ; then
    echo "Not running as root; attempting to elevate privileges via sudo...."
@@ -1483,9 +1483,9 @@ if [[ $UnmountEsp == '1' ]] ; then
 fi
 
 if [[ "$InstallDir" == /tmp/boot_install ]] ; then
-#   sleep 5
+
    rmdir "$InstallDir"
 fi
 
-# Propagate installation errors to the native RUN and its caller.
+
 exit "$InstallationFailed"

@@ -1,15 +1,15 @@
-/*
- * Copyright 2012 <James.Bottomley@HansenPartnership.com>
- *
- * see COPYING file
- */
+ 
+
+
+
+
 
 #include <global.h>
 #include "../include/refit_call_wrapper.h"
 
 #include "simple_file.h"
 #include "../boot/lib.h"
-//#include "execute.h"    /* for generate_path() */
+ 
 
 static EFI_GUID IMAGE_PROTOCOL = LOADED_IMAGE_PROTOCOL;
 static EFI_GUID SIMPLE_FS_PROTOCOL = SIMPLE_FILE_SYSTEM_PROTOCOL;
@@ -44,7 +44,7 @@ simple_file_open_by_handle(EFI_HANDLE device, CHAR16 *name, EFI_FILE_PROTOCOL **
    return efi_status;
 }
 
-// generate_path() from shim by Matthew J. Garrett
+ 
 static
 EFI_STATUS
 generate_path(CHAR16* name, EFI_LOADED_IMAGE *li, EFI_DEVICE_PATH **path, CHAR16 **PathName)
@@ -93,7 +93,7 @@ error:
         MyFreePool(devpathstr);
 
         return efi_status;
-} // generate_path()
+}  
 
 EFI_STATUS
 simple_file_open(EFI_HANDLE image, CHAR16 *name, EFI_FILE_PROTOCOL **file, UINT64 mode)

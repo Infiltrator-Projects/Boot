@@ -1,59 +1,59 @@
-/*
- * libeg/image.c
- * Image handling functions
- *
- * Copyright (c) 2006 Christoph Pfisterer
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the
- *    distribution.
- *
- *  * Neither the name of Christoph Pfisterer nor the names of the
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-/*
- * Modifications copyright (c) 2012-2020 Roderick W. Smith
- *
- * Modifications distributed under the terms of the GNU General Public
- * License (GPL) version 3 (GPLv3), or (at your option) any later version.
- *
- */
-/*
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "libegint.h"
 #include "../boot/global.h"
@@ -67,10 +67,10 @@
 
 #define MAX_FILE_SIZE (1024*1024*1024)
 
-// Multiplier for pseudo-floating-point operations in egScaleImage().
-// A value of 4096 should keep us within limits on 32-bit systems, but I've
-// seen some minor artifacts at this level, so give it a bit more precision
-// on 64-bit systems....
+ 
+ 
+ 
+ 
 #if defined(EFIX64) | defined(EFIAARCH64)
 #define FP_MULTIPLIER (UINTN) 65536
 #else
@@ -82,15 +82,15 @@
 #define LibOpenRoot EfiLibOpenRoot
 #endif
 
-//
-// Basic image handling
-//
+ 
+ 
+ 
 
 EG_IMAGE * egCreateImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha)
 {
     EG_IMAGE        *NewImage;
 
-    /* Reject zero and product-overflow dimensions before pixel allocation. */
+     
     if (Width == 0 || Height == 0 ||
         Width > ((UINTN)~(UINTN)0) / sizeof(EG_PIXEL) / Height)
         return NULL;
@@ -135,8 +135,8 @@ EG_IMAGE * egCopyImage(IN EG_IMAGE *Image)
     return NewImage;
 }
 
-// Returns a smaller image composed of the specified crop area from the larger area.
-// If the specified area is larger than is in the original, returns NULL.
+ 
+ 
 EG_IMAGE * egCropImage(IN EG_IMAGE *Image, IN UINTN StartX, IN UINTN StartY, IN UINTN Width, IN UINTN Height) {
    EG_IMAGE *NewImage = NULL;
    UINTN x, y;
@@ -154,18 +154,18 @@ EG_IMAGE * egCropImage(IN EG_IMAGE *Image, IN UINTN StartX, IN UINTN StartY, IN 
       }
    }
    return NewImage;
-} // EG_IMAGE * egCropImage()
+}  
 
-// The following function implements a bilinear image scaling algorithm, based on
-// code presented at http://tech-algorithm.com/articles/bilinear-image-scaling/.
-// Resize an image; returns pointer to resized image if successful, NULL otherwise.
-// Calling function is responsible for freeing allocated memory.
-// NOTE: x_ratio, y_ratio, x_diff, and y_diff should really be float values;
-// however, I've found that my 32-bit Mac Mini has a buggy EFI (or buggy CPU?), which
-// causes this function to hang on float-to-UINT8 conversions on some (but not all!)
-// float values. Therefore, this function uses integer arithmetic but multiplies
-// all values by FP_MULTIPLIER to achieve something resembling the sort of precision
-// needed for good results.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeight) {
    EG_IMAGE *NewImage = NULL;
    EG_PIXEL a, b, c, d;
@@ -204,34 +204,34 @@ EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeigh
          c = Image->PixelData[Index + Image->Width];
          d = Image->PixelData[Index + Image->Width + 1];
 
-         // blue element
+          
          NewImage->PixelData[Offset].b = ((a.b) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (b.b) * (x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (c.b) * (y_diff) * (FP_MULTIPLIER - x_diff) +
                                           (d.b) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
 
-         // green element
+          
          NewImage->PixelData[Offset].g = ((a.g) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (b.g) * (x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (c.g) * (y_diff) * (FP_MULTIPLIER - x_diff) +
                                           (d.g) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
 
-         // red element
+          
          NewImage->PixelData[Offset].r = ((a.r) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (b.r) * (x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (c.r) * (y_diff) * (FP_MULTIPLIER - x_diff) +
                                           (d.r) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
 
-         // alpha element
+          
          NewImage->PixelData[Offset++].a = ((a.a) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                             (b.a) * (x_diff) * (FP_MULTIPLIER - y_diff) +
                                             (c.a) * (y_diff) * (FP_MULTIPLIER - x_diff) +
                                             (d.a) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
-      } // for (j...)
-   } // for (i...)
+      }  
+   }  
    LOG(3, LOG_LINE_NORMAL, L"Scaling of image complete");
    return NewImage;
-} // EG_IMAGE * egScaleImage()
+}  
 
 VOID egFreeImage(IN EG_IMAGE *Image)
 {
@@ -241,9 +241,9 @@ VOID egFreeImage(IN EG_IMAGE *Image)
     }
 }
 
-//
-// Basic file operations
-//
+ 
+ 
+ 
 
 EFI_STATUS egLoadFile(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, OUT UINT8 **FileData, OUT UINTN *FileDataLength)
 {
@@ -273,7 +273,7 @@ EFI_STATUS egLoadFile(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, OUT UI
         ReadSize = MAX_FILE_SIZE;
     MyFreePool(FileInfo);
 
-    BufferSize = (UINTN)ReadSize;   // was limited to 1 GB above, so this is safe
+    BufferSize = (UINTN)ReadSize;    
     Buffer = (UINT8 *) AllocatePool(BufferSize);
     if (Buffer == NULL) {
         refit_call1_wrapper(FileHandle->Close, FileHandle);
@@ -334,17 +334,17 @@ EFI_STATUS egSaveFile(IN EFI_FILE_PROTOCOL *BaseDir OPTIONAL, IN CHAR16 *FileNam
         refit_call1_wrapper(FileHandle->Close, FileHandle);
     } else {
         Status = refit_call1_wrapper(FileHandle->Delete, FileHandle);
-    } // if/else (FileDataLength > 0)
+    }  
     return Status;
 }
 
-//
-// Loading images from files and embedded data
-//
+ 
+ 
+ 
 
-// Decode the specified image data. The IconSize parameter is relevant only
-// for ICNS, for which it selects which ICNS sub-image is decoded.
-// Returns a pointer to the resulting EG_IMAGE or NULL if decoding failed.
+ 
+ 
+ 
 static EG_IMAGE * egDecodeAny(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha)
 {
    EG_IMAGE        *NewImage = NULL;
@@ -370,20 +370,20 @@ EG_IMAGE * egLoadImage(IN EFI_FILE* BaseDir, IN CHAR16 *FileName, IN BOOLEAN Wan
     if (BaseDir == NULL || FileName == NULL)
         return NULL;
 
-    // load file
+     
     Status = egLoadFile(BaseDir, FileName, &FileData, &FileDataLength);
     if (EFI_ERROR(Status))
         return NULL;
 
-    // decode it
-    NewImage = egDecodeAny(FileData, FileDataLength, 128 /* arbitrary value */, WantAlpha);
+     
+    NewImage = egDecodeAny(FileData, FileDataLength, 128  , WantAlpha);
     MyFreePool(FileData);
 
     return NewImage;
 }
 
-// Load an icon from (BaseDir)/Path, extracting the icon of size IconSize x IconSize.
-// Returns a pointer to the image data, or NULL if the icon could not be loaded.
+ 
+ 
 EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN IconSize)
 {
     EFI_STATUS      Status;
@@ -394,12 +394,12 @@ EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN I
     if (BaseDir == NULL || Path == NULL)
         return NULL;
 
-    // load file
+     
     Status = egLoadFile(BaseDir, Path, &FileData, &FileDataLength);
     if (EFI_ERROR(Status))
         return NULL;
 
-    // decode it
+     
     Image = egDecodeAny(FileData, FileDataLength, IconSize, TRUE);
     MyFreePool(FileData);
     if ((Image->Width != IconSize) || (Image->Height != IconSize)) {
@@ -417,13 +417,13 @@ EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN I
     }
 
     return Image;
-} // EG_IMAGE *egLoadIcon()
+}  
 
-// Returns an icon of any type from the specified subdirectory using the specified
-// base name. All directory references are relative to BaseDir. For instance, if
-// SubdirName is "myicons" and BaseName is "os_linux", this function will return
-// an image based on "myicons/os_linux.icns" or "myicons/os_linux.png", in that
-// order of preference. Returns NULL if no such file is a valid icon file.
+ 
+ 
+ 
+ 
+ 
 EG_IMAGE * egLoadIconAnyType(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *SubdirName, IN CHAR16 *BaseName, IN UINTN IconSize) {
     EG_IMAGE *Image = NULL;
     CHAR16 *Extension;
@@ -436,19 +436,19 @@ EG_IMAGE * egLoadIconAnyType(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *SubdirNam
         LOG(4, LOG_LINE_NORMAL, L"Have loaded Image in egLoadIconAnyType()");
         MyFreePool(Extension);
         MyFreePool(FileName);
-    } // while()
+    }  
 
     return Image;
-} // EG_IMAGE *egLoadIconAnyType()
+}  
 
-// Returns an icon with any extension in ICON_EXTENSIONS from either the directory
-// specified by GlobalConfig.IconsDir or DEFAULT_ICONS_DIR. The input BaseName
-// should be the icon name without an extension. For instance, if BaseName is
-// os_linux, GlobalConfig.IconsDir is myicons, DEFAULT_ICONS_DIR is icons, and
-// ICON_EXTENSIONS is "icns,png", this function will return myicons/os_linux.icns,
-// myicons/os_linux.png, icons/os_linux.icns, or icons/os_linux.png, in that
-// order of preference. Returns NULL if no such icon can be found. All file
-// references are relative to SelfDir.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 EG_IMAGE * egFindIcon(IN CHAR16 *BaseName, IN UINTN IconSize) {
    EG_IMAGE *Image = NULL;
 
@@ -461,7 +461,7 @@ EG_IMAGE * egFindIcon(IN CHAR16 *BaseName, IN UINTN IconSize) {
    }
 
    return Image;
-} // EG_IMAGE * egFindIcon()
+}  
 
 EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEAN WantAlpha)
 {
@@ -473,26 +473,26 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
     if (EmbeddedImage == NULL)
         return NULL;
 
-    // sanity check
+     
     if (EmbeddedImage->PixelMode > EG_MAX_EIPIXELMODE ||
         (EmbeddedImage->CompressMode != EG_EICOMPMODE_NONE && EmbeddedImage->CompressMode != EG_EICOMPMODE_RLE))
         return NULL;
 
-    // allocate image structure and pixel buffer
+     
     NewImage = egCreateImage(EmbeddedImage->Width, EmbeddedImage->Height, WantAlpha);
     if (NewImage == NULL)
         return NULL;
 
-    CompData = (UINT8 *)EmbeddedImage->Data;   // drop const
+    CompData = (UINT8 *)EmbeddedImage->Data;    
     CompLen  = EmbeddedImage->DataLength;
     PixelCount = EmbeddedImage->Width * EmbeddedImage->Height;
 
-    // FUTURE: for EG_EICOMPMODE_EFICOMPRESS, decompress whole data block here
+     
 
     if (EmbeddedImage->PixelMode == EG_EIPIXELMODE_GRAY ||
         EmbeddedImage->PixelMode == EG_EIPIXELMODE_GRAY_ALPHA) {
 
-        // copy grayscale plane and expand
+         
         if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
             egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, r), PixelCount);
         } else {
@@ -505,7 +505,7 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
     } else if (EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR ||
                EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR_ALPHA) {
 
-        // copy color planes
+         
         if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
             egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, r), PixelCount);
             egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, g), PixelCount);
@@ -521,7 +521,7 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
 
     } else {
 
-        // set color planes to black
+         
         egSetPlane(PLPTR(NewImage, r), 0, PixelCount);
         egSetPlane(PLPTR(NewImage, g), 0, PixelCount);
         egSetPlane(PLPTR(NewImage, b), 0, PixelCount);
@@ -532,7 +532,7 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
                       EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR_ALPHA ||
                       EmbeddedImage->PixelMode == EG_EIPIXELMODE_ALPHA)) {
 
-        // copy alpha plane
+         
         if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
             egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, a), PixelCount);
         } else {
@@ -547,9 +547,9 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
     return NewImage;
 }
 
-//
-// Compositing
-//
+ 
+ 
+ 
 
 VOID egRestrictImageArea(IN EG_IMAGE *Image,
                          IN UINTN AreaPosX, IN UINTN AreaPosY,
@@ -557,11 +557,11 @@ VOID egRestrictImageArea(IN EG_IMAGE *Image,
 {
     if (Image && AreaWidth && AreaHeight) {
         if (AreaPosX >= Image->Width || AreaPosY >= Image->Height) {
-            // out of bounds, operation has no effect
+             
             *AreaWidth  = 0;
             *AreaHeight = 0;
         } else {
-            // calculate affected area
+             
             if (*AreaWidth > Image->Width - AreaPosX)
                 *AreaWidth = Image->Width - AreaPosX;
             if (*AreaHeight > Image->Height - AreaPosY)
@@ -677,7 +677,7 @@ VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN 
         CompHeight = TopImage->Height;
         egRestrictImageArea(CompImage, PosX, PosY, &CompWidth, &CompHeight);
 
-        // compose
+         
         if (CompWidth > 0) {
             if (TopImage->HasAlpha) {
                 egRawCompose(CompImage->PixelData + PosY * CompImage->Width + PosX, TopImage->PixelData,
@@ -688,11 +688,11 @@ VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN 
             }
         }
     }
-} /* VOID egComposeImage() */
+}  
 
-//
-// misc internal functions
-//
+ 
+ 
+ 
 
 VOID egInsertPlane(IN UINT8 *SrcDataPtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount)
 {
@@ -730,4 +730,4 @@ VOID egCopyPlane(IN UINT8 *SrcPlanePtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCo
     }
 }
 
-/* EOF */
+ 

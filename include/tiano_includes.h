@@ -1,5 +1,5 @@
-// A boatload of #includes needed to build the software with TianoCore's EDK2/UDK2010
-// toolkit. Placed here to maintain my own sanity.
+ 
+ 
 
 #ifndef _BOOT_TIANO_INCLUDES_
 #define _BOOT_TIANO_INCLUDES_
@@ -20,7 +20,7 @@
 #include <Base.h>
 #include <Uefi.h>
 #include <FrameworkDxe.h>
-// Protocol Includes
+ 
 #include <Protocol/AbsolutePointer.h>
 #include <Protocol/AcpiTable.h>
 #include <Protocol/BlockIo.h>
@@ -60,7 +60,7 @@
 #include <Protocol/UsbIo.h>
 #include <Protocol/LegacyBios.h>
 
-// Guid Includes
+ 
 #include <Guid/Acpi.h>
 #include <Guid/ConsoleInDevice.h>
 #include <Guid/ConsoleOutDevice.h>
@@ -77,16 +77,16 @@
 #include <Guid/SmBios.h>
 #include <Guid/StandardErrorDevice.h>
 
-// Library Includes
+ 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/DxeServicesLib.h>
 #include <Library/DxeServicesTableLib.h>
-//#include <Library/EblCmdLib.h>
-//#include <Library/EblNetworkLib.h>
-//#include "EfiFileLib.h"
+ 
+ 
+ 
 #include <Library/HiiLib.h>
 #include <Library/HobLib.h>
 #include <Library/IoLib.h>
@@ -99,7 +99,7 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiScsiLib.h>
 
-// IndustryStandard Includes
+ 
 #include <IndustryStandard/Pci.h>
 #include <IndustryStandard/SmBus.h>
 #include <IndustryStandard/Acpi.h>
@@ -111,9 +111,9 @@
 
 BOOLEAN CheckError(IN EFI_STATUS Status, IN CHAR16 *where);
 
-//
-// BmLib
-//
+ 
+ 
+ 
 extern EFI_STATUS
 EfiLibLocateProtocol (
    IN  EFI_GUID    *ProtocolGuid,

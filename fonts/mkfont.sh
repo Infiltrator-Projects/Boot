@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
-#
-# copyright (c) 2013 by Roderick W. Smith
-#
-# This program is licensed under the terms of the GNU GPL, version 3,
-# or (at your option) any later version.
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-# Program to generate a PNG file suitable for use as a BOOT font
-# To obtain a list of available font names, type:
-#
-# convert -list font | less
-#
-# The font used MUST be a monospaced font; searching for the string
-# "Mono" will turn up most suitable candidates.
-#
-# Usage:
-# ./mkfont.sh font-name font-size font-Y-offset bitmap-filename.png
-#
-# This script is part of the BOOT package. Version numbers refer to
-# the BOOT version with which the script was released.
-#
-# Version history:
-#
-#  0.6.6  -  Initial release
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if [[ $# != 4 ]] ; then
    echo "Usage: $0 font-name font-size y-offset bitmap-filename.png"
@@ -46,7 +46,7 @@ fi
 
 Height=$2
 let CellWidth=(${Height}*6+5)/10
-#let CellWidth=(${Height}*5)/10
+
 let Width=${CellWidth}*96
 echo "Creating ${Width}x${Height} font bitmap...."
 $Convert -size ${Width}x${Height} xc:transparent -gravity NorthWest -font $1 -pointsize $2 \

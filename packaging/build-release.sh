@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: GPL-3.0-or-later
-# Build a generic AMD64 DEB and a source-downloading native installer RUN.
+
+
 set -euo pipefail
 
 version="${1:?Usage: packaging/build-release.sh VERSION [OUTPUT_DIRECTORY]}"
@@ -35,8 +35,8 @@ for directory in icons fonts banners themes; do
     if [[ -d "$directory" ]]; then cp -a "$directory" "$root/boot/"; fi
 done
 install -m 0644 boot.conf-sample "$root/boot/boot.conf-sample"
-# COPYING.txt is the package's licence. Other documentation is optional:
-# deleting upstream prose must never break the native installer release.
+
+
 install -m 0644 COPYING.txt "$root/docs/COPYING.txt"
 for document in README.txt BUILDING.txt; do
     if [[ -f "$document" ]]; then
@@ -72,8 +72,8 @@ EOF
 deb="$out/infiltrator-boot_${version}_amd64.deb"
 dpkg-deb --root-owner-group --build "$package" "$deb"
 
-# The single RUN source is copied directly, with only release metadata substituted.
-# This build never embeds a second installer or creates a wrapper function.
+
+
 source_sha=$(git rev-parse --verify HEAD)
 [[ "$source_sha" =~ ^[a-f0-9]{40}$ ]] || { echo "Cannot pin BOOT source commit" >&2; exit 1; }
 test -s boot-native-installer.run || { echo "Missing native RUN source" >&2; exit 1; }

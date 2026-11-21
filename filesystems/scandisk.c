@@ -1,24 +1,24 @@
-/*
- * scandisk.c
- * Scanning disk for btrfs multi-devices
- * by Samuel Liao
- *
- * Copyright (c) 2013 Tencent, Inc.
- */
-/*
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ 
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "fsw_efi.h"
 #ifdef __MAKEWITH_GNUEFI
@@ -39,16 +39,16 @@ static struct fsw_fstype_table   dummy_fstype = {
     sizeof(struct fsw_volume),
     sizeof(struct fsw_dnode),
 
-    NULL, //volume_mount,
-    dummy_volume_free, //volume_free,
-    NULL, //volume_stat,
-    NULL, //dnode_fill,
-    NULL, //dnode_free,
-    NULL, //dnode_stat,
-    NULL, //get_extent,
-    NULL, //dir_lookup,
-    NULL, //dir_read,
-    NULL, //readlink,
+    NULL,  
+    dummy_volume_free,  
+    NULL,  
+    NULL,  
+    NULL,  
+    NULL,  
+    NULL,  
+    NULL,  
+    NULL,  
+    NULL,  
 };
 
 static struct fsw_volume *create_dummy_volume(EFI_DISK_IO *diskio, UINT32 mediaid)
@@ -65,9 +65,9 @@ static struct fsw_volume *create_dummy_volume(EFI_DISK_IO *diskio, UINT32 mediai
         fsw_free(vol);
         return NULL;
     }
-    /* fstype_table->volume_free for fsw_unmount */
+     
     vol->fstype_table = &dummy_fstype;
-    /* host_data needded to fsw_block_get()/fsw_efi_read_block() */
+     
     Volume->DiskIo = diskio;
     Volume->MediaId = mediaid;
 
@@ -96,15 +96,15 @@ static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), str
     UINTN       i;
     UINTN       scanned = 0;
 
-    // Driver hangs if compiled with GNU-EFI unless there's a Print() statement somewhere.
-    // I'm still trying to track that down; in the meantime, work around it....
+     
+     
 #if defined(__MAKEWITH_GNUEFI)
     Print(L" ");
 #endif
     DPRINT(L"Scanning disks\n");
     Status = refit_call5_wrapper(BS->LocateHandleBuffer, ByProtocol, &gMyEfiDiskIoProtocolGuid, NULL, &HandleCount, &Handles);
     if (Status == EFI_NOT_FOUND)
-        return -1;  // no filesystems. strange, but true...
+        return -1;   
     for (i = 0; i < HandleCount; i++) {
         EFI_DISK_IO *diskio;
         EFI_BLOCK_IO *blockio;

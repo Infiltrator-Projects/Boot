@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: GPL-3.0-or-later
-# Fake firmware tests: always register BOOT and set it first on install/reinstall.
+
+
 set -euo pipefail
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
@@ -22,7 +22,7 @@ grep() {
 lsblk() { printf 'NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINTS\nnvme1n1 259:0 0 953G 0 disk\nnvme1n1p1 259:1 0 512M 0 part /boot/efi\n'; }
 blkid() { printf '12345678-1111-2222-3333-444455556666\n'; }
 cat > "$work/bin/efibootmgr" <<'MOCK'
-#!/usr/bin/env bash
+
 set -euo pipefail
 printf '%s\n' "$*" >> "$MOCK_NVRAM/actions"
 case "${1:-}" in
@@ -57,14 +57,14 @@ echo 0001,0002 > "$MOCK_NVRAM/order"
 set +e +u
 set +o pipefail
 
-# First install: register one BOOT entry and put it first.
+
 Problems=""
 AddBootEntry || exit 1
 test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 
-# Reinstall 50 times: no additional BOOT entries; explicitly set default each time.
+
 for i in {1..50}; do
     AddBootEntry || exit 1
 done
@@ -73,15 +73,15 @@ test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 51 || exit 1
 test "$(command grep -c '^Boot' "$MOCK_NVRAM/entries")" = 3 || exit 1
 
-# If someone set Windows first, running BOOT again restores BOOT as default.
+
 echo "0001,0004,0002" > "$MOCK_NVRAM/order"
 AddBootEntry || exit 1
 test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
 test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 52 || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 
-# Failure to set the default is a failed installation, not success.
-# An invalid mock BootOrder is also rejected rather than silently accepted.
+
+
 echo "0004,NOPE,0002" > "$MOCK_NVRAM/order"
 Problems=""
 if AddBootEntry >/dev/null 2>&1; then
@@ -90,7 +90,7 @@ if AddBootEntry >/dev/null 2>&1; then
 fi
 test "$Problems" = 1 || exit 1
 
-# A duplicate BOOT entry must never trigger a third registration.
+
 echo "0004,0001,0002" > "$MOCK_NVRAM/order"
 printf '%s\n' 'Boot0007* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)' >> "$MOCK_NVRAM/entries"
 creates_before=$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")
@@ -102,7 +102,7 @@ fi
 test "$Problems" = 1 || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = "$creates_before" || exit 1
 
-# If firmware listing fails, refuse creation rather than assuming BOOT absent.
+
 export MOCK_FAIL_READ=1
 Problems=""
 if AddBootEntry >/dev/null 2>&1; then
@@ -113,7 +113,7 @@ test "$Problems" = 1 || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = "$creates_before" || exit 1
 unset MOCK_FAIL_READ
 
-# Even a BOOT-labelled entry on an unexpected EFI path is not a fresh install.
+
 command grep -v '^Boot0007' "$MOCK_NVRAM/entries" | command grep -v '^Boot0004' > "$MOCK_NVRAM/entries.tmp"
 mv "$MOCK_NVRAM/entries.tmp" "$MOCK_NVRAM/entries"
 printf '%s\n' 'Boot0008* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\OldBoot\BOOTX64.EFI)' >> "$MOCK_NVRAM/entries"
@@ -124,7 +124,7 @@ if AddBootEntry >/dev/null 2>&1; then
 fi
 test "$Problems" = 1 || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = "$creates_before" || exit 1
-# Other OS entries are never deleted and are retained in BootOrder.
+
 command grep -Fq "Boot0001* Windows Boot Manager" "$MOCK_NVRAM/entries" || exit 1
 command grep -Fq "Boot0002* Ubuntu" "$MOCK_NVRAM/entries" || exit 1
 ! command grep -Eq -- ' -B($| )' "$MOCK_NVRAM/actions" || exit 1

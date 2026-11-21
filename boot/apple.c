@@ -1,23 +1,23 @@
-/*
- * boot/apple.c
- * Functions specific to Apple computers
- * 
- * Copyright (c) 2015 Roderick W. Smith
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
- */
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "global.h"
 #include "config.h"
@@ -30,10 +30,10 @@
 
 CHAR16 gCsrStatus[512];
 
-// Get CSR (Apple's Configurable Security Restrictions; aka System Integrity
-// Protection [SIP], or "rootless") status information. If the variable is not
-// present and the firmware is Apple, fake it and claim it's enabled, since
-// that's how OS X 10.11 treats a system with the variable absent.
+ 
+ 
+ 
+ 
 EFI_STATUS GetCsrStatus(UINT32 *CsrStatus) {
     UINT32     *ReturnValue = NULL;
     UINTN      CsrLength;
@@ -53,14 +53,14 @@ EFI_STATUS GetCsrStatus(UINT32 *CsrStatus) {
         } else if ((Status == EFI_NOT_FOUND) && (StriSubCmp(L"Apple", ST->FirmwareVendor))) {
             *CsrStatus = SIP_ENABLED;
             Status = EFI_SUCCESS;
-        } // if (Status == EFI_SUCCESS)
-    } // if (CsrStatus)
+        }  
+    }  
     return Status;
-} // INTN GetCsrStatus()
+}  
 
-// Store string describing CSR status value in gCsrStatus variable, which appears
-// on the Info page. If DisplayMessage is TRUE, displays the new value of
-// gCsrStatus on the screen for three seconds.
+ 
+ 
+ 
 VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage) {
     EG_PIXEL    BGColor = COLOR_LIGHTBLUE;
 
@@ -77,16 +77,16 @@ VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage) {
             break;
         default:
             SPrint(gCsrStatus, 255, L" System Integrity Protection status: 0x%02x", CsrStatus);
-    } // switch
+    }  
     if (DisplayMessage) {
         egDisplayMessage(gCsrStatus, &BGColor, CENTER);
         PauseSeconds(3);
-    } // if
-} // VOID RecordgCsrStatus()
+    }  
+}  
 
-// Find the current CSR status and reset it to the next one in the
-// GlobalConfig.CsrValues list, or to the first value if the current
-// value is not on the list.
+ 
+ 
+ 
 VOID RotateCsrValue(VOID) {
     UINT32       CurrentValue, TargetCsr;
     UINT32_LIST  *ListItem;
@@ -115,15 +115,15 @@ VOID RotateCsrValue(VOID) {
         }
     } else {
         LOG(1, LOG_LINE_NORMAL, L"Could not retrieve CSR value or csr_values not set");
-    } // if/else
-} // VOID RotateCsrValue()
+    }  
+}  
 
 
-/*
- * The below definitions and SetAppleOSInfo() function are based on a GRUB patch
- * by Andreas Heider:
- * https://lists.gnu.org/archive/html/grub-devel/2013-12/msg00442.html
- */
+ 
+
+
+
+
 
 #define EFI_APPLE_SET_OS_PROTOCOL_GUID  \
   { 0xc5c5da95, 0x7d5c, 0x45e6, \
@@ -136,10 +136,10 @@ typedef struct EfiAppleSetOsInterface {
     EFI_STATUS EFIAPI (*SetOsVendor) (IN CHAR8 *Vendor);
 } EfiAppleSetOsInterface;
 
-// Function to tell the firmware that OS X is being launched. This is
-// required to work around problems on some Macs that don't fully
-// initialize some hardware (especially video displays) when third-party
-// OSes are launched in EFI mode.
+ 
+ 
+ 
+ 
 EFI_STATUS SetAppleOSInfo() {
     CHAR16 *AppleOSVersion = NULL;
     CHAR8 *AppleOSVersion8 = NULL;
@@ -150,7 +150,7 @@ EFI_STATUS SetAppleOSInfo() {
     LOG(1, LOG_LINE_NORMAL, L"Setting Apple OS information, if applicable");
     Status = refit_call3_wrapper(BS->LocateProtocol, &apple_set_os_guid, NULL, (VOID**) &SetOs);
 
-    // If not a Mac, ignore the call....
+     
     if ((Status != EFI_SUCCESS) || (!SetOs)) {
         LOG(2, LOG_LINE_NORMAL, L"Not a Mac; not setting Apple OS information");
         return EFI_SUCCESS;
@@ -175,10 +175,10 @@ EFI_STATUS SetAppleOSInfo() {
             if ((Status == EFI_SUCCESS) && (SetOs->Version >= 2))
                 Status = refit_call1_wrapper (SetOs->SetOsVendor, (CHAR8 *) "Apple Inc.");
             MyFreePool(AppleOSVersion);
-        } // if (AppleOSVersion)
-    } // if
+        }  
+    }  
     if (Status != EFI_SUCCESS)
         Print(L"Unable to set firmware boot type!\n");
 
     return (Status);
-} // EFI_STATUS SetAppleOSInfo()
+}  

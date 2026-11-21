@@ -1,19 +1,19 @@
-/*
- * EfiLib/legacy.c
- * CSM/legacy boot support functions
- * 
- * Taken from Tianocore source code (mostly IntelFrameworkModulePkg/Universal/BdsDxe/BootMaint/BBSsupport.c)
- *
- * Copyright (c) 2004 - 2011, Intel Corporation. All rights reserved.<BR>
- * This program and the accompanying materials
- * are licensed and made available under the terms and conditions of the BSD License
- * which accompanies this distribution.  The full text of the license may be found at
- * http://opensource.org/licenses/bsd-license.php
- * 
- * THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
- * WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
- *
- */
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef __MAKEWITH_GNUEFI
 #include "efi.h"
@@ -39,19 +39,19 @@ extern EFI_GUID gEfiLegacyBiosProtocolGuid;
 EFI_GUID gEfiLegacyDevOrderVariableGuid     = { 0xa56074db, 0x65fe, 0x45f7, {0xbd, 0x21, 0x2d, 0x2b, 0xdd, 0x8e, 0x96, 0x52 }};
 static EFI_GUID EfiGlobalVariableGuid = { 0x8BE4DF61, 0x93CA, 0x11D2, { 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C }};
 
-/**
-
-  Translate the first n characters of an Ascii string to
-  Unicode characters. The count n is indicated by parameter
-  Size. If Size is greater than the length of string, then
-  the entire string is translated.
+ 
 
 
-  @param AStr               Pointer to input Ascii string.
-  @param Size               The number of characters to translate.
-  @param UStr               Pointer to output Unicode string buffer.
 
-**/
+
+
+
+
+
+
+
+
+
 VOID
 AsciiToUnicodeSize (
   IN UINT8              *AStr,
@@ -73,15 +73,15 @@ AsciiToUnicodeSize (
   UStr[Idx] = 0;
 }
 
-/**
-  Build Legacy Device Name String according.
+ 
 
-  @param CurBBSEntry     BBS Table.
-  @param Index           Index.
-  @param BufSize         The buffer size.
-  @param BootString      The output string.
 
-**/
+
+
+
+
+
+
 VOID
 BdsBuildLegacyDevNameString (
   IN  BBS_TABLE                 *CurBBSEntry,
@@ -96,30 +96,30 @@ BdsBuildLegacyDevNameString (
   CHAR16  Temp[80];
 
   switch (Index) {
-  //
-  // Primary Master
-  //
+   
+   
+   
   case 1:
     Fmt = L"Primary Master %s";
     break;
 
- //
- // Primary Slave
- //
+  
+  
+  
   case 2:
     Fmt = L"Primary Slave %s";
     break;
 
-  //
-  // Secondary Master
-  //
+   
+   
+   
   case 3:
     Fmt = L"Secondary Master %s";
     break;
 
-  //
-  // Secondary Slave
-  //
+   
+   
+   
   case 4:
     Fmt = L"Secondary Slave %s";
     break;
@@ -163,23 +163,23 @@ BdsBuildLegacyDevNameString (
     Type = L"Unknown";
     break;
   }
-  //
-  // If current BBS entry has its description then use it.
-  //
+   
+   
+   
   StringDesc = (UINT8 *) (UINTN) ((CurBBSEntry->DescStringSegment << 4) + CurBBSEntry->DescStringOffset);
   if (NULL != StringDesc) {
-    //
-    // Only get fisrt 32 characters, this is suggested by BBS spec
-    //
+     
+     
+     
     AsciiToUnicodeSize (StringDesc, 32, Temp);
     Fmt   = L"%s";
     Type  = Temp;
   }
 
-  //
-  // BbsTable 16 entries are for onboard IDE.
-  // Set description string for SATA harddisks, Harddisk 0 ~ Harddisk 11
-  //
+   
+   
+   
+   
   if (Index >= 5 && Index <= 16 && (CurBBSEntry->DeviceType == BBS_HARDDISK || CurBBSEntry->DeviceType == BBS_CDROM)) {
     Fmt = L"%s %d";
     SPrint(BootString, BufSize, Fmt, Type, Index - 5);
@@ -188,17 +188,17 @@ BdsBuildLegacyDevNameString (
   }
 }
 
-/**
-  Check if the boot option is a legacy one.
+ 
 
-  @param BootOptionVar   The boot option data payload.
-  @param BbsEntry        The BBS Table.
-  @param BbsIndex        The table index.
 
-  @retval TRUE           It is a legacy boot option.
-  @retval FALSE          It is not a legacy boot option.
 
-**/
+
+
+
+
+
+
+
 BOOLEAN
 BdsIsLegacyBootOption (
   IN UINT8                 *BootOptionVar,
@@ -231,21 +231,21 @@ BdsIsLegacyBootOption (
   return Ret;
 }
 
-/**
-  Find all legacy boot option by device type.
+ 
 
-  @param BootOrder       The boot order array.
-  @param BootOptionNum   The number of boot option.
-  @param DevType         Device type.
-  @param DevName         Device name.
-  @param Attribute       The boot option attribute.
-  @param BbsIndex        The BBS table index.
-  @param OptionNumber    The boot option index.
 
-  @retval TRUE           The Legacy boot option is found.
-  @retval FALSE          The legacy boot option is not found.
 
-**/
+
+
+
+
+
+
+
+
+
+
+
 BOOLEAN
 BdsFindLegacyBootOptionByDevTypeAndName (
   IN UINT16                 *BootOrder,
@@ -271,9 +271,9 @@ BdsFindLegacyBootOptionByDevTypeAndName (
     return Found;
   }
 
-  //
-  // Loop all boot option from variable
-  //
+   
+   
+   
   for (Index = 0; Index < BootOptionNum; Index++) {
     SPrint(BootOption, sizeof (BootOption), L"Boot%04x", (UINTN) BootOrder[Index]);
     BootOptionVar = BdsLibGetVariableAndSize (
@@ -285,9 +285,9 @@ BdsFindLegacyBootOptionByDevTypeAndName (
        continue;
     }
 
-    //
-    // Skip Non-legacy boot option
-    //
+     
+     
+     
     if (!BdsIsLegacyBootOption (BootOptionVar, &BbsEntry, BbsIndex)) {
       MyFreePool (BootOptionVar);
       continue;
@@ -311,27 +311,27 @@ BdsFindLegacyBootOptionByDevTypeAndName (
   return Found;
 }
 
-/**
-
-  Create a legacy boot option for the specified entry of
-  BBS table, save it as variable, and append it to the boot
-  order list.
+ 
 
 
-  @param CurrentBbsEntry    Pointer to current BBS table.
-  @param CurrentBbsDevPath  Pointer to the Device Path Protocol instance of BBS
-  @param Index              Index of the specified entry in BBS table.
-  @param BootOrderList      On input, the original boot order list.
-                            On output, the new boot order list attached with the
-                            created node.
-  @param BootOrderListSize  On input, the original size of boot order list.
-                            On output, the size of new boot order list.
 
-  @retval  EFI_SUCCESS             Boot Option successfully created.
-  @retval  EFI_OUT_OF_RESOURCES    Fail to allocate necessary memory.
-  @retval  Other                   Error occurs while setting variable.
 
-**/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 EFI_STATUS
 BdsCreateLegacyBootOption (
   IN BBS_TABLE                        *CurrentBbsEntry,
@@ -389,9 +389,9 @@ BdsCreateLegacyBootOption (
 
   BdsBuildLegacyDevNameString (CurrentBbsEntry, Index, sizeof (BootDesc), BootDesc);
 
-  //
-  // Create new BBS device path node with description string
-  //
+   
+   
+   
   UnicodeStrToAsciiStr (BootDesc, HelpString);
 
   StringLen = AsciiStrLen (HelpString);
@@ -403,9 +403,9 @@ BdsCreateLegacyBootOption (
   CopyMem (NewBbsDevPathNode->String, HelpString, StringLen + 1);
   SetDevicePathNodeLength (&(NewBbsDevPathNode->Header), sizeof (BBS_BBS_DEVICE_PATH) + StringLen);
 
-  //
-  // Create entire new CurrentBbsDevPath with end node
-  //
+   
+   
+   
   CurrentBbsDevPath = AppendDevicePathNode (
                         EndDevicePath,
                         (EFI_DEVICE_PATH_PROTOCOL *) NewBbsDevPathNode
@@ -490,19 +490,19 @@ BdsCreateLegacyBootOption (
   return Status;
 }
 
-/**
-  Create a legacy boot option.
+ 
 
-  @param BbsItem         The BBS Table entry.
-  @param Index           Index of the specified entry in BBS table.
-  @param BootOrderList   The boot order list.
-  @param BootOrderListSize The size of boot order list.
 
-  @retval EFI_OUT_OF_RESOURCE  No enough memory.
-  @retval EFI_SUCCESS          The function complete successfully.
-  @return Other value if the legacy boot option is not created.
 
-**/
+
+
+
+
+
+
+
+
+
 EFI_STATUS
 BdsCreateOneLegacyBootOption (
   IN BBS_TABLE              *BbsItem,
@@ -517,9 +517,9 @@ BdsCreateOneLegacyBootOption (
 
   DevPath                       = NULL;
 
-  //
-  // Create device path node.
-  //
+   
+   
+   
   BbsDevPathNode.Header.Type    = BBS_DEVICE_PATH;
   BbsDevPathNode.Header.SubType = BBS_BBS_DP;
   SetDevicePathNodeLength (&BbsDevPathNode.Header, sizeof (BBS_BBS_DEVICE_PATH));
@@ -548,24 +548,24 @@ BdsCreateOneLegacyBootOption (
   return Status;
 }
 
-/**
-  Group the legacy boot options in the BootOption.
+ 
 
-  The routine assumes the boot options in the beginning that covers all the device 
-  types are ordered properly and re-position the following boot options just after
-  the corresponding boot options with the same device type.
-  For example:
-  1. Input  = [Harddisk1 CdRom2 Efi1 Harddisk0 CdRom0 CdRom1 Harddisk2 Efi0]
-     Assuming [Harddisk1 CdRom2 Efi1] is ordered properly
-     Output = [Harddisk1 Harddisk0 Harddisk2 CdRom2 CdRom0 CdRom1 Efi1 Efi0]
 
-  2. Input  = [Efi1 Efi0 CdRom1 Harddisk0 Harddisk1 Harddisk2 CdRom0 CdRom2]
-     Assuming [Efi1 Efi0 CdRom1 Harddisk0] is ordered properly
-     Output = [Efi1 Efi0 CdRom1 CdRom0 CdRom2 Harddisk0 Harddisk1 Harddisk2]
 
-  @param BootOption      Pointer to buffer containing Boot Option Numbers
-  @param BootOptionCount Count of the Boot Option Numbers
-**/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 VOID
 GroupMultipleLegacyBootOption4SameType (
   UINT16                   *BootOption,
@@ -583,18 +583,18 @@ GroupMultipleLegacyBootOption4SameType (
 
   for (Index = 0; Index < BootOptionCount; Index++) {
 
-    //
-    // Find the DeviceType
-    //
+     
+     
+     
     for (MappingIndex = 0; MappingIndex < mBootOptionBbsMappingCount; MappingIndex++) {
       if (mBootOptionBbsMapping[MappingIndex].BootOptionNumber == BootOption[Index]) {
         break;
       }
     }
     if (MappingIndex == mBootOptionBbsMappingCount) {
-      //
-      // Is not a legacy boot option
-      //
+       
+       
+       
       continue;
     }
 
@@ -602,21 +602,21 @@ GroupMultipleLegacyBootOption4SameType (
              sizeof (DeviceTypeIndex) / sizeof (DeviceTypeIndex[0]));
     NextIndex = &DeviceTypeIndex[mBootOptionBbsMapping[MappingIndex].BbsType & 0xF];
     if (*NextIndex == (UINTN) -1) {
-      //
-      // *NextIndex is the index in BootOption to put the next Option Number for the same type
-      //
+       
+       
+       
       *NextIndex = Index + 1;
     } else {
-      //
-      // insert the current boot option before *NextIndex, causing [*Next .. Index] shift right one position
-      //
+       
+       
+       
       OptionNumber = BootOption[Index];
       CopyMem (&BootOption[*NextIndex + 1], &BootOption[*NextIndex], (Index - *NextIndex) * sizeof (UINT16));
       BootOption[*NextIndex] = OptionNumber;
 
-      //
-      // Update the DeviceTypeIndex array to reflect the right shift operation
-      //
+       
+       
+       
       for (DeviceIndex = 0; DeviceIndex < sizeof (DeviceTypeIndex) / sizeof (DeviceTypeIndex[0]); DeviceIndex++) {
         if (DeviceTypeIndex[DeviceIndex] != (UINTN) -1 && DeviceTypeIndex[DeviceIndex] >= *NextIndex) {
           DeviceTypeIndex[DeviceIndex]++;
@@ -626,18 +626,18 @@ GroupMultipleLegacyBootOption4SameType (
   }
 }
 
-/**
-  Function returns the value of the specified variable.
+ 
 
 
-  @param Name            A Null-terminated Unicode string that is
-                         the name of the vendor's variable.
-  @param VendorGuid      A unique identifier for the vendor.
 
-  @return               The payload of the variable.
-  @retval NULL          If the variable can't be read.
 
-**/
+
+
+
+
+
+
+
 VOID *
 EfiLibGetVariable (
   IN CHAR16               *Name,
@@ -649,20 +649,20 @@ EfiLibGetVariable (
   return BdsLibGetVariableAndSize (Name, VendorGuid, &VarSize);
 }
 
-/**
-  Function deletes the variable specified by VarName and VarGuid.
+ 
 
-  @param VarName           A Null-terminated Unicode string that is
-                           the name of the vendor's variable.
 
-  @param VarGuid           A unique identifier for the vendor.
 
-  @retval  EFI_SUCCESS           The variable was found and removed
-  @retval  EFI_UNSUPPORTED       The variable store was inaccessible
-  @retval  EFI_OUT_OF_RESOURCES  The temporary buffer was not available
-  @retval  EFI_NOT_FOUND         The variable was not found
 
-**/
+
+
+
+
+
+
+
+
+
 EFI_STATUS
 EfiLibDeleteVariable (
   IN CHAR16   *VarName,
@@ -676,9 +676,9 @@ EfiLibDeleteVariable (
   Status  = EFI_NOT_FOUND;
 
   if (VarBuf != NULL) {
-    //
-    // Delete variable from Storage
-    //
+     
+     
+     
     Status = refit_call5_wrapper(gRT->SetVariable, VarName, VarGuid, VAR_FLAG, 0, NULL);
     ASSERT (!EFI_ERROR (Status));
     MyFreePool (VarBuf);
@@ -687,15 +687,15 @@ EfiLibDeleteVariable (
   return Status;
 }
 
-/**
-  Add the legacy boot options from BBS table if they do not exist.
+ 
 
-  @retval EFI_SUCCESS          The boot options are added successfully 
-                               or they are already in boot options.
-  @retval EFI_NOT_FOUND        No legacy boot options is found.
-  @retval EFI_OUT_OF_RESOURCE  No enough memory.
-  @return Other value          LegacyBoot options are not added.
-**/
+
+
+
+
+
+
+
 EFI_STATUS
 BdsAddNonExistingLegacyBootOptions (
   VOID
@@ -769,10 +769,10 @@ BdsAddNonExistingLegacyBootOptions (
               &OptionNumber
               );
     if (!Exist) {
-      //
-      // Not found such type of legacy device in boot options or we found but it's disabled
-      // so we have to create one and put it to the tail of boot order list
-      //
+       
+       
+       
+       
       Status = BdsCreateOneLegacyBootOption (
                 &LocalBbsTable[Index],
                 Index,
@@ -787,9 +787,9 @@ BdsAddNonExistingLegacyBootOptions (
     }
 
     ASSERT (BbsIndex == Index);
-    //
-    // Save the BbsIndex
-    //
+     
+     
+     
     mBootOptionBbsMapping = EfiReallocatePool (
                               mBootOptionBbsMapping,
                               mBootOptionBbsMappingCount * sizeof (BOOT_OPTION_BBS_MAPPING),
@@ -802,9 +802,9 @@ BdsAddNonExistingLegacyBootOptions (
     mBootOptionBbsMappingCount ++;
   }
 
-  //
-  // Group the Boot Option Number in BootOrder for the same type devices
-  //
+   
+   
+   
   GroupMultipleLegacyBootOption4SameType (
     BootOrder,
     BootOrderSize / sizeof (UINT16)
@@ -825,18 +825,18 @@ BdsAddNonExistingLegacyBootOptions (
   return Status;
 }
 
-/**
-  Deletete the Boot Option from EFI Variable. The Boot Order Arrray
-  is also updated.
+ 
 
-  @param OptionNumber    The number of Boot option want to be deleted.
-  @param BootOrder       The Boot Order array.
-  @param BootOrderSize   The size of the Boot Order Array.
 
-  @retval  EFI_SUCCESS           The Boot Option Variable was found and removed
-  @retval  EFI_UNSUPPORTED       The Boot Option Variable store was inaccessible
-  @retval  EFI_NOT_FOUND         The Boot Option Variable was not found
-**/
+
+
+
+
+
+
+
+
+
 EFI_STATUS
 BdsDeleteBootOption (
   IN UINTN                       OptionNumber,
@@ -855,9 +855,9 @@ BdsDeleteBootOption (
   SPrint (BootOption, sizeof (BootOption), L"Boot%04x", OptionNumber);
   Status = EfiLibDeleteVariable (BootOption, &EfiGlobalVariableGuid);
 
-  //
-  // adjust boot order array
-  //
+   
+   
+   
   for (Index = 0; Index < *BootOrderSize / sizeof (UINT16); Index++) {
     if (BootOrder[Index] == OptionNumber) {
       Index2Del = Index;
@@ -879,13 +879,13 @@ BdsDeleteBootOption (
 
 }
 
-/**
-  Delete all the invalid legacy boot options.
+ 
 
-  @retval EFI_SUCCESS             All invalide legacy boot options are deleted.
-  @retval EFI_OUT_OF_RESOURCES    Fail to allocate necessary memory.
-  @retval EFI_NOT_FOUND           Fail to retrive variable of boot order.
-**/
+
+
+
+
+
 EFI_STATUS
 BdsDeleteAllInvalidLegacyBootOptions (
   VOID
@@ -957,9 +957,9 @@ BdsDeleteAllInvalidLegacyBootOptions (
                       BootOptionVar
                       );
       if (Status == EFI_NOT_FOUND) {
-        //
-        // Update BootOrder
-        //
+         
+         
+         
         BdsDeleteBootOption (
           BootOrder[Index],
           BootOrder,
@@ -972,9 +972,9 @@ BdsDeleteAllInvalidLegacyBootOptions (
       }
     }
 
-    //
-    // Skip Non-Legacy boot option
-    //
+     
+     
+     
     if (!BdsIsLegacyBootOption (BootOptionVar, &BbsEntry, &BbsIndex)) {
       if (BootOptionVar!= NULL) {
         MyFreePool (BootOptionVar);
@@ -984,9 +984,9 @@ BdsDeleteAllInvalidLegacyBootOptions (
     }
 
     if (BbsIndex < BbsCount) {
-      //
-      // Check if BBS Description String is changed
-      //
+       
+       
+       
       DescStringMatch = FALSE;
       BdsBuildLegacyDevNameString (
         &LocalBbsTable[BbsIndex],
@@ -1011,9 +1011,9 @@ BdsDeleteAllInvalidLegacyBootOptions (
     if (BootOptionVar != NULL) {
       MyFreePool (BootOptionVar);
     }
-    //
-    // should delete
-    //
+     
+     
+     
     BdsDeleteBootOption (
       BootOrder[Index],
       BootOrder,
@@ -1021,9 +1021,9 @@ BdsDeleteAllInvalidLegacyBootOptions (
       );
   }
 
-  //
-  // Adjust the number of boot options.
-  //
+   
+   
+   
   if (BootOrderSize != 0) {
     Status = EfivarSetRaw(&EfiGlobalVariableGuid, L"BootOrder",
                           (CHAR8*) BootOrder,
@@ -1039,17 +1039,17 @@ BdsDeleteAllInvalidLegacyBootOptions (
   return Status;
 }
 
-/**
-  Fill the device order buffer.
+ 
 
-  @param BbsTable        The BBS table.
-  @param BbsType         The BBS Type.
-  @param BbsCount        The BBS Count.
-  @param Buf             device order buffer.
 
-  @return The device order buffer.
 
-**/
+
+
+
+
+
+
+
 UINT16 *
 BdsFillDevOrderBuf (
   IN BBS_TABLE                    *BbsTable,

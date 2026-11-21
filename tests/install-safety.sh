@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: GPL-3.0-or-later
-# Disposable fake ESP checks for the full-length BOOT-adapted installer.
+
+
 set -euo pipefail
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
@@ -31,7 +31,7 @@ printf 'protected-grub' > "$InstallDir/EFI/ubuntu/grubx64.efi"
 printf 'original-native-binary' > "$BootDir/boot_x64.efi"
 printf 'showtools about\n' > "$ConfFile"
 printf 'icon' > "$IconsDir/test.png"
-# The native RUN invokes the historical script without strict shell options.
+
 set +e +u
 set +o pipefail
 GuardDefaultBootLocation || exit 1
@@ -52,8 +52,8 @@ InstallDir="$work/link-esp"
 mkdir -p "$InstallDir"
 ln -s "$work/esp/EFI" "$InstallDir/EFI"
 if GuardDefaultBootLocation; then echo "Accepted symlinked EFI path" >&2; exit 1; fi
-# End-to-end installation path: existing BOOT resources are removed before
-# the original CopyBootFiles runs, while other EFI vendors are untouched.
+
+
 InstallDir="$work/esp"
 TargetDir=/EFI/InfiltratorOS/BOOT
 printf 'obsolete' > "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt"
@@ -86,14 +86,14 @@ test "$(cat "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf")" = 'showtools about'
 test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
-# Optional macOS tools must also remain within BOOT's own EFI directory.
+
 mkdir -p "$BootDir/tools_x64"
 printf 'gptsync-fixture' > "$BootDir/tools_x64/gptsync_x64.efi"
 ( OSTYPE=darwin21; CopyTools x64 ) || exit 1
 test "$(cat "$InstallDir/EFI/InfiltratorOS/BOOT/gptsync_x64.efi")" = gptsync-fixture || exit 1
 test ! -e "$InstallDir/EFI/tools" || exit 1
 echo "BOOT native reinstall removed old BOOT directory and preserved GRUB/Windows/fallback"
-# No parameter or direct function invocation may select any other EFI path.
+
 for arg in --usedefault --ownhfs --notesp --root; do
     if (GetParams "$arg" /dev/invalid >/dev/null 2>&1); then
         echo "Accepted prohibited install option: $arg" >&2

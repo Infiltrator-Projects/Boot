@@ -1,19 +1,19 @@
 #!/bin/bash
-#
-# Script to check status of Secure Boot components and help keep them
-# up-to-date for a BOOT installation
-#
-# This program is copyright (c) 2023 by Roderick W. Smith
-#
-# This program is licensed under the terms of the GNU GPL, version 3,
-# or (at your option) any later version.
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-# Revision history
-#
-# 0.14.2 -- Fixed trivial typo
-# 0.14.0 -- Initial release
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 FOUND_EXPIRED_KEY="0"
 FOUND_SHORT_KEY="0"
@@ -28,8 +28,8 @@ BOOT_DER_KEY="$ETC_KEYS_DIR/$LOCAL_KEYS_BASE.cer"
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
-# Check to see that necessary programs are installed. If not, display an error
-# message and terminate.
+
+
 CheckPrerequisites() {
     local CpuType
 
@@ -59,12 +59,12 @@ CheckPrerequisites() {
     i?86)
        PLATFORM="ia32"
     esac
-} # CheckPrerequisites()
+}
 
 GetYN() {
-    # $1 = Prompt string
-    # $2 = Default value (assume Y if absent or not "n" or "N")
-    # Returns "Y" or "N" in $YN -- guaranteed uppercase
+
+
+
     YN=""
     while [ -z "$YN" ] ; do
         echo -n "$1"
@@ -93,22 +93,22 @@ GetYN() {
             echo "Please enter 'Y' or 'N'!"
         fi
     done
-} # GetYN()
+}
 
 PauseForKey() {
     echo -n "Press the Enter key to continue: "
     read -r Answer
 }
 
-# Parse an efibootmgr Boot#### line. Takes a boot line ($1) as input and sets
-# the following global variables:
-#  ESP_GUID -- The GUID (aka PARTUUID) of the partition
-#  BL_PATH -- The path to the boot loader, with "\" swapped to "/"
-#  BL_FILENAME -- The boot loader's filename alone
-#  BL_FULLNAME -- The boot loader's complete filename, including its path (on the ESP), with "\" swapped to "/"
-# Note that some EFIs uppercase their filenames, so these may not match what
-# Linux presents. Fortunately, Linux ignores case when doing searches,
-# etc., on FAT filesystems, so this doesn't cause problems.
+
+
+
+
+
+
+
+
+
 ParseBootLine() {
     ESP_GUID=$(echo "$1" | grep -Po 'GPT,\K[^)]*' | cut -d "," -f 1)
     BL_FULLNAME=$(echo "$1" | grep -Po 'File\(\K[^)]*' | tr '\\' '/')
@@ -132,12 +132,12 @@ ParseBootLine() {
             exit 0
         fi
     fi
-} # ParseBootLine()
+}
 
-# Check the current Secure Boot status. If SB is inactive, offers the option
-# to terminate the program. Sets the global variable SHIM_STATE:
-#  SHIM -- SB is on via Shim
-#  NOSHIM -- SB is off with no evidence of Shim being used
+
+
+
+
 CheckSbState() {
     local IsSecureBoot
     local BootCurrent
@@ -178,18 +178,18 @@ CheckSbState() {
             echo "No Shim program detected; assuming a full-control Secure Boot configuration"
         fi
     else
-        # Theoretically should never get here, since if the efibootmgr output
-        # is incomplete or damaged, ParseBootLine should terminate the script;
-        # but just in case....
+
+
+
         echo "Unable to detect the current boot path!"
         echo "Terminating program!"
         exit 1
     fi
     echo
-} # CheckSbState()
+}
 
-# Find where the ESP is mounted. Assumes that ESP_GUID is set correctly.
-# Saves the mount point in the ESP_MOUNT_POINT global variable.
+
+
 FindEspMountPoint() {
     if [[ -n "$ESP_GUID" ]] ; then
         DeviceFile=$(blkid | grep "$ESP_GUID" | cut -d ":" -f 1)
@@ -200,9 +200,9 @@ FindEspMountPoint() {
         echo -n "Please type the ESP mount point: "
         read -r ESP_MOUNT_POINT
     fi
-} # FindEspMountPoint()
+}
 
-# Look for a newer Shim program that might be used instead of the current one
+
 CheckForShimUpdates() {
     local CurrentShim
     local CurrentShimFile
@@ -234,8 +234,8 @@ CheckForShimUpdates() {
         CandidateShimFile=$(echo "$Line" | cut -d "-" -f 5-99)
         CandidateShimPath=$(echo "$CandidateShimFile" | rev | cut -d "/" -f 2-99 | rev)
         if [[ "$CurrentShimDate" < "$CandidateShimDate" ]] ; then
-            # This find is newER than the current one, but not necessarily the
-            # newEST; and we haven't yet checked for a matching MokManager file
+
+
             echo "  --> $CandidateShimDate: $CandidateShimFile"
             if [[ -e "$CandidateShimPath/mm$PLATFORM.efi" && ! -d "$CandidateShimPath/mm$PLATFORM.efi" ]] ; then
                 echo "      --> Found matching mm$PLATFORM.efi"
@@ -269,7 +269,7 @@ CheckForShimUpdates() {
             cp "$NewestMokManagerFile" "$ESP_MOUNT_POINT/$BL_PATH/"
         fi
     fi
-} # CheckForShimUpdates()
+}
 
 ReplaceLocalBootKey() {
     mkdir -p "$ETC_KEYS_DIR/backup"
@@ -324,10 +324,10 @@ ReplaceLocalBootKey() {
     mkdir -p "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/backup
     mv "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/boot_local* "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/backup/ 2> /dev/null
     cp -a "$ETC_KEYS_DIR/$LOCAL_KEYS_BASE"* "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/
-} # ReplaceLocalBootKey()
+}
 
-# Display the local BOOT key's expiration date and time and offer to replace it.
-# Also sets the global CURRENT_DATE and CURRENT_SECONDS variables.
+
+
 CheckBootLocalKeyExpiration() {
     local FullExpirationDate
     local ExpirationYear
@@ -376,15 +376,15 @@ CheckBootLocalKeyExpiration() {
         echo "BOOT's local key will expire more than a year from today. Replacing it is"
         echo "not recommended at this time."
     fi
-} # CheckBootLocalKeyExpiration()
+}
 
-# Loops through an array of lines ($1) and parses it to find expired Secure Boot
-# keys (MOK, db, etc.). Displays a summary as it goes, including warning about
-# expired or soon-to-be-expired keys; but does not attempt to update them.
-# Sets the following global variables:
-#  FOUND_EXPIRED_KEY to "1" if any expired key was found
-#  FOUND_SHORT_KEY to "1" if any key with a short expiration date was found
-#  NUM_KEYS to the number of keys identified
+
+
+
+
+
+
+
 CheckKeyExpiration() {
     KeyData="$1"
     KeyNum=0
@@ -402,8 +402,8 @@ CheckKeyExpiration() {
             DateStr=$(echo "$Line" | grep -Po 'After : \K[^)]*')
             ExpirationDate=$(date -d "$DateStr" "+%Y-%m-%d")
             ExpirationSeconds=$(date -d "$DateStr" "+%s")
-            #echo "Current date is $CURRENT_DATE ($CURRENT_SECONDS)"
-            #echo "Expiration date is $ExpirationDate ($ExpirationSeconds)"
+
+
             TimeToExpiration="(($ExpirationSeconds-CURRENT_SECONDS))"
 
         fi
@@ -428,7 +428,7 @@ CheckKeyExpiration() {
             ExpirationDate=""
         fi
     done
-} # CheckKeyExpiration()
+}
 
 CheckMokExpiration() {
     echo
@@ -456,7 +456,7 @@ CheckMokExpiration() {
         else
             echo "Finding no MOKs with no active Shim is normal."
         fi
-    else # MOKs are present
+    else
         if [[ "$SHIM_STATE" == "NOSHIM" ]] ; then
             echo "MOKs are present, but the computer booted without the help of Shim. This is"
             echo "normal if you've temporarily disabled Secure Boot and booted via some other"
@@ -469,7 +469,7 @@ CheckMokExpiration() {
         fi
     fi
     PauseForKey
-} # CheckMokExpiration()
+}
 
 CheckDbExpiration() {
     echo
@@ -483,7 +483,7 @@ CheckDbExpiration() {
         echo "No db keys found"
     fi
     PauseForKey
-} # CheckDbExpiration
+}
 
 CheckKekExpiration() {
     echo
@@ -496,7 +496,7 @@ CheckKekExpiration() {
     if [[ "$NUM_KEYS" == 0 ]] ; then
         echo "No KEKs found"
     fi
-} # CheckKekExpiration
+}
 
 CheckPkExpiration() {
     echo
@@ -509,7 +509,7 @@ CheckPkExpiration() {
     if [[ "$NUM_KEYS" == 0 ]] ; then
         echo "No PKs found"
     fi
-} # CheckPkExpiration
+}
 
 CheckAllKeysExpiration() {
     CheckMokExpiration
@@ -522,13 +522,13 @@ CheckAllKeysExpiration() {
         echo "Replacing PK, KEK, or db keys is a job for experts; see"
         echo "https://www.rodsbooks.com/efi-bootloaders/controlling-sb.html for details."
     fi
-} # CheckKeyExpiration()
+}
 
-##########################################################
-#
-# Main part of script
-#
-##########################################################
+
+
+
+
+
 
 if [[ $UID != 0 ]] ; then
    echo "Not running as root; attempting to elevate privileges via sudo...."

@@ -1,28 +1,28 @@
-/**
- * \file fsw_ntfs.c
- * ntfs file system driver code.
- * Copyright (C) 2015 by Samuel Liao
- */
+ 
 
-/*-
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "fsw_core.h"
 
-#define Print(x...)	/* */
+#define Print(x...)	 
 
 static inline fsw_u8 GETU8(fsw_u8 *buf, int pos)
 {
@@ -55,9 +55,9 @@ static inline fsw_u64 GETU64(fsw_u8 *buf, int pos)
 
 #define AT_STANDARD_INFORMATION	0x10
 #define AT_ATTRIBUTE_LIST	0x20
-#define AT_FILENAME		0x30	/* UNUSED */
+#define AT_FILENAME		0x30	 
 #define AT_VOLUME_NAME		0x60
-#define AT_VOLUME_INFORMATION	0x70	/* UNUSED */
+#define AT_VOLUME_INFORMATION	0x70	 
 #define AT_DATA			0x80
 #define AT_INDEX_ROOT		0x90
 #define AT_INDEX_ALLOCATION	0xa0
@@ -66,7 +66,7 @@ static inline fsw_u64 GETU64(fsw_u8 *buf, int pos)
 
 #define ATTRMASK	0xFFFF
 #define ATTRBITS	16
-/* $I30 is LE, we can't use L"$I30" */
+ 
 #define NAME_I30	"$\0I\0003\0000\0"
 #define AT_I30		0x40000
 
@@ -91,12 +91,12 @@ struct extent_slot
 
 struct extent_map
 {
-    /*
-     * we build mft extent table instead use generic code, to prevent
-     * read_mft recursive or dead loop.
-     * While mft has too many fragments, it need AT_ATTRIBUTE_LIST for extra
-     * data, the AT_ATTRIBUTE_LIST parsing code need call read_mft again.
-     */
+     
+
+
+
+
+
     struct extent_slot *extent;
     int total;
     int used;
@@ -104,59 +104,59 @@ struct extent_map
 
 struct ntfs_mft
 {
-    fsw_u64 mftno;		/* current MFT no */
-    fsw_u8 *buf;		/* current MFT record data */
-    fsw_u8 *atlst;		/* AT_ATTRIBUTE_LIST data */
-    int atlen;			/* AT_ATTRIBUTE_LIST size */
+    fsw_u64 mftno;		 
+    fsw_u8 *buf;		 
+    fsw_u8 *atlst;		 
+    int atlen;			 
 };
 
 struct ntfs_attr
 {
-    fsw_u64 emftno;		/* MFT no of emft */
-    fsw_u8 *emft;		/* cached extend MFT record */
-    fsw_u8 *ptr;		/* current attribute data */
-    int len;			/* current attribute size */
-    int type;			/* current attribute type */
+    fsw_u64 emftno;		 
+    fsw_u8 *emft;		 
+    fsw_u8 *ptr;		 
+    int len;			 
+    int type;			 
 };
 
 struct fsw_ntfs_volume
 {
     struct fsw_volume g;
-    struct extent_map extmap;	/* MFT extent map */
-    fsw_u64 totalbytes;		/* volume size */
-    const fsw_u16 *upcase;	/* upcase map for non-ascii */
-    int upcount;		/* upcase map size */
+    struct extent_map extmap;	 
+    fsw_u64 totalbytes;		 
+    const fsw_u16 *upcase;	 
+    int upcount;		 
 
-    fsw_u8 sctbits;		/* sector size */
-    fsw_u8 clbits;		/* cluster size */
-    fsw_u8 mftbits;		/* MFT record size */
-    fsw_u8 idxbits;		/* unused index size, use AT_INDEX_ROOT instead */
+    fsw_u8 sctbits;		 
+    fsw_u8 clbits;		 
+    fsw_u8 mftbits;		 
+    fsw_u8 idxbits;		 
 };
 
 struct fsw_ntfs_dnode
 {
     struct fsw_dnode g;
     struct ntfs_mft mft;
-    struct ntfs_attr attr;	/* AT_INDEX_ALLOCATION:$I30/AT_DATA */
-    fsw_u8 *idxroot;		/* AT_INDEX_ROOT:$I30 */
-    fsw_u8 *idxbmp;		/* AT_BITMAP:$I30 */
-    unsigned int embeded:1;	/* embeded AT_DATA */
-    unsigned int has_idxtree:1;	/* valid AT_INDEX_ALLOCATION:$I30 */
-    unsigned int compressed:1;	/* compressed AT_DATA */
-    unsigned int unreadable:1;	/* unreadable/encrypted AT_DATA */
-    unsigned int cpfull:1;	/* in-compressable chunk */
-    unsigned int cpzero:1;	/* empty chunk */
-    unsigned int cperror:1;	/* decompress error */
-    unsigned int islink:1;	/* is symlink: AT_REPARSE_POINT */
-    int idxsz;			/* size of index block */
-    int rootsz;			/* size of idxroot: AT_INDEX_ROOT:$I30 */
-    int bmpsz;			/* size of idxbmp: AT_BITMAP:$I30 */
-    struct extent_slot cext;	/* cached extent */
-    fsw_u64 fsize;		/* logical file size */
-    fsw_u64 finited;		/* initialized file size */
-    fsw_u64 cvcn;		/* vcn of compress chunk: cbuf */
-    fsw_u64 clcn[16];		/* cluster map of compress chunk */
-    fsw_u8 *cbuf;		/* compress chunk/index block/symlink target */
+    struct ntfs_attr attr;	 
+    fsw_u8 *idxroot;		 
+    fsw_u8 *idxbmp;		 
+    unsigned int embeded:1;	 
+    unsigned int has_idxtree:1;	 
+    unsigned int compressed:1;	 
+    unsigned int unreadable:1;	 
+    unsigned int cpfull:1;	 
+    unsigned int cpzero:1;	 
+    unsigned int cperror:1;	 
+    unsigned int islink:1;	 
+    int idxsz;			 
+    int rootsz;			 
+    int bmpsz;			 
+    struct extent_slot cext;	 
+    fsw_u64 fsize;		 
+    fsw_u64 finited;		 
+    fsw_u64 cvcn;		 
+    fsw_u64 clcn[16];		 
+    fsw_u8 *cbuf;		 
 };
 
 static fsw_status_t fixup(fsw_u8 *record, char *magic, int sectorsize, int size)
@@ -181,7 +181,7 @@ static fsw_status_t fixup(fsw_u8 *record, char *magic, int sectorsize, int size)
     return FSW_SUCCESS;
 }
 
-/* only supported attribute name is $I30 */
+ 
 static fsw_status_t find_attribute_direct(fsw_u8 *mft, int mftsize, int type, fsw_u8 **outptr, int *outlen)
 {
     int namelen;
@@ -212,7 +212,7 @@ static fsw_status_t find_attribute_direct(fsw_u8 *mft, int mftsize, int type, fs
     return FSW_NOT_FOUND;
 }
 
-/* only supported attribute name is $I30 */
+ 
 static fsw_status_t find_attrlist_direct(fsw_u8 *atlst, int atlen, int type, fsw_u64 vcn, fsw_u64 *out, int *pos)
 {
     fsw_u64 mftno = BADMFT;
@@ -275,7 +275,7 @@ static fsw_status_t get_extent(fsw_u8 **rlep, int *rlenp, fsw_u64 *lcnp, fsw_u64
 
     n = f >> 4;
     if(n==0) {
-	/* LCN 0 as sparse, due to we don't need $Boot */
+	 
 	*lcnp = 0;
 	*lenp = c;
     } else {
@@ -379,7 +379,7 @@ static fsw_status_t read_attribute_direct(struct fsw_ntfs_volume *vol, fsw_u8 *p
     int olen;
 
     if(attribute_ondisk(ptr, len) == 0) {
-	/* EMBEDED DATA */
+	 
 	attribute_get_embeded(ptr, len, &ptr, &len);
 	*olenp = len;
 	if(optrp) {
@@ -735,7 +735,7 @@ static fsw_status_t fsw_ntfs_volume_mount(struct fsw_volume *volg)
 
     free_mft(&mft0);
 
-    /* load $Volume name */
+     
     init_mft(vol, &mft0, MFTNO_VOLUME);
     fsw_u8 *ptr;
     int len;
@@ -773,7 +773,7 @@ static fsw_status_t fsw_ntfs_volume_stat(struct fsw_volume *volg, struct fsw_vol
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
     sb->total_bytes = vol->totalbytes;
-    /* reading through cluster bitmap is too costly */
+     
     sb->free_bytes  = 0;
     return FSW_SUCCESS;
 }
@@ -831,7 +831,7 @@ static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnod
 
     if( (len & 2) ) {
 	dno->g.type = FSW_DNODE_TYPE_DIR;
-	/* $INDEX_ROOT:$I30 must present */
+	 
 	err = read_small_attribute(vol, &dno->mft, AT_INDEX_ROOT|AT_I30, &dno->idxroot, &dno->rootsz);
 	if(err != FSW_SUCCESS)
 	{
@@ -843,7 +843,7 @@ static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnod
 	if(dno->idxsz == 0)
 	    dno->idxsz = 1<<vol->idxbits;
 
-	/* $Bitmap:$I30 is optional */
+	 
 	err = read_small_attribute(vol, &dno->mft, AT_BITMAP|AT_I30, &dno->idxbmp, &dno->bmpsz);
 	if(err != FSW_SUCCESS && err != FSW_NOT_FOUND)
 	{
@@ -851,7 +851,7 @@ static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnod
 	    goto error_out;
 	}
 
-	/* $INDEX_ALLOCATION:$I30 is optional */
+	 
 	init_attr(vol, &dno->attr, AT_INDEX_ALLOCATION|AT_I30);
 	err = find_attribute(vol, &dno->mft, &dno->attr, 0);
 	if(err == FSW_SUCCESS) {
@@ -887,7 +887,7 @@ static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnod
     return FSW_SUCCESS;
 error_out:
     fsw_ntfs_dnode_free(volg, dnog);
-    // clear tag for good dnode
+     
     dno->mft.buf = NULL;
     return err;
 }
@@ -915,7 +915,7 @@ static fsw_status_t fsw_ntfs_dnode_stat(struct fsw_volume *volg, struct fsw_dnod
 	return err;
 
     ptr += GETU16(ptr, 0x14);
-    attr = GETU8(ptr, 0x20); /* only lower 8 of 32 bit is used */
+    attr = GETU8(ptr, 0x20);  
 #ifndef EFI_FILE_READ_ONLY
 #define EFI_FILE_READ_ONLY 1
 #define EFI_FILE_HIDDEN 2
@@ -924,7 +924,7 @@ static fsw_status_t fsw_ntfs_dnode_stat(struct fsw_volume *volg, struct fsw_dnod
 #define EFI_FILE_ARCHIVE 0x20
 #endif
     attr &= EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM | EFI_FILE_ARCHIVE;
-    /* add DIR again if symlink */
+     
     if(GETU8(dno->mft.buf, 22) & 2)
 	attr |= EFI_FILE_DIRECTORY;
 
@@ -1302,14 +1302,14 @@ static int ntfs_filename_cmp(struct fsw_ntfs_volume *vol, fsw_u8 *p1, int s1, fs
 	    if(c1 < 0x80) c1 = upcase[c1];
 	    if(c2 < 0x80) c2 = upcase[c2];
 	} else {
-	    /*
-	     * Only load upcase table if both char is international.
-	     * We assume international char never upcased to ASCII.
-	     */
+	     
+
+
+
 	    if(!vol->upcase) {
 		load_upcase(vol);
 		if(!vol->upcase) {
-		    /* use raw value & prevent load again */
+		     
 		    vol->upcase = upcase;
 		    vol->upcount = 0;
 		}
@@ -1385,7 +1385,7 @@ static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnod
     if(err)
 	return err;
 
-    /* start from AT_INDEX_ROOT */
+     
     buf = dno->idxroot + 16;
     len = dno->rootsz - 16;
     if(len < 0x18)
@@ -1395,11 +1395,11 @@ static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnod
     if(cpb == 0) cpb = 1;
 
     while(depth < 10) {
-	/* real index size */
+	 
 	if(GETU32(buf, 4) < len)
 	    len = GETU32(buf, 4);
 
-	/* skip index header */
+	 
 	off = GETU32(buf, 0);
 	if(off >= len)
 	    goto notfound;
@@ -1411,7 +1411,7 @@ static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnod
 	    int cmp;
 
 	    if(flag & 2) {
-		/* the end of index entry */
+		 
 		cmp = -1;
 		Print(L"depth %d len %x off %x flag %x next %x cmp %d\n", depth, len, off, flag, next, cmp);
 	    } else {
@@ -1429,7 +1429,7 @@ static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnod
 		    goto notfound;
 		block = FSW_U64_DIV(GETU64(buf, next-8), cpb) + 1;
 		break;
-	    } else { /* cmp > 0 */
+	    } else {  
 		off = next;
 	    }
 	}
@@ -1471,12 +1471,12 @@ static fsw_status_t fsw_ntfs_dir_read(struct fsw_volume *volg, struct fsw_dnode 
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
     struct fsw_ntfs_dnode *dno = (struct fsw_ntfs_dnode *)dnog;
-    /*
-     * high 32 bit: index block#
-     * 		0 --> index root
-     * 		>0 --> vcn+1
-     * low 32 bit: index offset
-     */
+     
+
+
+
+
+
     int off = shand->pos & 0xFFFFFFFF;
     int block = shand->pos >> 32;
     int mblocks;
@@ -1487,17 +1487,17 @@ static fsw_status_t fsw_ntfs_dir_read(struct fsw_volume *volg, struct fsw_dnode 
 	fsw_u8 *buf;
 	int len;
 	if(block == 0) {
-	    /* AT_INDEX_ROOT */
+	     
 	    buf = dno->idxroot + 16;
 	    len = dno->rootsz - 16;
 	    if(len < 0x18)
 		goto miss;
 	} else if(!test_idxbmp(dno, block) || !(buf = fsw_ntfs_read_index_block(vol, dno, block)))
 	{
-	    /* unused or bad index block */
+	     
 	    goto miss;
 	} else {
-	    /* AT_INDEX_ALLOCATION block */
+	     
 	    buf += 24;
 	    len = dno->idxsz - 24;
 	}
@@ -1512,13 +1512,13 @@ static fsw_status_t fsw_ntfs_dir_read(struct fsw_volume *volg, struct fsw_dnode 
 	    int next = off + GETU16(buf, off+8);
 	    Print(L"flag %x next %x nt %x [%.*ls]\n", flag, next, GETU8(buf, off+0x51), GETU8(buf, off+0x50), buf+off+0x52);
 	    if((GETU8(buf, off+0x51) != 2)) {
-		/* LONG FILE NAME */
+		 
 		fsw_status_t err = fsw_ntfs_create_subnode(dno, buf+off, child_dno);
 		if(err != FSW_NOT_FOUND) {
 		    set_shand_pos(shand, block, next);
 		    return err;
 		}
-		// skip internal MFT record
+		 
 	    }
 	    off = next;
 	}
@@ -1567,9 +1567,9 @@ static fsw_status_t fsw_ntfs_readlink(struct fsw_volume *volg, struct fsw_dnode 
     return fsw_strdup_coerce(link, volg->host_string_type, &s);
 }
 
-//
-// Dispatch Table
-//
+ 
+ 
+ 
 
 struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(ntfs) = {
     { FSW_STRING_TYPE_UTF8, 4, 4, "ntfs" },
@@ -1588,4 +1588,4 @@ struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(ntfs) = {
     fsw_ntfs_readlink,
 };
 
-// EOF
+ 
