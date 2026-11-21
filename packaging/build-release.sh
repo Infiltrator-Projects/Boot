@@ -39,10 +39,13 @@ for directory in icons fonts banners themes; do
 done
 install -m 0644 boot.conf-sample "$root/boot/boot.conf-sample"
 
-for document in README.txt BUILDING.txt; do
-    if [[ -f "$document" ]]; then
-        install -m 0644 "$document" "$root/docs/$document"
-    fi
+# Ship the maintained technical Markdown, not the deleted legacy .txt files.
+# Repository-relative links to C sources remain online-source references;
+# their linked source files are not part of the staged binary package.
+install -m 0644 README.md "$root/README.md"
+for document in docs/*.md; do
+    [[ -f "$document" ]] || continue
+    install -m 0644 "$document" "$root/docs/"
 done
 for script in boot-sb-healthcheck mountesp; do
     if [[ -f "$script" ]]; then install -m 0755 "$script" "$root/$script"; fi

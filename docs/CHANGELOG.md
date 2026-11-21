@@ -2,6 +2,12 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Source commentary and documentation packaging
+
+- Strengthened source-level explanations across BOOT menu/scan logic, filesystem metadata readers, decoder boundaries, UEFI boot protocols and native installer/test scripts.
+- Replaced the obsolete package loop for deleted `.txt` documents with staging of maintained Markdown documents in the generic `.deb`.
+- Added release assertions that fail if the engineering documents are missing from the staged package. No EFI firmware or native installation logic was modified in this change.
+
 ## 2026-11-22 — Documentation fidelity and comment-quality audit
 
 - Corrected the Linux reinstall ownership-check description to reflect the actual delete-before-guard ordering.

@@ -65,6 +65,9 @@ if ! mcopy -i "$work/after.img" ::/EFI/BOOT/BOOT.log "$work/BOOT.log"; then
  exit 1
 fi
 
+# A decoded-byte-count match and driver StartImage log establish that BOOT
+# launched the compressed EFI driver, not that the driver mounted a Btrfs
+# volume or that any Linux/Windows OS reached userspace.
 iconv -f UTF-16LE -t UTF-8 "$work/BOOT.log" > "$work/log.txt"
 if ! grep -Fq "gunzip status 0, decoded $driver_size bytes" "$work/log.txt" ||
    ! grep -Fiq "Launching 'btrfs_x64.efi'" "$work/log.txt" ||

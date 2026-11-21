@@ -13,7 +13,7 @@ This repository does not use System Monitor's `make check` contract. Here, compi
 | Repository/layout assertions | `.github/workflows/boot.yml` | Required source/build paths and key installer/driver call sites exist | Functional correctness of every call site |
 | Standard GNU-EFI compilation | `Makefile` and workflow | EFI application and six required drivers compile into PE32+ artifacts | Bootability on arbitrary machines |
 | Native CPU build profile | Workflow's native-build step | Selected x86-64 CPU-native flags produce the EFI application and drivers | Cross-machine CPU compatibility for the built binary |
-| Release-package verification | `packaging/build-release.sh`, `packaging/test-release.sh` | Staged `.deb` contents, pinned `.run` source metadata, required files and SHA256SUMS | Native installation on a physical ESP |
+| Release-package verification | `packaging/build-release.sh`, `packaging/test-release.sh` | Staged `.deb` contents including maintained Markdown documents, pinned `.run` source metadata, required files and SHA256SUMS | Native installation on a physical ESP |
 | Disposable installation | `tests/install-safety.sh` | Owned destination, six drivers, checksum marker, rejection of unsafe paths, preservation of Windows/GRUB/fallback | Every real partition layout or firmware behaviour |
 | Firmware entry handling | `tests/nvram-safety.sh` | BOOT preference and refusal of duplicate/ambiguous records, including repeated install checks | Every OEM NVRAM implementation |
 | UEFI launch smoke | `tests/ovmf-smoke.sh` | OVMF boots BOOT, which logs the full decoded byte count for its gzipped Btrfs driver, launches that driver and enters its main menu | Reading a Btrfs volume, starting a kernel or reaching OS userspace |
@@ -28,7 +28,7 @@ The top-level `Makefile` calls the required GNU-EFI library, BOOT executable and
 
 `packaging/build-release.sh` emits a generic AMD64 `.deb`, a single native `.run` and `SHA256SUMS`. The `.run` contains the verified source commit and version substituted into the maintained installer. `packaging/test-release.sh` checks that the package stages BOOT and the six drivers and has no unexpected firmware-installation maintainer hooks. It checks the installer is one program with the expected destination and without the disallowed build-only path.
 
-The `.deb` stages files; the `.run` compiles **and installs**. The distinction is tested and must remain explicit in release notes.
+The `.deb` stages the EFI image, drivers, resources and maintained Markdown engineering documents; the `.run` compiles **and installs**. Source-relative C links in the packaged documents point to the source repository and are not themselves files supplied by the binary package. The distinction is tested and must remain explicit in release notes.
 
 ### Filesystem and installation safety
 

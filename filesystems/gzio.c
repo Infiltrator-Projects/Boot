@@ -819,6 +819,13 @@ test_zlib_header (grub_gzio_t gzio)
  * can require redoing prefix work.
  */
 static grub_ssize_t
+/*
+ * Read a requested uncompressed byte range from a zlib-backed extent through
+ * the sliding-window DEFLATE state. This is not an arbitrary seekable byte
+ * array: the compressed stream is reconstructed to the requested position,
+ * and the caller must interpret a short or negative result as an incomplete
+ * read rather than as authenticated filesystem data.
+ */
 grub_gzio_read_real (grub_gzio_t gzio, grub_off_t offset,
                      char *buf, grub_size_t len)
 {

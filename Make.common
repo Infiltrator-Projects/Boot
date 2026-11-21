@@ -38,6 +38,10 @@ include $(TIANOBASE)/Conf/target.txt
 endif
 
 OPTIMFLAGS      = -Os -fno-strict-aliasing -fno-tree-loop-distribute-patterns
+# EFI CHAR16 is 16 bits: -fshort-wchar is an ABI requirement for firmware
+# strings, not a space-saving preference. -fno-stack-protector avoids a hosted
+# runtime dependency; architecture-specific code below controls red-zone and
+# calling-convention assumptions.
 CFLAGS          = $(OPTIMFLAGS) -fno-stack-protector -fshort-wchar -Wall
 
 GNUEFI_CFLAGS   = -fpic -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol -I../include -I../boot -I../libeg -I../mok -I../gzip

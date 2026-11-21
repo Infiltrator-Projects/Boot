@@ -23,6 +23,13 @@ work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 dpkg-deb --contents "$deb" > "$work/package-files.txt"
 grep -Fq 'usr/share/infiltrator-boot/boot/boot_x64.efi' "$work/package-files.txt"
+# Documentation is now part of the staged package but is not an installer.
+# These assertions catch stale packaging loops that silently skip new Markdown.
+for document in README.md docs/ARCHITECTURE.md docs/HARDWARE.md docs/PHILOSOPHY.md docs/VALIDATION.md docs/CHANGELOG.md; do
+    grep -Fq "usr/share/infiltrator-boot/$document" "$work/package-files.txt" || {
+        echo "Missing maintained documentation: $document" >&2; exit 1;
+    }
+done
 for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     grep -Fq "usr/share/infiltrator-boot/boot/drivers_x64/${filesystem}_x64.efi" "$work/package-files.txt" || exit 1
 done
