@@ -89,6 +89,11 @@ BUILTIN_ICON BuiltinIconTable[BUILTIN_ICON_COUNT] = {
  * Caches an embedded icon after its first decode. Returned images belong to
  * the icon cache; consumers must not assume exclusive ownership.
  */
+/*
+ * Resolves a numeric builtin-icon identifier to cached image resources.
+ * Image availability concerns the presentation layer and is independent of
+ * whether the corresponding EFI loader can be opened or authenticated.
+ */
 EG_IMAGE * BuiltinIcon(IN UINTN Id)
 {
     if (Id >= BUILTIN_ICON_COUNT)
@@ -114,6 +119,10 @@ EG_IMAGE * BuiltinIcon(IN UINTN Id)
 /*
  * Tries configured OS-name candidates, a fallback icon and a boot-logo
  * alternative before returning a dummy. The order is presentation policy.
+ */
+/*
+ * Looks up operating-system artwork with an explicit fallback candidate.
+ * The chosen icon is a visual hint, not a filesystem probe or boot result.
  */
 EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconName, BOOLEAN BootLogo)
 {
