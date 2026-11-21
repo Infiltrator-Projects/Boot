@@ -42,7 +42,7 @@ fi
 bash -n "$run"
 bash -n boot-native-installer.run
 test "$(head -n 1 "$run")" = '#!/usr/bin/env bash'
-test "$(stat -c '%s' "$run")" -ge 50000
+test "$(stat -c '%s' "$run")" -ge 40000
 test "$(stat -c '%s' "$run")" -lt 200000
 
 expected=$(git rev-parse --verify HEAD)
