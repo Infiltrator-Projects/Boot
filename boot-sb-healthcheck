@@ -22,7 +22,6 @@ NORMAL=$(tput sgr0)
 # or mutate security-related firmware state. Unsupported architectures
 # leave PLATFORM unset; utility presence does not authenticate any EFI
 # image.
-#
 CheckPrerequisites() {
     local CpuType
 
@@ -57,7 +56,6 @@ CheckPrerequisites() {
 # Read a defaulted yes/no response into global YN. This prompt controls
 # later decisions but provides neither rollback nor transactional
 # protection if a caller modifies keys or firmware state.
-#
 GetYN() {
 
     YN=""
@@ -101,7 +99,6 @@ PauseForKey() {
 # printable line using textual patterns. It is not a structural parser for
 # a binary EFI_LOAD_OPTION and does not prove bootloader ownership. A
 # missing BOOT label requires explicit operator continuation.
-#
 ParseBootLine() {
     ESP_GUID=$(echo "$1" | grep -Po 'GPT,\K[^)]*' | cut -d "," -f 1)
     BL_FULLNAME=$(echo "$1" | grep -Po 'File\(\K[^)]*' | tr '\\' '/')
@@ -181,7 +178,6 @@ CheckSbState() {
 # subsequent file operations. A pathname or descriptive match does not
 # attest to the firmware's trust chain, and later write operations must
 # respect this uncertainty.
-#
 FindEspMountPoint() {
     if [[ -n "$ESP_GUID" ]] ; then
         DeviceFile=$(blkid | grep "$ESP_GUID" | cut -d ":" -f 1)
@@ -324,6 +320,10 @@ ReplaceLocalBootKey() {
     cp -a "$ETC_KEYS_DIR/$LOCAL_KEYS_BASE"* "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/
 }
 
+# Compare the local DER certificate's end date to a one-year threshold. If
+# a key is missing it is treated as expired for prompting, and an operator
+# may trigger replacement of signing material. This is not a read-only
+# health check when replacement is selected.
 CheckBootLocalKeyExpiration() {
     local FullExpirationDate
     local ExpirationYear
@@ -377,7 +377,6 @@ CheckBootLocalKeyExpiration() {
 # Inspect validity dates of certificate material. A time interval says
 # nothing by itself about enrollment, chain of trust, revocation or whether
 # a particular EFI executable was accepted by firmware.
-#
 CheckKeyExpiration() {
     KeyData="$1"
     KeyNum=0
@@ -505,6 +504,10 @@ CheckPkExpiration() {
     fi
 }
 
+# Aggregate the MOK, db, KEK and PK validity-date checks and report
+# whether any expiry or short-validity condition was observed. Certificate
+# dates alone are not a validation of UEFI Secure Boot enrollment,
+# revocation or EFI image authentication.
 CheckAllKeysExpiration() {
     CheckMokExpiration
     CheckDbExpiration

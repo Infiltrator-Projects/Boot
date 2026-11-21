@@ -4,7 +4,7 @@ This file records changes supported by repository commits and existing release q
 
 ## 2026-11-22 — Source commentary and documentation packaging
 
-- Strengthened source-level explanations across BOOT menu/scan logic, filesystem metadata readers, decoder boundaries, UEFI boot protocols and native installer/test scripts.
+- Strengthened source-level explanations across BOOT menu/scan logic, filesystem metadata readers, decoder boundaries, UEFI boot protocols, signing/key-enrollment operations and native installer/test scripts.
 - Replaced the obsolete package loop for deleted `.txt` documents with staging of maintained Markdown documents in the generic `.deb`.
 - Added release assertions that fail if the engineering documents are missing from the staged package. No EFI firmware or native installation logic was modified in this change.
 

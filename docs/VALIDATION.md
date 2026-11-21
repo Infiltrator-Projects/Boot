@@ -90,6 +90,7 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 | OS menu and direct Linux boot | `tests/ovmf-smoke.sh` observes driver loading and main-menu entry | Multi-volume discovery, duplicate suppression, direct kernel/initrd arguments and successful OS userspace on actual hardware |
 | Decoder and filesystem metadata bounds | Format parsers exist for NTFS, ISO 9660, Btrfs and legacy EFI structures | Malformed-length, invalid-offset and pool-failure fixtures, including a null allocation for Btrfs master UUID registration |
 | Controller reconnect topology | `boot/driver_support.c` enumerates firmware handles | Synthetic handle databases with global and per-query counts that differ, proving classification indexing cannot exceed its allocation |
+| Secure Boot signing and key maintenance | Installer and healthcheck contain key generation, signing and enrollment operations | Fixture-driven status, passphrase, error and re-enrollment cases; firmware/shim validation on representative physical trust configurations |
 | Common V2 filesystem ABI | No end-to-end BOOT V2 module validation in this revision | Exact V2 ABI conformance, shared implementation, freestanding build, authentication, load and representative read-path tests |
 
 ### Reproducible checks and their limits

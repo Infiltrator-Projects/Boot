@@ -96,6 +96,12 @@ There are distinct integrity boundaries: the downloaded source is pinned to the 
 
 Input surfaces include ESP directory entries, filesystem metadata, configuration text, EFI load options, firmware NVRAM state and optional hardware-dependent paths. Malformed or missing data must not be represented as successful OS discovery, authenticated execution or a verified firmware update.
 
+## Secure Boot and signing side-effect boundaries
+
+BOOT's installer distinguishes a file digest used for **installation ownership**, a certificate/private-key pair used for **signing**, and firmware or shim **authentication of a launched EFI image**. These are independent mechanisms. `GenerateKeys` and `SignOneBinary` manipulate local material; `InstallSBKey` may request MOK enrollment requiring a later firmware confirmation. Neither a signed output file nor an import request establishes that a subsequent EFI launch will pass a particular machine's trust policy.
+
+The separate `boot-sb-healthcheck` script reads trust-database and certificate metadata but also contains interactive paths that replace keys or initiate further administrative actions. It is not a purely observational scanner, and certificate expiry alone is not proof of a Secure Boot failure.
+
 ## Unverified architectural objectives
 
 The desired Common V2-only filesystem module design, universal operating-system compatibility, production-grade security qualification and complete custom InfiltratorOS appearance require explicit future evidence. This document records the implemented BOOT revision and does not silently declare those objectives done. See [Hardware](HARDWARE.md) and [Validation](VALIDATION.md) for observed limits.
