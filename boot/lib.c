@@ -433,9 +433,10 @@ EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, 
 /*
  * Expand a pointer vector in groups of sixteen slots. The vector owns its
  * pointer array, not necessarily the objects it references; callers determine
- * element lifetime. On allocation failure the existing vector and its
- * count stay unchanged; this legacy void API cannot notify its callers
- * that the attempted append was not performed.
+ * element lifetime. Grow with a separate AllocatePool/copy because GNU-EFI
+ * ReallocatePool may free the old storage even when the new allocation fails.
+ * On failure the old vector and count remain intact. This legacy VOID API
+ * cannot notify callers that the attempted append was not performed.
  */
 VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID *NewElement)
 {
@@ -444,16 +445,22 @@ VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID 
 
     if ((*ElementCount & 15) == 0) {
         AllocateCount = *ElementCount + 16;
-        if (*ElementCount == 0) {
-            NewList = AllocatePool(sizeof(VOID *) * AllocateCount);
-            LOG(2, LOG_LINE_NORMAL, L"Allocating memory in AddListElement()");
-        } else {
-            LOG(2, LOG_LINE_NORMAL, L"Reallocating memory in AddListElement(); *ElementCount is %ld", *ElementCount);
-            NewList = EfiReallocatePool(*ListPtr, sizeof(VOID *) * (*ElementCount), sizeof(VOID *) * AllocateCount);
+        if (AllocateCount < *ElementCount ||
+            AllocateCount > (~(UINTN)0) / sizeof(VOID *)) {
+            LOG(1, LOG_LINE_NORMAL, L"Pointer list capacity overflow");
+            return;
         }
+
+        // Allocate first: GNU-EFI ReallocatePool may release the old buffer
+        // even when its replacement allocation fails.
+        NewList = AllocatePool(sizeof(VOID *) * AllocateCount);
         if (NewList == NULL) {
             LOG(1, LOG_LINE_NORMAL, L"Out of memory while growing a BOOT pointer list");
             return;
+        }
+        if (*ElementCount != 0) {
+            CopyMem(NewList, *ListPtr, sizeof(VOID *) * (*ElementCount));
+            MyFreePool(*ListPtr);
         }
         *ListPtr = NewList;
     }

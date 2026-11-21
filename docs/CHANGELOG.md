@@ -9,7 +9,7 @@ This file records changes supported by repository commits and existing release q
 - Added EFI volume/file handle allocation checks and restored a directory cursor after a failed EFI_FILE_INFO conversion.
 - Returned a Btrfs registration allocation failure and guarded network volume allocation.
 - Matched firmware handle classifications by their actual snapshot index; reported classification allocation failures instead of false success.
-- Kept BOOT's pointer-vector storage intact if expansion fails, without changing the legacy void append API.
+- Safely allocate and copy pointer-vector expansions before freeing the old buffer, preserving existing entries on allocation failure (the void append API still cannot propagate failure).
 - Left installation behaviour, EXT4 recovery policy and Common V2 ABI unchanged.
 
 ## 2026-11-22 — Source commentary and documentation packaging
