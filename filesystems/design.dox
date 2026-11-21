@@ -62,10 +62,13 @@ have changed. The function returns the I/O error with the stream still at 4090
 and the caller's count still at 20. A caller must check the status before
 using the count or the destination.
 
-The current implementation initially casts the stream position to fsw_u32
-for its working offset. A seek at or beyond 4 GiB within a larger file can
-therefore wrap. The EFI adapter also narrows a UINTN request length to fsw_u32.
-These are independent limits on position and on the length of one request.
+The stream's working byte position now retains fsw_u64 precision throughout
+fsw_shandle_read(), so a seek at or beyond 4 GiB is no longer truncated in
+the core. A single request's byte count is still fsw_u32; the EFI adapter
+narrows UINTN before calling the core. High-offset correctness also depends
+on the filesystem backend's extent mapping and has not been qualified with
+independently generated large-file fixtures. Position width and request-size
+width are separate contracts.
 
 \section paths Names and directory cursors
 
@@ -83,6 +86,9 @@ the next layer has acquired its own.
 At end of directory the backend returns FSW_NOT_FOUND. fsw_efi_dir_read()
 translates that result to EFI_SUCCESS with a size of zero. With a live child,
 the backend advances its cursor before the adapter measures EFI_FILE_INFO.
-EFI_BUFFER_TOO_SMALL reports the required size but leaves the cursor advanced.
-Retrying the same handle can therefore yield the following child.
+The EFI adapter now saves the prior cursor and restores it when conversion
+fails, including EFI_BUFFER_TOO_SMALL, after releasing the child dnode.
+A retry of the same handle therefore re-examines the same directory entry.
+A firmware regression still needs to demonstrate the behaviour across
+multiple entries and successively sized buffers.
 */

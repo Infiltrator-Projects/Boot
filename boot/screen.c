@@ -178,6 +178,11 @@ VOID SwitchToText(IN BOOLEAN CursorEnabled)
     PrepareBlankLine();
 }
 
+/**
+ * Enable graphics output and mark the previous image invalid.
+ * Changing mode does not paint the new menu; callers must perform
+ * the appropriate clear or incremental redraw afterwards.
+ */
 VOID SwitchToGraphics(VOID)
 {
     if (AllowGraphicsMode && !egIsGraphicsModeEnabled()) {
@@ -186,6 +191,10 @@ VOID SwitchToGraphics(VOID)
     }
 }
 
+/**
+ * Prepare a firmware text header and disable the console cursor.
+ * The title pointer is borrowed; no keyboard events are consumed here.
+ */
 VOID BeginTextScreen(IN CHAR16 *Title)
 {
     DrawScreenHeader(Title);
@@ -319,6 +328,11 @@ VOID PauseSeconds(UINTN Seconds) {
      refit_call1_wrapper(BS->Stall, 1000000 * Seconds);
 }  
 
+/**
+ * Enter an intentionally non-returning EFI event loop, clearing queued
+ * keyboard input before each wait. There is no timeout or loader handoff;
+ * this is a terminal diagnostic state rather than a recovery mechanism.
+ */
 VOID EndlessIdleLoop(VOID)
 {
     UINTN index;
@@ -357,6 +371,11 @@ BOOLEAN CheckFatalError(IN EFI_STATUS Status, IN CHAR16 *where)
     return TRUE;
 }  
 
+/**
+ * Convert only EFI error-class statuses to an interactive diagnostic.
+ * A warning returns FALSE. On error, log and display a temporary formatted
+ * message, wait for acknowledgement, then free that message allocation.
+ */
 BOOLEAN CheckError(IN EFI_STATUS Status, IN CHAR16 *where)
 {
     CHAR16 *Temp = NULL;
@@ -381,6 +400,11 @@ BOOLEAN CheckError(IN EFI_STATUS Status, IN CHAR16 *where)
     return TRUE;
 }  
 
+/**
+ * Return to graphics and repaint only if GraphicsScreenDirty indicates
+ * a stale screen. Reusing an already-clean buffer avoids discarding
+ * the currently visible menu composition.
+ */
 VOID SwitchToGraphicsAndClear(VOID)
 {
     SwitchToGraphics();
@@ -450,6 +474,10 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
     GlobalConfig.ScreenBackground = egCopyScreen();
 }  
 
+/**
+ * Blit a borrowed image and mark graphics as dirty. The function
+ * neither owns nor releases the caller's image pixels.
+ */
 VOID BltImage(IN EG_IMAGE *Image, IN UINTN XPos, IN UINTN YPos)
 {
     egDrawImage(Image, XPos, YPos);

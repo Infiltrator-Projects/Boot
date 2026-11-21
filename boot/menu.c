@@ -788,6 +788,11 @@ inline static UINTN TextLineHeight(VOID) {
     return egGetFontHeight() + TEXT_YMARGIN * 2;
 }  
 
+/**
+ * Draw menu text into a privately allocated row image so selected colours
+ * do not modify the cached background. The text is borrowed from the menu
+ * entry, and a failed temporary allocation suppresses only this draw.
+ */
 static VOID DrawText(IN CHAR16 *Text, IN BOOLEAN Selected, IN UINTN FieldWidth, IN UINTN XPos, IN UINTN YPos)
 {
     EG_IMAGE *TextBuffer;
@@ -821,6 +826,11 @@ static UINT8 AverageBrightness(EG_IMAGE *Image) {
     return (UINT8) Sum;
 }  
 
+/**
+ * Crop the existing ScreenBackground, render the glyphs into that owned
+ * crop, then release it after blitting. Empty text expands the crop to the
+ * display width; a missing crop leaves the original background untouched.
+ */
 static VOID DrawTextWithTransparency(IN CHAR16 *Text, IN UINTN XPos, IN UINTN YPos)
 {
     UINTN TextWidth;
@@ -1728,6 +1738,11 @@ static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
     }  
 }  
 
+/**
+ * Select a text or graphics event loop for the supplied menu inventory.
+ * The returned ChosenEntry is a borrowed pointer into Screen, not a new
+ * allocation: a rescan or menu release invalidates the selection pointer.
+ */
 UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry)
 {
     INTN            DefaultEntry = -1;

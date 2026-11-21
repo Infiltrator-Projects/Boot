@@ -8,6 +8,7 @@ This file records changes supported by repository commits and existing release q
 - Freed individual Btrfs recovery-cache slots once each and corrected its logical free-byte statistic.
 - Skipped alpha image composition on failed allocation.
 - Strengthened source-level documentation of EFI directory ownership, firmware input semantics and Btrfs metadata handling.
+- Clarified menu entry borrowing, graphics redraw lifetimes, RAID finite-field assumptions, and corrected outdated FSW large-offset and directory-retry explanations.
 - Added native source-isolated regressions to CI without claiming physical firmware or Common V2 coverage.
 
 ## 2026-11-22 — Firmware input and display lifetime corrections

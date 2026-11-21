@@ -463,6 +463,10 @@ static int key_cmp (const struct btrfs_key *a, const struct btrfs_key *b)
     return 0;
 }
 
+/**
+ * Release the iterator's traversal stack. The descriptor and its
+ * volume are borrowed and are not freed by this helper.
+ */
 static void free_iterator (struct fsw_btrfs_leaf_descriptor *desc)
 {
     fsw_free (desc->data);
@@ -785,6 +789,11 @@ struct stripe_table {
     char *ptr;
 };
 
+/**
+ * XOR one RAID stripe into another using machine-width words.
+ * The caller must provide aligned buffers and a byte count divisible
+ * by sizeof(UINTN); the primitive does not check those assumptions.
+ */
 static void block_xor(char *dst, const char *src, uint32_t blocksize)
 {
     UINTN *d = (UINTN *)dst;
@@ -795,6 +804,11 @@ static void block_xor(char *dst, const char *src, uint32_t blocksize)
 	d[i] ^= s[i];
 }
 
+/**
+ * Reconstruct XOR parity across present stripe pointers, including
+ * index data_stripes. NULL stripe pointers contribute zero. Array
+ * capacity, pointer alignment and readable byte counts are caller duties.
+ */
 static void stripe_xor(char *dst, struct stripe_table *stripe, int data_stripes, uint32_t blocksize)
 {
     unsigned i, j;
@@ -826,6 +840,11 @@ static uint8_t powx[255 * 2];
 
 static unsigned powx_inv[256];
 static const uint8_t poly = 0x1d;
+/**
+ * Multiply nonzero GF(2^8) bytes in place through the RAID6 lookup
+ * tables, leaving zero bytes zero. The tables must be initialised and the
+ * multiplier valid; this leaf operation does not test either assumption.
+ */
 static void block_mulx (unsigned mul, char *buf, uint32_t size)
 {
     uint32_t i;
@@ -834,6 +853,11 @@ static void block_mulx (unsigned mul, char *buf, uint32_t size)
 	if (*p)
 	    *p = powx[mul + powx_inv[*p]];
 }
+/**
+ * XOR the finite-field-scaled source stripe into destination bytes.
+ * The source is borrowed. Lookup-table and multiplier assumptions
+ * are identical to the in-place block_mulx operation.
+ */
 static void block_mulx_xor (char *dst, unsigned mul, const char *buf, uint32_t size)
 {
     uint32_t i;
