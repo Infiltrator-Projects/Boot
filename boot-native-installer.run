@@ -1369,7 +1369,6 @@ InstallOnLinux() {
    echo "Installing BOOT on Linux...."
    modprobe efivars &> /dev/null
    FindMountedESP
-   DetermineTargetDir
 
    if [[ $LocalKeys == 1 ]] ; then
       ReSignBinaries
@@ -1390,6 +1389,12 @@ InstallOnLinux() {
          Problems=1
          return 1
       }
+      if [[ -e "$InstallDir/$TargetDir" || -L "$InstallDir/$TargetDir" ]] ; then
+         echo "BOOT installation directory remains after cleanup; refusing installation." >&2
+         Problems=1
+         return 1
+      fi
+      echo "Cleared previous BOOT installation at ${InstallDir%/}${TargetDir}"
    fi
    CopyBootFiles
    AddBootEntry

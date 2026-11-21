@@ -62,7 +62,13 @@ GenerateBootLinuxConf() { :; }
 AlwaysYes=1
 ExplicitDefault=0
 Problems=""
-InstallOnLinux || exit 1
+InstallOnLinux > "$work/reinstall-output.txt" || exit 1
+cat "$work/reinstall-output.txt"
+grep -Fq "Cleared previous BOOT installation at " "$work/reinstall-output.txt" || exit 1
+if grep -Fq "preserving it" "$work/reinstall-output.txt"; then
+    echo "Linux reinstall incorrectly claims to preserve old BOOT configuration" >&2
+    exit 1
+fi
 test -s "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/icons/old.png" || exit 1
