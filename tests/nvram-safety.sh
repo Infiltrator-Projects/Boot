@@ -33,7 +33,7 @@ case "${1:-}" in
      [[ "$*" == *'-l \EFI\InfiltratorOS\BOOT\BOOTX64.EFI'* ]] || exit 72
      id=$(cat "$MOCK_NVRAM/next")
      printf '%04X\n' "$((16#$id + 1))" > "$MOCK_NVRAM/next"
-     printf '%s\n' "Bootlink_6aa9eb29612c8191b65880594e38ee41* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)" >> "$MOCK_NVRAM/entries"
+     printf '%s\n' "Boot${id}* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)" >> "$MOCK_NVRAM/entries"
      before=$(cat "$MOCK_NVRAM/order")
      printf '%s%s\n' "$id" "${before:+,$before}" > "$MOCK_NVRAM/order" ;;
  -b) [[ "${3:-}" == "-a" ]] || exit 73 ;;
