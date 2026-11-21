@@ -424,6 +424,10 @@ use_nvram false
 # items from the default list are likely to appear.
 #
 #dont_scan_files shim.efi,MokManager.efi
+# Keep BOOT as the primary boot manager while retaining GRUB and the EFI
+# fallback on disk for independent firmware boot and recovery.
+# The leading + preserves the standard exclusions (including shim).
+dont_scan_files +,grubx64.efi,EFI/BOOT/bootx64.efi
 
 # EFI NVRAM Boot#### variables that should NOT be presented as loaders
 # when "firmware" is an option to "scanfor". The comma-separated list
@@ -548,6 +552,8 @@ use_nvram false
 #default_selection 1
 #default_selection Microsoft
 #default_selection "+,bzImage,vmlinuz"
+# Prefer a directly discovered Linux kernel without changing scan order.
+default_selection vmlinuz
 #default_selection Maintenance 23:30 2:00
 #default_selection "Maintenance,macOS" 1:00 2:30
 
