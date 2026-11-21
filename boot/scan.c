@@ -206,6 +206,11 @@ static REFIT_MENU_ENTRY* CopyMenuEntry(REFIT_MENU_ENTRY *Entry) {
  
  
  
+/*
+ * Establishes a complete loader-entry baseline before discovery-specific
+ * fields are assigned. Later scanning code depends on this initial state
+ * when constructing alternate launch paths and nested menu entries.
+ */
 LOADER_ENTRY *InitializeLoaderEntry(IN LOADER_ENTRY *Entry) {
     LOADER_ENTRY *NewEntry = NULL;
 
@@ -751,6 +756,11 @@ static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
  * Applies exclusion policy before enumerating a directory. These rules
  * control scanning only; they never justify modifying Windows/GRUB/fallback.
  */
+/*
+ * Applies configured discovery exclusions to a volume/path candidate.
+ * Filtering is a visibility policy, not evidence that the underlying
+ * filesystem or executable is invalid.
+ */
 static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
     CHAR16   *VolName = NULL, *DontScanDir, *PathCopy = NULL, *VolGuid = NULL;
     UINTN    i = 0;
@@ -806,6 +816,11 @@ static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
  
  
  
+/*
+ * Guards against presenting the same fallback boot target more than once.
+ * Duplicate suppression is confined to menu discovery and does not change
+ * the firmware's registered Boot#### entries.
+ */
 static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) {
     CHAR8           *FileContents, *FallbackContents;
     EFI_FILE_HANDLE FileHandle, FallbackHandle;
@@ -916,6 +931,11 @@ static VOID LogMenuEntries(UINTN LogLevel) {
  * Enumerates EFI candidates and direct kernels, excluding duplicates,
  * symlink paths when disabled, images and rejected loaders before menu creation.
  * Kernel folding is a UI grouping policy, not an OS-count limit.
+ */
+/*
+ * Walks one firmware-visible directory for matching loader candidates.
+ * Matching a filename and creating a menu entry do not establish that the
+ * image can later pass firmware LoadImage or Secure Boot authentication.
  */
 static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16 *Pattern)
 {
@@ -1347,6 +1367,11 @@ static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, I
  * restores the original exclusions afterwards. Scan classes come from the
  * configuration, not from a hard-coded Windows/Linux menu.
  */
+/*
+ * Coordinates platform and volume-specific discovery into a single menu.
+ * The resulting entries are a snapshot of currently exposed firmware file
+ * protocols and boot variables, subject to later hotplug and driver binding.
+ */
 VOID ScanForBootloaders(BOOLEAN ShowMessage) {
     UINTN    i;
     CHAR8    s;
@@ -1545,6 +1570,11 @@ VOID FindTool(CHAR16 *Locations, CHAR16 *Names, CHAR16 *Description, UINTN Icon)
 
  
  
+/*
+ * Discovers utility EFI applications separately from operating-system boot
+ * targets. The menu distinction influences presentation and dispatch but
+ * does not bypass the common EFI image-loading boundary.
+ */
 VOID ScanForTools(VOID) {
     CHAR16 *FileName = NULL, *VolName = NULL, *Description, *AllToolLocations;
     REFIT_MENU_ENTRY *TempMenuEntry;
