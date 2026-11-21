@@ -748,63 +748,30 @@ InstallOnOSX() {
 # If we're NOT in Secure Boot mode but the user HAS specified the --shim
 # or --localkeys option, warn the user and offer to abort.
 CheckSecureBoot() {
-   IsSecureBoot="0"
-   if [[ -f /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c ]] ; then
-      IsSecureBoot=$(od -An -t u1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c | awk '{print substr($0,length,1)}')
-   elif [[ -f /sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data ]] ; then
-      IsSecureBoot=$(od -An -t u1 /sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data | tr -d '[:space:]')
+   local variable state
+   IsSecureBoot=""
+   variable="/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c"
+   if [[ -f "$variable" ]]; then
+      IsSecureBoot="$(od -An -tu1 -j4 -N1 "$variable" 2>/dev/null | tr -d '[:space:]')"
+   elif command -v mokutil >/dev/null 2>&1; then
+      state="$(mokutil --sb-state 2>/dev/null)" || state=""
+      if grep -qi 'SecureBoot enabled' <<< "$state"; then IsSecureBoot=1; fi
+      if grep -qi 'SecureBoot disabled' <<< "$state"; then IsSecureBoot=0; fi
    fi
-   if [[ $IsSecureBoot == "1" && "$TargetDir" != '/EFI/BOOT' && "$ShimSource" == "none" ]] ; then
-      echo ""
-      echo "CAUTION: Your computer appears to be booted with Secure Boot, but you haven't"
-      echo "specified a valid shim.efi file source. Chances are you should re-run with"
-      echo "the --shim option. You can read more about this topic at"
-      echo "http://www.rodsbooks.com/boot/secureboot.html."
-      echo ""
-      echo -n "Do you want to proceed with installation (Y/N)? "
-      ReadYesNo
-      if [[ $YesNo == "Y" || $YesNo == "y" ]] ; then
-         echo "OK; continuing with the installation..."
-      else
-         exit 0
-      fi
+   if [[ "$IsSecureBoot" == 1 ]]; then
+      echo "Secure Boot is enabled. This BOOT image has not been qualified/signed" >&2
+      echo "for the machine's firmware trust policy. Existing GRUB is unchanged." >&2
+      return 1
    fi
-
-   if [[ "$ShimSource" != "none" && ! $IsSecureBoot == "1" ]] ; then
-      echo ""
-      echo "You've specified installing using a shim.efi file, but your computer does not"
-      echo "appear to be running in Secure Boot mode. Although installing in this way"
-      echo "should work, it's unnecessarily complex. You may continue, but unless you"
-      echo "plan to enable Secure Boot, you should consider stopping and omitting the"
-      echo "--shim option. You can read more about this topic at"
-      echo "http://www.rodsbooks.com/boot/secureboot.html."
-      echo ""
-      echo -n "Do you want to proceed with installation (Y/N)? "
-      ReadYesNo
-      if [[ $YesNo == "Y" || $YesNo == "y" ]] ; then
-         echo "OK; continuing with the installation..."
-      else
-         exit 0
-      fi
+   if [[ "$IsSecureBoot" != 0 ]]; then
+      echo "Unable to verify that Secure Boot is disabled; refusing activation." >&2
+      return 1
    fi
-
-   if [[ $LocalKeys != 0 && ! $IsSecureBoot == "1" ]] ; then
-      echo ""
-      echo "You've specified re-signing your BOOT binaries with locally-generated keys,"
-      echo "but your computer does not appear to be running in Secure Boot mode. The"
-      echo "keys you generate will be useless unless you enable Secure Boot. You may"
-      echo "proceed with this installation, but before you do so, you may want to read"
-      echo "more about it at http://www.rodsbooks.com/boot/secureboot.html."
-      echo ""
-      echo -n "Do you want to proceed with installation (Y/N)? "
-      ReadYesNo
-      if [[ $YesNo == "Y" || $YesNo == "y" ]] ; then
-         echo "OK; continuing with the installation..."
-      else
-         exit 0
-      fi
-   fi
-
+   [[ "$ShimSource" == none && "$LocalKeys" == 0 ]] || {
+      echo "Unverified shim/local signing modes are not permitted by the native RUN." >&2
+      return 1
+   }
+   echo "Secure Boot is disabled; direct BOOT firmware startup is permitted."
 } # CheckSecureBoot()
 
 # Check for the presence of locally-generated keys from a previous installation in
@@ -917,106 +884,60 @@ ReSignBinaries() {
 # * InstallDir to the mounted ESP's path ($RootDir/boot/efi)
 # * EspFilesystem to the filesystem (always "vfat")
 # Neither variable is altered if no ESP could be found
-FindLinuxESP() {
-   local Dmraid
-   local DmStatus
-   local FatPart
-   local IsItRaid
-   local ParentDisk
-   local PartNum
-   local PotentialParent
-   local Sgdisk
-   local TypeCode
-
-   echo "The ESP doesn't seem to be mounted! Trying to find it...."
-   Dmraid="$(command -v dmraid 2> /dev/null)"
-   Sgdisk="$(command -v sgdisk 2> /dev/null)"
-   if [[ ! -x "$Sgdisk" ]] ; then
-      echo "The sgdisk program (part of the gdisk package) is not installed; please"
-      echo "install it and try again."
-      exit 1
-   fi
-   # Iterate through all FAT partitions in the hopes of finding an ESP....
-   # (Note: FatPart with be set to "/dev/{whatever}".)
-   for FatPart in $(blkid -t TYPE="vfat" -o device) ; do
-      # For each FAT partition, find its parent disk device, since we need
-      # the disk device and partition number as separate components to feed
-      # to efibootmgr....
-      # (Note: PotentialParent will be lacking "/dev/" prefix.)
-      for PotentialParent in $(lsblk | grep disk | cut -f 1 -d " ") ; do
-         IsItRaid=0
-         # Exclude anything that looks like it's on software RAID....
-         if [[ -x "$Dmraid" ]] ; then
-            DmStatus=$(dmraid -r | grep "$PotentialParent")
-            if [ -n "$DmStatus" ] ; then
-               echo "/dev/$PotentialParent seems to be part of a RAID array; skipping!"
-               IsItRaid=1
-            fi
-         fi # if dmraid utility exists
-         # If FAT partition is in the $PotentialParent disk & it's NOT part
-         # of a software RAID setup, then we've found what we want; set it
-         # and break out of the loop....
-         if [[ $FatPart == *"/dev/$PotentialParent"* && $IsItRaid == 0 ]] ; then
-            ParentDisk=$PotentialParent
-            break
-         fi
-      done
-      if [[ $IsItRaid == 0 ]] ; then
-         PartNum=$(grep -Eo '[0-9]{1,4}' <<< "$FatPart" | tail -n 1)
-         TypeCode=$($Sgdisk -i "$PartNum" /dev/"$ParentDisk" | grep "GUID code")
-         shopt -s nocasematch
-         if [[ $TypeCode == *$EspGuid* ]] ; then
-             InstallDir="$RootDir/boot/efi"
-             InstallDir=$(echo "$InstallDir" | sed 's/\/\+/\//g')
-             echo "Mounting ESP ($FatPart) at $InstallDir"
-             mkdir -p "$InstallDir"
-             mount "$FatPart" "$InstallDir"
-             EspFilesystem="vfat"
-             shopt -u nocasematch
-             break
-         fi
-         shopt -u nocasematch
-      fi
-   done
-} # FindLinuxESP()
-
 # Identifies the ESP's location (/boot, /boot/efi, /efi, or these locations
 # under the directory specified by --root); aborts if the ESP isn't mounted at
 # any of these locations.
 # Sets InstallDir to the ESP mount point.
 FindMountedESP() {
-   mount /boot &> /dev/null
-   mount /boot/efi &> /dev/null
-   mount /efi &> /dev/null
-   EspLine=$(df "$RootDir/efi" 2> /dev/null | grep efi)
-   if [[ -z "$EspLine" ]] ; then
-      EspLine=$(df "$RootDir"/boot/efi 2> /dev/null | grep boot/efi)
-   fi
-   if [[ -z "$EspLine" ]] ; then
-      EspLine=$(df "$RootDir"/boot 2> /dev/null | grep boot)
-   fi
-   InstallDir=$(echo "$EspLine" | xargs | cut -d " " -f 6 | sed 's/\/\+/\//g')
-
-   if [[ -n "$InstallDir" ]] ; then
-      EspFilesystem=$(grep -w "$InstallDir" /etc/mtab | uniq | grep -v autofs | cut -d " " -f 3 | uniq)
-   fi
-   if [[ $EspFilesystem != 'vfat' ]] ; then
-      FindLinuxESP
-   fi
-   if [[ $EspFilesystem != 'vfat' ]] ; then
-      echo "$RootDir/$InstallDir doesn't seem to be on a VFAT filesystem. The ESP must be"
-      echo "mounted at $RootDir/boot, $RootDir/efi, or $RootDir/boot/efi, and it must be"
-      echo "VFAT (not msdos)! Aborting!"
-      if [[ -d /sys/firmware/efi ]] ; then
-         exit 1
-      else
-         echo "The computer appears to be running in BIOS mode and has no ESP. You should"
-         echo "create an ESP, and ideally boot in EFI mode, before installing BOOT."
-         exit 1
+   local candidate fstype source
+   # Only accept a known mounted ESP. Never guess among other FAT partitions,
+   # mount a random drive, or touch the existing GRUB/Windows installations.
+   [[ -d /sys/firmware/efi ]] || {
+      echo "BOOT requires a machine currently started in UEFI mode." >&2
+      return 1
+   }
+   for candidate in "$RootDir/boot/efi" "$RootDir/efi" "$RootDir/boot"; do
+      candidate="$(realpath -m -- "$candidate")" || return 1
+      [[ -d "$candidate" ]] || continue
+      fstype="$(findmnt -n --mountpoint "$candidate" -o FSTYPE 2>/dev/null)" || continue
+      [[ "$fstype" == "vfat" ]] || continue
+      source="$(findmnt -n --mountpoint "$candidate" -o SOURCE 2>/dev/null)" || continue
+      if [[ -z "$source" || ! -b "$source" ]]; then
+         echo "The candidate ESP is not a block-device mount: $candidate" >&2
+         continue
       fi
-   fi
-   echo "ESP was found at $InstallDir using $EspFilesystem"
+      InstallDir="$candidate"
+      EspFilesystem="vfat"
+      echo "Using already-mounted FAT ESP: $InstallDir ($source)"
+      return 0
+   done
+   echo "No mounted FAT EFI System Partition found at /boot/efi, /efi or /boot." >&2
+   echo "Refusing to select or mount a different partition automatically." >&2
+   return 1
 } # FindMountedESP
+
+# The pre-existing GRUB boot option must survive as BOOT's fallback.
+VerifyGrubFallback() {
+   local loader firmware
+   loader="$(find "$InstallDir/EFI" -type f \
+       \( -iname 'grubx64.efi' -o -iname 'shimx64.efi' \) \
+       -print -quit 2>/dev/null)" || return 1
+   if [[ ! -s "$loader" ]]; then
+      echo "Existing GRUB/shim EFI loader not found. NVRAM will not be changed." >&2
+      return 1
+   fi
+   firmware="$(efibootmgr -v 2>/dev/null)" || {
+      echo "Cannot inspect the existing UEFI boot entries." >&2
+      return 1
+   }
+   if ! printf '%s\n' "$firmware" | grep -Eiq 'grubx64\.efi|shimx64\.efi'; then
+      echo "GRUB is present on the ESP, but has no confirmed firmware boot entry." >&2
+      echo "Refusing to install BOOT first without a verified GRUB fallback." >&2
+      return 1
+   fi
+   echo "Existing GRUB EFI executable and firmware fallback entry verified."
+}
+
 
 # Uses efibootmgr to add an entry for BOOT to the EFI's NVRAM, if necessary.
 # If this fails, sets Problems=1
@@ -1086,11 +1007,45 @@ AddBootEntry() {
       echo "New BOOT firmware entry registered."
    fi
    current_order="$("$efibootmgr_bin" | sed -n 's/^BootOrder:[[:space:]]*//p' | head -n1)"
-   if [[ -z "$current_order" ]]; then
-      echo "Unable to verify firmware BootOrder." >&2
+   if [[ ! "$current_order" =~ ^[[:xdigit:]]{4}(,[[:xdigit:]]{4})*$ ]]; then
+      echo "Cannot validate final firmware BootOrder." >&2
       Problems=1
       return 1
    fi
+   verbose="$("$efibootmgr_bin" -v)" || return 1
+   existing_entry="$(printf '%s\n' "$verbose" | grep -iF -- "$part_guid" |
+                     grep -iF -- "$entry_filename" | head -n1)"
+   if [[ -z "$existing_entry" ]]; then
+      echo "BOOT firmware entry was not registered on the selected ESP." >&2
+      Problems=1
+      return 1
+   fi
+   existing_num="${existing_entry:4:4}"
+   if [[ ! "$existing_num" =~ ^[[:xdigit:]]{4}$ ]]; then
+      echo "New firmware entry number is invalid." >&2
+      Problems=1
+      return 1
+   fi
+   if [[ "${current_order:0:4}" != "$existing_num" ]]; then
+      next_order="$existing_num"
+      IFS=',' read -r -a all_entries <<< "$current_order"
+      for token in "${all_entries[@]}"; do
+         [[ "${token,,}" == "${existing_num,,}" ]] ||
+            next_order="$next_order,$token"
+      done
+      if ! "$efibootmgr_bin" -o "$next_order"; then
+         echo "Unable to make BOOT the primary firmware boot option." >&2
+         Problems=1
+         return 1
+      fi
+      current_order="$("$efibootmgr_bin" | sed -n 's/^BootOrder:[[:space:]]*//p' | head -n1)"
+   fi
+   if [[ "${current_order:0:4}" != "$existing_num" ]]; then
+      echo "Firmware did not retain BOOT as its first boot option." >&2
+      Problems=1
+      return 1
+   fi
+   echo "Verified BOOT primary (Boot$existing_num); pre-existing entries retained."
 } # AddBootEntry()
 
 # Install a Secure Boot key as a MOK
@@ -1139,19 +1094,24 @@ InstallOnLinux() {
       exit 1
    fi
    echo "Installing BOOT on Linux...."
-   modprobe efivars &> /dev/null
-   if [[ "$ExplicitDefault" == 1 ]] ; then
-      MountDefaultTarget
-   else
-      FindMountedESP
-      DetermineTargetDir
+   if ! FindMountedESP; then
+      Problems=1
+      return 1
+   fi
+   DetermineTargetDir
+   if ! VerifyGrubFallback; then
+      Problems=1
+      return 1
    fi
 
    if [[ $LocalKeys == 1 ]] ; then
       ReSignBinaries
    fi
 
-   CheckSecureBoot
+   if ! CheckSecureBoot; then
+      Problems=1
+      return 1
+   fi
    if ! CopyBootFiles; then
       Problems=1
       return 1
@@ -1204,7 +1164,7 @@ case "$OSTYPE" in
         InstallOnOSX "$1"
         ;;
    linux*)
-        InstallOnLinux
+        InstallOnLinux || Problems=1
         ;;
    *)
         echo "Running on unknown OS; aborting!"
@@ -1213,7 +1173,9 @@ case "$OSTYPE" in
            exit 1
         fi
 esac
-CreateBootCsvFile
+if [[ -z "${Problems:-}" ]]; then
+   CreateBootCsvFile || Problems=1
+fi
 
 InstallationFailed=0
 if [[ $Problems ]] ; then

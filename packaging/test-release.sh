@@ -85,7 +85,9 @@ grep -Fxq 'TargetX64="BOOTX64.EFI"' "$work/embedded-boot-install"
 grep -Fq 'GuardDefaultBootLocation || return 1' "$work/embedded-boot-install"
 grep -Fq 'Boot="$TargetX64"' "$work/embedded-boot-install"
 grep -Fq 'BOOT_INSTALL_SOURCE_DIR' "$work/embedded-boot-install"
-grep -A5 'create an ESP, and ideally boot in EFI mode, before installing BOOT.' "$work/embedded-boot-install" |
-    grep -Fq 'exit 1'
+grep -Fq 'No mounted FAT EFI System Partition found' "$work/embedded-boot-install"
+grep -Fq 'Existing GRUB EFI executable and firmware fallback entry verified.' "$work/embedded-boot-install"
+grep -Fq 'Firmware did not retain BOOT as its first boot option.' "$work/embedded-boot-install"
+grep -Fq 'Secure Boot is enabled.' "$work/embedded-boot-install"
 test -s "$work/embedded-boot-install"
 echo "Verified source-downloading RUN with full inline boot-install and generic DEB"

@@ -103,7 +103,7 @@ if ((EUID != 0)); then
     exec sudo bash "$0"
 fi
 
-required=(git make gcc ld objcopy tar mktemp)
+required=(git make gcc ld objcopy tar mktemp efibootmgr findmnt lsblk blkid realpath sha256sum od)
 missing=()
 for program in "${required[@]}"; do
     command -v "$program" >/dev/null 2>&1 || missing+=("$program")
@@ -115,10 +115,12 @@ if ((${#missing[@]})) || [[ ! -f /usr/include/efi/efi.h ]]; then
         exit 1
     fi
     if ((EUID == 0)); then
-        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi
+        apt-get -o DPkg::Lock::Timeout=300 update
+        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils
     else
         command -v sudo >/dev/null || { echo "sudo is required to install build dependencies" >&2; exit 1; }
-        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi
+        sudo apt-get -o DPkg::Lock::Timeout=300 update
+        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils
     fi
 fi
 for program in "${required[@]}"; do

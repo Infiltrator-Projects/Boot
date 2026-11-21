@@ -31,6 +31,7 @@ case "${1:-}" in
  -o) test ! -e "$MOCK_NVRAM/fail-order" || exit 1
      echo "$2" > "$MOCK_NVRAM/order" ;;
  -c) test "$*" = '-c -d /dev/loop42 -p 1 -l \EFI\InfiltratorOS\BOOT\BOOTX64.EFI -L BOOT Boot Manager'
+     echo 'Boot0004* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)' >> "$MOCK_NVRAM/entries"
      echo '0004,0001,0002' > "$MOCK_NVRAM/order" ;;
  -b) echo "BOOT ENTRY DELETION FORBIDDEN" >&2; exit 99 ;;
  '') echo "BootOrder: $(cat "$MOCK_NVRAM/order")" ;;
