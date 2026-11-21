@@ -433,23 +433,29 @@ EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, 
 /*
  * Expand a pointer vector in groups of sixteen slots. The vector owns its
  * pointer array, not necessarily the objects it references; callers determine
- * element lifetime. KNOWN LIMIT: allocation results are not checked before
- * indexing the array, and this void API cannot return a resource error. Pool
- * exhaustion can therefore cause a null-pointer access.
+ * element lifetime. On allocation failure the existing vector and its
+ * count stay unchanged; this legacy void API cannot notify its callers
+ * that the attempted append was not performed.
  */
 VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID *NewElement)
 {
     UINTN AllocateCount;
+    VOID **NewList;
 
     if ((*ElementCount & 15) == 0) {
         AllocateCount = *ElementCount + 16;
         if (*ElementCount == 0) {
-            *ListPtr = AllocatePool(sizeof(VOID *) * AllocateCount);
+            NewList = AllocatePool(sizeof(VOID *) * AllocateCount);
             LOG(2, LOG_LINE_NORMAL, L"Allocating memory in AddListElement()");
         } else {
             LOG(2, LOG_LINE_NORMAL, L"Reallocating memory in AddListElement(); *ElementCount is %ld", *ElementCount);
-            *ListPtr = EfiReallocatePool(*ListPtr, sizeof(VOID *) * (*ElementCount), sizeof(VOID *) * AllocateCount);
+            NewList = EfiReallocatePool(*ListPtr, sizeof(VOID *) * (*ElementCount), sizeof(VOID *) * AllocateCount);
         }
+        if (NewList == NULL) {
+            LOG(1, LOG_LINE_NORMAL, L"Out of memory while growing a BOOT pointer list");
+            return;
+        }
+        *ListPtr = NewList;
     }
     (*ListPtr)[*ElementCount] = NewElement;
     (*ElementCount)++;

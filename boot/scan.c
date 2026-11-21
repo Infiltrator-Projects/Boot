@@ -964,9 +964,8 @@ static CHAR16* RuniPXEDiscover(EFI_HANDLE Volume)
  * Require both the iPXE discovery executable and the network loader on
  * BOOT's own volume before presenting a network entry. Successful
  * discovery executes the helper and creates a synthetic network volume
- * copied from SelfVolume. KNOWN LIMIT: the AllocatePool result for that
- * clone is dereferenced without an immediate allocation check; network
- * choice construction is not guaranteed under pool exhaustion.
+ * copied from SelfVolume. Failure to allocate the clone leaves the
+ * discovered network entry absent instead of dereferencing a null pointer.
  */
 static VOID ScanNetboot() {
     CHAR16        *iPXEFileName = IPXE_NAME;
@@ -981,6 +980,8 @@ static VOID ScanNetboot() {
             Location = RuniPXEDiscover(SelfVolume->DeviceHandle);
             if (Location != NULL && FileExists(SelfVolume->RootDir, iPXEFileName)) {
                 NetVolume = AllocatePool(sizeof(REFIT_VOLUME));
+                if (NetVolume == NULL)
+                    return;
                 MyCopyMem(NetVolume, SelfVolume, sizeof(REFIT_VOLUME));
                 NetVolume->DiskKind = DISK_KIND_NET;
                 NetVolume->VolBadgeImage = BuiltinIcon(BUILTIN_ICON_VOL_NET);

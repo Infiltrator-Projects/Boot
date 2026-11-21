@@ -128,6 +128,7 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
 
   *HandleType = AllocatePool (*HandleCount * sizeof (UINT32));
   if (*HandleType == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
     goto Error;
   }
 
@@ -275,11 +276,10 @@ Error:
 
 /*
  * Enumerate firmware handles and connect device controllers that lack
- * discovered parents. KNOWN REVIEW POINT: Index belongs to the outer
- * AllHandleBuffer traversal but HandleType comes from LibScanHandleDatabase
- * for one selected handle. Their indices and counts are not shown to
- * coincide; HandleType[Index] needs range and correspondence validation.
- * Connecting controllers can also mutate the handle database.
+ * discovered parents. The classification array comes from a separate
+ * handle-database snapshot. Resolve the selected controller's index inside
+ * that snapshot instead of indexing it by the outer iteration. Controller
+ * connection can change the handle set between snapshots.
  */
 EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 {
@@ -291,6 +291,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
     EFI_HANDLE           *HandleBuffer;
     UINT32               *HandleType;
     UINTN                HandleIndex;
+    UINT32               ControllerIndex;
     BOOLEAN              Parent;
     BOOLEAN              Device;
 
@@ -308,17 +309,23 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
         Status = LibScanHandleDatabase(NULL,
                                        NULL,
                                        AllHandleBuffer[Index],
-                                       NULL,
+                                       &ControllerIndex,
                                        &HandleCount,
                                        &HandleBuffer,
                                        &HandleType);
         if (EFI_ERROR (Status))
             goto Done;
 
+        if (ControllerIndex == 0xffffffff || ControllerIndex >= HandleCount) {
+            MyFreePool(HandleBuffer);
+            MyFreePool(HandleType);
+            continue;
+        }
+
         Device = TRUE;
-        if (HandleType[Index] & EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE)
+        if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE)
             Device = FALSE;
-        if (HandleType[Index] & EFI_HANDLE_TYPE_IMAGE_HANDLE)
+        if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_IMAGE_HANDLE)
             Device = FALSE;
 
         if (Device) {
@@ -329,7 +336,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
             }  
 
             if (!Parent) {
-                if (HandleType[Index] & EFI_HANDLE_TYPE_DEVICE_HANDLE) {
+                if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DEVICE_HANDLE) {
                    Status = refit_call4_wrapper(BS->ConnectController,
                                                 AllHandleBuffer[Index],
                                                 NULL,

@@ -306,9 +306,8 @@ static struct fsw_btrfs_uuid_list *master_uuid_list = NULL;
  * Maintain a process-local map from filesystem UUID to one master volume
  * for multidevice discovery. Returning zero means an existing master was
  * found; a newly added volume becomes the master and remains on the list
- * until removed. KNOWN LIMIT: AllocatePool is dereferenced without an
- * allocation-failure guard, so this registration path is not safe under
- * pool exhaustion.
+ * until removed. A failed allocation returns -1 to distinguish exhaustion
+ * from both an existing master (0) and successful insertion (1).
  */
 static int master_uuid_add(struct fsw_btrfs_volume *vol, struct fsw_btrfs_volume **master_out) {
     struct fsw_btrfs_uuid_list *l;
@@ -321,6 +320,8 @@ static int master_uuid_add(struct fsw_btrfs_volume *vol, struct fsw_btrfs_volume
         }
 
     l = AllocatePool(sizeof(struct fsw_btrfs_uuid_list));
+    if (l == NULL)
+        return -1;
     l->master = vol;
     l->next = master_uuid_list;
     master_uuid_list = l;
@@ -1344,6 +1345,10 @@ static fsw_status_t fsw_btrfs_volume_mount(struct fsw_volume *volg) {
         return FSW_UNSUPPORTED;
 
     vol->is_master = master_uuid_add(vol, &master_out);
+    if (vol->is_master < 0) {
+        vol->is_master = 0;
+        return FSW_OUT_OF_MEMORY;
+    }
 
     if(vol->is_master == 0) {
 #define FAKE_LABEL "btrfs.multi.device"

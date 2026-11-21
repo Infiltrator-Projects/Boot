@@ -47,10 +47,10 @@ struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(ext2) = {
 /*
  * Checks EXT2 superblock signature/revision and incompatible features,
  * then obtains inode-group table locations and creates the root dnode.
- * KNOWN LIMIT: s_inodes_per_group is used as a divisor with no preceding
- * nonzero guard; s_inodes_count - 2 can also underflow on malformed metadata.
- * Validating the signature and incompatibility mask is insufficient to
- * establish usable allocation-group geometry.
+ * Validate on-disk block size and inode allocation-group geometry before
+ * computing the inode-group count or dividing by the inode record size.
+ * Malformed superblock fields must fail the mount, not reach arithmetic with
+ * a zero divisor or an invalid shift count.
  */
 static fsw_status_t fsw_ext2_volume_mount(struct fsw_ext2_volume *vol)
 {
@@ -82,12 +82,26 @@ static fsw_status_t fsw_ext2_volume_mount(struct fsw_ext2_volume *vol)
         (vol->sb->s_feature_incompat & ~(EXT2_FEATURE_INCOMPAT_FILETYPE | EXT3_FEATURE_INCOMPAT_RECOVER)))
         return FSW_UNSUPPORTED;
 
+    // EXT2 supports 1, 2 and 4 KiB blocks in this implementation. Check
+    // the exponent before the EXT2_BLOCK_SIZE macro shifts by that amount.
+    if (vol->sb->s_log_block_size > 2)
+        return FSW_UNSUPPORTED;
+
+    if (vol->sb->s_inodes_per_group == 0 ||
+        vol->sb->s_inodes_count < EXT2_ROOT_INO)
+        return FSW_VOLUME_CORRUPTED;
+
     blocksize = EXT2_BLOCK_SIZE(vol->sb);
+    vol->inode_size = EXT2_INODE_SIZE(vol->sb);
+    if (vol->inode_size < EXT2_GOOD_OLD_INODE_SIZE ||
+        vol->inode_size > blocksize ||
+        (blocksize % vol->inode_size) != 0)
+        return FSW_VOLUME_CORRUPTED;
+
     fsw_set_blocksize(vol, blocksize, blocksize);
 
     vol->ind_bcnt = EXT2_ADDR_PER_BLOCK(vol->sb);
     vol->dind_bcnt = vol->ind_bcnt * vol->ind_bcnt;
-    vol->inode_size = EXT2_INODE_SIZE(vol->sb);
 
     for (i = 0; i < 16; i++)
         if (vol->sb->s_volume_name[i] == 0)

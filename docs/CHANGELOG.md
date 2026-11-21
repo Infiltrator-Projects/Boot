@@ -2,6 +2,16 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Confirmed defensive runtime fixes
+
+- Preserved the full 64-bit FSW stream position for large-file reads.
+- Rejected invalid EXT2 group geometry and unsupported block-size exponents before arithmetic.
+- Added EFI volume/file handle allocation checks and restored a directory cursor after a failed EFI_FILE_INFO conversion.
+- Returned a Btrfs registration allocation failure and guarded network volume allocation.
+- Matched firmware handle classifications by their actual snapshot index; reported classification allocation failures instead of false success.
+- Kept BOOT's pointer-vector storage intact if expansion fails, without changing the legacy void append API.
+- Left installation behaviour, EXT4 recovery policy and Common V2 ABI unchanged.
+
 ## 2026-11-22 — Source commentary and documentation packaging
 
 - Strengthened source-level explanations across BOOT menu/scan logic, filesystem metadata readers, decoder boundaries, UEFI boot protocols, signing/key-enrollment operations and native installer/test scripts.

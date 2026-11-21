@@ -630,8 +630,8 @@ void fsw_shandle_close(struct fsw_shandle *shand)
  * the number of bytes actually copied.
  *
  * EOF returns success with zero bytes. The public position is 64-bit, but the
- * working position is initialised through fsw_u32, so offsets at or beyond 4 GiB
- * can wrap. An intermediate error leaves the stored position unchanged even if
+ * working position must retain the full fsw_u64 width, including positions
+ * at or beyond 4 GiB. An intermediate error leaves the stored position unchanged even if
  * earlier iterations filled part of the destination.
  */
 fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_inout, void *buffer_in)
@@ -651,7 +651,7 @@ fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_in
 
     buffer = buffer_in;
     buflen = *buffer_size_inout;
-    pos = (fsw_u32)shand->pos;
+    pos = shand->pos;
     cache_level = (dno->type != FSW_DNODE_TYPE_FILE) ? 1 : 0;
 
     if (buflen > dno->size - pos)

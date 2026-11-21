@@ -229,9 +229,9 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_P
 /*
  * Opens a controller's block/disk protocols and mounts a backend before
  * installing Simple File System. An error must unwind the opened protocols.
- * KNOWN LIMIT: the Volume pointer is dereferenced immediately after
- * AllocateZeroPool, without checking allocation success. This function does
- * not safely return EFI_OUT_OF_RESOURCES for a failure at that point.
+ * Failure to allocate the volume record closes the Disk I/O protocol
+ * acquired by this binding and returns EFI_OUT_OF_RESOURCES before accessing
+ * the record. The later mount/protocol-install cleanup remains independent.
  */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                               IN EFI_HANDLE                   ControllerHandle,
@@ -269,6 +269,12 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
     }
 
     Volume = AllocateZeroPool(sizeof(FSW_VOLUME_DATA));
+    if (Volume == NULL) {
+        refit_call4_wrapper(BS->CloseProtocol, ControllerHandle,
+                           &gMyEfiDiskIoProtocolGuid,
+                           This->DriverBindingHandle, ControllerHandle);
+        return EFI_OUT_OF_RESOURCES;
+    }
     Volume->Signature       = FSW_VOLUME_DATA_SIGNATURE;
     Volume->Handle          = ControllerHandle;
     Volume->DiskIo          = DiskIo;
@@ -641,6 +647,8 @@ EFI_STATUS fsw_efi_dnode_to_FileHandle(IN struct fsw_dnode *dno,
         return EFI_UNSUPPORTED;
 
     File = AllocateZeroPool(sizeof(FSW_FILE_DATA));
+    if (File == NULL)
+        return EFI_OUT_OF_RESOURCES;
     File->Signature = FSW_FILE_DATA_SIGNATURE;
     if (dno->type == FSW_DNODE_TYPE_FILE)
         File->Type = FSW_EFI_FILE_TYPE_FILE;
@@ -757,9 +765,9 @@ EFI_STATUS fsw_efi_dir_open(IN FSW_FILE_DATA *File,
 
 /**
  * Translate FSW_NOT_FOUND at end of directory into EFI_SUCCESS with zero bytes.
- * The backend advances the directory position before EFI_FILE_INFO is sized. If
- * the caller's buffer is short, this routine returns EFI_BUFFER_TOO_SMALL without
- * rewinding, so a retry may see the following child.
+ * A successful backend lookup advances the stream cursor; save its previous
+ * position so that a failed EFI_FILE_INFO conversion, including size probing,
+ * can be retried without silently skipping the directory entry.
  */
 EFI_STATUS fsw_efi_dir_read(IN FSW_FILE_DATA *File,
                             IN OUT UINTN *BufferSize,
@@ -768,6 +776,7 @@ EFI_STATUS fsw_efi_dir_read(IN FSW_FILE_DATA *File,
     EFI_STATUS          Status;
     FSW_VOLUME_DATA     *Volume = (FSW_VOLUME_DATA *)File->shand.dnode->vol->host_data;
     struct fsw_dnode    *dno;
+    fsw_u64             SavedPos = File->shand.pos;
 
 #if DEBUG_LEVEL
     Print(L"fsw_efi_dir_read...\n");
@@ -784,12 +793,9 @@ EFI_STATUS fsw_efi_dir_read(IN FSW_FILE_DATA *File,
     }
     if (EFI_ERROR(Status))
         return Status;
-    /*
-     * The backend has already advanced the directory cursor. A size
-     * negotiation failure from FileInfo therefore leaves it past this entry.
-     * The cursor rollback in fsw_dnode_dir_read covers backend errors only.
-     */
     Status = fsw_efi_dnode_fill_FileInfo(Volume, dno, BufferSize, Buffer);
+    if (EFI_ERROR(Status))
+        File->shand.pos = SavedPos;
     fsw_dnode_release(dno);
     return Status;
 }
