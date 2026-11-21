@@ -7,14 +7,13 @@
 # ./boot-install [options]
 #
 # options include:
-#    "--notesp" to install to the OS X root filesystem rather than to the ESP.
+#    BOOT always installs to the dedicated directory on the ESP.
 #           This option is valid only under OS X.
-#    "--usedefault {devicefile}" to install as default
-#           (/EFI/BOOT/BOOTX64.EFI and similar) to the specified device
+#    Alternate EFI installation paths are not supported.
 #           (/dev/sdd1 or whatever) without registering with the NVRAM.
 #    "--ownhfs {devicefile}" to install to an HFS+ volume that's NOT currently
 #           an OS X boot volume. Valid only in OS X.
-#    "--root {dir}" to specify installation using the specified directory
+#    Custom installation roots are not supported.
 #           as the system's root
 #    "--alldrivers" to install all drivers along with regular files
 #    "--nodrivers" to suppress driver installation (default in Linux is
@@ -137,93 +136,43 @@ EspGuid="C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
 
 GetParams() {
    InstallToEspOnMac=1
-   # Install the driver required to read Linux /boot, if it's available
-   # Note: Under OS X, this will be installed only if a Linux partition
-   # is detected, in which case the ext4fs driver will be installed.
    InstallDrivers="boot"
    while [[ $# -gt 0 ]]; do
-      case $1 in
-         --notesp) InstallToEspOnMac=0
+      case "$1" in
+         --notesp | --ownhfs | --usedefault | --root)
+              echo "BOOT installs only under /EFI/InfiltratorOS/BOOT on the ESP; $1 is forbidden." >&2
+              exit 1
               ;;
-         --ownhfs) OwnHfs=1
-              InstallToEspOnMac=0
-              TargetPart="$2"
-              TargetDir=/System/Library/CoreServices
-              shift
-              ;;
-         --usedefault) TargetDir=/EFI/BOOT
-              ExplicitDefault=1
-              TargetPart="$2"
-              TargetX64="bootx64.efi"
-              TargetIA32="bootia32.efi"
-              shift
-              ;;
-         --root) RootDir="$2"
-              InstallToEspOnMac=0
-              shift
-              ;;
-         --localkeys) LocalKeys=1
-              ;;
-         --encryptkeys) EncryptKeys=1
-              ;;
-         --shim | --preloader) ShimSource="$2"
+         --localkeys) LocalKeys=1 ;;
+         --encryptkeys) EncryptKeys=1 ;;
+         --shim | --preloader)
+              [[ $# -ge 2 && -n "$2" ]] || { echo "$1 requires a file argument." >&2; exit 1; }
+              ShimSource="$2"
               ShimType=$(basename "$ShimSource")
               shift
               ;;
-         --keepname) KeepName=1
+         --keepname) KeepName=1 ;;
+         --drivers | --alldrivers) InstallDrivers="all" ;;
+         --nodrivers) InstallDrivers="none" ;;
+         --yes) AlwaysYes=1 ;;
+         *)
+              echo "Usage: $0 [--nodrivers | --alldrivers] [--shim file] [--localkeys [--encryptkeys]] [--keepname] [--yes]" >&2
+              echo "The only permitted destination is /EFI/InfiltratorOS/BOOT." >&2
+              exit 1
               ;;
-         --drivers | --alldrivers) InstallDrivers="all"
-              ;;
-         --nodrivers) InstallDrivers="none"
-              ;;
-         --yes) AlwaysYes=1
-              ;;
-         * ) echo "Usage: $0 [--notesp | --usedefault {device-file} | --root {dir} |"
-             echo "                     --ownhfs {device-file} ] [--keepname]"
-             echo "                  [--nodrivers | --alldrivers] [--shim {shimfile}]"
-             echo "                  [--localkeys [--encryptkeys]] [--keepname] [--yes]"
-             exit 1
       esac
       shift
    done
-   if [[ "$InstallToEspOnMac" == 0 && "$RootDir" == '/' && "$ExplicitDefault" == 1 ]] ; then
-      echo "You may use --notesp OR --usedefault, but not both! Aborting!"
+   [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && "$RootDir" == "/" ]] || {
+      echo "Refusing alternate installation directory or root." >&2
       exit 1
-   fi
-   if [[ "$RootDir" != '/' && "$ExplicitDefault" == 1 ]] ; then
-      echo "You may use --root OR --usedefault, but not both! Aborting!"
-      exit 1
-   fi
-   if [[ "$TargetDir" != '/System/Library/CoreServices' && "$OwnHfs" == '1' ]] ; then
-      echo "If you use --ownhfs, you may NOT use --usedefault! Aborting!"
-      exit 1
-   fi
+   }
    if [[ "$KeepName" == 1 && "$ShimSource" == "none" ]] ; then
-      echo "The --keepname option is meaningful only in conjunction with --shim"
-      echo "or --preloader! Aborting!"
+      echo "--keepname requires --shim or --preloader." >&2
       exit 1
-   fi
-   if [[ "$KeepName" == 1 && "$OSTYPE" != "linux" && "$OSTYPE" != "linux-gnu" ]] ; then
-      echo "The --keepname option is valid only under Linux! Aborting!"
-      exit 1
-   fi
-   if [[ "$KeepName" == 1 && "$ExplicitDefault" == 1 ]] ; then
-      echo "The --keepname option is incompatible with --usedefault! Aborting!"
-      exit 1
-   fi
-   if [[ "$InstallDrivers" == "all" && "$TargetDir" != "/EFI/BOOT" ]] ; then
-      echo "The --alldrivers option is meant for creating USB flash drives with (near-)"
-      echo "universal boot support. Using it on a hard disk partition runs the risk of"
-      echo "creating serious problems, up to and including rendering your computer"
-      echo -n "unbootable. Are you SURE you want to proceed (Y/N)? "
-      ReadYesNo
-      if [[ "$YesNo" != "Y" && "$YesNo" != "y" ]] ; then
-         echo "Aborting installation!"
-         exit 0
-      fi
    fi
    if [[ "$EncryptKeys" == 1 && "$LocalKeys" == 0 ]] ; then
-      echo "The --encryptkeys option requires the use of --localkeys! Aborting!"
+      echo "--encryptkeys requires --localkeys." >&2
       exit 1
    fi
    RLConfFile="$RootDir/boot/boot_linux.conf"
@@ -460,62 +409,13 @@ CopyKeys() {
 } # CopyKeys()
 
 # Set varaibles for installation in EFI/BOOT directory
-SetVarsForBoot() {
-   TargetDir="/EFI/BOOT"
-   if [[ $ShimSource == "none" ]] ; then
-      TargetX64="bootx64.efi"
-      TargetIA32="bootia32.efi"
-      TargetAARCH64="bootaa64.efi"
-   else
-      if [[ $ShimType == "shim.efi" || $ShimType == "shimx64.efi" || $ShimType == "shimx64.efi.signed" || $ShimType = "shimaa64.efi" ]] ; then
-         TargetX64="grubx64.efi"
-         TargetAARCH64="grubaa64.efi"
-      elif [[ $ShimType == "preloader.efi" || $ShimType == "PreLoader.efi" ]] ; then
-         TargetX64="loader.efi"
-      else
-         echo "Unknown shim/PreBootloader type: $ShimType"
-         echo "Aborting!"
-         exit 1
-      fi
-      TargetIA32="bootia32.efi"
-      TargetShim="boot$Platform.efi"
-   fi
-   if [[ $KeepName == 1 ]] ; then
-      echo "Installation is to /EFI/BOOT, which is incompatible with --keepname! Aborting!"
-      exit 1
-   fi
-} # SetVarsForBoot()
+
 
 # Set variables for installation in EFI/Microsoft/Boot directory
-SetVarsForMsBoot() {
-   TargetDir="/EFI/Microsoft/Boot"
-   if [[ $ShimSource == "none" ]] ; then
-      TargetX64="bootmgfw.efi"
-      TargetIA32="bootmgfw.efi"
-      TargetAARCH64="bootmgfw.efi"
-   else
-      if [[ $ShimType == "shim.efi" || $ShimType == "shimx64.efi" || $ShimType == "shimaa64.efi" ]] ; then
-         TargetX64="grubx64.efi"
-         TargetAARCH64="grubaa64.efi"
-      elif [[ $ShimType == "preloader.efi" || $ShimType == "PreLoader.efi" ]] ; then
-         TargetX64="loader.efi"
-      else
-         echo "Unknown shim/PreBootloader type: $ShimType"
-         echo "Aborting!"
-         exit 1
-      fi
-      TargetShim="bootmgfw.efi"
-   fi
-   if [[ $KeepName == 1 ]] ; then
-      echo "Installation is to /EFI/Microsoft/Boot, which is incompatible with --keepname!"
-      echo "Aborting!"
-      exit 1
-   fi
-} # SetVarsForMsBoot()
 
-# BOOT's selected directory is /EFI/InfiltratorOS/BOOT on the mounted ESP.
-# Never hijack the shared /EFI/BOOT path, Microsoft Boot or GRUB.
-# Explicit --usedefault remains a separate removable-media selection.
+
+# BOOT installs only under /EFI/InfiltratorOS/BOOT on the ESP.
+# EFI/BOOT, Microsoft Boot and GRUB are never install destinations.
 DetermineTargetDir() {
    Upgrade=0
    if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] ; then
@@ -627,10 +527,12 @@ BootFileHash() {
    fi
 }
 
-# Verify any existing executable before writing to the dedicated BOOT
-# directory or an explicitly selected UEFI fallback path.
+# Verify any existing BOOT executable in the sole permitted directory.
 GuardDefaultBootLocation() {
-   [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" || "$TargetDir" == "/EFI/BOOT" ]] || return 0
+   if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
+      echo "Refusing BOOT installation outside /EFI/InfiltratorOS/BOOT." >&2
+      return 1
+   fi
    local dir="$InstallDir/$TargetDir"
    local existing="$dir/$TargetX64"
    local marker="$dir/.infiltrator-boot-loader.sha256"
@@ -656,10 +558,6 @@ GuardDefaultBootLocation() {
          echo "BOOT's target executable differs from its recorded checksum; refusing replacement." >&2
          return 1
       fi
-   elif [[ "$TargetDir" == "/EFI/BOOT" && -d "$dir" &&
-           -n "$(find "$dir" -mindepth 1 -print -quit)" ]] ; then
-      echo "The shared UEFI fallback directory is already in use; refusing replacement." >&2
-      return 1
    elif [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -d "$dir" &&
            -n "$(find "$dir" -mindepth 1 -maxdepth 1 ! -name drivers_x64 -print -quit)" ]] ; then
       echo "BOOT's dedicated directory contains unrecognised files; refusing replacement." >&2
@@ -670,31 +568,7 @@ GuardDefaultBootLocation() {
 CopyBootFiles() {
    GuardDefaultBootLocation || exit 1
    mkdir -p "$InstallDir/$TargetDir"
-   if [[ "$TargetDir" == '/EFI/BOOT' ]] ; then
-      if ! cp "$BootDir/boot_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" 2> /dev/null ; then
-         echo "Note: IA32 (x86) binary not installed!"
-      fi
-      if ! cp "$BootDir/boot_x64.efi" "$InstallDir/$TargetDir/$TargetX64" 2> /dev/null ; then
-         Problems=1
-      fi
-      cp "$BootDir/boot_aa64.efi" "$InstallDir/$TargetDir/$TargetAARCH64" 2> /dev/null
-      if [[ $? != 0 && $Platform == "aa64" ]] ; then
-         Problems=1
-      fi
-      if [[ "$ShimSource" != "none" ]] ; then
-         TargetShim="bootx64.efi"
-         CopyShimFiles
-      fi
-      if [[ $InstallDrivers == "all" ]] ; then
-         cp -r "$BootDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
-         cp -r "$ThisDir"/drivers_* "$InstallDir/$TargetDir/" 2> /dev/null
-      elif [[ $Upgrade == 1 || $InstallToEspOnMac == 1 ]] ; then
-         CopyDrivers "$Platform"
-         CopyTools "$Platform"
-      fi
-      Boot="boot$Platform.efi"
-      CopyKeys
-   elif [[ $Platform == 'x64' || $TargetDir == "/EFI/Microsoft/Boot" ]] ; then
+   if [[ $Platform == 'x64' ]] ; then
       if ! cp "$BootDir/boot_x64.efi" "$InstallDir/$TargetDir/$TargetX64" ; then
          Problems=1
       fi
@@ -715,9 +589,6 @@ CopyBootFiles() {
             cp "$ThisDir/keys/boot.crt" "$EtcKeysDir" 2> /dev/null
          fi
       fi
-      if [[ "$TargetDir" == '/System/Library/CoreServices' ]] ; then
-         SetupMacHfs $TargetX64
-      fi
    elif [[ $Platform == 'ia32' || $Platform == 'aa64' ]] ; then
       if [[ $Platform == 'ia32' ]] ; then
          if ! cp "$BootDir/boot_ia32.efi" "$InstallDir/$TargetDir/$TargetIA32" ; then
@@ -732,9 +603,6 @@ CopyBootFiles() {
       CopyTools $Platform
       Boot="$TargetIA32"
       if [[ "$Platform" == "aa64" ]] ; then Boot="$TargetAARCH64"; fi
-      if [[ "$TargetDir" == '/System/Library/CoreServices' ]] ; then
-         SetupMacHfs $TargetIA32
-      fi
    else
       echo "Unknown platform! Aborting!"
       exit 1
@@ -767,15 +635,7 @@ CopyBootFiles() {
          Problems=1
       fi
    fi
-   # If installing to the fallback/EFI default filename, make a duplicate copy
-   # of boot.conf and edit the main copy to include the "install" and "bootorder"
-   # options, so that the system can be used to install BOOT if it's on a USB
-   # flash drive or CD-R....
-   if [[ "$TargetDir" == '/EFI/BOOT' ]] ; then
-      cp -f "$ConfFile" "$InstallDir/$TargetDir/boot.conf-sample"
-      sed -i 's/#showtools shell/showtools install, shell/g' "$InstallDir/$TargetDir/boot.conf"
-   fi
-   if [[ ( "$TargetDir" == "/EFI/InfiltratorOS/BOOT" || "$TargetDir" == "/EFI/BOOT" ) && -z "${Problems:-}" ]] ; then
+   if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -z "${Problems:-}" ]] ; then
       # Record the exact executable produced by this installation. Future
       # upgrades must match it before replacing the loader.
       local verified marker temporary
@@ -795,35 +655,8 @@ CopyBootFiles() {
    fi
 } # CopyBootFiles()
 
-# Mount the partition the user specified with the --usedefault or --ownhfs option
-MountDefaultTarget() {
-   InstallDir=/tmp/boot_install
-   mkdir -p "$InstallDir"
-   UnmountEsp=1
-   if [[ $OSTYPE == darwin* ]] ; then
-      if [[ $OwnHfs == '1' ]] ; then
-         Temp=$(diskutil info "$TargetPart" | grep "Mount Point")
-         # Note: DO NOT enclose "$Temp" in following lines in quotes; it
-         # messes up the following "cut" operation!
-         InstallDir=$(echo $Temp | cut -f 3-30 -d ' ' | sed 's/\/\+/\//g')
-         if [[ $InstallDir == '' ]] ; then
-            InstallDir=/tmp/boot_install
-            mount -t hfs "$TargetPart" "$InstallDir"
-         else
-            UnmountEsp=0
-         fi
-      else
-         mount -t msdos "$TargetPart" "$InstallDir"
-      fi
-   elif [[ $OSTYPE == linux* ]] ; then
-      mount -t vfat "$TargetPart" "$InstallDir"
-   fi
-   if [[ $? != 0 ]] ; then
-      echo "Couldn't mount $TargetPart ! Aborting!"
-      rmdir "$InstallDir"
-      exit 1
-   fi
-} # MountDefaultTarget()
+# Mounting custom EFI installation targets is prohibited.
+
 
 # Create a BOOT.CSV file in the same directory as BOOT, to help in recovery
 # should the system's boot entry list be lost
@@ -899,29 +732,7 @@ MountOSXESP() {
 # Set up for booting from Mac HFS+ volume that boots BOOT in MJG's way
 # (http://mjg59.dreamwidth.org/7468.html)
 # Must be passed the original BOOT binary filename (without a path).
-SetupMacHfs() {
-   if [[ -s "$InstallDir/mach_kernel" ]] ; then
-      echo "Attempt to install BOOT to a partition with a /mach_kernel file! Aborting!"
-      exit 1
-   fi
-   cp -n "$InstallDir/$TargetDir/boot.efi" "$InstallDir/$TargetDir/boot.efi-backup" &> /dev/null
-   ln -f "$InstallDir/$TargetDir/$1" "$InstallDir/$TargetDir/boot.efi"
-   touch "$InstallDir/mach_kernel"
-   rm "$InstallDir/$TargetDir/SystemVersion.plist" &> /dev/null
-   cat - << ENDOFHERE >> "$InstallDir/$TargetDir/SystemVersion.plist"
-<xml version="1.0" encoding="UTF-8"?>
-<plist version="1.0">
-<dict>
-        <key>ProductBuildVersion</key>
-        <string></string>
-        <key>ProductName</key>
-        <string>BOOT</string>
-        <key>ProductVersion</key>
-        <string>0.14.2</string>
-</dict>
-</plist>
-ENDOFHERE
-} # SetupMacHfs()
+
 
 CheckForSIP() {
    local OKToInstall
@@ -980,25 +791,18 @@ CheckForSIP() {
 # Sets Problems=1 if problems found during the installation.
 InstallOnOSX() {
    echo "Installing BOOT on macOS...."
-   if [[ "$InstallToEspOnMac" == "1" && -z "$TargetPart" ]] ; then
-      MountOSXESP
-   elif [[ "$TargetDir" == "/EFI/BOOT" || "$OwnHfs" == '1' ]] ; then
-      MountDefaultTarget
-   else
-      InstallDir="$RootDir/"
-      InstallDir=$(echo "$InstallDir" | sed 's/\/\+/\//g')
-   fi
+   [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] || {
+      echo "Refusing installation outside /EFI/InfiltratorOS/BOOT." >&2
+      return 1
+   }
+   MountOSXESP
    echo "Installing BOOT to the partition mounted at $InstallDir"
    DetermineTargetDir
    CheckForSIP
    CopyBootFiles
    mkdir -p /usr/local/bin &> /dev/null
    cp "$ThisDir/mountesp" /usr/local/bin/ &> /dev/null
-   if [[ $InstallToEspOnMac == "1" && -z "$TargetPart" ]] ; then
-      bless --mount "$InstallDir" --setBoot --file "$InstallDir/$TargetDir/$Boot" --shortform
-   elif [[ "$TargetDir" != "/EFI/BOOT" ]] ; then
-      bless --setBoot --folder "$InstallDir/$TargetDir" --file "$InstallDir/$TargetDir/$Boot"
-   fi
+   bless --mount "$InstallDir" --setBoot --file "$InstallDir/$TargetDir/$Boot" --shortform
    if [[ $? != 0 ]] ; then
       Problems=1
    fi
@@ -1033,7 +837,7 @@ CheckSecureBoot() {
    elif [[ -f /sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data ]] ; then
       IsSecureBoot=$(od -An -t u1 /sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data | tr -d '[:space:]')
    fi
-   if [[ $IsSecureBoot == "1" && "$TargetDir" != '/EFI/BOOT' && "$ShimSource" == "none" ]] ; then
+   if [[ $IsSecureBoot == "1" && "$ShimSource" == "none" ]] ; then
       echo ""
       echo "CAUTION: Your computer appears to be booted with Secure Boot, but you haven't"
       echo "specified a valid shim.efi file source. Chances are you should re-run with"
@@ -1260,7 +1064,7 @@ FindLinuxESP() {
 } # FindLinuxESP()
 
 # Identifies the ESP's location (/boot, /boot/efi, /efi, or these locations
-# under the directory specified by --root); aborts if the ESP isn't mounted at
+# on the host; aborts if the ESP isn't mounted at
 # any of these locations.
 # Sets InstallDir to the ESP mount point.
 FindMountedESP() {
@@ -1476,18 +1280,14 @@ InstallSBKey() {
 # Controls BOOT installation under Linux.
 # Sets Problems=1 if something goes wrong.
 InstallOnLinux() {
-   if [[ "$TargetDir" == "/System/Library/CoreServices" ]] ; then
-      echo "You may not use the --ownhfs option under Linux! Aborting!"
-      exit 1
+   if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
+      echo "Refusing installation outside /EFI/InfiltratorOS/BOOT." >&2
+      return 1
    fi
    echo "Installing BOOT on Linux...."
    modprobe efivars &> /dev/null
-   if [[ "$ExplicitDefault" == 1 ]] ; then
-      MountDefaultTarget
-   else
-      FindMountedESP
-      DetermineTargetDir
-   fi
+   FindMountedESP
+   DetermineTargetDir
 
    if [[ $LocalKeys == 1 ]] ; then
       ReSignBinaries
@@ -1510,10 +1310,8 @@ InstallOnLinux() {
       }
    fi
    CopyBootFiles
-   if [[ "$TargetDir" != "/EFI/BOOT" && "$TargetDir" != "/EFI/Microsoft/Boot" ]] ; then
-      AddBootEntry
-      GenerateBootLinuxConf
-   fi
+   AddBootEntry
+   GenerateBootLinuxConf
    # Note that InstallSBKey may require the user to enter a password, so
    # it must NOT be called if --yes is passed to the script, since that
    # parameter is intended to eliminate user interaction. The user will

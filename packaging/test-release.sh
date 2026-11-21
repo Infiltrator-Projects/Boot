@@ -83,10 +83,14 @@ grep -Fq 'exit "$InstallationFailed"' "$work/embedded-boot-install"
 grep -Fxq 'TargetDir=/EFI/InfiltratorOS/BOOT' "$work/embedded-boot-install"
 grep -Fxq 'TargetX64="BOOTX64.EFI"' "$work/embedded-boot-install"
 # Verify the full-length BOOT-adapted installer is still embedded exactly.
-test "$(wc -c < boot-install)" -ge 63656
+test "$(wc -c < boot-install)" -ge 50000
 grep -Fq 'rm -rf -- "$InstallDir/$TargetDir"' "$work/embedded-boot-install"
 grep -Fq 'GuardDefaultBootLocation || exit 1' "$work/embedded-boot-install"
-grep -Fq 'SetVarsForBoot() {' "$work/embedded-boot-install"
+! grep -Fq 'SetVarsForBoot() {' "$work/embedded-boot-install"
+! grep -Fq 'SetVarsForMsBoot() {' "$work/embedded-boot-install"
+! grep -Fq 'MountDefaultTarget() {' "$work/embedded-boot-install"
+grep -Fq 'Refusing BOOT installation outside /EFI/InfiltratorOS/BOOT.' "$work/embedded-boot-install"
+grep -Fq 'if (($# != 0)); then' "$run"
 grep -Fq 'FindLinuxESP() {' "$work/embedded-boot-install"
 grep -Fq 'FindMountedESP() {' "$work/embedded-boot-install"
 grep -Fq 'AddBootEntry() {' "$work/embedded-boot-install"

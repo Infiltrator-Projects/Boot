@@ -71,4 +71,31 @@ test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
 echo "BOOT native reinstall removed old BOOT directory and preserved GRUB/Windows/fallback"
+# No parameter or direct function invocation may select any other EFI path.
+for arg in --usedefault --ownhfs --notesp --root; do
+    if (GetParams "$arg" /dev/invalid >/dev/null 2>&1); then
+        echo "Accepted prohibited install option: $arg" >&2
+        exit 1
+    fi
+done
+for forbidden in /EFI/BOOT /EFI/Microsoft/Boot /System/Library/CoreServices /EFI/other; do
+    TargetDir="$forbidden"
+    if GuardDefaultBootLocation; then
+        echo "Guard accepted forbidden installation path: $forbidden" >&2
+        exit 1
+    fi
+    if InstallOnLinux; then
+        echo "Linux installer accepted forbidden path: $forbidden" >&2
+        exit 1
+    fi
+    if InstallOnOSX; then
+        echo "macOS installer accepted forbidden path: $forbidden" >&2
+        exit 1
+    fi
+done
+TargetDir=/EFI/InfiltratorOS/BOOT
+test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
+test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
+test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
+echo "All destination overrides rejected; dedicated BOOT path enforced"
 echo "Historical BOOT installer: disposable ESP safety checks passed"
