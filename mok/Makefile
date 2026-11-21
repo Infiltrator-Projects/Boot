@@ -2,15 +2,6 @@
 # these objects does not itself establish image authenticity or a fully
 # validated platform trust-chain.
 
-
-
-
-
-
-
-
-
-
 SRCDIR = .
 
 VPATH = $(SRCDIR)
@@ -28,5 +19,3 @@ include $(SRCDIR)/../Make.common
 
 clean:
 	rm -f $(TARGET) *~ *.so $(OBJS) *.efi *.obj boot_*.txt boot_*.dll *.lib
-
-

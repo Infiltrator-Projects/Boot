@@ -2,14 +2,6 @@
 # Its output is a build artifact; the native installer separately owns
 # source pinning, ESP placement, and firmware entry registration.
 
-
-
-
-
-
-
-
-
 SRCDIR = .
 
 VPATH = $(SRCDIR)
@@ -67,4 +59,3 @@ endif
 clean:
 	rm -f $(TARGET) *~ *.so $(OBJS) *.efi *.obj boot_*.txt \
 		boot_*.dll *.lib
-

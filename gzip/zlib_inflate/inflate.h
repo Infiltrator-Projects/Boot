@@ -6,19 +6,8 @@
 #ifndef INFLATE_H
 #define INFLATE_H
 
- 
-
-
-
-
- 
-
-
-
-
 #include "inftrees.h"
 
- 
 typedef enum {
     HEAD,        
     FLAGS,       
@@ -52,25 +41,6 @@ typedef enum {
     SYNC         
 } inflate_mode;
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
  * The resumable decoder carries both its mode and the partially consumed bit
  * accumulator across calls. A pending match can also outlive one output
@@ -85,27 +55,26 @@ struct inflate_state {
     unsigned dmax;               
     unsigned long check;         
     unsigned long total;         
-              
-         
+
     unsigned wbits;              
     unsigned wsize;              
     unsigned whave;              
     unsigned write;              
     unsigned char *window;   
-         
+
     unsigned long hold;          
     unsigned bits;               
-         
+
     unsigned length;             
     unsigned offset;             
-         
+
     unsigned extra;              
-         
+
     code const *lencode;     
     code const *distcode;    
     unsigned lenbits;            
     unsigned distbits;           
-         
+
     unsigned ncode;              
     unsigned nlen;               
     unsigned ndist;              
@@ -116,7 +85,6 @@ struct inflate_state {
     code codes[ENOUGH];          
 };
 
- 
 #define REVERSE(q) \
     ((((q) >> 24) & 0xff) + (((q) >> 8) & 0xff00) + \
      (((q) & 0xff00) << 8) + (((q) & 0xff) << 24))

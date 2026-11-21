@@ -3,41 +3,6 @@
  * alpha channels, palette conversions and pooled allocation must preserve
  * bounds across PNG, BMP, ICNS and JPEG readers.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __LIBEG_LIBEGINT_H__
 #define __LIBEG_LIBEGINT_H__
@@ -51,11 +16,7 @@
 
 #include "libeg.h"
 
- 
-
 typedef EG_IMAGE * (*EG_DECODE_FUNC)(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
-
- 
 
 BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight);
 
@@ -85,7 +46,4 @@ EG_IMAGE * egDecodeICNS(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ic
 
 VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileData, OUT UINTN *FileDataLength);
 
-
 #endif  
-
- 

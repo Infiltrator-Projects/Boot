@@ -2,16 +2,6 @@
 # Incompatible features, inode extents and block addressing constrain support.
 # No journal recovery or Common V2 module compatibility is implied by this INF.
 
-
-
-
-
-
-
-
-
-
-
 [Defines]
   INF_VERSION                   = 0x00010005
   BASE_NAME                     = ext4
@@ -22,12 +12,6 @@
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = fsw_efi_main
   FSTYPE                        = ext4
-
-
-
-
-
-
 
 [Sources]
   fsw_efi.c

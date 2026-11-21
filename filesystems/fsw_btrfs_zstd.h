@@ -4,12 +4,6 @@
  * extents into this private decoder. Input/output sizes are untrusted.
  * This is not a general host-level compression service.
  */
- 
- 
-
-
-
-
 
 #define PAGE_SIZE 4096
 #define uint64_t fsw_u64
@@ -56,7 +50,6 @@ static inline void put_unaligned_le16(uint16_t v, void *s)
 #define ZSTD_BTRFS_MAX_WINDOWLOG 17
 #define ZSTD_BTRFS_MAX_INPUT (1 << ZSTD_BTRFS_MAX_WINDOWLOG)
 
-
 static fsw_ssize_t zstd_decompress(char *data_in, fsw_size_t srclen,
 		grub_off_t start_byte,
 		char *data_out, fsw_size_t destlen)
@@ -69,7 +62,7 @@ static fsw_ssize_t zstd_decompress(char *data_in, fsw_size_t srclen,
 
 	size_t workspace_size = ZSTD_DStreamWorkspaceBound(ZSTD_BTRFS_MAX_INPUT);
 	void * workspace;
-	
+
 	in_buf.src = data_in;
 	in_buf.pos = 0;
 	in_buf.size = srclen;

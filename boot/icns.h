@@ -3,56 +3,9 @@
  * fallback/dummy image and must not imply that its corresponding EFI image
  * was validated, authenticated or executed successfully.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
 
 #ifndef __ICNS_H_
 #define __ICNS_H_
-
- 
- 
- 
 
 EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconName, BOOLEAN BootLogo);
 
@@ -91,5 +44,3 @@ EG_IMAGE * BuiltinIcon(IN UINTN Id);
 #define BUILTIN_ICON_COUNT                 (24)
 
 #endif
-
- 

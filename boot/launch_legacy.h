@@ -4,48 +4,6 @@
  * the legacy BIOS protocol. Scan functions populate the entry type that
  * selects the corresponding launch route.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
 
 #ifndef __LAUNCH_LEGACY_H
 #define __LAUNCH_LEGACY_H

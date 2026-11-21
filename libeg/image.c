@@ -4,62 +4,6 @@
  * files are not trusted merely because they are installed with BOOT.
  * Allocation and free routines own image lifetimes independently of UEFI paths.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "libegint.h"
 #include "../boot/global.h"
@@ -73,10 +17,6 @@
 
 #define MAX_FILE_SIZE (1024*1024*1024)
 
- 
- 
- 
- 
 #if defined(EFIX64) | defined(EFIAARCH64)
 #define FP_MULTIPLIER (UINTN) 65536
 #else
@@ -88,10 +28,6 @@
 #define LibOpenRoot EfiLibOpenRoot
 #endif
 
- 
- 
- 
-
 /*
  * Allocates an image surface from width, height and channel requirements.
  * Pixel-count arithmetic and allocation size must agree before any drawing.
@@ -100,7 +36,6 @@ EG_IMAGE * egCreateImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha)
 {
     EG_IMAGE        *NewImage;
 
-     
     if (Width == 0 || Height == 0 ||
         Width > ((UINTN)~(UINTN)0) / sizeof(EG_PIXEL) / Height)
         return NULL;
@@ -145,8 +80,6 @@ EG_IMAGE * egCopyImage(IN EG_IMAGE *Image)
     return NewImage;
 }
 
- 
- 
 EG_IMAGE * egCropImage(IN EG_IMAGE *Image, IN UINTN StartX, IN UINTN StartY, IN UINTN Width, IN UINTN Height) {
    EG_IMAGE *NewImage = NULL;
    UINTN x, y;
@@ -166,16 +99,6 @@ EG_IMAGE * egCropImage(IN EG_IMAGE *Image, IN UINTN StartX, IN UINTN StartY, IN 
    return NewImage;
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeight) {
    EG_IMAGE *NewImage = NULL;
    EG_PIXEL a, b, c, d;
@@ -219,25 +142,21 @@ EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeigh
          c = Image->PixelData[Index + Image->Width];
          d = Image->PixelData[Index + Image->Width + 1];
 
-          
          NewImage->PixelData[Offset].b = ((a.b) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (b.b) * (x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (c.b) * (y_diff) * (FP_MULTIPLIER - x_diff) +
                                           (d.b) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
 
-          
          NewImage->PixelData[Offset].g = ((a.g) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (b.g) * (x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (c.g) * (y_diff) * (FP_MULTIPLIER - x_diff) +
                                           (d.g) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
 
-          
          NewImage->PixelData[Offset].r = ((a.r) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (b.r) * (x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (c.r) * (y_diff) * (FP_MULTIPLIER - x_diff) +
                                           (d.r) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
 
-          
          NewImage->PixelData[Offset++].a = ((a.a) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                             (b.a) * (x_diff) * (FP_MULTIPLIER - y_diff) +
                                             (c.a) * (y_diff) * (FP_MULTIPLIER - x_diff) +
@@ -255,10 +174,6 @@ VOID egFreeImage(IN EG_IMAGE *Image)
         MyFreePool(Image);
     }
 }
-
- 
- 
- 
 
 /*
  * Reads an EFI-visible file into allocated memory; the returned byte count
@@ -357,13 +272,6 @@ EFI_STATUS egSaveFile(IN EFI_FILE_PROTOCOL *BaseDir OPTIONAL, IN CHAR16 *FileNam
     return Status;
 }
 
- 
- 
- 
-
- 
- 
- 
 /*
  * Selects a supported graphic decoder based on supplied bytes, not on
  * whether a loader icon or banner is required for boot discovery.
@@ -393,20 +301,16 @@ EG_IMAGE * egLoadImage(IN EFI_FILE* BaseDir, IN CHAR16 *FileName, IN BOOLEAN Wan
     if (BaseDir == NULL || FileName == NULL)
         return NULL;
 
-     
     Status = egLoadFile(BaseDir, FileName, &FileData, &FileDataLength);
     if (EFI_ERROR(Status))
         return NULL;
 
-     
     NewImage = egDecodeAny(FileData, FileDataLength, 128  , WantAlpha);
     MyFreePool(FileData);
 
     return NewImage;
 }
 
- 
- 
 EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN IconSize)
 {
     EFI_STATUS      Status;
@@ -417,12 +321,10 @@ EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN I
     if (BaseDir == NULL || Path == NULL)
         return NULL;
 
-     
     Status = egLoadFile(BaseDir, Path, &FileData, &FileDataLength);
     if (EFI_ERROR(Status))
         return NULL;
 
-     
     Image = egDecodeAny(FileData, FileDataLength, IconSize, TRUE);
     MyFreePool(FileData);
     if ((Image->Width != IconSize) || (Image->Height != IconSize)) {
@@ -442,11 +344,6 @@ EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN I
     return Image;
 }  
 
- 
- 
- 
- 
- 
 EG_IMAGE * egLoadIconAnyType(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *SubdirName, IN CHAR16 *BaseName, IN UINTN IconSize) {
     EG_IMAGE *Image = NULL;
     CHAR16 *Extension;
@@ -464,14 +361,6 @@ EG_IMAGE * egLoadIconAnyType(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *SubdirNam
     return Image;
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
 EG_IMAGE * egFindIcon(IN CHAR16 *BaseName, IN UINTN IconSize) {
    EG_IMAGE *Image = NULL;
 
@@ -496,12 +385,10 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
     if (EmbeddedImage == NULL)
         return NULL;
 
-     
     if (EmbeddedImage->PixelMode > EG_MAX_EIPIXELMODE ||
         (EmbeddedImage->CompressMode != EG_EICOMPMODE_NONE && EmbeddedImage->CompressMode != EG_EICOMPMODE_RLE))
         return NULL;
 
-     
     NewImage = egCreateImage(EmbeddedImage->Width, EmbeddedImage->Height, WantAlpha);
     if (NewImage == NULL)
         return NULL;
@@ -510,12 +397,9 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
     CompLen  = EmbeddedImage->DataLength;
     PixelCount = EmbeddedImage->Width * EmbeddedImage->Height;
 
-     
-
     if (EmbeddedImage->PixelMode == EG_EIPIXELMODE_GRAY ||
         EmbeddedImage->PixelMode == EG_EIPIXELMODE_GRAY_ALPHA) {
 
-         
         if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
             egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, r), PixelCount);
         } else {
@@ -528,7 +412,6 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
     } else if (EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR ||
                EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR_ALPHA) {
 
-         
         if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
             egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, r), PixelCount);
             egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, g), PixelCount);
@@ -544,7 +427,6 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
 
     } else {
 
-         
         egSetPlane(PLPTR(NewImage, r), 0, PixelCount);
         egSetPlane(PLPTR(NewImage, g), 0, PixelCount);
         egSetPlane(PLPTR(NewImage, b), 0, PixelCount);
@@ -555,7 +437,6 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
                       EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR_ALPHA ||
                       EmbeddedImage->PixelMode == EG_EIPIXELMODE_ALPHA)) {
 
-         
         if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
             egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, a), PixelCount);
         } else {
@@ -570,21 +451,17 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
     return NewImage;
 }
 
- 
- 
- 
-
 VOID egRestrictImageArea(IN EG_IMAGE *Image,
                          IN UINTN AreaPosX, IN UINTN AreaPosY,
                          IN OUT UINTN *AreaWidth, IN OUT UINTN *AreaHeight)
 {
     if (Image && AreaWidth && AreaHeight) {
         if (AreaPosX >= Image->Width || AreaPosY >= Image->Height) {
-             
+
             *AreaWidth  = 0;
             *AreaHeight = 0;
         } else {
-             
+
             if (*AreaWidth > Image->Width - AreaPosX)
                 *AreaWidth = Image->Width - AreaPosX;
             if (*AreaHeight > Image->Height - AreaPosY)
@@ -710,7 +587,6 @@ VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN 
         CompHeight = TopImage->Height;
         egRestrictImageArea(CompImage, PosX, PosY, &CompWidth, &CompHeight);
 
-         
         if (CompWidth > 0) {
             if (TopImage->HasAlpha) {
                 egRawCompose(CompImage->PixelData + PosY * CompImage->Width + PosX, TopImage->PixelData,
@@ -722,10 +598,6 @@ VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN 
         }
     }
 }  
-
- 
- 
- 
 
 VOID egInsertPlane(IN UINT8 *SrcDataPtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount)
 {
@@ -762,5 +634,3 @@ VOID egCopyPlane(IN UINT8 *SrcPlanePtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCo
         }
     }
 }
-
- 

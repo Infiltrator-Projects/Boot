@@ -3,61 +3,12 @@
  * state, shim presence and trust-path validation are distinct conditions.
  * A successful menu selection is insufficient to establish executable trust.
  */
- 
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "mok.h"
 #include "../include/refit_call_wrapper.h"
 #include "../boot/lib.h"
 #include "../boot/screen.h"
-
-
- 
-
 
 /*
  * Observes security-related firmware state; an unavailable variable must
@@ -71,7 +22,7 @@ BOOLEAN secure_mode (VOID)
    UINT8 *sb = NULL, *setupmode = NULL;
 
    status = EfivarGetRaw(&global_var, L"SecureBoot", (CHAR8 **) &sb, &charsize);
-    
+
    if (status != EFI_SUCCESS || charsize != sizeof(CHAR8) || *sb != 1) {
       return FALSE;
    }
@@ -84,8 +35,6 @@ BOOLEAN secure_mode (VOID)
    return TRUE;
 }  
 
- 
- 
 /*
  * Test the status of locating shim's lock protocol. This lookup supports the
  * choice of handoff path. Individual images are checked separately, using
@@ -98,9 +47,6 @@ BOOLEAN ShimLoaded(void) {
    return (refit_call3_wrapper(BS->LocateProtocol, &ShimLockGuid, NULL, (VOID**) &shim_lock) == EFI_SUCCESS);
 }  
 
- 
- 
- 
 /*
  * Look up the shim interface at the time of use. Return TRUE only for a
  * non-null buffer and interface when shim_verify accepts exactly size bytes.

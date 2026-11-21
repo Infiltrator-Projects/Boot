@@ -3,26 +3,6 @@
  * presentation. BOOT uses it alongside GOP or UGA. Changing console mode and
  * writing a rectangle of pixels are separate protocol operations.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __CONSOLE_CONTROL_H__
 #define __CONSOLE_CONTROL_H__
@@ -32,13 +12,11 @@
 
 struct _EFI_CONSOLE_CONTROL_PROTOCOL;
 
-
 typedef enum {
   EfiConsoleControlScreenText,
   EfiConsoleControlScreenGraphics,
   EfiConsoleControlScreenMaxValue
 } EFI_CONSOLE_CONTROL_SCREEN_MODE;
-
 
 typedef
 EFI_STATUS
@@ -48,25 +26,8 @@ EFI_STATUS
   OUT BOOLEAN                           *UgaExists,   OPTIONAL  
   OUT BOOLEAN                           *StdInLocked  OPTIONAL
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
-
 
 typedef
 EFI_STATUS
@@ -74,22 +35,8 @@ EFI_STATUS
   IN  struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
   OUT EFI_CONSOLE_CONTROL_SCREEN_MODE   Mode
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
-
 
 typedef
 EFI_STATUS
@@ -97,30 +44,13 @@ EFI_STATUS
   IN struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
   IN CHAR16                             *Password
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
-
-
 
 typedef struct _EFI_CONSOLE_CONTROL_PROTOCOL {
   EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE           GetMode;
   EFI_CONSOLE_CONTROL_PROTOCOL_SET_MODE           SetMode;
   EFI_CONSOLE_CONTROL_PROTOCOL_LOCK_STD_IN        LockStdIn;
 } EFI_CONSOLE_CONTROL_PROTOCOL;
-
- 
 
 #endif

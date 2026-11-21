@@ -3,23 +3,6 @@
  * priorities from its description and device type before the platform
  * LegacyBoot call receives the selected BBS path and load options.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
 
 #ifdef __MAKEWITH_TIANO
 #include "../include/tiano_includes.h"
@@ -30,17 +13,6 @@
 
 #ifndef _BDS_HELPER_H_
 #define _BDS_HELPER_H_
-
-
- 
-
-
-
-
-
-
-
-
 
 EFI_STATUS
 BdsLibDoLegacyBoot (

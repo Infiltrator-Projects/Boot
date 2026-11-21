@@ -3,62 +3,6 @@
  * AddInitrdToOptions and GetMainLinuxOptions return allocated command-line
  * strings. HasSignedCounterpart is a filename lookup used during discovery.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __BOOT_LINUX_H_
 #define __BOOT_LINUX_H_
@@ -71,5 +15,3 @@ VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOL
 BOOLEAN HasSignedCounterpart(IN REFIT_VOLUME *Volume, IN CHAR16 *FullName);
 
 #endif
-
- 

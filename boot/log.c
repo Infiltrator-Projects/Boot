@@ -3,21 +3,6 @@
  * Logging is a side effect on the writable volume; it is not a substitute
  * for propagation of EFI_STATUS and is not proof of successful OS startup.
  */
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
 
 #include "log.h"
 #include "global.h"
@@ -32,7 +17,6 @@ EFI_FILE_HANDLE  gLogHandle;
 CHAR16           *gLogTemp = NULL;
 BOOLEAN          gLogActive = FALSE;
 
-
 EFI_STATUS DeleteFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
     EFI_FILE_HANDLE FileHandle;
     UINT64          FileMode = EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE;;
@@ -46,11 +30,6 @@ EFI_STATUS DeleteFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
     return Status;
 }  
 
- 
- 
- 
- 
- 
 /*
  * Make room for the new session by discarding the old backup and attempting
  * to rename the current log. If backup fails, delete the current log and
@@ -70,12 +49,6 @@ EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
     return Status;
 }  
 
- 
- 
- 
- 
- 
- 
 /*
  * Temporarily suppress logging while opening the logging destination. Fresh
  * sessions rotate and create a log. Restart reopens an existing one. If
@@ -92,8 +65,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
     UINT8           Utf16[2];  
 
     if (GlobalConfig.LogLevel > 0) {
-         
-         
+
         gcLogLevel = GlobalConfig.LogLevel;
         GlobalConfig.LogLevel = 0;
         if (Restart) {
@@ -108,8 +80,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
         }
 
         if (EFI_ERROR(Status)) {
-             
-             
+
             Status = egFindESP(&FoundEsp);
             if (!EFI_ERROR(Status)) {
                 if (!Restart) {
@@ -126,11 +97,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
             PrintUglyText(L"Unable to open log file!", CENTER);
             PauseForKey();
         } else {
-             
-             
-             
-             
-             
+
             FileInfo = LibFileInfo(gLogHandle);
             if ((FileInfo != NULL) && (FileInfo->FileSize > 0)) {
                 if (!Restart) {
@@ -138,7 +105,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
                     StartLogging(FALSE);
                 }
             } else {
-                 
+
                 Utf16[0] = 0xFF;
                 Utf16[1] = 0xFE;
                 BufferSize = 2;
@@ -167,11 +134,6 @@ VOID StopLogging(VOID) {
     gLogActive = FALSE;
 }  
 
- 
- 
- 
- 
- 
 /*
  * Serialises a diagnostic record through the EFI file handle. A diagnostic
  * string may contain firmware/device state and should be handled deliberately.

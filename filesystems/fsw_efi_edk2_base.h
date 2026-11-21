@@ -3,46 +3,9 @@
  * GNU-EFI profile used by the current published AMD64 build. ABI types
  * and calling conventions must match the target firmware environment.
  */
- 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_EFI_EDK2_BASE_H_
 #define _FSW_EFI_EDK2_BASE_H_
- 
-
 
 # include <Base.h>
 # include <Uefi.h>
@@ -81,6 +44,5 @@
  * routine that actually returns it.
  */
 # define DivU64x32(x,y,z) DivU64x32((x),(y))
-
 
 #endif

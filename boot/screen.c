@@ -3,62 +3,6 @@
  * UEFI GOP/console state must be restored or deliberately transitioned across
  * child-image execution. A renderer failure must not be treated as disk failure.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "screen.h"
@@ -72,13 +16,9 @@
 
 #include "../include/egemb_boot_banner.h"
 
- 
-
 UINTN ConWidth;
 UINTN ConHeight;
 CHAR16 *BlankLine = NULL;
-
- 
 
 UINTN UGAWidth;
 UINTN UGAHeight;
@@ -91,22 +31,16 @@ EG_PIXEL DarkBackgroundPixel = { 0x0, 0x0, 0x0, 0 };
 
 static BOOLEAN GraphicsScreenDirty;
 
- 
-
 static VOID PrepareBlankLine(VOID) {
     UINTN i;
 
     MyFreePool(BlankLine);
-     
+
     BlankLine = AllocatePool((ConWidth + 1) * sizeof(CHAR16));
     for (i = 0; i < ConWidth; i++)
         BlankLine[i] = ' ';
     BlankLine[i] = 0;
 }
-
- 
- 
- 
 
 /*
  * Captures initial firmware display capabilities before switching modes.
@@ -115,7 +49,7 @@ static VOID PrepareBlankLine(VOID) {
 VOID InitScreen(VOID)
 {
     LOG(1, LOG_LINE_NORMAL, L"Entering InitScreen()");
-     
+
     egInitScreen();
 
     if (egHasGraphicsMode()) {
@@ -130,45 +64,37 @@ VOID InitScreen(VOID)
     }
     GraphicsScreenDirty = TRUE;
 
-     
     refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, FALSE);
 
-     
     if (refit_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut,
                             ST->ConOut->Mode->Mode, &ConWidth,
                             &ConHeight) != EFI_SUCCESS) {
-         
+
         ConWidth = 80;
         ConHeight = 25;
     }
 
     PrepareBlankLine();
 
-     
     if (GlobalConfig.TextOnly && (GlobalConfig.ScreensaverTime != -1))
        DrawScreenHeader(L"Initializing...");
 }
 
- 
 VOID SetupScreen(VOID)
 {
     UINTN NewWidth, NewHeight;
 
     LOG(1, LOG_LINE_NORMAL, L"Setting screen resolution and mode");
-     
+
     if ((GlobalConfig.RequestedScreenWidth > 0) && (GlobalConfig.RequestedScreenHeight == 0))
        egGetResFromMode(&(GlobalConfig.RequestedScreenWidth), &(GlobalConfig.RequestedScreenHeight));
 
-     
-     
-     
     if ((GlobalConfig.RequestedScreenWidth > 0) && (GlobalConfig.RequestedScreenHeight > 0)) {
        UGAWidth = (UGAWidth < GlobalConfig.RequestedScreenWidth) ? UGAWidth : GlobalConfig.RequestedScreenWidth;
        UGAHeight = (UGAHeight < GlobalConfig.RequestedScreenHeight) ? UGAHeight : GlobalConfig.RequestedScreenHeight;
        LOG(2, LOG_LINE_NORMAL, L"Recording current resolution as %dx%d", UGAWidth, UGAHeight);
     }
 
-     
     if (egSetTextMode(GlobalConfig.RequestedTextMode)) {
        egGetScreenSize(&NewWidth, &NewHeight);
        if ((NewWidth > UGAWidth) || (NewHeight > UGAHeight)) {
@@ -180,7 +106,7 @@ VOID SetupScreen(VOID)
        if ((UGAWidth > GlobalConfig.RequestedScreenWidth) ||
            (UGAHeight > GlobalConfig.RequestedScreenHeight)) {
            LOG(2, LOG_LINE_NORMAL, L"Adjusting requested screen size based on actual screen size");
-            
+
            GlobalConfig.RequestedScreenWidth = UGAWidth;
            GlobalConfig.RequestedScreenHeight = UGAHeight;
        }  
@@ -195,12 +121,11 @@ VOID SetupScreen(VOID)
 
     if (GlobalConfig.TextOnly) {
         LOG(2, LOG_LINE_NORMAL, L"Setting text-only mode");
-         
+
         AllowGraphicsMode = FALSE;
         SwitchToText(FALSE);
     } else if (AllowGraphicsMode) {
-         
-         
+
         if ((UGAWidth >= HIDPI_MIN) && !HaveResized) {
             LOG(2, LOG_LINE_NORMAL, L"Doubling icon sizes for HiDPI display");
             GlobalConfig.IconSizes[ICON_SIZE_BADGE] *= 2;
@@ -222,9 +147,9 @@ VOID SwitchToText(IN BOOLEAN CursorEnabled)
 {
     egSetGraphicsModeEnabled(FALSE);
     refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, CursorEnabled);
-     
+
     if (refit_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut, ST->ConOut->Mode->Mode, &ConWidth, &ConHeight) != EFI_SUCCESS) {
-         
+
         ConWidth = 80;
         ConHeight = 25;
     }
@@ -238,10 +163,6 @@ VOID SwitchToGraphics(VOID)
         GraphicsScreenDirty = TRUE;
     }
 }
-
- 
- 
- 
 
 VOID BeginTextScreen(IN CHAR16 *Title)
 {
@@ -276,20 +197,18 @@ VOID BeginExternalScreen(IN BOOLEAN UseGraphicsMode, IN CHAR16 *Title)
  */
 VOID FinishExternalScreen(VOID)
 {
-     
+
     GraphicsScreenDirty = TRUE;
 
-     
     SetupScreen();
 }
 
 VOID TerminateScreen(VOID)
 {
-     
+
     refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
     refit_call1_wrapper(ST->ConOut->ClearScreen, ST->ConOut);
 
-     
     refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, TRUE);
 }
 
@@ -297,30 +216,22 @@ VOID DrawScreenHeader(IN CHAR16 *Title)
 {
     UINTN y;
 
-     
     egClearScreen(&DarkBackgroundPixel);  
     refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
     refit_call1_wrapper(ST->ConOut->ClearScreen, ST->ConOut);  
 
-     
     refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BANNER);
     for (y = 0; y < 3; y++) {
         refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, y);
         Print(BlankLine);
     }
 
-     
     refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, 1);
     Print(L"BOOT - %s", Title);
 
-     
     refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
     refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, 4);
 }
-
- 
- 
- 
 
 BOOLEAN ReadAllKeyStrokes(VOID)
 {
@@ -340,10 +251,6 @@ BOOLEAN ReadAllKeyStrokes(VOID)
     return GotKeyStrokes;
 }
 
- 
- 
- 
- 
 VOID PrintUglyText(IN CHAR16 *Text, IN UINTN PositionCode) {
     EG_PIXEL BGColor = COLOR_RED;
 
@@ -374,7 +281,6 @@ VOID PauseForKey(VOID)
     ReadAllKeyStrokes();         
 }
 
- 
 VOID PauseSeconds(UINTN Seconds) {
      refit_call1_wrapper(BS->Stall, 1000000 * Seconds);
 }  
@@ -388,10 +294,6 @@ VOID EndlessIdleLoop(VOID)
         refit_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &index);
     }
 }
-
- 
- 
- 
 
 /*
  * Return FALSE for firmware success or warning statuses. For an EFI error,
@@ -445,10 +347,6 @@ BOOLEAN CheckError(IN EFI_STATUS Status, IN CHAR16 *where)
     return TRUE;
 }  
 
- 
- 
- 
-
 VOID SwitchToGraphicsAndClear(VOID)
 {
     SwitchToGraphics();
@@ -464,7 +362,7 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
     EG_PIXEL Black = { 0x0, 0x0, 0x0, 0 };
 
     if (ShowBanner && !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_BANNER)) {
-         
+
         if (Banner == NULL) {
             if (GlobalConfig.BannerFileName)
                 Banner = egLoadImage(SelfDir, GlobalConfig.BannerFileName, FALSE);
@@ -488,7 +386,6 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
            MenuBackgroundPixel = Banner->PixelData[0];
         }  
 
-         
         if (GlobalConfig.ScreensaverTime != -1)
            egClearScreen(&MenuBackgroundPixel);
         else
@@ -505,7 +402,7 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
         }
 
     } else {  
-         
+
         egClearScreen(&MenuBackgroundPixel);
     }
 
@@ -513,7 +410,6 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
     egFreeImage(GlobalConfig.ScreenBackground);
     GlobalConfig.ScreenBackground = egCopyScreen();
 }  
-
 
 VOID BltImage(IN EG_IMAGE *Image, IN UINTN XPos, IN UINTN YPos)
 {
@@ -525,42 +421,13 @@ VOID BltImageAlpha(IN EG_IMAGE *Image, IN UINTN XPos, IN UINTN YPos, IN EG_PIXEL
 {
     EG_IMAGE *CompImage;
 
-     
     CompImage = egCreateFilledImage(Image->Width, Image->Height, FALSE, BackgroundPixel);
     egComposeImage(CompImage, Image, 0, 0);
 
-     
     egDrawImage(CompImage, XPos, YPos);
     egFreeImage(CompImage);
     GraphicsScreenDirty = TRUE;
 }
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 
 VOID BltImageCompositeBadge(IN EG_IMAGE *BaseImage,
                             IN EG_IMAGE *TopImage,
@@ -571,14 +438,12 @@ VOID BltImageCompositeBadge(IN EG_IMAGE *BaseImage,
      UINTN TotalWidth = 0, TotalHeight = 0, CompWidth = 0, CompHeight = 0, OffsetX = 0, OffsetY = 0;
      EG_IMAGE *CompImage = NULL;
 
-      
      if (BaseImage != NULL) {
          CompImage = egCopyImage(BaseImage);
          TotalWidth  = BaseImage->Width;
          TotalHeight = BaseImage->Height;
      }
 
-      
      if ((TopImage != NULL) && (CompImage != NULL)) {
          CompWidth = TopImage->Width;
          if (CompWidth > TotalWidth)
@@ -591,14 +456,12 @@ VOID BltImageCompositeBadge(IN EG_IMAGE *BaseImage,
          egComposeImage(CompImage, TopImage, OffsetX, OffsetY);
      }
 
-      
      if (BadgeImage != NULL && CompImage != NULL && (BadgeImage->Width + 8) < CompWidth && (BadgeImage->Height + 8) < CompHeight) {
          OffsetX += CompWidth  - 8 - BadgeImage->Width;
          OffsetY += CompHeight - 8 - BadgeImage->Height;
          egComposeImage(CompImage, BadgeImage, OffsetX, OffsetY);
      }
 
-      
      if (CompImage != NULL) {
          if (CompImage->HasAlpha)
              egDrawImageWithTransparency(CompImage, NULL, XPos, YPos, CompImage->Width, CompImage->Height);

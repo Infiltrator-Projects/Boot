@@ -1,15 +1,6 @@
 # Compiles the bundled DEFLATE decoder used by BOOT compressed-load paths.
 # Linker, allocation and ABI settings must match EFI code, not a hosted zlib.
 
-
-
-
-
-
-
-
-
-
 SRCDIR = .
 
 VPATH = $(SRCDIR)
@@ -27,5 +18,3 @@ include $(SRCDIR)/../Make.common
 
 clean:
 	rm -f $(TARGET) *~ *.so $(OBJS) *.efi *.obj boot_*.txt boot_*.dll *.lib
-
-

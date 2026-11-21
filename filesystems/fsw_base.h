@@ -3,44 +3,6 @@
  * endianness and allocation/platform hooks must match the actual firmware
  * build profile; no hosted libc or Linux VFS semantics may be presumed.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_BASE_H_
 #define _FSW_BASE_H_
@@ -54,9 +16,6 @@
 #endif
 
 #ifndef FSW_DEBUG_LEVEL
- 
-
-
 
 #define FSW_DEBUG_LEVEL 1
 #endif
@@ -82,84 +41,5 @@
 #else
 #define FSW_MSG_DEBUGV(params)
 #endif
-
-
- 
-
- 
-
-
-
-
- 
-
-
-
-
- 
-
-
-
-
- 
-
-
-
-
- 
-
-
-
-
- 
-
-
-
-
- 
-
-
-
-
- 
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
- 
-
-
-
-
 
 #endif

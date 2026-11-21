@@ -3,60 +3,9 @@
  * Unicode name layouts are external binary formats. These structures
  * must not be confused with an installed OS's bootability or full HFS support.
  */
- 
- 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __HFS_FORMAT__
 #define __HFS_FORMAT__
-
- 
- 
- 
- 
- 
 
 #ifdef _MSC_VER
 # pragma pack(push,2)
@@ -65,23 +14,10 @@
 #define HFS_ALIGNMENT __attribute__((aligned(2), packed))
 #endif
 
- 
-
-
-
-
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
- 
-
- 
 enum {
 	kHFSSigWord		= 0x4244,	 
 	kHFSPlusSigWord		= 0x482B,	 
@@ -95,73 +31,34 @@ enum {
 	kFSKMountVersion	= 0x46534b21	 
 };
 
-
 #ifdef __APPLE_API_PRIVATE
- 
-
-
-
-
-
 
 #define HFSPLUSMETADATAFOLDER       "\xE2\x90\x80\xE2\x90\x80\xE2\x90\x80\xE2\x90\x80HFS+ Private Data"
 #define HFSPLUS_DIR_METADATA_FOLDER ".HFS+ Private Directory Data\xd"
 
- 
-
-
-
-
-
-
-
-
 #define HFS_INODE_PREFIX	"iNode"
 #define HFS_DELETE_PREFIX	"temp"
 
- 
-
-
-
-
-
 #define HFS_DIRINODE_PREFIX	"dir_"
-
- 
-
-
-
-
-
-
-
 
 #define FIRST_LINK_XATTR_NAME	"com.apple.system.hfs.firstlink"
 #define FIRST_LINK_XATTR_REC_SIZE (sizeof(HFSPlusAttrData) - 2 + 12)
 
 #endif  
 
- 
-
-
 enum {
 	kHardLinkFileType = 0x686C6E6B,   
 	kHFSPlusCreator   = 0x6866732B    
 };
-
-
- 
-
 
 enum {
       kSymLinkFileType  = 0x736C6E6B,  
       kSymLinkCreator   = 0x72686170   
 };
 
-
 #ifndef _HFSUNISTR255_DEFINED_
 #define _HFSUNISTR255_DEFINED_
- 
+
 struct HFSUniStr255 {
 	u_int16_t	length;		 
 	u_int16_t	unicode[255];	 
@@ -176,10 +73,6 @@ enum {
 	kHFSPlusMaxFileNameChars	= 255
 };
 
-
- 
-
- 
 struct HFSExtentKey {
 	u_int8_t	keyLength;	 
 	u_int8_t	forkType;	 
@@ -188,7 +81,6 @@ struct HFSExtentKey {
 } HFS_ALIGNMENT;
 typedef struct HFSExtentKey HFSExtentKey;
 
- 
 struct HFSPlusExtentKey {
 	u_int16_t	keyLength;		 
 	u_int8_t	forkType;		 
@@ -198,34 +90,27 @@ struct HFSPlusExtentKey {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusExtentKey HFSPlusExtentKey;
 
- 
 enum {
 	kHFSExtentDensity	= 3,
 	kHFSPlusExtentDensity	= 8
 };
 
- 
 struct HFSExtentDescriptor {
 	u_int16_t	startBlock;		 
 	u_int16_t	blockCount;		 
 } HFS_ALIGNMENT;
 typedef struct HFSExtentDescriptor HFSExtentDescriptor;
 
- 
 struct HFSPlusExtentDescriptor {
 	u_int32_t	startBlock;		 
 	u_int32_t	blockCount;		 
 } HFS_ALIGNMENT;
 typedef struct HFSPlusExtentDescriptor HFSPlusExtentDescriptor;
 
- 
 typedef HFSExtentDescriptor HFSExtentRecord[3];
 
- 
 typedef HFSPlusExtentDescriptor HFSPlusExtentRecord[8];
 
-
- 
 struct FndrFileInfo {
 	u_int32_t	fdType;		 
 	u_int32_t	fdCreator;	 
@@ -272,12 +157,6 @@ struct HFSPlusForkData {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusForkData HFSPlusForkData;
 
-
- 
-
-
-
-
 struct HFSPlusBSDInfo {
 	u_int32_t	ownerID;	 
 	u_int32_t	groupID;	 
@@ -292,17 +171,6 @@ struct HFSPlusBSDInfo {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusBSDInfo HFSPlusBSDInfo;
 
- 
-
-
-
-
-
-
-
-
-
-
 #define hl_firstLinkID     reserved1          
 
 #define hl_prevLinkID      bsdInfo.ownerID    
@@ -310,9 +178,6 @@ typedef struct HFSPlusBSDInfo HFSPlusBSDInfo;
 
 #define hl_linkReference   bsdInfo.special.iNodeNum
 #define hl_linkCount       bsdInfo.special.linkCount
-
-
- 
 
 enum {
 	kHFSRootParentID		= 1,	 
@@ -324,13 +189,12 @@ enum {
 	kHFSStartupFileID		= 7,	 
 	kHFSAttributesFileID		= 8,	 
 	kHFSAttributeDataFileID         = 13,	 
-	                                         
+
 	kHFSRepairCatalogFileID		= 14,	 
 	kHFSBogusExtentFileID		= 15,	 
 	kHFSFirstUserCatalogNodeID	= 16
 };
 
- 
 struct HFSCatalogKey {
 	u_int8_t	keyLength;		 
 	u_int8_t	reserved;		 
@@ -339,7 +203,6 @@ struct HFSCatalogKey {
 } HFS_ALIGNMENT;
 typedef struct HFSCatalogKey HFSCatalogKey;
 
- 
 struct HFSPlusCatalogKey {
 	u_int16_t		keyLength;	 
 	u_int32_t		parentID;	 
@@ -347,23 +210,19 @@ struct HFSPlusCatalogKey {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusCatalogKey HFSPlusCatalogKey;
 
- 
 enum {
-	 
+
 	kHFSFolderRecord		= 0x0100,	 
 	kHFSFileRecord			= 0x0200,	 
 	kHFSFolderThreadRecord		= 0x0300,	 
 	kHFSFileThreadRecord		= 0x0400,	 
 
-	 
 	kHFSPlusFolderRecord		= 1,		 
 	kHFSPlusFileRecord		= 2,		 
 	kHFSPlusFolderThreadRecord	= 3,		 
 	kHFSPlusFileThreadRecord	= 4		 
 };
 
-
- 
 enum {
 	kHFSFileLockedBit	= 0x0000,	 
 	kHFSFileLockedMask	= 0x0001,
@@ -387,8 +246,6 @@ enum {
 	kHFSHasChildLinkMask	= 0x0040
 };
 
-
- 
 struct HFSCatalogFolder {
 	int16_t		recordType;		 
 	u_int16_t		flags;			 
@@ -403,7 +260,6 @@ struct HFSCatalogFolder {
 } HFS_ALIGNMENT;
 typedef struct HFSCatalogFolder HFSCatalogFolder;
 
- 
 struct HFSPlusCatalogFolder {
 	int16_t		recordType;		 
 	u_int16_t		flags;			 
@@ -422,7 +278,6 @@ struct HFSPlusCatalogFolder {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusCatalogFolder HFSPlusCatalogFolder;
 
- 
 struct HFSCatalogFile {
 	int16_t		recordType;		 
 	u_int8_t		flags;			 
@@ -446,7 +301,6 @@ struct HFSCatalogFile {
 } HFS_ALIGNMENT;
 typedef struct HFSCatalogFile HFSCatalogFile;
 
- 
 struct HFSPlusCatalogFile {
 	int16_t		recordType;		 
 	u_int16_t		flags;			 
@@ -463,13 +317,11 @@ struct HFSPlusCatalogFile {
 	u_int32_t		textEncoding;		 
 	u_int32_t		reserved2;		 
 
-	 
 	HFSPlusForkData	dataFork;		 
 	HFSPlusForkData	resourceFork;		 
 } HFS_ALIGNMENT;
 typedef struct HFSPlusCatalogFile HFSPlusCatalogFile;
 
- 
 struct HFSCatalogThread {
 	int16_t	recordType;		 
 	int32_t	reserved[2];		 
@@ -478,7 +330,6 @@ struct HFSCatalogThread {
 } HFS_ALIGNMENT;
 typedef struct HFSCatalogThread HFSCatalogThread;
 
- 
 struct HFSPlusCatalogThread {
 	int16_t	recordType;		 
 	int16_t	reserved;		 
@@ -488,22 +339,12 @@ struct HFSPlusCatalogThread {
 typedef struct HFSPlusCatalogThread HFSPlusCatalogThread;
 
 #ifdef __APPLE_API_UNSTABLE
- 
-
-
 
 enum {
 	kHFSPlusAttrInlineData	= 0x10,    
 	kHFSPlusAttrForkData	= 0x20,    
 	kHFSPlusAttrExtents	= 0x30     
 };
-
-
- 
-
-
-
-
 
 struct HFSPlusAttrForkData {
 	u_int32_t	recordType;		 
@@ -512,23 +353,12 @@ struct HFSPlusAttrForkData {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusAttrForkData HFSPlusAttrForkData;
 
- 
-
-
-
-
 struct HFSPlusAttrExtents {
 	u_int32_t		recordType;	 
 	u_int32_t		reserved;
 	HFSPlusExtentRecord	extents;	 
 } HFS_ALIGNMENT;
 typedef struct HFSPlusAttrExtents HFSPlusAttrExtents;
-
- 
-
-
-
-
 
 struct HFSPlusAttrData {
 	u_int32_t    recordType;    
@@ -538,8 +368,6 @@ struct HFSPlusAttrData {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusAttrData HFSPlusAttrData;
 
-
- 
 struct HFSPlusAttrInlineData {
 	u_int32_t	recordType;
 	u_int32_t	reserved;
@@ -548,8 +376,6 @@ struct HFSPlusAttrInlineData {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusAttrInlineData HFSPlusAttrInlineData;
 
-
- 
 union HFSPlusAttrRecord {
 	u_int32_t		recordType;
 	HFSPlusAttrInlineData	inlineData;    
@@ -559,7 +385,6 @@ union HFSPlusAttrRecord {
 };
 typedef union HFSPlusAttrRecord HFSPlusAttrRecord;
 
- 
 enum { kHFSMaxAttrNameLen = 127 };
 struct HFSPlusAttrKey {
 	u_int16_t     keyLength;        
@@ -576,8 +401,6 @@ typedef struct HFSPlusAttrKey HFSPlusAttrKey;
 
 #endif  
 
-
- 
 enum {
 	kHFSPlusExtentKeyMaximumLength = sizeof(HFSPlusExtentKey) - sizeof(u_int16_t),
 	kHFSExtentKeyMaximumLength	= sizeof(HFSExtentKey) - sizeof(u_int8_t),
@@ -590,9 +413,8 @@ enum {
 	kHFSPlusAttrMinNodeSize		= 4096
 };
 
- 
 enum {
-							 
+
 	kHFSVolumeHardwareLockBit	= 7,		 
 	kHFSVolumeUnmountedBit		= 8,		 
 	kHFSVolumeSparedBlocksBit	= 9,		 
@@ -615,8 +437,6 @@ enum {
 	kHFSMDBAttributesMask		= 0x8380
 };
 
- 
- 
 struct HFSMasterDirectoryBlock {
 	u_int16_t		drSigWord;	 
 	u_int32_t		drCrDate;	 
@@ -650,7 +470,6 @@ struct HFSMasterDirectoryBlock {
 } HFS_ALIGNMENT;
 typedef struct HFSMasterDirectoryBlock	HFSMasterDirectoryBlock;
 
-
 #ifdef __APPLE_API_UNSTABLE
 #define SET_HFS_TEXT_ENCODING(hint)  \
 	(0x656e6300 | ((hint) & 0xff))
@@ -658,37 +477,6 @@ typedef struct HFSMasterDirectoryBlock	HFSMasterDirectoryBlock;
 	(((hint) & 0xffffff00) == 0x656e6300 ? (hint) & 0x000000ff : 0xffffffffU)
 #endif  
 
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-
- 
- 
 struct HFSPlusVolumeHeader {
 	u_int16_t	signature;		 
 	u_int16_t	version;		 
@@ -726,9 +514,6 @@ struct HFSPlusVolumeHeader {
 } HFS_ALIGNMENT;
 typedef struct HFSPlusVolumeHeader HFSPlusVolumeHeader;
 
-
- 
-
 enum BTreeKeyLimits{
 	kMaxKeyLength	= 520
 };
@@ -740,7 +525,6 @@ union BTreeKey{
 };
 typedef union BTreeKey BTreeKey;
 
- 
 struct BTNodeDescriptor {
 	u_int32_t	fLink;			 
 	u_int32_t	bLink;			 
@@ -751,7 +535,6 @@ struct BTNodeDescriptor {
 } HFS_ALIGNMENT;
 typedef struct BTNodeDescriptor BTNodeDescriptor;
 
- 
 enum {
 	kBTLeafNode	= -1,
 	kBTIndexNode	= 0,
@@ -759,7 +542,6 @@ enum {
 	kBTMapNode	= 2
 };
 
- 
 struct BTHeaderRec {
 	u_int16_t	treeDepth;		 
 	u_int32_t	rootNode;		 
@@ -779,21 +561,17 @@ struct BTHeaderRec {
 } HFS_ALIGNMENT;
 typedef struct BTHeaderRec BTHeaderRec;
 
- 
 enum {
 	kBTBadCloseMask		 = 0x00000001,	 
 	kBTBigKeysMask		 = 0x00000002,	 
 	kBTVariableIndexKeysMask = 0x00000004	 
 };
 
-
- 
 enum {
 	kHFSCaseFolding   = 0xCF,   
 	kHFSBinaryCompare = 0xBC   
 };
 
- 
 struct JournalInfoBlock {
 	u_int32_t	flags;
 	u_int32_t       device_signature[8];   
@@ -808,7 +586,6 @@ enum {
     kJIJournalOnOtherDeviceMask = 0x00000002,
     kJIJournalNeedInitMask      = 0x00000004
 };
-
 
 #ifdef __cplusplus
 }

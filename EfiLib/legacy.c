@@ -3,22 +3,6 @@
  * support is firmware-specific; legacy entries and device ordering can alter
  * boot variables and must not be confused with non-destructive UEFI scanning.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifdef __MAKEWITH_GNUEFI
 #include "efi.h"
@@ -44,19 +28,6 @@ extern EFI_GUID gEfiLegacyBiosProtocolGuid;
 EFI_GUID gEfiLegacyDevOrderVariableGuid     = { 0xa56074db, 0x65fe, 0x45f7, {0xbd, 0x21, 0x2d, 0x2b, 0xdd, 0x8e, 0x96, 0x52 }};
 static EFI_GUID EfiGlobalVariableGuid = { 0x8BE4DF61, 0x93CA, 0x11D2, { 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C }};
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
 VOID
 AsciiToUnicodeSize (
   IN UINT8              *AStr,
@@ -78,15 +49,6 @@ AsciiToUnicodeSize (
   UStr[Idx] = 0;
 }
 
- 
-
-
-
-
-
-
-
-
 VOID
 BdsBuildLegacyDevNameString (
   IN  BBS_TABLE                 *CurBBSEntry,
@@ -101,30 +63,19 @@ BdsBuildLegacyDevNameString (
   CHAR16  Temp[80];
 
   switch (Index) {
-   
-   
-   
+
   case 1:
     Fmt = L"Primary Master %s";
     break;
 
-  
-  
-  
   case 2:
     Fmt = L"Primary Slave %s";
     break;
 
-   
-   
-   
   case 3:
     Fmt = L"Secondary Master %s";
     break;
 
-   
-   
-   
   case 4:
     Fmt = L"Secondary Slave %s";
     break;
@@ -168,23 +119,15 @@ BdsBuildLegacyDevNameString (
     Type = L"Unknown";
     break;
   }
-   
-   
-   
+
   StringDesc = (UINT8 *) (UINTN) ((CurBBSEntry->DescStringSegment << 4) + CurBBSEntry->DescStringOffset);
   if (NULL != StringDesc) {
-     
-     
-     
+
     AsciiToUnicodeSize (StringDesc, 32, Temp);
     Fmt   = L"%s";
     Type  = Temp;
   }
 
-   
-   
-   
-   
   if (Index >= 5 && Index <= 16 && (CurBBSEntry->DeviceType == BBS_HARDDISK || CurBBSEntry->DeviceType == BBS_CDROM)) {
     Fmt = L"%s %d";
     SPrint(BootString, BufSize, Fmt, Type, Index - 5);
@@ -192,17 +135,6 @@ BdsBuildLegacyDevNameString (
     SPrint(BootString, BufSize, Fmt, Type);
   }
 }
-
- 
-
-
-
-
-
-
-
-
-
 
 BOOLEAN
 /*
@@ -240,21 +172,6 @@ BdsIsLegacyBootOption (
   return Ret;
 }
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 BOOLEAN
 BdsFindLegacyBootOptionByDevTypeAndName (
   IN UINT16                 *BootOrder,
@@ -280,9 +197,6 @@ BdsFindLegacyBootOptionByDevTypeAndName (
     return Found;
   }
 
-   
-   
-   
   for (Index = 0; Index < BootOptionNum; Index++) {
     SPrint(BootOption, sizeof (BootOption), L"Boot%04x", (UINTN) BootOrder[Index]);
     BootOptionVar = BdsLibGetVariableAndSize (
@@ -294,9 +208,6 @@ BdsFindLegacyBootOptionByDevTypeAndName (
        continue;
     }
 
-     
-     
-     
     if (!BdsIsLegacyBootOption (BootOptionVar, &BbsEntry, BbsIndex)) {
       MyFreePool (BootOptionVar);
       continue;
@@ -319,27 +230,6 @@ BdsFindLegacyBootOptionByDevTypeAndName (
 
   return Found;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 EFI_STATUS
 /*
@@ -403,9 +293,6 @@ BdsCreateLegacyBootOption (
 
   BdsBuildLegacyDevNameString (CurrentBbsEntry, Index, sizeof (BootDesc), BootDesc);
 
-   
-   
-   
   UnicodeStrToAsciiStr (BootDesc, HelpString);
 
   StringLen = AsciiStrLen (HelpString);
@@ -417,9 +304,6 @@ BdsCreateLegacyBootOption (
   CopyMem (NewBbsDevPathNode->String, HelpString, StringLen + 1);
   SetDevicePathNodeLength (&(NewBbsDevPathNode->Header), sizeof (BBS_BBS_DEVICE_PATH) + StringLen);
 
-   
-   
-   
   CurrentBbsDevPath = AppendDevicePathNode (
                         EndDevicePath,
                         (EFI_DEVICE_PATH_PROTOCOL *) NewBbsDevPathNode
@@ -479,7 +363,7 @@ BdsCreateLegacyBootOption (
                         (CHAR8*) Buffer,
                         BufferSize, TRUE);
   MyFreePool (Buffer);
-  
+
   Buffer = NULL;
 
   NewBootOrderList = AllocateZeroPool (*BootOrderListSize + sizeof (UINT16));
@@ -504,19 +388,6 @@ BdsCreateLegacyBootOption (
   return Status;
 }
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
 EFI_STATUS
 BdsCreateOneLegacyBootOption (
   IN BBS_TABLE              *BbsItem,
@@ -531,9 +402,6 @@ BdsCreateOneLegacyBootOption (
 
   DevPath                       = NULL;
 
-   
-   
-   
   BbsDevPathNode.Header.Type    = BBS_DEVICE_PATH;
   BbsDevPathNode.Header.SubType = BBS_BBS_DP;
   SetDevicePathNodeLength (&BbsDevPathNode.Header, sizeof (BBS_BBS_DEVICE_PATH));
@@ -562,24 +430,6 @@ BdsCreateOneLegacyBootOption (
   return Status;
 }
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 VOID
 GroupMultipleLegacyBootOption4SameType (
   UINT16                   *BootOption,
@@ -597,18 +447,13 @@ GroupMultipleLegacyBootOption4SameType (
 
   for (Index = 0; Index < BootOptionCount; Index++) {
 
-     
-     
-     
     for (MappingIndex = 0; MappingIndex < mBootOptionBbsMappingCount; MappingIndex++) {
       if (mBootOptionBbsMapping[MappingIndex].BootOptionNumber == BootOption[Index]) {
         break;
       }
     }
     if (MappingIndex == mBootOptionBbsMappingCount) {
-       
-       
-       
+
       continue;
     }
 
@@ -621,21 +466,14 @@ GroupMultipleLegacyBootOption4SameType (
      */
     NextIndex = &DeviceTypeIndex[mBootOptionBbsMapping[MappingIndex].BbsType & 0xF];
     if (*NextIndex == (UINTN) -1) {
-       
-       
-       
+
       *NextIndex = Index + 1;
     } else {
-       
-       
-       
+
       OptionNumber = BootOption[Index];
       CopyMem (&BootOption[*NextIndex + 1], &BootOption[*NextIndex], (Index - *NextIndex) * sizeof (UINT16));
       BootOption[*NextIndex] = OptionNumber;
 
-       
-       
-       
       for (DeviceIndex = 0; DeviceIndex < sizeof (DeviceTypeIndex) / sizeof (DeviceTypeIndex[0]); DeviceIndex++) {
         if (DeviceTypeIndex[DeviceIndex] != (UINTN) -1 && DeviceTypeIndex[DeviceIndex] >= *NextIndex) {
           DeviceTypeIndex[DeviceIndex]++;
@@ -644,18 +482,6 @@ GroupMultipleLegacyBootOption4SameType (
     }
   }
 }
-
- 
-
-
-
-
-
-
-
-
-
-
 
 VOID *
 EfiLibGetVariable (
@@ -667,20 +493,6 @@ EfiLibGetVariable (
 
   return BdsLibGetVariableAndSize (Name, VendorGuid, &VarSize);
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 EFI_STATUS
 EfiLibDeleteVariable (
@@ -695,9 +507,7 @@ EfiLibDeleteVariable (
   Status  = EFI_NOT_FOUND;
 
   if (VarBuf != NULL) {
-     
-     
-     
+
     Status = refit_call5_wrapper(gRT->SetVariable, VarName, VarGuid, VAR_FLAG, 0, NULL);
     ASSERT (!EFI_ERROR (Status));
     MyFreePool (VarBuf);
@@ -705,15 +515,6 @@ EfiLibDeleteVariable (
 
   return Status;
 }
-
- 
-
-
-
-
-
-
-
 
 EFI_STATUS
 /*
@@ -792,10 +593,7 @@ BdsAddNonExistingLegacyBootOptions (
               &OptionNumber
               );
     if (!Exist) {
-       
-       
-       
-       
+
       Status = BdsCreateOneLegacyBootOption (
                 &LocalBbsTable[Index],
                 Index,
@@ -810,9 +608,7 @@ BdsAddNonExistingLegacyBootOptions (
     }
 
     ASSERT (BbsIndex == Index);
-     
-     
-     
+
     mBootOptionBbsMapping = EfiReallocatePool (
                               mBootOptionBbsMapping,
                               mBootOptionBbsMappingCount * sizeof (BOOT_OPTION_BBS_MAPPING),
@@ -825,9 +621,6 @@ BdsAddNonExistingLegacyBootOptions (
     mBootOptionBbsMappingCount ++;
   }
 
-   
-   
-   
   GroupMultipleLegacyBootOption4SameType (
     BootOrder,
     BootOrderSize / sizeof (UINT16)
@@ -847,18 +640,6 @@ BdsAddNonExistingLegacyBootOptions (
 
   return Status;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
 
 EFI_STATUS
 /*
@@ -883,9 +664,6 @@ BdsDeleteBootOption (
   SPrint (BootOption, sizeof (BootOption), L"Boot%04x", OptionNumber);
   Status = EfiLibDeleteVariable (BootOption, &EfiGlobalVariableGuid);
 
-   
-   
-   
   for (Index = 0; Index < *BootOrderSize / sizeof (UINT16); Index++) {
     if (BootOrder[Index] == OptionNumber) {
       Index2Del = Index;
@@ -906,13 +684,6 @@ BdsDeleteBootOption (
   return Status;
 
 }
-
- 
-
-
-
-
-
 
 EFI_STATUS
 /*
@@ -989,9 +760,7 @@ BdsDeleteAllInvalidLegacyBootOptions (
                       BootOptionVar
                       );
       if (Status == EFI_NOT_FOUND) {
-         
-         
-         
+
         BdsDeleteBootOption (
           BootOrder[Index],
           BootOrder,
@@ -1004,9 +773,6 @@ BdsDeleteAllInvalidLegacyBootOptions (
       }
     }
 
-     
-     
-     
     if (!BdsIsLegacyBootOption (BootOptionVar, &BbsEntry, &BbsIndex)) {
       if (BootOptionVar!= NULL) {
         MyFreePool (BootOptionVar);
@@ -1016,9 +782,7 @@ BdsDeleteAllInvalidLegacyBootOptions (
     }
 
     if (BbsIndex < BbsCount) {
-       
-       
-       
+
       DescStringMatch = FALSE;
       BdsBuildLegacyDevNameString (
         &LocalBbsTable[BbsIndex],
@@ -1043,9 +807,7 @@ BdsDeleteAllInvalidLegacyBootOptions (
     if (BootOptionVar != NULL) {
       MyFreePool (BootOptionVar);
     }
-     
-     
-     
+
     BdsDeleteBootOption (
       BootOrder[Index],
       BootOrder,
@@ -1053,9 +815,6 @@ BdsDeleteAllInvalidLegacyBootOptions (
       );
   }
 
-   
-   
-   
   if (BootOrderSize != 0) {
     Status = EfivarSetRaw(&EfiGlobalVariableGuid, L"BootOrder",
                           (CHAR8*) BootOrder,
@@ -1070,17 +829,6 @@ BdsDeleteAllInvalidLegacyBootOptions (
 
   return Status;
 }
-
- 
-
-
-
-
-
-
-
-
-
 
 UINT16 *
 BdsFillDevOrderBuf (

@@ -3,45 +3,8 @@
  * format and row padding come from external bytes; offset and stride checks
  * must precede any pointer arithmetic. Decoded graphics are display-only.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "libegint.h"
-
- 
 
 #ifdef __MAKEWITH_GNUEFI
 #pragma pack(1)
@@ -75,10 +38,6 @@ typedef struct {
 #pragma pack()
 #endif
 
- 
- 
- 
-
 /*
  * Validates BMP layout and converts packed pixel data to an EG_IMAGE.
  * A malformed row stride or short image must not access beyond file bytes.
@@ -96,7 +55,6 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
     EG_PIXEL            *PixelPtr;
     UINTN               Index, BitIndex;
 
-     
     if (FileDataLength < sizeof(BMP_IMAGE_HEADER) || FileData == NULL)
         return NULL;
     BmpHeader = (BMP_IMAGE_HEADER *) FileData;
@@ -122,32 +80,30 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
         ImageLineOffset = (ImageLineOffset + 1) >> 1;
     if ((ImageLineOffset % 4) != 0)
         ImageLineOffset = ImageLineOffset + (4 - (ImageLineOffset % 4));
-     
+
     if (BmpHeader->ImageOffset + ImageLineOffset * BmpHeader->PixelHeight > FileDataLength)
         return NULL;
 
-     
     NewImage = egCreateImage(BmpHeader->PixelWidth, BmpHeader->PixelHeight, WantAlpha);
     if (NewImage == NULL)
         return NULL;
     AlphaValue = WantAlpha ? 255 : 0;
 
-     
     BmpColorMap = (BMP_COLOR_MAP *)(FileData + sizeof(BMP_IMAGE_HEADER));
     ImagePtrBase = FileData + BmpHeader->ImageOffset;
     for (y = 0; y < BmpHeader->PixelHeight; y++) {
         ImagePtr = ImagePtrBase;
         ImagePtrBase += ImageLineOffset;
         PixelPtr = NewImage->PixelData + (BmpHeader->PixelHeight - 1 - y) * BmpHeader->PixelWidth;
-        
+
         switch (BmpHeader->BitPerPixel) {
-            
+
             case 1:
                 for (x = 0; x < BmpHeader->PixelWidth; x++) {
                     BitIndex = x & 0x07;
                     if (BitIndex == 0)
                         ImageValue = *ImagePtr++;
-                    
+
                     Index = (ImageValue >> (7 - BitIndex)) & 0x01;
                     PixelPtr->b = BmpColorMap[Index].Blue;
                     PixelPtr->g = BmpColorMap[Index].Green;
@@ -156,18 +112,18 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
                     PixelPtr++;
                 }
                 break;
-            
+
             case 4:
                 for (x = 0; x <= BmpHeader->PixelWidth - 2; x += 2) {
                     ImageValue = *ImagePtr++;
-                    
+
                     Index = ImageValue >> 4;
                     PixelPtr->b = BmpColorMap[Index].Blue;
                     PixelPtr->g = BmpColorMap[Index].Green;
                     PixelPtr->r = BmpColorMap[Index].Red;
                     PixelPtr->a = AlphaValue;
                     PixelPtr++;
-                    
+
                     Index = ImageValue & 0x0f;
                     PixelPtr->b = BmpColorMap[Index].Blue;
                     PixelPtr->g = BmpColorMap[Index].Green;
@@ -177,7 +133,7 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
                 }
                 if (x < BmpHeader->PixelWidth) {
                     ImageValue = *ImagePtr++;
-                    
+
                     Index = ImageValue >> 4;
                     PixelPtr->b = BmpColorMap[Index].Blue;
                     PixelPtr->g = BmpColorMap[Index].Green;
@@ -186,7 +142,7 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
                     PixelPtr++;
                 }
                 break;
-            
+
             case 8:
                 for (x = 0; x < BmpHeader->PixelWidth; x++) {
                     Index = *ImagePtr++;
@@ -197,7 +153,7 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
                     PixelPtr++;
                 }
                 break;
-            
+
             case 24:
                 for (x = 0; x < BmpHeader->PixelWidth; x++) {
                     PixelPtr->b = *ImagePtr++;
@@ -207,16 +163,12 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
                     PixelPtr++;
                 }
                 break;
-            
+
         }
     }
-    
+
     return NewImage;
 }
-
- 
- 
- 
 
 VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileDataReturn, OUT UINTN *FileDataLengthReturn)
 {
@@ -228,12 +180,11 @@ VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileDataReturn, OUT UINTN *File
     UINTN               ImageLineOffset;
     EG_PIXEL            *PixelPtr;
     UINTN               x, y;
-    
+
     ImageLineOffset = Image->Width * 3;
     if ((ImageLineOffset % 4) != 0)
         ImageLineOffset = ImageLineOffset + (4 - (ImageLineOffset % 4));
-    
-     
+
     FileDataLength = sizeof(BMP_IMAGE_HEADER) + Image->Height * ImageLineOffset;
     FileData = AllocateZeroPool(FileDataLength);
     if (FileData == NULL) {
@@ -242,8 +193,7 @@ VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileDataReturn, OUT UINTN *File
         *FileDataLengthReturn = 0;
         return;
     }
-    
-     
+
     BmpHeader = (BMP_IMAGE_HEADER *)FileData;
     BmpHeader->CharB = 'B';
     BmpHeader->CharM = 'M';
@@ -257,14 +207,13 @@ VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileDataReturn, OUT UINTN *File
     BmpHeader->CompressionType = 0;
     BmpHeader->XPixelsPerMeter = 0xb13;
     BmpHeader->YPixelsPerMeter = 0xb13;
-    
-     
+
     ImagePtrBase = FileData + BmpHeader->ImageOffset;
     for (y = 0; y < Image->Height; y++) {
         ImagePtr = ImagePtrBase;
         ImagePtrBase += ImageLineOffset;
         PixelPtr = Image->PixelData + (Image->Height - 1 - y) * Image->Width;
-        
+
         for (x = 0; x < Image->Width; x++) {
             *ImagePtr++ = PixelPtr->b;
             *ImagePtr++ = PixelPtr->g;
@@ -272,9 +221,7 @@ VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileDataReturn, OUT UINTN *File
             PixelPtr++;
         }
     }
-    
+
     *FileDataReturn = FileData;
     *FileDataLengthReturn = FileDataLength;
 }
-
- 

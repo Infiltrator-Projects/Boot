@@ -4,62 +4,6 @@
  * platforms. Screen resolution and saved pixel areas must be bounds checked;
  * text-mode fallback is required for a usable boot menu.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "libegint.h"
 #include "../boot/screen.h"
@@ -79,8 +23,6 @@
 #include <efilib.h>
 #endif
 
- 
-
 static EFI_GUID ConsoleControlProtocolGuid = EFI_CONSOLE_CONTROL_PROTOCOL_GUID;
 static EFI_CONSOLE_CONTROL_PROTOCOL *ConsoleControl = NULL;
 
@@ -94,13 +36,6 @@ static BOOLEAN egHasGraphics  = FALSE;
 static UINTN   egScreenWidth  = 800;
 static UINTN   egScreenHeight = 600;
 
-
- 
- 
- 
-
- 
- 
 VOID egSetMaxResolution(VOID) {
     EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
 
@@ -115,8 +50,7 @@ VOID egSetMaxResolution(VOID) {
     BOOLEAN      Result;
 
     if (GraphicsOutput == NULL) {
-         
-         
+
         Status = refit_call5_wrapper(UgaDraw->GetMode,
                                      UgaDraw,
                                      &UGAWidth,
@@ -143,8 +77,6 @@ VOID egSetMaxResolution(VOID) {
         }  
     }  
 
-     
-     
     if (BestMode == GraphicsOutput->Mode->Mode) {
         egScreenWidth = GlobalConfig.RequestedScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
         egScreenHeight = GlobalConfig.RequestedScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
@@ -155,7 +87,7 @@ VOID egSetMaxResolution(VOID) {
             egScreenWidth = GlobalConfig.RequestedScreenWidth = Width;
             egScreenHeight = GlobalConfig.RequestedScreenHeight = Height;
         } else {
-             
+
             BestMode = GraphicsOutput->Mode->Mode;
             Zero = 0;
             Result = egSetScreenSize((UINTN*) &BestMode, &Zero);
@@ -165,15 +97,10 @@ VOID egSetMaxResolution(VOID) {
     return;
 }  
 
- 
- 
- 
- 
 static VOID egDetermineScreenSize(VOID) {
     EFI_STATUS Status = EFI_SUCCESS;
     UINT32 UGAWidth, UGAHeight, UGADepth, UGARefreshRate;
 
-     
     egHasGraphics = FALSE;
     if (GraphicsOutput != NULL) {
         egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
@@ -205,7 +132,6 @@ VOID egInitScreen(VOID)
 {
     EFI_STATUS Status = EFI_SUCCESS;
 
-     
     Status = LibLocateProtocol(&ConsoleControlProtocolGuid, (VOID **) &ConsoleControl);
     if (EFI_ERROR(Status))
         ConsoleControl = NULL;
@@ -225,9 +151,6 @@ VOID egInitScreen(VOID)
     egDetermineScreenSize();
 }  
 
- 
- 
- 
 BOOLEAN egGetResFromMode(UINTN *ModeWidth, UINTN *Height) {
     UINTN                                 Size;
     EFI_STATUS                            Status;
@@ -245,15 +168,6 @@ BOOLEAN egGetResFromMode(UINTN *ModeWidth, UINTN *Height) {
     return FALSE;
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Selects a supported firmware graphics mode. A requested resolution is a
  * preference, not proof that the firmware exposes an identical mode.
@@ -285,10 +199,8 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
                 ModeSet = TRUE;
             }
 
-         
         } else {
-             
-             
+
             do {
                 Status = refit_call4_wrapper(GraphicsOutput->QueryMode, GraphicsOutput,
                                              ModeNum, &Size, &Info);
@@ -335,8 +247,7 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
         }  
 
     } else if ((UgaDraw != NULL) && (*ScreenHeight > 0)) {  
-         
-         
+
         Status = refit_call5_wrapper(UgaDraw->GetMode, UgaDraw, &UGAWidth,
                                      &UGAHeight, &UGADepth, &UGARefreshRate);
         LOG(1, LOG_LINE_NORMAL, L"Setting UGA Draw mode to %d x %d", *ScreenWidth, *ScreenHeight);
@@ -347,9 +258,7 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
             egScreenHeight = *ScreenHeight;
             ModeSet = TRUE;
         } else {
-             
-             
-             
+
             Print(L"Error setting graphics mode %d x %d; unsupported mode!\n",
                   *ScreenWidth, *ScreenHeight);
             LOG(1, LOG_LINE_NORMAL, L"Error setting graphics mode %d x %d; unsupported mode!",
@@ -360,10 +269,6 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
     return (ModeSet);
 }  
 
- 
- 
- 
- 
 BOOLEAN egSetTextMode(UINT32 RequestedMode) {
     UINTN         i = 0, Width, Height;
     EFI_STATUS    Status;
@@ -451,10 +356,6 @@ VOID egSetGraphicsModeEnabled(IN BOOLEAN Enable)
     }
 }
 
- 
- 
- 
-
 VOID egClearScreen(IN EG_PIXEL *Color)
 {
     EFI_UGA_PIXEL FillColor;
@@ -474,9 +375,7 @@ VOID egClearScreen(IN EG_PIXEL *Color)
     FillColor.Reserved = 0;
 
     if (GraphicsOutput != NULL) {
-         
-         
-         
+
         refit_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)&FillColor, EfiBltVideoFill,
                              0, 0, 0, 0, egScreenWidth, egScreenHeight, 0);
     } else if (UgaDraw != NULL) {
@@ -492,9 +391,6 @@ VOID egDrawImage(IN EG_IMAGE *Image, IN UINTN ScreenPosX, IN UINTN ScreenPosY)
 {
     EG_IMAGE *CompImage = NULL;
 
-     
-     
-     
     if (!egHasGraphics || ((ScreenPosX + Image->Width) > egScreenWidth) ||
         ((ScreenPosY + Image->Height) > egScreenHeight) ||
         (ScreenPosX > egScreenWidth) || (ScreenPosY > egScreenHeight))
@@ -529,9 +425,6 @@ VOID egDrawImage(IN EG_IMAGE *Image, IN UINTN ScreenPosX, IN UINTN ScreenPosY)
        egFreeImage(CompImage);
 }  
 
- 
- 
- 
 VOID egDrawImageWithTransparency(EG_IMAGE *Image, EG_IMAGE *BadgeImage,
                                  UINTN XPos, UINTN YPos, UINTN Width, UINTN Height) {
     EG_IMAGE *Background;
@@ -569,9 +462,6 @@ VOID egDrawImageArea(IN EG_IMAGE *Image,
     }
 }
 
- 
- 
- 
 VOID egDisplayMessage(IN CHAR16 *Text, EG_PIXEL *BGColor, UINTN PositionCode) {
     UINTN BoxWidth, BoxHeight;
     static UINTN Position = 1;
@@ -605,14 +495,10 @@ VOID egDisplayMessage(IN CHAR16 *Text, EG_PIXEL *BGColor, UINTN PositionCode) {
     }  
 }  
 
- 
- 
 EG_IMAGE * egCopyScreen(VOID) {
     return egCopyScreenArea(0, 0, egScreenWidth, egScreenHeight);
 }  
 
- 
- 
 /*
  * Copies a rectangular framebuffer region for later restoration; size and
  * origin are coupled to current screen mode and image allocations.
@@ -623,13 +509,11 @@ EG_IMAGE * egCopyScreenArea(UINTN XPos, UINTN YPos, UINTN Width, UINTN Height) {
     if (!egHasGraphics)
         return NULL;
 
-     
     Image = egCreateImage(Width, Height, FALSE);
     if (Image == NULL) {
         return NULL;
     }
 
-     
     if (GraphicsOutput != NULL) {
         refit_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput,
                              (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData,
@@ -642,10 +526,6 @@ EG_IMAGE * egCopyScreenArea(UINTN XPos, UINTN YPos, UINTN Width, UINTN Height) {
     }
     return Image;
 }  
-
- 
- 
- 
 
 VOID egScreenShot(VOID)
 {
@@ -665,7 +545,6 @@ VOID egScreenShot(VOID)
        goto bailout_wait;
     }
 
-     
     egEncodeBMP(Image, &FileData, &FileDataLength);
     egFreeImage(Image);
     if (FileData == NULL) {
@@ -678,13 +557,11 @@ VOID egScreenShot(VOID)
     if (EFI_ERROR(Status))
         return;
 
-     
     ssNum = 001;
     do {
        SPrint(Filename, 80, L"screenshot_%03d.bmp", ssNum++);
     } while (FileExists(BaseDir, Filename));
 
-     
     Status = egSaveFile(BaseDir, Filename, FileData, FileDataLength);
     MyFreePool(FileData);
     if (CheckError(Status, L"in egSaveFile()")) {
@@ -693,10 +570,7 @@ VOID egScreenShot(VOID)
 
     return;
 
-     
 bailout_wait:
     egSetGraphicsModeEnabled(FALSE);
     refit_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &Index);
 }
-
- 

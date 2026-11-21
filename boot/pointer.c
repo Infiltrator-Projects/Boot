@@ -4,26 +4,6 @@
  * Opened firmware protocols and cached background images have explicit
  * lifetime requirements when graphics modes or pointer handles change.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "pointer.h"
 #include "global.h"
@@ -50,9 +30,6 @@ EG_IMAGE* Background = NULL;
 
 POINTER_STATE State;
 
- 
- 
- 
 /*
  * Probe absolute and relative pointer protocols independently. Each
  * successful OpenProtocol contributes an interface to a compact array. The
@@ -64,7 +41,6 @@ VOID pdInitialize() {
 
     if (!(GlobalConfig.EnableMouse || GlobalConfig.EnableTouch)) return;
 
-     
     UINTN NumPointerHandles = 0;
     EFI_STATUS handlestatus = refit_call5_wrapper(BS->LocateHandleBuffer, ByProtocol, &APointerGuid, NULL,
                                                   &NumPointerHandles, &APointerHandles);
@@ -73,7 +49,7 @@ VOID pdInitialize() {
         APointerProtocol = AllocatePool(sizeof(EFI_ABSOLUTE_POINTER_PROTOCOL*) * NumPointerHandles);
         UINTN Index;
         for(Index = 0; Index < NumPointerHandles; Index++) {
-             
+
             EFI_STATUS status = refit_call6_wrapper(BS->OpenProtocol, APointerHandles[Index], &APointerGuid,
                                                     (VOID **) &APointerProtocol[NumAPointerDevices],
                                                     SelfImageHandle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
@@ -85,7 +61,6 @@ VOID pdInitialize() {
         GlobalConfig.EnableTouch = FALSE;
     }
 
-     
     NumPointerHandles = 0;
     handlestatus = refit_call5_wrapper(BS->LocateHandleBuffer, ByProtocol, &SPointerGuid, NULL,
                                        &NumPointerHandles, &SPointerHandles);
@@ -94,7 +69,7 @@ VOID pdInitialize() {
         SPointerProtocol = AllocatePool(sizeof(EFI_SIMPLE_POINTER_PROTOCOL*) * NumPointerHandles);
         UINTN Index;
         for(Index = 0; Index < NumPointerHandles; Index++) {
-             
+
             EFI_STATUS status = refit_call6_wrapper(BS->OpenProtocol, SPointerHandles[Index], &SPointerGuid, (VOID **) &SPointerProtocol[NumSPointerDevices], SelfImageHandle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
             if (status == EFI_SUCCESS) {
                 NumSPointerDevices++; 
@@ -106,15 +81,11 @@ VOID pdInitialize() {
 
     PointerAvailable = (NumAPointerDevices + NumSPointerDevices > 0);
 
-     
     if (PointerAvailable && GlobalConfig.EnableMouse) {
         MouseImage = BuiltinIcon(BUILTIN_ICON_MOUSE);
     }
 }
 
- 
- 
- 
 /*
  * Close protocol opens and release enumeration buffers before resetting the
  * coordinate and button history. Open interfaces are compacted during
@@ -165,23 +136,14 @@ VOID pdCleanup() {
     State.Holding = FALSE;
 }
 
- 
- 
- 
 BOOLEAN pdAvailable() {
     return PointerAvailable;
 }
 
- 
- 
- 
 UINTN pdCount() {
     return NumAPointerDevices + NumSPointerDevices;
 }
 
- 
- 
- 
 EFI_EVENT pdWaitEvent(UINTN Index) {
     if(!PointerAvailable || Index >= NumAPointerDevices + NumSPointerDevices) {
         return NULL;
@@ -193,10 +155,6 @@ EFI_EVENT pdWaitEvent(UINTN Index) {
     return APointerProtocol[Index]->WaitForInput;
 }
 
- 
- 
- 
- 
 /*
  * Absolute reports map device coordinates to screen coordinates. Relative
  * reports accumulate movement scaled by device resolution and configured
@@ -219,7 +177,7 @@ EFI_STATUS pdUpdateState() {
     UINTN Index;
     for(Index = 0; Index < NumAPointerDevices; Index++) {
         EFI_STATUS PointerStatus = refit_call2_wrapper(APointerProtocol[Index]->GetState, APointerProtocol[Index], &APointerState);
-         
+
         if(!EFI_ERROR(PointerStatus) && EFI_ERROR(Status)) {
             Status = EFI_SUCCESS;
 
@@ -235,7 +193,7 @@ EFI_STATUS pdUpdateState() {
     }
     for(Index = 0; Index < NumSPointerDevices; Index++) {
         EFI_STATUS PointerStatus = refit_call2_wrapper(SPointerProtocol[Index]->GetState, SPointerProtocol[Index], &SPointerState);
-         
+
         if(!EFI_ERROR(PointerStatus) && EFI_ERROR(Status)) {
             Status = EFI_SUCCESS;
 
@@ -276,16 +234,10 @@ EFI_STATUS pdUpdateState() {
 #endif
 }
 
- 
- 
- 
 POINTER_STATE pdGetState() {
     return State;
 }
 
- 
- 
- 
 /*
  * Preserves the under-cursor background for later restoration. This is a
  * visual operation and must not influence boot entry selection.
@@ -315,9 +267,6 @@ VOID pdDraw() {
     LastYPos = State.Y;
 }
 
- 
- 
- 
 VOID pdClear() {
     if (Background) {
         egDrawImage(Background, LastXPos, LastYPos);

@@ -89,7 +89,6 @@ os_uefi.png -- AwOkenWhite/clear/128x128/start-here/start-here-umbrella3.png
 os_unknown.png -- AwOken/clear/128x128/actions/color-line1.png
 os_win8.png -- AwOken/clear/128x128/apps/live1.png
 
-
 Icons modified from AwOken 2.5:
 
 arrow_left.png -- AwOken/clear/128x128/actions/go-previous.png
@@ -121,26 +120,21 @@ vol_internal.png -- AwOken/clear/128/128/drive-harddisk/Internal.png
 vol_net.png -- AwOken/clear/128/128/drive-harddisk/Server.png
 vol_optical.png - AwOken/clear/128x128/devices/media-optical-cd1.png
 
-
 Modified Elementary OS icon:
 
 os_elementary.png (GPLv2+)
-
 
 Modified Debian OS icon:
 
 os_debian.png (LGPLv3+ or CC-BY-SA 3.0)
 
-
 Modified Void Linux icon:
 
 os_void.png (public domain)
 
-
 Modified EndeavourOS icon:
 
 os_endeavouros.png
-
 
 Modified Ubuntu icons:
 
@@ -148,7 +142,6 @@ os_trusty.png
 os_ubuntu.png
 os_xenial.png
 os_zesty.png
-
 
 Icons created by me (Roderick W. Smith):
 
@@ -172,13 +165,11 @@ tool_memtest.png
 tool_rescue.png
 transparent.png
 
-
 In addition, some icons are combinations of two other icons from different
 sources:
 
 tool_part.png -- vol_internal.png with AwOken's gparted2.png
 tool_windows_rescue.png: os_win8.png with AwOken's gnome_network_preferences.png
-
 
 Licneses
 --------

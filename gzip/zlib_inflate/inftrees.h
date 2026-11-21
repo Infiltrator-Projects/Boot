@@ -6,24 +6,6 @@
 #ifndef INFTREES_H
 #define INFTREES_H
 
- 
-
-
-
-
- 
-
-
-
-
- 
-
-
-
-
-
-
-
 /*
  * bits counts code bits consumed by this lookup. op directs the decoder to a
  * literal, a base value with extra bits, a subtable, or an end/error
@@ -35,23 +17,9 @@ typedef struct {
     unsigned short val;          
 } code;
 
- 
-
-
-
-
-
-
-
- 
-
-
-
-
 #define ENOUGH 2048
 #define MAXD 592
 
- 
 typedef enum {
     CODES,
     LENS,

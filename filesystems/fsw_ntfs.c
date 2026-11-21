@@ -4,27 +4,6 @@
  * NTFS driver by default. MFT attribute decoding, runlists, sparse/compressed
  * file extents and directory index records are untrusted on-disk data.
  */
- 
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "fsw_core.h"
 
@@ -72,7 +51,7 @@ static inline fsw_u64 GETU64(fsw_u8 *buf, int pos)
 
 #define ATTRMASK	0xFFFF
 #define ATTRBITS	16
- 
+
 #define NAME_I30	"$\0I\0003\0000\0"
 #define AT_I30		0x40000
 
@@ -97,11 +76,6 @@ struct extent_slot
 
 struct extent_map
 {
-     
-
-
-
-
 
     struct extent_slot *extent;
     int total;
@@ -193,7 +167,6 @@ static fsw_status_t fixup(fsw_u8 *record, char *magic, int sectorsize, int size)
     return FSW_SUCCESS;
 }
 
- 
 static fsw_status_t find_attribute_direct(fsw_u8 *mft, int mftsize, int type, fsw_u8 **outptr, int *outlen)
 {
     int namelen;
@@ -224,7 +197,6 @@ static fsw_status_t find_attribute_direct(fsw_u8 *mft, int mftsize, int type, fs
     return FSW_NOT_FOUND;
 }
 
- 
 static fsw_status_t find_attrlist_direct(fsw_u8 *atlst, int atlen, int type, fsw_u64 vcn, fsw_u64 *out, int *pos)
 {
     fsw_u64 mftno = BADMFT;
@@ -293,7 +265,7 @@ static fsw_status_t get_extent(fsw_u8 **rlep, int *rlenp, fsw_u64 *lcnp, fsw_u64
 
     n = f >> 4;
     if(n==0) {
-	 
+
 	*lcnp = 0;
 	*lenp = c;
     } else {
@@ -403,7 +375,7 @@ static fsw_status_t read_attribute_direct(struct fsw_ntfs_volume *vol, fsw_u8 *p
     int olen;
 
     if(attribute_ondisk(ptr, len) == 0) {
-	 
+
 	attribute_get_embeded(ptr, len, &ptr, &len);
 	*olenp = len;
 	if(optrp) {
@@ -771,7 +743,6 @@ static fsw_status_t fsw_ntfs_volume_mount(struct fsw_volume *volg)
 
     free_mft(&mft0);
 
-     
     init_mft(vol, &mft0, MFTNO_VOLUME);
     fsw_u8 *ptr;
     int len;
@@ -809,7 +780,7 @@ static fsw_status_t fsw_ntfs_volume_stat(struct fsw_volume *volg, struct fsw_vol
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
     sb->total_bytes = vol->totalbytes;
-     
+
     sb->free_bytes  = 0;
     return FSW_SUCCESS;
 }
@@ -867,7 +838,7 @@ static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnod
 
     if( (len & 2) ) {
 	dno->g.type = FSW_DNODE_TYPE_DIR;
-	 
+
 	err = read_small_attribute(vol, &dno->mft, AT_INDEX_ROOT|AT_I30, &dno->idxroot, &dno->rootsz);
 	if(err != FSW_SUCCESS)
 	{
@@ -879,7 +850,6 @@ static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnod
 	if(dno->idxsz == 0)
 	    dno->idxsz = 1<<vol->idxbits;
 
-	 
 	err = read_small_attribute(vol, &dno->mft, AT_BITMAP|AT_I30, &dno->idxbmp, &dno->bmpsz);
 	if(err != FSW_SUCCESS && err != FSW_NOT_FOUND)
 	{
@@ -887,7 +857,6 @@ static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnod
 	    goto error_out;
 	}
 
-	 
 	init_attr(vol, &dno->attr, AT_INDEX_ALLOCATION|AT_I30);
 	err = find_attribute(vol, &dno->mft, &dno->attr, 0);
 	if(err == FSW_SUCCESS) {
@@ -923,7 +892,7 @@ static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnod
     return FSW_SUCCESS;
 error_out:
     fsw_ntfs_dnode_free(volg, dnog);
-     
+
     dno->mft.buf = NULL;
     return err;
 }
@@ -960,7 +929,7 @@ static fsw_status_t fsw_ntfs_dnode_stat(struct fsw_volume *volg, struct fsw_dnod
 #define EFI_FILE_ARCHIVE 0x20
 #endif
     attr &= EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM | EFI_FILE_ARCHIVE;
-     
+
     if(GETU8(dno->mft.buf, 22) & 2)
 	attr |= EFI_FILE_DIRECTORY;
 
@@ -1351,14 +1320,11 @@ static int ntfs_filename_cmp(struct fsw_ntfs_volume *vol, fsw_u8 *p1, int s1, fs
 	    if(c1 < 0x80) c1 = upcase[c1];
 	    if(c2 < 0x80) c2 = upcase[c2];
 	} else {
-	     
-
-
 
 	    if(!vol->upcase) {
 		load_upcase(vol);
 		if(!vol->upcase) {
-		     
+
 		    vol->upcase = upcase;
 		    vol->upcount = 0;
 		}
@@ -1438,7 +1404,6 @@ static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnod
     if(err)
 	return err;
 
-     
     buf = dno->idxroot + 16;
     len = dno->rootsz - 16;
     if(len < 0x18)
@@ -1448,11 +1413,10 @@ static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnod
     if(cpb == 0) cpb = 1;
 
     while(depth < 10) {
-	 
+
 	if(GETU32(buf, 4) < len)
 	    len = GETU32(buf, 4);
 
-	 
 	off = GETU32(buf, 0);
 	if(off >= len)
 	    goto notfound;
@@ -1464,7 +1428,7 @@ static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnod
 	    int cmp;
 
 	    if(flag & 2) {
-		 
+
 		cmp = -1;
 		Print(L"depth %d len %x off %x flag %x next %x cmp %d\n", depth, len, off, flag, next, cmp);
 	    } else {
@@ -1524,11 +1488,6 @@ static fsw_status_t fsw_ntfs_dir_read(struct fsw_volume *volg, struct fsw_dnode 
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
     struct fsw_ntfs_dnode *dno = (struct fsw_ntfs_dnode *)dnog;
-     
-
-
-
-
 
     int off = shand->pos & 0xFFFFFFFF;
     int block = shand->pos >> 32;
@@ -1540,17 +1499,17 @@ static fsw_status_t fsw_ntfs_dir_read(struct fsw_volume *volg, struct fsw_dnode 
 	fsw_u8 *buf;
 	int len;
 	if(block == 0) {
-	     
+
 	    buf = dno->idxroot + 16;
 	    len = dno->rootsz - 16;
 	    if(len < 0x18)
 		goto miss;
 	} else if(!test_idxbmp(dno, block) || !(buf = fsw_ntfs_read_index_block(vol, dno, block)))
 	{
-	     
+
 	    goto miss;
 	} else {
-	     
+
 	    buf += 24;
 	    len = dno->idxsz - 24;
 	}
@@ -1565,13 +1524,13 @@ static fsw_status_t fsw_ntfs_dir_read(struct fsw_volume *volg, struct fsw_dnode 
 	    int next = off + GETU16(buf, off+8);
 	    Print(L"flag %x next %x nt %x [%.*ls]\n", flag, next, GETU8(buf, off+0x51), GETU8(buf, off+0x50), buf+off+0x52);
 	    if((GETU8(buf, off+0x51) != 2)) {
-		 
+
 		fsw_status_t err = fsw_ntfs_create_subnode(dno, buf+off, child_dno);
 		if(err != FSW_NOT_FOUND) {
 		    set_shand_pos(shand, block, next);
 		    return err;
 		}
-		 
+
 	    }
 	    off = next;
 	}
@@ -1620,10 +1579,6 @@ static fsw_status_t fsw_ntfs_readlink(struct fsw_volume *volg, struct fsw_dnode 
     return fsw_strdup_coerce(link, volg->host_string_type, &s);
 }
 
- 
- 
- 
-
 struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(ntfs) = {
     { FSW_STRING_TYPE_UTF8, 4, 4, "ntfs" },
     sizeof(struct fsw_ntfs_volume),
@@ -1640,5 +1595,3 @@ struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(ntfs) = {
     fsw_ntfs_dir_read,
     fsw_ntfs_readlink,
 };
-
- 

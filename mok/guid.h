@@ -4,12 +4,6 @@
  * contents, while the variable-vendor GUID is part of a variable's lookup
  * key.
  */
- 
-
- 
- 
- 
- 
 
 extern EFI_GUID GV_GUID;
 extern EFI_GUID SIG_DB;

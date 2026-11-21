@@ -4,49 +4,6 @@
  * type alone does not. Methods returning allocated CHAR16 or device paths
  * must be paired with their stated release mechanism in the implementation.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
 
 #ifndef __LIB_H_
 #define __LIB_H_
@@ -63,7 +20,6 @@
 
 #include "libeg.h"
 
- 
 /*
  * The iterator can borrow its caller's directory or open a child directory
  * itself. CloseDirHandle records that distinction. LastFileInfo is managed by
@@ -85,12 +41,9 @@ typedef struct {
 
 #define IS_EXTENDED_PART_TYPE(type) ((type) == 0x05 || (type) == 0x0f || (type) == 0x85)
 
- 
- 
 #define GPT_READ_ONLY     0x1000000000000000
 #define GPT_NO_AUTOMOUNT  0x8000000000000000
 
- 
 #define IGNORE_PARTITION_NAMES L"Microsoft basic data,Linux filesystem,Apple HFS/HFS+"
 
 extern EFI_GUID gFreedesktopRootGuid;
@@ -137,8 +90,6 @@ BOOLEAN VolumeMatchesDescription(REFIT_VOLUME *Volume, CHAR16 *Description);
 BOOLEAN FilenameIn(IN REFIT_VOLUME *Volume, IN CHAR16 *Directory, IN CHAR16 *Filename, IN CHAR16 *List);
 VOID MyFreePool(IN OUT VOID *Pointer);
 
- 
- 
 #ifdef __MAKEWITH_GNUEFI
 #define MyCopyMem(Dest, Src, len) refit_call3_wrapper(gBS->CopyMem, Dest, Src, len)
 #else

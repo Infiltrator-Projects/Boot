@@ -4,62 +4,6 @@
  * firmware LoadImage, image authentication or StartImage.
  * Compressed images require explicit allocation and decompression limits.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "screen.h"
@@ -71,9 +15,6 @@
 #include "launch_efi.h"
 #include "log.h"
 #include "scan.h"
-
- 
- 
 
 #ifdef __MAKEWITH_GNUEFI
 #ifndef EFI_SECURITY_VIOLATION
@@ -93,9 +34,6 @@ UINT64 PESig = EFI_STUB_ARCH;
 
 #define FAT_ARCH                0x0ef1fab9  
 
- 
- 
- 
 #define EFI_HEADER_SIZE 4096
 
 /*
@@ -123,13 +61,6 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
     }  
 }  
 
- 
- 
- 
- 
- 
- 
- 
 /*
  * A preliminary header/type classification, not a Secure Boot trust verdict
  * and not evidence that firmware execution will succeed.
@@ -151,9 +82,7 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
         return LOADER_TYPE_INVALID;
     }
     if ((RootDir == NULL) || (FileName == NULL)) {
-         
-         
-         
+
         return LOADER_TYPE_EFI;
     }  
 
@@ -172,16 +101,14 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     SignaturePos = *(UINT32 *)&Header[0x3c];
     LOG(4, LOG_LINE_NORMAL, L"In IsValidLoader(), LoadedSize is %llu, SignaturePos is %llu",
         (UINT64) LoadedSize, (UINT64) SignaturePos);
-     
+
     IsValid = (LoadedSize == EFI_HEADER_SIZE) &&
               ((Header[0] == 'M' && Header[1] == 'Z' &&
                (SignaturePos < (EFI_HEADER_SIZE - 8)) &&
                (CompareMem(&Header[SignaturePos], &PESig, 6) == 0)) ||
               (*(UINT32 *)Header == FAT_ARCH));
     if (!IsValid) {
-         
-         
-         
+
         if ((Header[0] == (CHAR8) 0x1F && Header[1] == (CHAR8) 0x8B) && GlobalConfig.GzippedLoaders) {
             LoaderType = LOADER_TYPE_GZIP;
             TypeDesc = L"a gzipped";
@@ -196,7 +123,6 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     return LoaderType;
 }  
 
- 
 /*
  * Load native images by device path. For gzip, LoadImage receives a memory
  * buffer and the exact number of bytes the decoder wrote to it.
@@ -222,17 +148,14 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     int                     gzStatus;
     EFI_GUID                SystemdGuid = SYSTEMD_GUID_VALUE;
 
-     
     if (!Volume || !Volume->RootDir || !Filename)
         return EFI_INVALID_PARAMETER;
 
-     
     if (LoadOptions != NULL) {
         FullLoadOptions = StrDuplicate(LoadOptions);
         if (OSType == 'M') {
             MergeStrings(&FullLoadOptions, L" ", 0);
-             
-             
+
         }  
     }  
     LOG(1, LOG_LINE_NORMAL, L"Starting %s", ImageTitle);
@@ -242,32 +165,20 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     if (Verbose)
         Print(L"Starting %s\nUsing load options '%s'\n", ImageTitle, FullLoadOptions ? FullLoadOptions : L"");
 
-     
     ReturnStatus = Status = EFI_NOT_FOUND;   
-     
-     
-     
+
     LoaderType = IsValidLoader(Volume->RootDir, Filename);
     if ((LoaderType == LOADER_TYPE_EFI) || (LoaderType == LOADER_TYPE_GZIP)) {
         DevicePath = FileDevicePath(Volume->DeviceHandle, Filename);
-         
-         
-         
-         
-         
+
         if (LoaderType == LOADER_TYPE_EFI) {
-             
-             
+
             ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
                                                         NULL, 0, &ChildImageHandle);
         } else {
             Status = egLoadFile(Volume->RootDir, Filename, &gzData, &gzSize);
             if (!EFI_ERROR(Status)) {
-                 
-                 
-                 
-                 
-                 
+
                 if (!gzSize || gzSize > (UINTN)(512U * 1024U * 1024U / 10U)) {
                     LOG(1, LOG_LINE_NORMAL, L"Gzip EFI image is too large");
                     ReturnStatus = Status = EFI_OUT_OF_RESOURCES;
@@ -296,18 +207,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
             }
         }
         if (secure_mode() && ShimLoaded() && !EFI_ERROR(Status)) {
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
+
             LOG(3, LOG_LINE_NORMAL, L"Employing Shim LoadImage() hack");
             refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, GlobalConfig.SelfDevicePath,
                                 NULL, 0, &ChildImageHandle2);
@@ -341,11 +241,9 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
      */
     ChildLoadedImage->LoadOptions = (VOID *)FullLoadOptions;
     ChildLoadedImage->LoadOptionsSize = FullLoadOptions ? ((UINT32)StrLen(FullLoadOptions) + 1) * sizeof(CHAR16) : 0;
-     
-     
 
     if ((GlobalConfig.WriteSystemdVars) && ((OSType == 'L') || (OSType == 'E') || (OSType == 'G'))) {
-         
+
         EspGUID = GuidAsString(&(SelfVolume->PartGuid));
         LOG(1, LOG_LINE_NORMAL, L"Setting systemd's LoaderDevicePartUUID variable to %s", EspGUID);
         Status = EfivarSetRaw(&SystemdGuid, L"LoaderDevicePartUUID", (CHAR8 *) EspGUID,
@@ -357,7 +255,6 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
         MyFreePool(EspGUID);
     }  
 
-     
     LOG(1, LOG_LINE_NORMAL, L"Launching '%s'", ImageTitle);
     /*
      * Release BOOT's open filesystem handles before handing control to the
@@ -367,26 +264,21 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
      */
     UninitRefitLib();
 
-     
     ReturnStatus = Status = refit_call3_wrapper(BS->StartImage, ChildImageHandle, NULL, NULL);
 
-     
     ErrorInfo = PoolPrint(L"returned from %s", ImageTitle);
     CheckError(Status, ErrorInfo);
     MyFreePool(ErrorInfo);
     if (IsDriver) {
-         
-         
-         
+
         ConnectFilesystemDriver(ChildImageHandle);
     }
 
-     
     ReinitRefitLib();
     LOG(1, LOG_LINE_NORMAL, L"Program has returned %d", Status);
 
 bailout_unload:
-     
+
     if (!IsDriver)
         Status = refit_call1_wrapper(BS->UnloadImage, ChildImageHandle);
 
@@ -401,7 +293,6 @@ bailout:
     return ReturnStatus;
 }  
 
- 
 /*
  * Request entry to firmware setup through the 64-bit OsIndications variable
  * before a cold reset. The read path dereferences only the first CHAR8 of the
@@ -435,7 +326,6 @@ EFI_STATUS RebootIntoFirmware(VOID) {
     return err;
 }  
 
- 
 /*
  * Programs the selected Boot#### identifier into the one-shot BootNext
  * variable and requests a cold reset. BootNext does not rewrite BootOrder;
@@ -463,12 +353,6 @@ VOID RebootIntoLoader(LOADER_ENTRY *Entry) {
     PauseForKey();
 }  
 
- 
- 
- 
-
- 
- 
 /*
  * On x86, manipulates IA32_FEATURE_CONTROL (MSR 0x3a) before image dispatch.
  * Its lock bit is effectively irreversible until reset on supported CPUs;
@@ -481,10 +365,9 @@ static VOID DoEnableAndLockVMX(VOID) {
     UINT32 low_bits = 0, high_bits = 0;
 
     LOG(1, LOG_LINE_NORMAL, L"Attempting to enable and lock VMX");
-     
+
     __asm__ volatile ("rdmsr" : "=a" (low_bits), "=d" (high_bits) : "c" (msr));
 
-     
     if ((low_bits & 1) == 0) {
         high_bits = 0;
         low_bits = 0x05;
@@ -494,7 +377,6 @@ static VOID DoEnableAndLockVMX(VOID) {
 #endif
 }  
 
- 
 /*
  * Transfers control to the selected EFI loader. Successful image dispatch
  * and successful operating-system startup are different observations.
@@ -515,7 +397,6 @@ VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
     MyFreePool(LoaderPath);
 }  
 
- 
 /*
  * Uses the same EFI image-launch boundary as operating-system entries but
  * presents the selected item as an external utility. Its return to BOOT is

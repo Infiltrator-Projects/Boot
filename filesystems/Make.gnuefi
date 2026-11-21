@@ -2,15 +2,6 @@
 # backend code. The intermediate .so is a link artifact converted into an
 # EFI driver image, not a freestanding Common V2 filesystem module.
 
-
-
-
-
-
-
-
-
-
 SRCDIR = .
 
 VPATH = $(SRCDIR)
@@ -49,5 +40,3 @@ endif
 	chmod a-x $(TARGET)
 	mkdir -p ../drivers_$(FILENAME_CODE)
 	cp $(TARGET) ../drivers_$(FILENAME_CODE)
-
-

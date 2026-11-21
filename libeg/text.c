@@ -3,41 +3,6 @@
  * Embedded font atlases are resource data; glyph metrics and alpha blending
  * must remain compatible with framebuffer dimensions and configured scale.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "libegint.h"
 #include "../boot/global.h"
@@ -51,10 +16,6 @@ static EG_IMAGE *DarkFontImage = NULL;
 static EG_IMAGE *LightFontImage = NULL;
 
 static UINTN FontCellWidth = 7;
-
- 
- 
- 
 
 static VOID egPrepareFont() {
     UINTN UGAWidth, UGAHeight;
@@ -112,7 +73,6 @@ VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN
 
     egPrepareFont();
 
-     
     if (Text)
        TextLength = StrLen(Text);
     else
@@ -141,7 +101,6 @@ VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN
        FontImage = DarkFontImage;
     }  
 
-     
     BufferPtr = CompImage->PixelData;
     BufferLineOffset = CompImage->Width;
     BufferPtr += PosX + PosY * BufferLineOffset;
@@ -166,7 +125,6 @@ VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN
     }
 }
 
- 
 /*
  * Reads configured font resource data into graphical rendering state.
  * Missing fonts must not make the firmware boot menu unusable.
@@ -180,5 +138,3 @@ VOID egLoadFont(IN CHAR16 *Filename) {
       Print(L"Note: Font image file %s is invalid! Using default font!\n");
     egPrepareFont();
 }  
-
- 

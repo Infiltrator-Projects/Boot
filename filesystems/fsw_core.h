@@ -4,44 +4,6 @@
  * physical device blocks from logical filesystem blocks; refcounts govern
  * cache and dnode lifetime. This interface is FSW, not Common V2.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_CORE_H_
 #define _FSW_CORE_H_
@@ -51,28 +13,13 @@
 #include "fsw_efi_base.h"
 #endif
 
- 
 #define FSW_PATH_MAX (4096)
 
- 
 #define FSW_CONCAT3(a,b,c) a##b##c
- 
+
 #define FSW_FSTYPE_TABLE_NAME(t) FSW_CONCAT3(fsw_,t,_table)
 
- 
 #define FSW_INVALID_BNO 0xFFFFFFFFFFFFFFFF
-
-
- 
- 
- 
-
-
- 
-
-
-
- 
 
 typedef fsw_u16             fsw_u16_le;
 typedef fsw_u16             fsw_u16_be;
@@ -134,14 +81,6 @@ typedef fsw_u64             fsw_u64_be;
 #endif
 #endif
 
- 
-
-
- 
- 
- 
- 
-
 #ifndef VOLSTRUCTNAME
 #define VOLSTRUCTNAME fsw_volume
 #else
@@ -153,14 +92,7 @@ struct VOLSTRUCTNAME;
 struct DNODESTRUCTNAME;
 #endif
 
-
- 
-
-
 typedef int fsw_status_t;
-
- 
-
 
 enum {
     FSW_SUCCESS,
@@ -184,10 +116,6 @@ struct fsw_string {
     void        *data;               
 };
 
- 
-
-
-
 enum {
     FSW_STRING_TYPE_EMPTY,
     FSW_STRING_TYPE_ISO88591,
@@ -204,11 +132,7 @@ enum {
 #define FSW_STRING_TYPE_UTF16_BE FSW_STRING_TYPE_UTF16
 #endif
 
- 
 #define FSW_STRING_INIT { FSW_STRING_TYPE_EMPTY, 0, 0, NULL }
-
-
- 
 
 struct fsw_dnode;
 struct fsw_host_table;
@@ -220,10 +144,6 @@ struct fsw_blockcache {
     fsw_u64     phys_bno;            
     void        *data;               
 };
-
- 
-
-
 
 struct fsw_volume {
     fsw_u32     phys_blocksize;      
@@ -243,10 +163,6 @@ struct fsw_volume {
     int         host_string_type;    
 };
 
- 
-
-
-
 struct fsw_dnode {
     fsw_u32     refcount;            
 
@@ -262,10 +178,6 @@ struct fsw_dnode {
     struct fsw_dnode *next;          
     struct fsw_dnode *prev;          
 };
-
- 
-
-
 
 enum {
     FSW_DNODE_TYPE_UNKNOWN,
@@ -288,21 +200,12 @@ struct fsw_extent {
     void        *buffer;             
 };
 
- 
-
-
-
 enum {
     FSW_EXTENT_TYPE_INVALID,
     FSW_EXTENT_TYPE_SPARSE,
     FSW_EXTENT_TYPE_PHYSBLOCK,
     FSW_EXTENT_TYPE_BUFFER
 };
-
- 
-
-
-
 
 struct fsw_shandle {
     struct fsw_dnode *dnode;         
@@ -311,36 +214,21 @@ struct fsw_shandle {
     struct fsw_extent extent;        
 };
 
- 
-
-
-
 struct fsw_volume_stat {
     fsw_u64     total_bytes;         
     fsw_u64     free_bytes;          
 };
-
- 
-
-
 
 struct fsw_dnode_stat {
     fsw_u64     used_bytes;          
     void        *host_data;          
 };
 
- 
-
-
 enum {
     FSW_DNODE_STAT_CTIME,
     FSW_DNODE_STAT_MTIME,
     FSW_DNODE_STAT_ATIME
 };
-
- 
-
-
 
 struct fsw_host_table
 {
@@ -381,12 +269,6 @@ struct fsw_fstype_table
                              struct fsw_string *link_target);
 };
 
-
- 
-
-
- 
-
 fsw_status_t fsw_mount(void *host_data,
                        struct fsw_host_table *host_table,
                        struct fsw_fstype_table *fstype_table,
@@ -397,14 +279,6 @@ fsw_status_t fsw_volume_stat(struct fsw_volume *vol, struct fsw_volume_stat *sb)
 void         fsw_set_blocksize(struct VOLSTRUCTNAME *vol, fsw_u32 phys_blocksize, fsw_u32 log_blocksize);
 fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 cache_level, void **buffer_out);
 void         fsw_block_release(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, void *buffer);
-
- 
-
-
- 
-
-
- 
 
 fsw_status_t fsw_dnode_create_root(struct VOLSTRUCTNAME *vol, fsw_u64 dnode_id, struct DNODESTRUCTNAME **dno_out);
 fsw_status_t fsw_dnode_create(struct DNODESTRUCTNAME *parent_dno, fsw_u64 dnode_id, int type,
@@ -431,36 +305,12 @@ void fsw_store_time_posix(struct fsw_dnode_stat *sb, int which, fsw_u32 posix_ti
 void fsw_store_attr_posix(struct fsw_dnode_stat *sb, fsw_u16 posix_mode);
 void fsw_store_attr_efi(struct fsw_dnode_stat *sb, fsw_u16 attr);
 
- 
-
-
- 
-
-
- 
-
 fsw_status_t fsw_shandle_open(struct DNODESTRUCTNAME *dno, struct fsw_shandle *shand);
 void         fsw_shandle_close(struct fsw_shandle *shand);
 fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_inout, void *buffer);
 
- 
-
-
- 
-
-
- 
-
 fsw_status_t fsw_alloc_zero(int len, void **ptr_out);
 fsw_status_t fsw_memdup(void **dest_out, void *src, int len);
-
- 
-
-
- 
-
-
- 
 
 int          fsw_strlen(struct fsw_string *s);
 int          fsw_streq(struct fsw_string *s1, struct fsw_string *s2);
@@ -470,17 +320,6 @@ void         fsw_strsplit(struct fsw_string *lookup_name, struct fsw_string *buf
 
 void         fsw_strfree(struct fsw_string *s);
 
- 
-
-
- 
-
-
-
-
-
-
- 
 #ifndef S_IRWXU
 
 #define	S_ISUID	0004000			 
@@ -525,7 +364,5 @@ void         fsw_strfree(struct fsw_string *s);
 #define S_BLKSIZE	512		 
 
 #endif
- 
-
 
 #endif

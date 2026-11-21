@@ -4,36 +4,8 @@
  * Boot#### variables; each node has type, subtype and encoded length.
  * Formatting a path is diagnostics, not validation of a boot target.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "Platform.h"
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 CHAR16 *
 EFIAPI
@@ -81,16 +53,6 @@ MyCatPrint (
   return Str->Str;
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathPci (
   IN OUT POOL_PRINT       *Str,
@@ -103,16 +65,6 @@ DevPathPci (
   MyCatPrint (Str, L"Pci(%x|%x)", (UINTN) Pci->Device, (UINTN) Pci->Function);
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathPccard (
   IN OUT POOL_PRINT       *Str,
@@ -124,16 +76,6 @@ DevPathPccard (
   Pccard = DevPath;
   MyCatPrint (Str, L"Pcmcia(Function%x)", (UINTN) Pccard->FunctionNumber);
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathMemMap (
@@ -153,16 +95,6 @@ DevPathMemMap (
     );
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathController (
   IN OUT POOL_PRINT       *Str,
@@ -175,14 +107,6 @@ DevPathController (
   MyCatPrint (Str, L"Ctrl(%d)", (UINTN) Controller->ControllerNumber);
 }
 
-
- 
-
-
-
-
-
-
 VOID
 DevPathVendor (
   IN OUT POOL_PRINT       *Str,
@@ -193,7 +117,6 @@ DevPathVendor (
   CHAR16              *Type;
   UINTN               DataLength;
   UINTN               Index;
- 
 
   UINT16              Info;
 
@@ -206,41 +129,6 @@ DevPathVendor (
 
   case MESSAGING_DEVICE_PATH:
     Type = L"Msg";
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     if (CompareGuid (&Vendor->Guid, &gEfiSasDevicePathGuid)) {
       MyCatPrint (
@@ -299,16 +187,6 @@ DevPathVendor (
   MyCatPrint (Str, L")");
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathAcpi (
   IN OUT POOL_PRINT       *Str,
@@ -325,16 +203,6 @@ DevPathAcpi (
   }
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathExtendedAcpi (
   IN OUT POOL_PRINT       *Str,
@@ -342,10 +210,7 @@ DevPathExtendedAcpi (
   )
 {
   ACPI_EXTENDED_HID_DEVICE_PATH   *ExtendedAcpi;
-  
-   
-   
-   
+
   UINT16                          HIDSTRIdx;
   UINT16                          UIDSTRIdx;
   UINT16                          CIDSTRIdx;
@@ -362,9 +227,6 @@ DevPathExtendedAcpi (
 
   AsChar8Array = (CHAR8 *) ExtendedAcpi;
 
-   
-   
-   
   Anchor = 16;
   for (Index = Anchor; Index < Length && AsChar8Array[Index] != '\0'; Index++) {
     ;
@@ -372,9 +234,7 @@ DevPathExtendedAcpi (
   if (Index > Anchor) {
     HIDSTRIdx = Anchor;
   }
-   
-   
-   
+
   Anchor = (UINT16) (Index + 1);
   for (Index = Anchor; Index < Length && AsChar8Array[Index] != '\0'; Index++) {
     ;
@@ -382,9 +242,7 @@ DevPathExtendedAcpi (
   if (Index > Anchor) {
     UIDSTRIdx = Anchor;
   }
-   
-   
-   
+
   Anchor = (UINT16) (Index + 1);
   for (Index = Anchor; Index < Length && AsChar8Array[Index] != '\0'; Index++) {
     ;
@@ -443,16 +301,6 @@ DevPathExtendedAcpi (
 
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathAdrAcpi (
   IN OUT POOL_PRINT       *Str,
@@ -475,16 +323,6 @@ DevPathAdrAcpi (
   MyCatPrint (Str, L")");
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathAtapi (
   IN OUT POOL_PRINT       *Str,
@@ -502,16 +340,6 @@ DevPathAtapi (
     );
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathScsi (
   IN OUT POOL_PRINT       *Str,
@@ -523,16 +351,6 @@ DevPathScsi (
   Scsi = DevPath;
   MyCatPrint (Str, L"Scsi(Pun%x,Lun%x)", (UINTN) Scsi->Pun, (UINTN) Scsi->Lun);
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathFibre (
@@ -546,16 +364,6 @@ DevPathFibre (
   MyCatPrint (Str, L"Fibre(Wwn%lx,Lun%x)", Fibre->WWN, Fibre->Lun);
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPath1394 (
   IN OUT POOL_PRINT       *Str,
@@ -568,16 +376,6 @@ DevPath1394 (
   MyCatPrint (Str, L"1394(%lx)", &F1394Path->Guid);
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathUsb (
   IN OUT POOL_PRINT       *Str,
@@ -589,16 +387,6 @@ DevPathUsb (
   Usb = DevPath;
   MyCatPrint (Str, L"Usb(%x,%x)", (UINTN) Usb->ParentPortNumber, (UINTN) Usb->InterfaceNumber);
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathUsbWWID (
@@ -618,16 +406,6 @@ DevPathUsbWWID (
     );
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathLogicalUnit (
   IN OUT POOL_PRINT       *Str,
@@ -639,16 +417,6 @@ DevPathLogicalUnit (
   LogicalUnit = DevPath;
   MyCatPrint (Str, L"Unit(%x)", (UINTN) LogicalUnit->Lun);
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathUsbClass (
@@ -669,16 +437,6 @@ DevPathUsbClass (
     (UINTN) UsbClass->DeviceProtocol
     );
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathSata (
@@ -707,16 +465,6 @@ DevPathSata (
   }
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathI2O (
   IN OUT POOL_PRINT       *Str,
@@ -728,16 +476,6 @@ DevPathI2O (
   I2OPath = DevPath;
   MyCatPrint (Str, L"I2O(%x)", (UINTN) I2OPath->Tid);
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathMacAddr (
@@ -765,16 +503,6 @@ DevPathMacAddr (
   MyCatPrint (Str, L")");
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathIPv4 (
   IN OUT POOL_PRINT       *Str,
@@ -794,16 +522,6 @@ DevPathIPv4 (
     (UINTN) IPDevPath->RemotePort
     );
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathIPv6 (
@@ -836,16 +554,6 @@ DevPathIPv6 (
     );
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathInfiniBand (
   IN OUT POOL_PRINT       *Str,
@@ -865,16 +573,6 @@ DevPathInfiniBand (
     InfiniBand->DeviceId
     );
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathUart (
@@ -951,16 +649,6 @@ DevPathUart (
   }
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathiSCSI (
   IN OUT POOL_PRINT       *Str,
@@ -994,16 +682,6 @@ DevPathiSCSI (
   MyCatPrint (Str, L"%s)", (IScsi->NetworkProtocol == 0) ? L"TCP" : L"reserved");
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathVlan (
   IN OUT POOL_PRINT       *Str,
@@ -1015,16 +693,6 @@ DevPathVlan (
   Vlan = DevPath;
   MyCatPrint (Str, L"Vlan(%d)", (UINTN) Vlan->VlanId);
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 /*
@@ -1070,16 +738,6 @@ DevPathHardDrive (
   }
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathCDROM (
   IN OUT POOL_PRINT       *Str,
@@ -1091,16 +749,6 @@ DevPathCDROM (
   Cd = DevPath;
   MyCatPrint (Str, L"CDROM(Entry%x)", (UINTN) Cd->BootEntry);
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 /*
@@ -1118,16 +766,6 @@ DevPathFilePath (
   MyCatPrint (Str, L"%s", Fp->PathName);
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathMediaProtocol (
   IN OUT POOL_PRINT       *Str,
@@ -1140,16 +778,6 @@ DevPathMediaProtocol (
   MyCatPrint (Str, L"Media(%g)", &MediaProt->Protocol);
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathFvFilePath (
   IN OUT POOL_PRINT       *Str,
@@ -1161,16 +789,6 @@ DevPathFvFilePath (
   FvFilePath = DevPath;
   MyCatPrint (Str, L"%g", &FvFilePath->FvFileName);
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 MyDevPathRelativeOffsetRange (
@@ -1188,16 +806,6 @@ MyDevPathRelativeOffsetRange (
     Offset->EndingOffset
     );
 }
-
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathBssBss (
@@ -1245,16 +853,6 @@ DevPathBssBss (
   MyCatPrint (Str, L"Legacy-%s", Type);
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathEndInstance (
   IN OUT POOL_PRINT       *Str,
@@ -1264,16 +862,6 @@ DevPathEndInstance (
   MyCatPrint (Str, L",");
 }
 
- 
-
-
-
-
-
-
-
-
-
 VOID
 DevPathNodeUnknown (
   IN OUT POOL_PRINT       *Str,
@@ -1282,15 +870,6 @@ DevPathNodeUnknown (
 {
   MyCatPrint (Str, L"?");
 }
- 
-
-
-
-
-
-
-
-
 
 VOID
 DevPathFvPath (
@@ -1492,15 +1071,6 @@ DEVICE_PATH_STRING_TABLE  DevPathTable[] = {
   }
 };
 
-
- 
-
-
-
-
-
-
-
 CHAR16 *
 EFIAPI
 DevicePathToStr (
@@ -1539,14 +1109,9 @@ DevicePathToStr (
     return ToText;
   }
 
-   
-   
-   
   DevPathNode = DevPath;
   while (!IsDevicePathEnd (DevPathNode)) {
-     
-     
-     
+
     DumpNode = NULL;
     for (Index = 0; DevPathTable[Index].Function != NULL; Index += 1) {
 
@@ -1557,13 +1122,11 @@ DevicePathToStr (
         break;
       }
     }
-     
-     
-     
+
     if (!DumpNode) {
       DumpNode = DevPathNodeUnknown;
     }
-     
+
     /*
      * Each renderer contributes one node to the textual path. The
      * end-of-instance renderer supplies its own separator, so adding a slash
@@ -1572,14 +1135,9 @@ DevicePathToStr (
     if ((Str.Len != 0) && (DumpNode != DevPathEndInstance)) {
       MyCatPrint (&Str, L"/");
     }
-     
-     
-     
+
     DumpNode (&Str, DevPathNode);
 
-     
-     
-     
     DevPathNode = NextDevicePathNode (DevPathNode);
   }
 

@@ -3,42 +3,6 @@
  * Optical directory entries are variable length and must be bounds checked.
  * Name encoding and POSIX extension semantics differ from normal EFI FAT.
  */
- 
- 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_ISO9660_H_
 #define _FSW_ISO9660_H_
@@ -47,15 +11,10 @@
 #define DNODESTRUCTNAME fsw_iso9660_dnode
 #include "fsw_core.h"
 
-
- 
 #define ISO9660_BLOCKSIZE          2048
 #define ISO9660_BLOCKSIZE_BITS       11
- 
+
 #define ISO9660_SUPERBLOCK_BLOCKNO   16
- 
- 
- 
 
 #pragma pack(1)
 
@@ -84,9 +43,6 @@ struct iso9660_dirrec {
     fsw_u8      file_identifier_length;
     char        file_identifier[1];
 };
- 
- 
- 
 
 struct iso9660_volume_descriptor {
     fsw_u8      volume_descriptor_type;
@@ -131,9 +87,6 @@ struct iso9660_primary_volume_descriptor {
     fsw_u8      application_use[512];
     fsw_u8      reserved2[653];
 };
- 
- 
- 
 
 #pragma pack()
 /*
@@ -148,33 +101,23 @@ struct iso9660_dirrec_buffer {
     char        dirrec_buffer[222];
 };
 
-
- 
-
-
-
 struct fsw_iso9660_volume {
     struct fsw_volume g;             
-     
+
     int fJoliet;
-     
+
     int fRockRidge;
-     
+
     int rr_susp_skip;
 
     struct iso9660_primary_volume_descriptor *primary_voldesc;   
 };
-
- 
-
-
 
 struct fsw_iso9660_dnode {
     struct fsw_dnode g;              
 
     struct iso9660_dirrec dirrec;    
 };
-
 
 struct fsw_rock_ridge_susp_entry
 {

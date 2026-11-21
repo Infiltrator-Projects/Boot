@@ -2,16 +2,6 @@
 # Mounting depends on validated superblock geometry and incompatible flags.
 # A named driver is not proof that every formatted EXT2 volume can be read.
 
-
-
-
-
-
-
-
-
-
-
 [Defines]
   INF_VERSION                   = 0x00010005
   BASE_NAME                     = ext2
@@ -22,12 +12,6 @@
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = fsw_efi_main
   FSTYPE                        = ext2
-
-
-
-
-
-
 
 [Sources]
   fsw_efi.c

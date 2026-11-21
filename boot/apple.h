@@ -3,30 +3,10 @@
  * These protocols and CSR fields are not universally present on UEFI systems;
  * a failed lookup is not a general-purpose Secure Boot state determination.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __APPLE_H_
 #define __APPLE_H_
 
- 
 #define CSR_GUID { 0x7c436110, 0xab2a, 0x4bbb, { 0xa8, 0x80, 0xfe, 0x41, 0x99, 0x5c, 0x9f, 0x82 } };
 /*
  * Each bit relaxes one SIP restriction. csr-active-config stores the combined
@@ -46,16 +26,16 @@
 #define CSR_ALLOW_EXECUTABLE_POLICY_OVERRIDE 0x400
 #define CSR_ALLOW_UNAUTHENTICATED_ROOT       0x800
 #define CSR_END_OF_LIST                      0xFFFFFFFF
- 
+
 #define SIP_ENABLED  CSR_ALLOW_APPLE_INTERNAL
- 
+
 #define SIP_DISABLED_10 (CSR_ALLOW_UNRESTRICTED_NVRAM | \
                          CSR_ALLOW_UNRESTRICTED_DTRACE | \
                          CSR_ALLOW_APPLE_INTERNAL | \
                          CSR_ALLOW_TASK_FOR_PID | \
                          CSR_ALLOW_UNRESTRICTED_FS | \
                          CSR_ALLOW_UNTRUSTED_KEXTS)
- 
+
 #define SIP_DISABLED_11 (CSR_ALLOW_UNRESTRICTED_NVRAM | \
                          CSR_ALLOW_UNRESTRICTED_DTRACE | \
                          CSR_ALLOW_APPLE_INTERNAL | \

@@ -3,41 +3,6 @@
  * drivers. The callbacks may install or uninstall controller protocols;
  * these are firmware-visible changes with strict handle/lifetime semantics.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _EFI_DRIVER_BINDING_H_
 #define _EFI_DRIVER_BINDING_H_
@@ -53,38 +18,14 @@
 
 EFI_FORWARD_DECLARATION (REFIND_EFI_DRIVER_BINDING_PROTOCOL);
 
- 
-
- 
- 
- 
- 
-
 #pragma pack(1)
-
- 
-
-
-
-
-
-
 
 typedef struct {
   UINT8 Type;        
-                     
-                     
-                     
-                     
-                     
 
   UINT8 SubType;     
-                     
-                     
-                     
 
   UINT8 Length[2];   
-                     
 
 } REFIND_EFI_DEVICE_PATH_PROTOCOL;
 
@@ -101,22 +42,6 @@ EFI_STATUS
   IN EFI_HANDLE                             ControllerHandle,
   IN REFIND_EFI_DEVICE_PATH_PROTOCOL               * RemainingDevicePath OPTIONAL
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -127,22 +52,6 @@ EFI_STATUS
   IN EFI_HANDLE                             ControllerHandle,
   IN REFIND_EFI_DEVICE_PATH_PROTOCOL               * RemainingDevicePath OPTIONAL
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -154,28 +63,9 @@ EFI_STATUS
   IN  UINTN                                 NumberOfChildren,
   IN  EFI_HANDLE                            * ChildHandleBuffer
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
- 
- 
- 
 struct _REFIND_EFI_DRIVER_BINDING_PROTOCOL {
   EFI_DRIVER_BINDING_SUPPORTED  Supported;
   EFI_DRIVER_BINDING_START      Start;

@@ -4,12 +4,6 @@
  * firmware linkage; regenerated copies may replace manual edits. The release
  * build's GNU-EFI path is qualified separately from these generated tables.
  */
- 
-
-
-
-
-
 
 #include <Uefi.h>
 #include <Library/BaseLib.h>
@@ -20,7 +14,6 @@
 
 GLOBAL_REMOVE_IF_UNREFERENCED GUID gEfiCallerIdGuid = {0xB8448DD1, 0xB146, 0x41B7, {0x9D, 0x66, 0x98, 0xB3, 0xA0, 0xA4, 0x04, 0xD3}};
 
- 
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiAcpiTableGuid = { 0x8868E871, 0xE4F1, 0x11D3, { 0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81 }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiAcpi10TableGuid = { 0xEB9D2D30, 0x2D88, 0x11D3, { 0x9A, 0x16, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiAcpi20TableGuid = { 0x8868E871, 0xE4F1, 0x11D3, { 0xBC, 0x22, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81 }};
@@ -40,7 +33,6 @@ GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiMdePkgTokenSpaceGuid = { 0x914AEBE7, 
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiEventLegacyBootGuid = { 0x2A571201, 0x4966, 0x47F6, { 0x8B, 0x86, 0xF3, 0x1E, 0x41, 0xF3, 0x2F, 0x10 }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiHobListGuid = { 0x7739F24C, 0x93D7, 0x11D4, { 0x9A, 0x3A, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D }};
 
- 
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiComponentName2ProtocolGuid = { 0x6A7A5CFF, 0xE8D9, 0x4F70, { 0xBA, 0xDA, 0x75, 0xAB, 0x30, 0x25, 0xCE, 0x14 }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiDevicePathToTextProtocolGuid = { 0x8B843E20, 0x8132, 0x4852, { 0x90, 0xCC, 0x55, 0x1A, 0x4E, 0x4A, 0x7F, 0x1C }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiSimpleFileSystemProtocolGuid = { 0x964E5B22, 0x6459, 0x11D2, { 0x8E, 0x39, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
@@ -66,7 +58,7 @@ GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiPciIoProtocolGuid = { 0x4CF5B200, 0x6
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiScsiIoProtocolGuid = { 0x932F47e6, 0x2362, 0x4002, { 0x80, 0x3E, 0x3C, 0xD5, 0x4B, 0x13, 0x8F, 0x85 }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiScsiPassThruProtocolGuid = { 0xA59E8FCF, 0xBDA0, 0x43BB, { 0x90, 0xB1, 0xD3, 0x73, 0x2E, 0xCA, 0xA8, 0x77 }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiSimpleNetworkProtocolGuid = { 0xA19832B9, 0xAC25, 0x11D3, { 0x9A, 0x2D, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D }};
- 
+
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiAbsolutePointerProtocolGuid = { 0x8D59D32B, 0xC655, 0x4AE9, { 0x9B, 0x15, 0xF2, 0x59, 0x04, 0x99, 0x2A, 0x43 } };
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiAcpiTableProtocolGuid = { 0xFFE06BDD, 0x6107, 0x46A6, { 0x7B, 0xB2, 0x5A, 0x9C, 0x7E, 0xC5, 0x27, 0x5C }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiEdidActiveProtocolGuid = { 0xBD8C1056, 0x9F36, 0x44EC, { 0x92, 0xA8, 0xA6, 0x33, 0x7F, 0x81, 0x79, 0x86 }};
@@ -87,11 +79,6 @@ GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiDriverConfigurationProtocolGuid = { 0
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiDriverConfiguration2ProtocolGuid = { 0xBFD7DC1D, 0x24F1, 0x40D9, { 0x82, 0xE7, 0x2E, 0x09, 0xBB, 0x6B, 0x4E, 0xBE }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiDriverDiagnosticsProtocolGuid = { 0x0784924F, 0xE296, 0x11D4, { 0x9A, 0x49, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D }};
 GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID gEfiDriverDiagnostics2ProtocolGuid = { 0x4D330321, 0x025F, 0x4AAC, { 0x90, 0xD8, 0x5E, 0xD9, 0x00, 0x17, 0x3B, 0x63 }};
-
- 
- 
-
- 
 
 #define _PCD_TOKEN_PcdMaximumLinkedListLength  2U
 #define _PCD_VALUE_PcdMaximumLinkedListLength  1000000U
@@ -126,7 +113,6 @@ extern const  BOOLEAN  _gPcd_FixedAtBuild_PcdVerifyNodeInList;
 GLOBAL_REMOVE_IF_UNREFERENCED const UINT32 _gPcd_FixedAtBuild_PcdMaximumDevicePathNodeCount = _PCD_VALUE_PcdMaximumDevicePathNodeCount;
 extern const  UINT32  _gPcd_FixedAtBuild_PcdMaximumDevicePathNodeCount;
 #define _PCD_GET_MODE_32_PcdMaximumDevicePathNodeCount  _gPcd_FixedAtBuild_PcdMaximumDevicePathNodeCount
- 
 
 #define _PCD_TOKEN_PcdDriverDiagnosticsDisable  6U
 #define _PCD_VALUE_PcdDriverDiagnosticsDisable  ((BOOLEAN)0U)
@@ -198,58 +184,7 @@ HobLibConstructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   );
 
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
-
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
 const UINT32 _gUefiDriverRevision = 0x00010000U;
-
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 
 VOID
 EFIAPI
@@ -263,37 +198,20 @@ ExitDriver (
   gBS->Exit (gImageHandle, Status, 0, NULL);
 }
 
- 
-
- 
- 
- 
- 
- 
- 
- 
- 
-
- 
-
 #define _PCD_TOKEN_PcdDebugPropertyMask  11U
 #define _PCD_VALUE_PcdDebugPropertyMask  0x0fU
 GLOBAL_REMOVE_IF_UNREFERENCED const UINT8 _gPcd_FixedAtBuild_PcdDebugPropertyMask = _PCD_VALUE_PcdDebugPropertyMask;
 extern const  UINT8  _gPcd_FixedAtBuild_PcdDebugPropertyMask;
 #define _PCD_GET_MODE_8_PcdDebugPropertyMask  _gPcd_FixedAtBuild_PcdDebugPropertyMask
- 
 
 #define _PCD_TOKEN_PcdDebugClearMemoryValue  10U
 #define _PCD_VALUE_PcdDebugClearMemoryValue  0xAFU
 GLOBAL_REMOVE_IF_UNREFERENCED const UINT8 _gPcd_FixedAtBuild_PcdDebugClearMemoryValue = _PCD_VALUE_PcdDebugClearMemoryValue;
 extern const  UINT8  _gPcd_FixedAtBuild_PcdDebugClearMemoryValue;
 #define _PCD_GET_MODE_8_PcdDebugClearMemoryValue  _gPcd_FixedAtBuild_PcdDebugClearMemoryValue
- 
 
 #define _PCD_TOKEN_PcdDebugPrintErrorLevel  5U
 #define _PCD_VALUE_PcdDebugPrintErrorLevel  0x80000000U
 GLOBAL_REMOVE_IF_UNREFERENCED const UINT32 _gPcd_FixedAtBuild_PcdDebugPrintErrorLevel = _PCD_VALUE_PcdDebugPrintErrorLevel;
 extern const  UINT32  _gPcd_FixedAtBuild_PcdDebugPrintErrorLevel;
 #define _PCD_GET_MODE_32_PcdDebugPrintErrorLevel  _gPcd_FixedAtBuild_PcdDebugPrintErrorLevel
- 
-

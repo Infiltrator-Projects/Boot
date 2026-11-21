@@ -3,53 +3,9 @@
  * dictionary metadata and declared frame length constrain decoding; a
  * filesystem extent must never be trusted solely on successful frame parsing.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef ZSTD_H
 #define ZSTD_H
-
- 
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
- 
-
-
-
-
 
 typedef enum {
 	ZSTD_error_no_error,
@@ -69,20 +25,10 @@ typedef enum {
 	ZSTD_error_maxCode
 } ZSTD_ErrorCode;
 
- 
-
-
-
-
 int ZSTD_maxCLevel(void);
- 
-
-
-
-
 
 size_t ZSTD_compressBound(size_t srcSize);
- 
+
 /*
  * Several streaming operations return a size hint on success or an encoded
  * error in the same unsigned type. The input and output pos fields separately
@@ -92,12 +38,6 @@ static __attribute__((unused)) unsigned int ZSTD_isError(size_t code)
 {
 	return code > (size_t)-ZSTD_error_maxCode;
 }
- 
-
-
-
-
-
 
 static __attribute__((unused)) ZSTD_ErrorCode ZSTD_getErrorCode(
 	size_t functionResult)
@@ -106,11 +46,6 @@ static __attribute__((unused)) ZSTD_ErrorCode ZSTD_getErrorCode(
 		return (ZSTD_ErrorCode)0;
 	return (ZSTD_ErrorCode)(0 - functionResult);
 }
-
- 
-
-
-
 
 typedef enum {
 	ZSTD_fast,
@@ -123,21 +58,6 @@ typedef enum {
 	ZSTD_btopt2
 } ZSTD_strategy;
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef struct {
 	unsigned int windowLog;
 	unsigned int chainLog;
@@ -148,68 +68,22 @@ typedef struct {
 	ZSTD_strategy strategy;
 } ZSTD_compressionParameters;
 
- 
-
-
-
-
-
-
-
-
-
-
 typedef struct {
 	unsigned int contentSizeFlag;
 	unsigned int checksumFlag;
 	unsigned int noDictIDFlag;
 } ZSTD_frameParameters;
 
- 
-
-
-
-
 typedef struct {
 	ZSTD_compressionParameters cParams;
 	ZSTD_frameParameters fParams;
 } ZSTD_parameters;
 
- 
-
-
-
-
-
-
-
 ZSTD_compressionParameters ZSTD_getCParams(int compressionLevel,
 	unsigned long long estimatedSrcSize, size_t dictSize);
 
- 
-
-
-
-
-
-
-
-
-
-
 ZSTD_parameters ZSTD_getParams(int compressionLevel,
 	unsigned long long estimatedSrcSize, size_t dictSize);
-
- 
-
-
-
- 
-
-
-
-
-
 
 typedef struct ZSTD_inBuffer_s {
 	const void *src;
@@ -217,117 +91,28 @@ typedef struct ZSTD_inBuffer_s {
 	size_t pos;
 } ZSTD_inBuffer;
 
- 
-
-
-
-
-
-
 typedef struct ZSTD_outBuffer_s {
 	void *dst;
 	size_t size;
 	size_t pos;
 } ZSTD_outBuffer;
 
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
 size_t ZSTD_DStreamWorkspaceBound(size_t maxWindowSize);
 
- 
-
-
 typedef struct ZSTD_DStream_s ZSTD_DStream;
- 
- 
-
-
-
-
-
-
-
-
-
 
 ZSTD_DStream *ZSTD_initDStream(size_t maxWindowSize, void *workspace,
 	size_t workspaceSize);
 
- 
- 
-
-
-
-
-
-
-
-
 size_t ZSTD_resetDStream(ZSTD_DStream *zds);
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 size_t ZSTD_decompressStream(ZSTD_DStream *zds, ZSTD_outBuffer *output,
 	ZSTD_inBuffer *input);
 
- 
-
-
-
-
 size_t ZSTD_DStreamInSize(void);
- 
-
-
-
-
-
-
 
 size_t ZSTD_DStreamOutSize(void);
 
-
- 
 #define ZSTD_MAGICNUMBER            0xFD2FB528    
 #define ZSTD_MAGIC_SKIPPABLE_START  0x184D2A50U
 
@@ -348,49 +133,22 @@ size_t ZSTD_DStreamOutSize(void);
 #define ZSTD_HASHLOG3_MAX      17
 #define ZSTD_SEARCHLOG_MAX    (ZSTD_WINDOWLOG_MAX-1)
 #define ZSTD_SEARCHLOG_MIN      1
- 
+
 #define ZSTD_SEARCHLENGTH_MAX   7
- 
+
 #define ZSTD_SEARCHLENGTH_MIN   3
 #define ZSTD_TARGETLENGTH_MIN   4
 #define ZSTD_TARGETLENGTH_MAX 999
 
- 
 #define ZSTD_FRAMEHEADERSIZE_MAX 18
 #define ZSTD_FRAMEHEADERSIZE_MIN  6
 static const size_t ZSTD_frameHeaderSize_prefix = 5;
 static const size_t ZSTD_frameHeaderSize_min = ZSTD_FRAMEHEADERSIZE_MIN;
 static const size_t ZSTD_frameHeaderSize_max = ZSTD_FRAMEHEADERSIZE_MAX;
- 
+
 static const size_t ZSTD_skippableHeaderSize = 8;
 
-
- 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
 size_t ZSTD_findFrameCompressedSize(const void *src, size_t srcSize);
-
- 
-
-
- 
-
-
-
-
-
 
 typedef struct {
 	unsigned long long frameContentSize;
@@ -399,50 +157,9 @@ typedef struct {
 	unsigned int checksumFlag;
 } ZSTD_frameParams;
 
- 
-
-
-
-
-
-
-
-
-
-
 size_t ZSTD_getFrameParams(ZSTD_frameParams *fparamsPtr, const void *src,
 	size_t srcSize);
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
 #define ZSTD_BLOCKSIZE_ABSOLUTEMAX (128 * 1024)
 
 #endif   

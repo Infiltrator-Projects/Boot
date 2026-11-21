@@ -3,27 +3,11 @@
  * length and distance symbols. Declared code lengths and counts may be
  * malformed, so oversubscribed/incomplete trees must be rejected.
  */
- 
-
-
-
 
 #include "zutil.h"
 #include "inftrees.h"
 
 #define MAXBITS 15
-
- 
-
-
-
-
-
-
-
-
-
-
 
 /*
  * Builds decoding tables from source code lengths. Table log and capacity
@@ -67,44 +51,11 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
         23, 23, 24, 24, 25, 25, 26, 26, 27, 27,
         28, 28, 29, 29, 64, 64};
 
-     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     
     for (len = 0; len <= MAXBITS; len++)
         count[len] = 0;
     for (sym = 0; sym < codes; sym++)
         count[lens[sym]]++;
 
-     
     root = *bits;
     for (max = MAXBITS; max >= 1; max--)
         if (count[max] != 0) break;
@@ -136,48 +87,13 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
     if (left > 0 && (type == CODES || max != 1))
         return -1;                       
 
-     
     offs[1] = 0;
     for (len = 1; len < MAXBITS; len++)
         offs[len + 1] = offs[len] + count[len];
 
-     
     for (sym = 0; sym < codes; sym++)
         if (lens[sym] != 0) work[offs[lens[sym]]++] = (unsigned short)sym;
 
-     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     
     switch (type) {
     case CODES:
         base = extra = work;     
@@ -196,7 +112,6 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
         end = -1;
     }
 
-     
     huff = 0;                    
     sym = 0;                     
     len = min;                   
@@ -207,13 +122,11 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
     used = 1U << root;           
     mask = used - 1;             
 
-     
     if (type == LENS && used >= ENOUGH - MAXD)
         return 1;
 
-     
     for (;;) {
-         
+
         this.bits = (unsigned char)(len - drop);
         if ((int)(work[sym]) < end) {
             this.op = (unsigned char)0;
@@ -228,7 +141,6 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
             this.val = 0;
         }
 
-         
         incr = 1U << (len - drop);
         fill = 1U << curr;
         min = fill;                  
@@ -237,7 +149,6 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
             next[(huff >> drop) + fill] = this;
         } while (fill != 0);
 
-         
         incr = 1U << (len - 1);
         while (huff & incr)
             incr >>= 1;
@@ -248,23 +159,19 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
         else
             huff = 0;
 
-         
         sym++;
         if (--(count[len]) == 0) {
             if (len == max) break;
             len = lens[work[sym]];
         }
 
-         
         if (len > root && (huff & mask) != low) {
-             
+
             if (drop == 0)
                 drop = root;
 
-             
             next += min;             
 
-             
             curr = len - drop;
             left = (int)(1 << curr);
             while (curr + drop < max) {
@@ -274,12 +181,10 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
                 left <<= 1;
             }
 
-             
             used += 1U << curr;
             if (type == LENS && used >= ENOUGH - MAXD)
                 return 1;
 
-             
             low = huff & mask;
             (*table)[low].op = (unsigned char)curr;
             (*table)[low].bits = (unsigned char)root;
@@ -287,18 +192,11 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
         }
     }
 
-     
-
-
-
-
-
-
     this.op = (unsigned char)64;                 
     this.bits = (unsigned char)(len - drop);
     this.val = (unsigned short)0;
     while (huff != 0) {
-         
+
         if (drop != 0 && (huff & mask) != low) {
             drop = 0;
             len = root;
@@ -306,10 +204,8 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
             this.bits = (unsigned char)len;
         }
 
-         
         next[huff >> drop] = this;
 
-         
         incr = 1U << (len - 1);
         while (huff & incr)
             incr >>= 1;
@@ -321,7 +217,6 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
             huff = 0;
     }
 
-     
     *table += used;
     *bits = root;
     return 0;

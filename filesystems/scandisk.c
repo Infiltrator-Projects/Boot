@@ -4,27 +4,6 @@
  * for a callback; they are not automatically mounted filesystems.
  * The callback's result must remain separate from handle enumeration success.
  */
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "fsw_efi.h"
 #ifdef __MAKEWITH_GNUEFI
@@ -75,9 +54,9 @@ static struct fsw_volume *create_dummy_volume(EFI_DISK_IO *diskio, UINT32 mediai
         fsw_free(vol);
         return NULL;
     }
-     
+
     vol->fstype_table = &dummy_fstype;
-     
+
     Volume->DiskIo = diskio;
     Volume->MediaId = mediaid;
 
@@ -110,8 +89,6 @@ static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), str
     UINTN       i;
     UINTN       scanned = 0;
 
-     
-     
 #if defined(__MAKEWITH_GNUEFI)
     Print(L" ");
 #endif
@@ -143,4 +120,3 @@ static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), str
     }
     return scanned;
 }
-

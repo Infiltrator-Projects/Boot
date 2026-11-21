@@ -3,16 +3,10 @@
  * These constants select firmware authentication interfaces; a GUID match
  * is not proof that a certificate or executable has been validated.
  */
- 
-
-
-
-
 
 #include "global.h"
 #include "guid.h"
 
- 
 EFI_GUID GV_GUID = EFI_GLOBAL_VARIABLE;
 EFI_GUID SIG_DB = { 0xd719b2cb, 0x3d3a, 0x4596, {0xa3, 0xbc, 0xda, 0xd0,  0xe, 0x67, 0x65, 0x6f }};
 

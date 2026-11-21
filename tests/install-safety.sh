@@ -4,7 +4,6 @@
 # remain intact when BOOT reinstalls its own dedicated directory. Also
 # exercises path/symlink guards and verifies the loader SHA-256 marker.
 
-
 set -euo pipefail
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
@@ -56,7 +55,6 @@ InstallDir="$work/link-esp"
 mkdir -p "$InstallDir"
 ln -s "$work/esp/EFI" "$InstallDir/EFI"
 if GuardDefaultBootLocation; then echo "Accepted symlinked EFI path" >&2; exit 1; fi
-
 
 InstallDir="$work/esp"
 TargetDir=/EFI/InfiltratorOS/BOOT

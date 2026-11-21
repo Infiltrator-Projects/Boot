@@ -4,17 +4,6 @@
  * This firmware menu code is separate from the native host installation path
  * that writes /EFI/InfiltratorOS/BOOT and registers BOOT.
  */
- 
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __INSTALL_H_
 #define __INSTALL_H_
@@ -38,11 +27,9 @@ typedef struct {
     UINT16           Size;
     CHAR16           *Label;
     EFI_DEVICE_PATH  *DevPath;
- 
+
 } EFI_BOOT_ENTRY;
 
- 
- 
 typedef struct _boot_entry_list {
     EFI_BOOT_ENTRY           BootEntry;
     struct _boot_entry_list  *NextBootEntry;

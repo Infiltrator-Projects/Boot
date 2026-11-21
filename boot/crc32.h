@@ -3,50 +3,6 @@
  * extend one across successive buffers. size is measured in bytes. GPT header
  * and entry-array checks start separate calculations.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
 
 #ifndef __CRC32_H_
 #define __CRC32_H_

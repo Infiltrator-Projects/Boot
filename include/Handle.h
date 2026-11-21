@@ -3,27 +3,6 @@
  * Driver Binding relationships. The bit flags describe protocol topology,
  * not the trustworthiness or bootability of a filesystem image.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _HANDLE_H
 #define _HANDLE_H

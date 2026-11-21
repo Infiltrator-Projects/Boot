@@ -4,62 +4,6 @@
  * neither indicates firmware signature acceptance or successful OS startup.
  * EFI_STATUS remains the definitive result at the loader handoff.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __BOOT_LAUNCH_EFI_H_
 #define __BOOT_LAUNCH_EFI_H_
@@ -98,5 +42,3 @@ VOID StartTool(IN LOADER_ENTRY *Entry);
 VOID RebootIntoLoader(LOADER_ENTRY *Entry);
 
 #endif
-
- 

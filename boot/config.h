@@ -4,50 +4,6 @@
  * not permission to delete EFI executables. Values are compiled for specific
  * EFI target architectures; the sample file can override runtime defaults.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
 
 #ifndef __CONFIG_H_
 #define __CONFIG_H_
@@ -75,7 +31,7 @@ typedef struct {
 } REFIT_FILE;
 
 #define CONFIG_FILE_NAME         L"boot.conf"
- 
+
 #if defined (EFIX64)
 #define DONT_SCAN_FILES L"shim.efi,shim-fedora.efi,shim-centos.efi,shimx64.efi,PreLoader.efi,fbx64.efi"
 #elif defined(EFI32)
@@ -97,5 +53,3 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
 CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume);
 
 #endif
-
- 

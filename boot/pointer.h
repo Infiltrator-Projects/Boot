@@ -3,26 +3,6 @@
  * selection remains required when no compatible pointer protocol is present.
  * Pointer handle closure and cached graphics release are lifecycle contracts.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __BOOT_POINTERDEVICE_H_
 #define __BOOT_POINTERDEVICE_H_
@@ -61,5 +41,3 @@ VOID pdDraw();
 VOID pdClear();
 
 #endif
-
- 

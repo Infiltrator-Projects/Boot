@@ -2,22 +2,12 @@
  * Small blob-decompression API consuming caller-provided destination space.
  * Return code and resulting size are required before treating output as data.
  */
- 
-
-
-
-
- 
-
-
-
 
 #ifndef _INFUTIL_H
 #define _INFUTIL_H
 
 #include "zlib.h"
- 
- 
+
 /*
  * Keep inflate_state first so the caller can supply just that prefix in the
  * contiguous-output profile. Streaming callers also need working_window to
@@ -34,7 +24,7 @@ struct inflate_workspace {
 };
 
 #ifdef CONFIG_ZLIB_DFLTCC
- 
+
 static_assert(offsetof(struct inflate_workspace, dfltcc_state) % 8 == 0);
 #endif
 

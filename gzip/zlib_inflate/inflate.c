@@ -4,16 +4,6 @@
  * Streaming return codes and available-output counts are required to
  * prevent malformed compressed images from becoming executable input.
  */
- 
-
-
-
-
-
-
-
-
-
 
 #include "zutil.h"
 #include "inftrees.h"
@@ -21,7 +11,6 @@
 #include "inffast.h"
 #include "infutil.h"
 
- 
 #ifdef CONFIG_ZLIB_DFLTCC
 #  include "../zlib_dfltcc/dfltcc.h"
 #else
@@ -34,7 +23,6 @@
 #ifndef fallthrough
 #define fallthrough
 #endif
-
 
 int zlib_inflate_workspacesize(void)
 {
@@ -62,7 +50,6 @@ int zlib_inflateReset(z_streamp strm)
     state->bits = 0;
     state->lencode = state->distcode = state->next = state->codes;
 
-     
     state->wsize = 1U << state->wbits;
     state->write = 0;
     state->whave = 0;
@@ -93,9 +80,6 @@ int zlib_inflateInit2(z_streamp strm, int windowBits)
     }
     state->wbits = (unsigned)windowBits;
 #ifdef CONFIG_ZLIB_DFLTCC
-     
-
-
 
     state->window = PTR_ALIGN(&WS(strm)->working_window[0], PAGE_SIZE);
 #else
@@ -105,10 +89,6 @@ int zlib_inflateInit2(z_streamp strm, int windowBits)
     return zlib_inflateReset(strm);
 }
 
- 
-
-
-
 static void zlib_fixedtables(struct inflate_state *state)
 {
 #   include "inffixed.h"
@@ -117,15 +97,6 @@ static void zlib_fixedtables(struct inflate_state *state)
     state->distcode = distfix;
     state->distbits = 5;
 }
-
-
- 
-
-
-
-
-
-
 
 /*
  * On return to a streaming caller, future match distances can still name
@@ -139,7 +110,6 @@ static void zlib_updatewindow(z_streamp strm, unsigned out)
 
     state = (struct inflate_state *)strm->state;
 
-     
     copy = out - strm->avail_out;
     if (copy >= state->wsize) {
         memcpy(state->window, strm->next_out - state->wsize, state->wsize);
@@ -164,19 +134,6 @@ static void zlib_updatewindow(z_streamp strm, unsigned out)
     }
 }
 
-
- 
-
-
-
- 
-
-
-
-
-
-
-
 static int zlib_inflateSyncPacket(z_streamp strm)
 {
     struct inflate_state *state;
@@ -191,12 +148,8 @@ static int zlib_inflateSyncPacket(z_streamp strm)
     return Z_DATA_ERROR;
 }
 
- 
-
- 
 #define UPDATE(check, buf, len) zlib_adler32(check, buf, len)
 
- 
 #define LOAD() \
     do { \
         put = strm->next_out; \
@@ -207,7 +160,6 @@ static int zlib_inflateSyncPacket(z_streamp strm)
         bits = state->bits; \
     } while (0)
 
- 
 #define RESTORE() \
     do { \
         strm->next_out = put; \
@@ -218,14 +170,11 @@ static int zlib_inflateSyncPacket(z_streamp strm)
         state->bits = bits; \
     } while (0)
 
- 
 #define INITBITS() \
     do { \
         hold = 0; \
         bits = 0; \
     } while (0)
-
- 
 
 #define PULLBYTE() \
     do { \
@@ -235,113 +184,26 @@ static int zlib_inflateSyncPacket(z_streamp strm)
         bits += 8; \
     } while (0)
 
- 
-
 #define NEEDBITS(n) \
     do { \
         while (bits < (unsigned)(n)) \
             PULLBYTE(); \
     } while (0)
 
- 
 #define BITS(n) \
     ((unsigned)hold & ((1U << (n)) - 1))
 
- 
 #define DROPBITS(n) \
     do { \
         hold >>= (n); \
         bits -= (unsigned)(n); \
     } while (0)
 
- 
 #define BYTEBITS() \
     do { \
         hold >>= bits & 7; \
         bits -= bits & 7; \
     } while (0)
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
  * Runs the DEFLATE state machine until output, input or a stream boundary
@@ -365,9 +227,6 @@ int zlib_inflate(z_streamp strm, int flush)
     int ret;                     
     static const unsigned short order[19] =  
         {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
-
-     
-
 
     if (strm == NULL || strm->state == NULL ||
         (strm->next_in == NULL && strm->avail_in != 0))
@@ -571,10 +430,8 @@ int zlib_inflate(z_streamp strm, int flush)
                 }
             }
 
-             
             if (state->mode == BAD) break;
 
-             
             state->next = state->codes;
             state->lencode = (code const *)(state->next);
             state->lenbits = 9;
@@ -766,11 +623,6 @@ int zlib_inflate(z_streamp strm, int flush)
             return Z_STREAM_ERROR;
         }
 
-     
-
-
-
-
   inf_leave:
     RESTORE();
     if (INFLATE_NEED_UPDATEWINDOW(strm) &&
@@ -806,14 +658,6 @@ int zlib_inflateEnd(z_streamp strm)
     return Z_OK;
 }
 
- 
-
-
-
-
-
-
-
 int zlib_inflateIncomp(z_stream *z)
 {
     struct inflate_state *state = (struct inflate_state *)z->state;
@@ -823,13 +667,11 @@ int zlib_inflateIncomp(z_stream *z)
     if (state->mode != TYPE && state->mode != HEAD)
         return Z_DATA_ERROR;
 
-     
     z->avail_out = 0;
     z->next_out = (unsigned char*)z->next_in + z->avail_in;
 
     zlib_updatewindow(z, z->avail_in);
 
-     
     z->avail_out = saved_ao;
     z->next_out = saved_no;
 

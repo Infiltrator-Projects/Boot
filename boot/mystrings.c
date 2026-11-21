@@ -4,31 +4,6 @@
  * are ASCII-oriented bit manipulations, not Unicode collation. Caller memory
  * ownership and NULL handling differ between the individual utilities.
  */
- 
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "mystrings.h"
 #include "lib.h"
@@ -61,10 +36,6 @@ BOOLEAN StriSubCmp(IN CHAR16 *SmallStr, IN CHAR16 *BigStr) {
     return Found;
 }  
 
- 
- 
- 
- 
 /*
  * Compares CHAR16 strings using an ASCII-like case fold. Do not interpret
  * this as a locale-aware Unicode filename identity comparison.
@@ -85,20 +56,6 @@ BOOLEAN MyStriCmp(IN CONST CHAR16 *FirstString, IN CONST CHAR16 *SecondString) {
         return FALSE;
     }
 }  
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 CHAR16* MyStrStr (IN CHAR16  *String, IN CHAR16  *StrCharSet)
 {
@@ -126,8 +83,6 @@ CHAR16* MyStrStr (IN CHAR16  *String, IN CHAR16  *StrCharSet)
     }
 }  
 
- 
- 
 VOID ToLower(CHAR16 * MyString) {
     UINTN i = 0;
 
@@ -140,15 +95,6 @@ VOID ToLower(CHAR16 * MyString) {
     }  
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Reallocates and replaces the destination string; callers must treat the
  * previous destination allocation as consumed by this operation.
@@ -184,9 +130,6 @@ VOID MergeStrings(IN OUT CHAR16 **First, IN CHAR16 *Second, CHAR16 AddChar) {
     }  
 }  
 
- 
- 
- 
 VOID MergeWords(CHAR16 **MergeTo, CHAR16 *SourceString, CHAR16 AddChar) {
     CHAR16 *Temp, *Word, *p;
     BOOLEAN LineFinished = FALSE;
@@ -212,18 +155,11 @@ VOID MergeWords(CHAR16 **MergeTo, CHAR16 *SourceString, CHAR16 AddChar) {
     }  
 }  
 
- 
- 
- 
- 
- 
- 
 BOOLEAN LimitStringLength(CHAR16 *TheString, UINTN Limit) {
     CHAR16    *SubString, *TempString;
     UINTN     i;
     BOOLEAN   HasChanged = FALSE;
 
-     
     SubString = MyStrStr(TheString, L"  ");
     while (SubString != NULL) {
         i = 0;
@@ -239,14 +175,13 @@ BOOLEAN LimitStringLength(CHAR16 *TheString, UINTN Limit) {
                 MyFreePool(TempString);
                 HasChanged = TRUE;
             } else {
-                 
+
                 break;
             }  
         }  
         SubString = MyStrStr(TheString, L"  ");
     }  
 
-     
     if (StrLen(TheString) > Limit) {
         TheString[Limit] = '\0';
         HasChanged = TRUE;
@@ -255,12 +190,6 @@ BOOLEAN LimitStringLength(CHAR16 *TheString, UINTN Limit) {
     return HasChanged;
 }  
 
- 
- 
- 
- 
- 
- 
 CHAR16 *FindNumbers(IN CHAR16 *InString) {
     UINTN i = 0, StartOfElement, EndOfElement = 0, CopyLength;
     CHAR16 *Found = NULL, *ExtraFound = NULL, *LookFor;
@@ -270,7 +199,6 @@ CHAR16 *FindNumbers(IN CHAR16 *InString) {
 
     StartOfElement = StrLen(InString);
 
-     
     while ((ExtraFound == NULL) && (LookFor = FindCommaDelimited(GlobalConfig.ExtraKernelVersionStrings, i++))) {
         if ((ExtraFound = MyStrStr(InString, LookFor))) {
             StartOfElement = ExtraFound - InString;
@@ -293,7 +221,7 @@ CHAR16 *FindNumbers(IN CHAR16 *InString) {
                 EndOfElement = i;
         }  
     }  
-     
+
     if (EndOfElement > 0) {
         if (EndOfElement >= StartOfElement) {
             CopyLength = EndOfElement - StartOfElement + 1;
@@ -305,10 +233,6 @@ CHAR16 *FindNumbers(IN CHAR16 *InString) {
     return (Found);
 }  
 
- 
- 
- 
- 
 UINTN NumCharsInCommon(IN CHAR16* String1, IN CHAR16* String2) {
     UINTN Count = 0;
     if ((String1 == NULL) || (String2 == NULL))
@@ -318,11 +242,6 @@ UINTN NumCharsInCommon(IN CHAR16* String1, IN CHAR16* String2) {
     return Count;
 }  
 
- 
- 
- 
- 
- 
 /*
  * Extracts one comma-delimited configuration element. Callers iterate by
  * index and release each returned allocation; list delimiters do not carry
@@ -335,7 +254,7 @@ CHAR16 *FindCommaDelimited(IN CHAR16 *InString, IN UINTN Index) {
 
     if (InString != NULL) {
         InLength = StrLen(InString);
-         
+
         while ((Index > 0) && (CurPos < InLength)) {
             if (InString[CurPos] == L',') {
                 Index--;
@@ -343,7 +262,7 @@ CHAR16 *FindCommaDelimited(IN CHAR16 *InString, IN UINTN Index) {
             }  
             CurPos++;
         }  
-         
+
         while ((CurPos < InLength) && (!Found)) {
             if (InString[CurPos] == L',')
                 Found = TRUE;
@@ -358,10 +277,6 @@ CHAR16 *FindCommaDelimited(IN CHAR16 *InString, IN UINTN Index) {
     return (FoundString);
 }  
 
- 
- 
- 
- 
 BOOLEAN DeleteItemFromCsvList(CHAR16 *ToDelete, CHAR16 *List) {
     CHAR16 *Found, *Comma;
 
@@ -370,7 +285,7 @@ BOOLEAN DeleteItemFromCsvList(CHAR16 *ToDelete, CHAR16 *List) {
 
     if ((Found = MyStrStr(List, ToDelete)) != NULL) {
         if ((Comma = MyStrStr(Found, L",")) == NULL) {
-             
+
             if (Found == List) {  
                 List[0] = L'\0';
             } else {  
@@ -386,8 +301,6 @@ BOOLEAN DeleteItemFromCsvList(CHAR16 *ToDelete, CHAR16 *List) {
     }  
 }  
 
- 
- 
 BOOLEAN IsIn(IN CHAR16 *SmallString, IN CHAR16 *List) {
     UINTN     i = 0;
     BOOLEAN   Found = FALSE;
@@ -403,8 +316,6 @@ BOOLEAN IsIn(IN CHAR16 *SmallString, IN CHAR16 *List) {
     return Found;
 }  
 
- 
- 
 BOOLEAN IsInSubstring(IN CHAR16 *BigString, IN CHAR16 *List) {
     UINTN   i = 0, ElementLength;
     BOOLEAN Found = FALSE;
@@ -424,9 +335,6 @@ BOOLEAN IsInSubstring(IN CHAR16 *BigString, IN CHAR16 *List) {
     return Found;
 }  
 
- 
- 
- 
 /*
  * Rewrites a mutable UTF-16 string through a pointer-to-pointer interface.
  * The caller must treat MainString as an owning reference because its
@@ -461,8 +369,6 @@ BOOLEAN ReplaceSubstring(IN OUT CHAR16 **MainString, IN CHAR16 *SearchString, IN
     return WasReplaced;
 }  
 
- 
- 
 BOOLEAN IsValidHex(CHAR16 *Input) {
     BOOLEAN IsHex = TRUE;
     UINTN i = 0;
@@ -478,11 +384,6 @@ BOOLEAN IsValidHex(CHAR16 *Input) {
     return IsHex;
 }  
 
- 
- 
- 
- 
- 
 UINT64 StrToHex(CHAR16 *Input, UINTN Pos, UINTN NumChars) {
     UINT64 retval = 0x00;
     UINTN  NumDone = 0, InputLength;
@@ -515,10 +416,6 @@ UINT64 StrToHex(CHAR16 *Input, UINTN Pos, UINTN NumChars) {
     return retval;
 }  
 
- 
- 
- 
- 
 /*
  * Recognises a textual GUID representation before conversion or matching.
  * Syntactic acceptance is not proof that the GUID identifies an installed
@@ -550,8 +447,6 @@ BOOLEAN IsGuid(CHAR16 *UnknownString) {
     return retval;
 }  
 
- 
- 
 CHAR16 * GuidAsString(EFI_GUID *GuidData) {
     CHAR16 *TheString;
 
@@ -588,9 +483,6 @@ EFI_GUID StringAsGuid(CHAR16 * InString) {
     return Guid;
 }  
 
- 
- 
- 
 CHAR16 *GetTimeString(VOID) {
     CHAR16  *TimeStr = NULL;
     EFI_TIME CurrentTime;
@@ -608,7 +500,6 @@ CHAR16 *GetTimeString(VOID) {
     return TimeStr;
 }  
 
- 
 VOID DeleteStringList(STRING_LIST *StringList) {
     STRING_LIST *Current = StringList, *Previous;
 

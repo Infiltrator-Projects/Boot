@@ -1,15 +1,6 @@
 # Builds firmware graphics, font and image-format support. UI resources
 # are optional for EFI loader detection and must not become hard boot gates.
 
-
-
-
-
-
-
-
-
-
 SRCDIR = .
 
 VPATH = $(SRCDIR)
@@ -27,5 +18,3 @@ include $(SRCDIR)/../Make.common
 
 clean:
 	rm -f $(TARGET) *~ *.so $(OBJS) *.efi *.obj boot_*.txt boot_*.dll *.lib
-
-

@@ -3,24 +3,6 @@
  * A device path is a packed sequence of length-delimited nodes; callers
  * must not advance through unvalidated data or retain transient buffers.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _DEVICE_PATH_UTILITIES_PROTOCOL_H_
 #define _DEVICE_PATH_UTILITIES_PROTOCOL_H_
@@ -40,17 +22,6 @@ EFIAPI
 (EFIAPI *EFI_DEVICE_PATH_UTILS_GET_DEVICE_PATH_SIZE) (
   IN CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath
   )
- 
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -60,18 +31,6 @@ EFIAPI
 (EFIAPI *EFI_DEVICE_PATH_UTILS_DUP_DEVICE_PATH) (
   IN CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath
   )
- 
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -82,20 +41,6 @@ EFIAPI
   IN CONST EFI_DEVICE_PATH_PROTOCOL *Src1,
   IN CONST EFI_DEVICE_PATH_PROTOCOL *Src2
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -106,20 +51,6 @@ EFIAPI
   IN CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath,
   IN CONST EFI_DEVICE_PATH_PROTOCOL *DeviceNode
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -130,19 +61,6 @@ EFIAPI
   IN CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath,
   IN CONST EFI_DEVICE_PATH_PROTOCOL *DevicePathInstance
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -153,23 +71,6 @@ EFIAPI
   IN  OUT EFI_DEVICE_PATH_PROTOCOL  **DevicePathInstance,
   OUT UINTN                         *DevicePathInstanceSize
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -179,18 +80,6 @@ EFIAPI
 (EFIAPI *EFI_DEVICE_PATH_UTILS_IS_MULTI_INSTANCE) (
   IN CONST EFI_DEVICE_PATH_PROTOCOL         *DevicePath
   )
- 
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -202,24 +91,6 @@ EFIAPI
   IN UINT8                          NodeSubType,
   IN UINT16                         NodeLength
   )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 

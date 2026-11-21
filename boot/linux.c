@@ -4,62 +4,6 @@
  * heuristics rather than a guarantee of a bootable kernel/initramfs pair.
  * The selected kernel, options and volume must remain consistent.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "config.h"
@@ -70,19 +14,6 @@
 #include "log.h"
 #include "scan.h"
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Chooses an initrd by extracted version fragments and filename similarity.
  * Where multiple names match, its tie-breaks are heuristic, not an authority
@@ -102,15 +33,11 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     LOG(3, LOG_LINE_NORMAL, L"Kernel version string is '%s'", KernelVersion);
     Path = FindPath(LoaderPath);
 
-     
-     
-     
     if (StrLen(Path) == 0) {
         MergeStrings(&Path, L"\\", 0);
     }  
     DirIterOpen(Volume->RootDir, Path, &DirIter);
-     
-     
+
     if ((StrLen(Path) > 0) && (Path[StrLen(Path) - 1] != L'\\'))
         MergeStrings(&Path, L"\\", 0);
     while (DirIterNext(&DirIter, 2, L"init*,booster*", &DirEntry)) {
@@ -151,7 +78,7 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
                     MaxSharedChars = SharedChars;
                     MaxSharedInitrd = CurrentInitrdName;
                 }  
-                 
+
                 CurrentInitrdName = CurrentInitrdName->Next;
             }
             if (MaxSharedInitrd)
@@ -167,14 +94,6 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     return (InitrdName);
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Start with an owned copy of the existing options. When an initrd is
  * available, '%v' substitution takes precedence. Otherwise append an initrd=
@@ -185,7 +104,7 @@ CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
 
     if (Options != NULL)
         NewOptions = StrDuplicate(Options);
-    
+
     if (InitrdPath != NULL) {
         if (StriSubCmp(L"%v", Options)) {
             CHAR16 *InitrdVersion = FindNumbers(InitrdPath);
@@ -200,9 +119,6 @@ CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
     return NewOptions;
 }  
 
- 
- 
- 
 /*
  * Resolves main kernel load options from available configuration and defaults.
  * A missing root parameter or inaccessible initrd can still make boot fail.
@@ -222,9 +138,6 @@ CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume) {
     return (FullOptions);
 }  
 
- 
- 
- 
 /*
  * Interprets distribution identification data read from a candidate volume
  * to refine menu artwork. These labels are heuristic presentation metadata,
@@ -254,21 +167,17 @@ static VOID ParseReleaseFile(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *
     }  
 }  
 
- 
- 
 VOID GuessLinuxDistribution(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *LoaderPath) {
-     
+
     ParseReleaseFile(OSIconName, Volume, L"etc\\lsb-release");
     ParseReleaseFile(OSIconName, Volume, L"etc\\os-release");
 
-     
     if (StriSubCmp(L".fc", LoaderPath))
         MergeStrings(OSIconName, L"fedora", L',');
     if (StriSubCmp(L".el", LoaderPath))
         MergeStrings(OSIconName, L"redhat", L',');
 }  
 
- 
 /*
  * Groups additional Linux kernels as alternate launch entries while retaining
  * the volume context; folding entries must not erase independently bootable OSs.
@@ -314,13 +223,6 @@ VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOL
     }  
 }  
 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Searches for an alternative filename associated with a signed loader.
  * Naming alone does not verify a digital signature: firmware authentication

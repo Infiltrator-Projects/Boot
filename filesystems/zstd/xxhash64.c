@@ -3,50 +3,8 @@
  * metadata checks. This is a fast noncryptographic hash, not a code signature
  * or an authenticity check on filesystem contents.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "xxhash.h"
-
- 
-
 
 #define xxh_rotl64(x, r) ((x << r) | (x >> (64 - r)))
 
@@ -56,18 +14,11 @@
 # define XXH_CPU_LITTLE_ENDIAN 0
 #endif
 
- 
-
-
 static const uint64_t PRIME64_1 = 11400714785074694791ULL;
 static const uint64_t PRIME64_2 = 14029467366897019727ULL;
 static const uint64_t PRIME64_3 =  1609587929392839161ULL;
 static const uint64_t PRIME64_4 =  9650029242287828579ULL;
 static const uint64_t PRIME64_5 =  2870177450012600261ULL;
-
- 
-
-
 
 static uint64_t xxh64_round(uint64_t acc, const uint64_t input)
 {
@@ -85,13 +36,9 @@ static uint64_t xxh64_merge_round(uint64_t acc, uint64_t val)
 	return acc;
 }
 
- 
-
-
-
 void xxh64_reset(struct xxh64_state *statePtr, const uint64_t seed)
 {
-	 
+
 	struct xxh64_state state;
 
 	memset(&state, 0, sizeof(state));

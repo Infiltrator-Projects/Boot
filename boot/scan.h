@@ -3,62 +3,6 @@
  * submenus hold alternate options and folded kernels for that entry. Actual
  * firmware image loading is deferred until the menu dispatches a selection.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __SCAN_H_
 #define __SCAN_H_
@@ -72,5 +16,3 @@ VOID FindTool(CHAR16 *Locations, CHAR16 *Names, CHAR16 *Description, UINTN Icon)
 VOID ScanForTools(VOID);
 
 #endif
-
- 

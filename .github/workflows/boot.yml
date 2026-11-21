@@ -15,7 +15,6 @@ on:
 permissions:
   contents: write
 
-
 concurrency:
   group: boot-main-release
   cancel-in-progress: true
@@ -29,7 +28,6 @@ jobs:
       - name: Check BOOT identifiers and clean packaging layout
         shell: bash
         run: |
-
 
           if git ls-files | grep -iE '(^|/)(refind|refind-install)(/|$)'; then exit 1; fi
           test -s filesystems/fsw_ext4.c

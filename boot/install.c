@@ -4,17 +4,6 @@
  * length and device-path encoding constraints. This code is distinct from
  * the host's boot-native-installer.run installation and ESP write logic.
  */
- 
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "lib.h"
@@ -26,7 +15,6 @@
 #include "../include/refit_call_wrapper.h"
 #include "../include/Handle.h"
 
- 
 /*
  * Renames an existing EFI file to a sibling '-old' name by SetInfo rather
  * than copying payload bytes. Refuses to overwrite an existing backup and
@@ -74,10 +62,6 @@ finished:
     MyFreePool(BackupName);
     return Status;
 }
-
- 
-
-
 
 /*
  * Changes the firmware's preferred boot option persistently; this is not
@@ -127,7 +111,6 @@ static EFI_STATUS SetBootDefault(UINTN BootNum) {
     return Status;
 }  
 
- 
 /*
  * Walks device-path nodes with explicit length bounds and requires the
  * terminal end node. A malformed node must never advance into another record.
@@ -145,7 +128,7 @@ static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
                  ((UINTN)(UINT8)Path[Offset + 3] << 8);
         if (Length < 4 || Length > PathBytes - Offset) return FALSE;
         if (Type == 0x7f) {
-             
+
             return SubType == 0xff && Length == 4 &&
                    Offset + Length == PathBytes;
         }
@@ -154,7 +137,6 @@ static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
     return FALSE;
 }
 
- 
 /*
  * Parses firmware Boot#### load options and checks the UTF-16 label and
  * path bounds before constructing entries. Corrupt records are skipped.
@@ -230,7 +212,6 @@ BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
     return ListStart;
 }
 
- 
 /*
  * Releases the owned label and device-path payload for each parsed Boot####
  * entry, then the list node. Ownership does not extend to firmware NVRAM:
@@ -248,15 +229,6 @@ VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries) {
     }
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Translates parsed firmware boot options into menu entries. The operation
  * and chosen Boot#### number are returned to the caller; displaying a menu
@@ -314,15 +286,13 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
             Operation = EFI_BOOT_OPTION_MAKE_DEFAULT;
             *BootOrderNum = ChosenOption->Row;
         }  
-         
+
         MyFreePool(MenuEntryItem);
     } else {
         DisplaySimpleMessage(L"Information", L"EFI boot order list is unavailable");
     }  
     return Operation;
 }  
-
-
 
 /*
  * Separates user selection from the persistent NVRAM mutation. Only the

@@ -4,71 +4,16 @@
  * of the decoding contract; speculative or fast reads require documented
  * padding and remaining-bit assumptions.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef BITSTREAM_H_MODULE
 #define BITSTREAM_H_MODULE
 
- 
-
-
-
-
-
- 
-
-
 #include "error_private.h"  
 #include "mem.h"	    
-
- 
-
 
 #define STREAM_ACCUMULATOR_MIN_32 25
 #define STREAM_ACCUMULATOR_MIN_64 57
 #define STREAM_ACCUMULATOR_MIN ((U32)(ZSTD_32bits() ? STREAM_ACCUMULATOR_MIN_32 : STREAM_ACCUMULATOR_MIN_64))
-
-
- 
-
 
 typedef struct {
 	size_t bitContainer;
@@ -83,43 +28,20 @@ typedef enum {
 	BIT_DStream_completed = 2,
 	BIT_DStream_overflow = 3
 } BIT_DStream_status;  
- 
 
 ZSTD_STATIC size_t BIT_initDStream(BIT_DStream_t *bitD, const void *srcBuffer, size_t srcSize);
 ZSTD_STATIC size_t BIT_readBits(BIT_DStream_t *bitD, unsigned nbBits);
 ZSTD_STATIC BIT_DStream_status BIT_reloadDStream(BIT_DStream_t *bitD);
 ZSTD_STATIC unsigned BIT_endOfDStream(const BIT_DStream_t *bitD);
 
- 
-
-
-
-
-
-
-
-
-
-
 ZSTD_STATIC size_t BIT_readBitsFast(BIT_DStream_t *bitD, unsigned nbBits);
- 
-
- 
-
 
 ZSTD_STATIC unsigned BIT_highbit32(register U32 val) { return 31 - __builtin_clz(val); }
 
- 
 static const unsigned BIT_mask[] = {0,       1,       3,       7,	0xF,      0x1F,     0x3F,     0x7F,      0xFF,
 				    0x1FF,   0x3FF,   0x7FF,   0xFFF,    0x1FFF,   0x3FFF,   0x7FFF,   0xFFFF,    0x1FFFF,
 				    0x3FFFF, 0x7FFFF, 0xFFFFF, 0x1FFFFF, 0x3FFFFF, 0x7FFFFF, 0xFFFFFF, 0x1FFFFFF, 0x3FFFFFF};  
 
-
-
- 
-
-
- 
 /*
  * Initialise a reverse bit reader from the end of the supplied buffer. The
  * highest set bit in the last byte marks the end of meaningful data. It
@@ -173,20 +95,11 @@ ZSTD_STATIC size_t BIT_getMiddleBits(size_t bitContainer, U32 const start, U32 c
 
 ZSTD_STATIC size_t BIT_getLowerBits(size_t bitContainer, U32 const nbBits) { return bitContainer & BIT_mask[nbBits]; }
 
- 
-
-
-
-
-
-
 ZSTD_STATIC size_t BIT_lookBits(const BIT_DStream_t *bitD, U32 nbBits)
 {
 	U32 const bitMask = sizeof(bitD->bitContainer) * 8 - 1;
 	return ((bitD->bitContainer << (bitD->bitsConsumed & bitMask)) >> 1) >> ((bitMask - nbBits) & bitMask);
 }
-
- 
 
 ZSTD_STATIC size_t BIT_lookBitsFast(const BIT_DStream_t *bitD, U32 nbBits)
 {
@@ -196,11 +109,6 @@ ZSTD_STATIC size_t BIT_lookBitsFast(const BIT_DStream_t *bitD, U32 nbBits)
 
 ZSTD_STATIC void BIT_skipBits(BIT_DStream_t *bitD, U32 nbBits) { bitD->bitsConsumed += nbBits; }
 
- 
-
-
-
-
 ZSTD_STATIC size_t BIT_readBits(BIT_DStream_t *bitD, U32 nbBits)
 {
 	size_t const value = BIT_lookBits(bitD, nbBits);
@@ -208,19 +116,12 @@ ZSTD_STATIC size_t BIT_readBits(BIT_DStream_t *bitD, U32 nbBits)
 	return value;
 }
 
- 
-
 ZSTD_STATIC size_t BIT_readBitsFast(BIT_DStream_t *bitD, U32 nbBits)
 {
 	size_t const value = BIT_lookBitsFast(bitD, nbBits);
 	BIT_skipBits(bitD, nbBits);
 	return value;
 }
-
- 
-
-
-
 
 ZSTD_STATIC BIT_DStream_status BIT_reloadDStream(BIT_DStream_t *bitD)
 {
@@ -251,9 +152,6 @@ ZSTD_STATIC BIT_DStream_status BIT_reloadDStream(BIT_DStream_t *bitD)
 		return result;
 	}
 }
-
- 
-
 
 ZSTD_STATIC unsigned BIT_endOfDStream(const BIT_DStream_t *DStream)
 {

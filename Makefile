@@ -2,9 +2,6 @@
 # library and EFI-driver builds to subdirectories; it does not install to
 # an ESP or modify NVRAM. Native installation is owned by the .run script.
 
-
-
-
 include Make.common
 
 .PHONY: all gnuefi clean

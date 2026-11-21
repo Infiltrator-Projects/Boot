@@ -5,58 +5,6 @@
  * never equate compressed length with safe output capacity; decoder errors
  * and the destination size are part of the on-disk trust boundary.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
 
 #define __LZO_IN_MINILZO 1
 
@@ -2344,10 +2292,6 @@ __lzo_align_gap(const lzo_voidp ptr, lzo_uint size)
 #endif
 #if !defined(MINILZO_CFG_SKIP_LZO_UTIL)
 
- 
-
-
-
 static const char __lzo_copyright[] =
 #if !defined(__LZO_IN_MINLZO)
     LZO_VERSION_STRING;
@@ -4575,6 +4519,3 @@ lookbehind_overrun:
 }
 
 #endif
-
- 
-

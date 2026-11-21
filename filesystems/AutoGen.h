@@ -3,13 +3,6 @@
  * EDK-oriented build profile. They are not the runtime filesystem ABI and
  * are not evidence of freestanding Common V2 module compatibility.
  */
- 
-
-
-
-
-
-
 
 #ifndef _AUTOGENH_B34E5765_2E02_4DAF_867F_7F40BE6FC33D
 #define _AUTOGENH_B34E5765_2E02_4DAF_867F_7F40BE6FC33D
@@ -22,24 +15,17 @@ extern "C" {
 #include <Uefi.h>
 #include <Library/PcdLib.h>
 
- 
-
 #define _PCD_TOKEN_PcdUefiVariableDefaultLang  18U
 #define _PCD_PATCHABLE_PcdUefiVariableDefaultLang_SIZE 5
 #define _PCD_VALUE_PcdUefiVariableDefaultLang  _gPcd_FixedAtBuild_PcdUefiVariableDefaultLang
 extern const UINT8 _gPcd_FixedAtBuild_PcdUefiVariableDefaultLang[5];
 #define _PCD_GET_MODE_PTR_PcdUefiVariableDefaultLang  _gPcd_FixedAtBuild_PcdUefiVariableDefaultLang
- 
 
 #define _PCD_TOKEN_PcdUefiVariableDefaultPlatformLang  19U
 #define _PCD_PATCHABLE_PcdUefiVariableDefaultPlatformLang_SIZE 7
 #define _PCD_VALUE_PcdUefiVariableDefaultPlatformLang  _gPcd_FixedAtBuild_PcdUefiVariableDefaultPlatformLang
 extern const UINT8 _gPcd_FixedAtBuild_PcdUefiVariableDefaultPlatformLang[7];
 #define _PCD_GET_MODE_PTR_PcdUefiVariableDefaultPlatformLang  _gPcd_FixedAtBuild_PcdUefiVariableDefaultPlatformLang
- 
-
- 
-
 
 EFI_STATUS
 EFIAPI
@@ -47,10 +33,6 @@ fsw_efi_main (
   IN EFI_HANDLE        ImageHandle,
   IN EFI_SYSTEM_TABLE  *SystemTable
   );
-
-
-
-
 
 #ifdef __cplusplus
 }

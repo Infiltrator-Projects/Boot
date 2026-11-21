@@ -2,19 +2,7 @@
 # libraries and calling conventions differ from the GNU-EFI AMD64 release;
 # source presence is not a guarantee this profile was qualified in CI.
 
-
-
-
-
-
-
-
-
-
 include ../Make.common
-
-
-
 
 EFILIB          = $(TIANOBASE)/Build/Mde/$(TARGET)_$(TOOL_CHAIN_TAG)/$(UC_ARCH)/MdePkg/Library
 ALL_EFILIBS     = $(EFILIB)/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib/OUTPUT/BaseDebugPrintErrorLevelLib.lib \
@@ -69,4 +57,3 @@ $(BUILDME): $(DLL_TARGET)
 	cp $(BUILDME) ../drivers_$(FILENAME_CODE)
 
 endif
-

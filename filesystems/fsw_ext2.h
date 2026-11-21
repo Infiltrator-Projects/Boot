@@ -3,28 +3,6 @@
  * numbers, indirect pointers and inode geometry are read from disk; callers
  * must not treat these as validated after only checking the superblock magic.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_EXT2_H_
 #define _FSW_EXT2_H_
@@ -35,20 +13,13 @@
 
 #include "fsw_ext2_disk.h"
 
-
- 
 #define EXT2_SUPERBLOCK_BLOCKSIZE  1024
- 
+
 #define EXT2_SUPERBLOCK_BLOCKNO       1
-
-
- 
-
-
 
 struct fsw_ext2_volume {
     struct fsw_volume g;             
-    
+
     struct ext2_super_block *sb;     
     /*
      * One entry per block group gives the physical start of its inode table.
@@ -61,15 +32,10 @@ struct fsw_ext2_volume {
     fsw_u32     inode_size;          
 };
 
- 
-
-
-
 struct fsw_ext2_dnode {
     struct fsw_dnode g;              
-    
+
     struct ext2_inode *raw;          
 };
-
 
 #endif

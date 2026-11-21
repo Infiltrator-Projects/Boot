@@ -6,9 +6,6 @@
 #include "zutil.h"
 #include "zlib.h"
 
- 
-
-
 /*
  * Delegates to the streaming decoder using provided input/output bounds;
  * its status must not be ignored when the output represents an EFI image.
@@ -28,9 +25,6 @@ int zlib_inflate_blob(void *gunzip_buf, unsigned int sz,
     if (strm->workspace == NULL)
         goto gunzip_nomem2;
 
-     
-
-
     strm->next_in = zbuf;
     strm->avail_in = len;
     strm->next_out = gunzip_buf;
@@ -39,7 +33,7 @@ int zlib_inflate_blob(void *gunzip_buf, unsigned int sz,
     rc = zlib_inflateInit2(strm, -MAX_WBITS);
     if (rc == Z_OK) {
         rc = zlib_inflate(strm, Z_FINISH);
-         
+
         if (rc == Z_STREAM_END)
             rc = sz - strm->avail_out;
         else

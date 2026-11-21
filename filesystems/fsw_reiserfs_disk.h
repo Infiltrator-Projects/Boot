@@ -4,34 +4,9 @@
  * alter sizes, endian handling or key ordering. Directory/tree bounds are
  * security-sensitive when parsing a boot volume.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_REISERFS_DISK_H_
 #define _FSW_REISERFS_DISK_H_
-
- 
 
 typedef fsw_s8  __s8;
 typedef fsw_u8  __u8;
@@ -61,26 +36,8 @@ typedef __u64   __le64;
 
 #pragma pack(1)
 
- 
- 
- 
-
-
-
- 
-
-
-
- 
- 
- 
-
- 
-
-
-
 #define UNSET_HASH 0		 
-		      
+
 #define TEA_HASH  1
 #define YURA_HASH 2
 #define R5_HASH   3
@@ -102,7 +59,6 @@ struct journal_params {
 
 };
 
- 
 struct reiserfs_super_block_v1 {
 	__le32 s_block_count;	 
 	__le32 s_free_blocks;	 
@@ -116,7 +72,6 @@ struct reiserfs_super_block_v1 {
 
 	char s_magic[10];	 
 
-
 	__le16 s_fs_state;	 
 
 	__le32 s_hash_function_code;	 
@@ -128,12 +83,10 @@ struct reiserfs_super_block_v1 {
 
 	__le16 s_reserved_for_journal;	 
 
-
 } ATTR_PACKED;
 
 #define SB_SIZE_V1 (sizeof(struct reiserfs_super_block_v1))
 
- 
 struct reiserfs_super_block {
 	struct reiserfs_super_block_v1 s_v1;
 	__le32 s_inode_generation;
@@ -142,8 +95,6 @@ struct reiserfs_super_block {
 	unsigned char s_label[16];	 
 	char s_unused[88];	 
 
-
-
 } ATTR_PACKED;
 
 #define SB_SIZE (sizeof(struct reiserfs_super_block))
@@ -151,7 +102,6 @@ struct reiserfs_super_block {
 #define REISERFS_VERSION_1 0
 #define REISERFS_VERSION_2 2
 
- 
 #define SB_DISK_SUPER_BLOCK(s) (REISERFS_SB(s)->s_rs)
 #define SB_V1_DISK_SUPER_BLOCK(s) (&(SB_DISK_SUPER_BLOCK(s)->s_v1))
 #define SB_BLOCKSIZE(s) \
@@ -187,27 +137,18 @@ struct reiserfs_super_block {
          ((!is_reiserfs_jr(SB_DISK_SUPER_BLOCK(s)) ? \
          SB_ONDISK_JOURNAL_SIZE(s) + 1 : SB_ONDISK_RESERVED_FOR_JOURNAL(s)))
 
-				 
 #define REISERFS_SUPER_MAGIC 0x52654973
-				 
 
 #define REISERFS_SUPER_MAGIC_STRING "ReIsErFs"
 #define REISER2FS_SUPER_MAGIC_STRING "ReIsEr2Fs"
 #define REISER2FS_JR_SUPER_MAGIC_STRING "ReIsEr3Fs"
 
- 
-
-
-
-
 #define REISERFS_DISK_OFFSET_IN_BYTES (64 * 1024)
 #define REISERFS_FIRST_BLOCK unused_define
 #define REISERFS_JOURNAL_OFFSET_IN_BYTES REISERFS_DISK_OFFSET_IN_BYTES
 
- 
 #define REISERFS_OLD_DISK_OFFSET_IN_BYTES (8 * 1024)
 
- 
 #define CARRY_ON      0
 #define REPEAT_SEARCH -1
 #define IO_ERROR      -2
@@ -231,13 +172,8 @@ struct unfm_nodeinfo {
 #define KEY_FORMAT_3_5 0
 #define KEY_FORMAT_3_6 1
 
- 
 #define STAT_DATA_V1 0
 #define STAT_DATA_V2 1
-
-
-
- 
 
 #define get_inode_item_key_version( inode )                                    \
     ((REISERFS_I(inode)->i_flags & i_item_key_version_mask) ? KEY_FORMAT_3_6 : KEY_FORMAT_3_5)
@@ -257,16 +193,6 @@ struct unfm_nodeinfo {
             else                                                               \
                 REISERFS_I(inode)->i_flags &= ~i_stat_data_version_mask; })
 
- 
-
-
-
-
-
-
-
-
-
 #define STORE_TAIL_IN_UNFM_S1(n_file_size,n_tail_size,n_block_size) \
 (\
   (!(n_tail_size)) || \
@@ -280,26 +206,15 @@ struct unfm_nodeinfo {
      ( (n_tail_size) >=   (MAX_DIRECT_ITEM_LEN(n_block_size) * 3)/4) ) ) \
 )
 
- 
-
-
-
-
 #define STORE_TAIL_IN_UNFM_S2(n_file_size,n_tail_size,n_block_size) \
 (\
   (!(n_tail_size)) || \
   (((n_file_size) > MAX_DIRECT_ITEM_LEN(n_block_size)) ) \
 )
 
- 
-
-
 #define REISERFS_VALID_FS    1
 #define REISERFS_ERROR_FS    2
 
- 
- 
- 
 #define TYPE_STAT_DATA 0
 #define TYPE_INDIRECT 1
 #define TYPE_DIRECT 2
@@ -307,13 +222,6 @@ struct unfm_nodeinfo {
 #define TYPE_MAXTYPE 3
 #define TYPE_ANY 15		 
 
- 
- 
- 
-
- 
- 
- 
 struct offset_v1 {
 	__le32 k_offset;
 	__le32 k_uniqueness;
@@ -322,21 +230,6 @@ struct offset_v1 {
 struct offset_v2 {
 	__le64 v;
 } ATTR_PACKED;
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
- 
 
 struct reiserfs_key {
 	__le32 k_dir_id;	 
@@ -363,14 +256,9 @@ struct cpu_key {
 
 };
 
- 
-
-
-
 #define REISERFS_FULL_KEY_LEN     4
 #define REISERFS_SHORT_KEY_LEN    2
 
- 
 #define FIRST_GREATER 1
 #define SECOND_GREATER -1
 #define KEYS_IDENTICAL 0
@@ -380,7 +268,6 @@ struct cpu_key {
 #define KEY_SIZE (sizeof(struct reiserfs_key))
 #define SHORT_KEY_SIZE (sizeof (__u32) + sizeof (__u32))
 
- 
 #define ITEM_FOUND 1
 #define ITEM_NOT_FOUND 0
 #define ENTRY_FOUND 1
@@ -395,30 +282,17 @@ struct cpu_key {
 #define POSITION_FOUND 1
 #define POSITION_NOT_FOUND 0
 
- 
 #define NAME_FOUND 1
 #define NAME_NOT_FOUND 0
 #define GOTO_PREVIOUS_ITEM 2
 #define NAME_FOUND_INVISIBLE 3
 
- 
-
-
-
-
 struct item_head {
-	 
 
 	struct reiserfs_key ih_key;
 	union {
-		 
-
-
-
-
 
 		__le16 ih_free_space_reserved;
-		 
 
 		__le16 ih_entry_count;
 	} ATTR_PACKED u;
@@ -427,10 +301,8 @@ struct item_head {
 
 	__le16 ih_version;	 
 
-
-
 } ATTR_PACKED;
- 
+
 #define IH_SIZE (sizeof(struct item_head))
 
 #define ih_free_space(ih)            le16_to_cpu((ih)->u.ih_free_space_reserved)
@@ -443,136 +315,29 @@ struct item_head {
 
 #define get_ih_free_space(ih) (ih_version (ih) == KEY_FORMAT_3_6 ? 0 : ih_free_space (ih))
 
- 
-
-
-
-
-
 #define get_block_num(p, i) le32_to_cpu(get_unaligned((p) + (i)))
 
- 
- 
- 
 #define V1_SD_UNIQUENESS 0
 #define V1_INDIRECT_UNIQUENESS 0xfffffffe
 #define V1_DIRECT_UNIQUENESS 0xffffffff
 #define V1_DIRENTRY_UNIQUENESS 500
 #define V1_ANY_UNIQUENESS 555	 
 
- 
- 
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
- 
- 
- 
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define is_direntry_le_key(version,key) (le_key_k_type (version, key) == TYPE_DIRENTRY)
 #define is_direct_le_key(version,key) (le_key_k_type (version, key) == TYPE_DIRECT)
 #define is_indirect_le_key(version,key) (le_key_k_type (version, key) == TYPE_INDIRECT)
 #define is_statdata_le_key(version,key) (le_key_k_type (version, key) == TYPE_STAT_DATA)
 
- 
- 
- 
 #define is_direntry_le_ih(ih) is_direntry_le_key (ih_version (ih), &((ih)->ih_key))
 #define is_direct_le_ih(ih) is_direct_le_key (ih_version (ih), &((ih)->ih_key))
 #define is_indirect_le_ih(ih) is_indirect_le_key (ih_version(ih), &((ih)->ih_key))
 #define is_statdata_le_ih(ih) is_statdata_le_key (ih_version (ih), &((ih)->ih_key))
-
- 
- 
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #define is_direntry_cpu_key(key) (cpu_key_k_type (key) == TYPE_DIRENTRY)
 #define is_direct_cpu_key(key) (cpu_key_k_type (key) == TYPE_DIRECT)
 #define is_indirect_cpu_key(key) (cpu_key_k_type (key) == TYPE_INDIRECT)
 #define is_statdata_cpu_key(key) (cpu_key_k_type (key) == TYPE_STAT_DATA)
 
- 
 #define is_direntry_cpu_ih(ih) (is_direntry_cpu_key (&((ih)->ih_key)))
 #define is_direct_cpu_ih(ih) (is_direct_cpu_key (&((ih)->ih_key)))
 #define is_indirect_cpu_ih(ih) (is_indirect_cpu_key (&((ih)->ih_key)))
@@ -582,31 +347,18 @@ struct item_head {
     ( ! COMP_SHORT_KEYS(p_s_ih, p_s_key) && \
           I_OFF_BYTE_IN_ITEM(p_s_ih, k_offset (p_s_key), n_blocksize) )
 
- 
 #define MAX_ITEM_LEN(block_size) (block_size - BLKH_SIZE - IH_SIZE)
 #define MIN_ITEM_LEN 1
 
- 
 #define REISERFS_ROOT_OBJECTID 2
 #define REISERFS_ROOT_PARENT_OBJECTID 1
-
- 
-
-
-
-
-
-
-
-
- 
 
 struct block_head {
 	__le16 blk_level;	 
 	__le16 blk_nr_item;	 
 	__le16 blk_free_space;	 
 	__le16 blk_reserved;
-	 
+
 	struct reiserfs_key blk_right_delim_key;	 
 };
 
@@ -617,42 +369,23 @@ struct block_head {
 #define blkh_reserved(p_blkh)         (le16_to_cpu((p_blkh)->blk_reserved))
 #define blkh_right_delim_key(p_blkh)  ((p_blkh)->blk_right_delim_key)
 
- 
-
-
-
 #define FREE_LEVEL 0		 
-
-
-
 
 #define DISK_LEAF_NODE_LEVEL  1	 
 
- 
 #define B_BLK_HEAD(p_s_bh)            ((struct block_head *)((p_s_bh)->b_data))
- 
+
 #define B_NR_ITEMS(p_s_bh)            (blkh_nr_item(B_BLK_HEAD(p_s_bh)))
 #define B_LEVEL(p_s_bh)               (blkh_level(B_BLK_HEAD(p_s_bh)))
 #define B_FREE_SPACE(p_s_bh)          (blkh_free_space(B_BLK_HEAD(p_s_bh)))
 
- 
 #define B_PRIGHT_DELIM_KEY(p_s_bh)   (&(blk_right_delim_key(B_BLK_HEAD(p_s_bh))
 
- 
 #define B_IS_ITEMS_LEVEL(p_s_bh)     (B_LEVEL(p_s_bh) == DISK_LEAF_NODE_LEVEL)
 
- 
 #define B_IS_KEYS_LEVEL(p_s_bh)      (B_LEVEL(p_s_bh) > DISK_LEAF_NODE_LEVEL \
                                             && B_LEVEL(p_s_bh) <= MAX_HEIGHT)
 
- 
- 
- 
-
- 
- 
- 
- 
 struct stat_data_v1 {
 	__le16 sd_mode;		 
 	__le16 sd_nlink;	 
@@ -667,13 +400,6 @@ struct stat_data_v1 {
 		__le32 sd_blocks;	 
 	} ATTR_PACKED u;
 	__le32 sd_first_direct_byte;	 
-
-
-
-
-
-
-
 
 } ATTR_PACKED;
 
@@ -704,14 +430,6 @@ struct stat_data_v1 {
 #define set_sd_v1_first_direct_byte(sdp,v) \
                                 ((sdp)->sd_first_direct_byte = cpu_to_le32(v))
 
- 
-
-
-
- 
-
- 
-
 #define REISERFS_IMMUTABLE_FL EXT2_IMMUTABLE_FL
 #define REISERFS_APPEND_FL    EXT2_APPEND_FL
 #define REISERFS_SYNC_FL      EXT2_SYNC_FL
@@ -722,7 +440,6 @@ struct stat_data_v1 {
 #define REISERFS_COMPR_FL     EXT2_COMPR_FL
 #define REISERFS_NOTAIL_FL    EXT2_NOTAIL_FL
 
- 
 #define REISERFS_INHERIT_MASK ( REISERFS_IMMUTABLE_FL |	\
 				REISERFS_SYNC_FL |	\
 				REISERFS_NOATIME_FL |	\
@@ -730,8 +447,6 @@ struct stat_data_v1 {
 				REISERFS_SECRM_FL |	\
 				REISERFS_COMPR_FL |	\
 				REISERFS_NOTAIL_FL )
-
- 
 
 struct stat_data {
 	__le16 sd_mode;		 
@@ -747,27 +462,16 @@ struct stat_data {
 	union {
 		__le32 sd_rdev;
 		__le32 sd_generation;
-		 
-		 
-
-
-
-
-
-
 
 	} ATTR_PACKED u;
 } ATTR_PACKED;
- 
- 
- 
+
 #define SD_SIZE (sizeof(struct stat_data))
 #define SD_V2_SIZE              SD_SIZE
 #define stat_data_v2(ih)        (ih_version (ih) == KEY_FORMAT_3_6)
 #define sd_v2_mode(sdp)         (le16_to_cpu((sdp)->sd_mode))
 #define set_sd_v2_mode(sdp,v)   ((sdp)->sd_mode = cpu_to_le16(v))
- 
- 
+
 #define sd_v2_nlink(sdp)        (le32_to_cpu((sdp)->sd_nlink))
 #define set_sd_v2_nlink(sdp,v)  ((sdp)->sd_nlink = cpu_to_le32(v))
 #define sd_v2_size(sdp)         (le64_to_cpu((sdp)->sd_size))
@@ -791,39 +495,13 @@ struct stat_data {
 #define sd_v2_attrs(sdp)         (le16_to_cpu((sdp)->sd_attrs))
 #define set_sd_v2_attrs(sdp,v)   ((sdp)->sd_attrs = cpu_to_le16(v))
 
- 
- 
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
 #define SD_OFFSET  0
 #define SD_UNIQUENESS 0
 #define DOT_OFFSET 1
 #define DOT_DOT_OFFSET 2
 #define DIRENTRY_UNIQUENESS 500
 
- 
 #define FIRST_ITEM_OFFSET 1
-
- 
-
-
-
-
-
- 
-
 
 struct reiserfs_de_head {
 	__le32 deh_offset;	 
@@ -847,23 +525,17 @@ struct reiserfs_de_head {
 #define put_deh_location(p_deh,v) ((p_deh)->deh_location = cpu_to_le16((v)))
 #define put_deh_state(p_deh,v)    ((p_deh)->deh_state = cpu_to_le16((v)))
 
- 
 #define EMPTY_DIR_SIZE \
 (DEH_SIZE * 2 + ROUND_UP (strlen (".")) + ROUND_UP (strlen ("..")))
 
- 
 #define EMPTY_DIR_SIZE_V1 (DEH_SIZE * 2 + 3)
 
 #define DEH_Statdata 0		 
 #define DEH_Visible 2
 
- 
 #if BITS_PER_LONG == 64 || defined(__s390__) || defined(__hppa__)
 #   define ADDR_UNALIGNED_BITS  (3)
 #endif
-
- 
-
 
 #ifdef ADDR_UNALIGNED_BITS
 
@@ -891,54 +563,14 @@ struct reiserfs_de_head {
 #define de_visible(deh)	    	    test_bit_unaligned (DEH_Visible, &((deh)->deh_state))
 #define de_hidden(deh)	    	    !test_bit_unaligned (DEH_Visible, &((deh)->deh_state))
 
- 
-
-
-
-
-
-
- 
-  
 #define B_I_PITEM(bh,ih) ( (bh)->b_data + ih_location(ih) )
 #define B_I_DEH(bh,ih) ((struct reiserfs_de_head *)(B_I_PITEM(bh,ih)))
 
- 
-
-
-
-
-
- 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
 #define I_ENTRY_COUNT(ih) (ih_entry_count((ih)))
 
- 
 #define B_I_E_NAME(bh,ih,entry_num) ((char *)(bh->b_data + ih_location(ih) + deh_location(B_I_DEH(bh,ih)+(entry_num))))
 
- 
 #define REISERFS_MAX_NAME(block_size) 255
-
- 
-
- 
 
 struct reiserfs_dir_entry {
 	struct buffer_head *de_bh;
@@ -957,36 +589,17 @@ struct reiserfs_dir_entry {
 	struct cpu_key de_entry_key;
 };
 
- 
-
- 
 #define B_I_DEH_ENTRY_FILE_NAME(bh,ih,deh) (B_I_PITEM (bh, ih) + deh_location(deh))
 
- 
 #define I_DEH_N_ENTRY_FILE_NAME_LENGTH(ih,deh,entry_num) \
 (I_DEH_N_ENTRY_LENGTH (ih, deh, entry_num) - (de_with_sd (deh) ? SD_SIZE : 0))
 
- 
 #define GET_HASH_VALUE(offset) ((offset) & 0x7fffff80LL)
- 
+
 #define GET_GENERATION_NUMBER(offset) ((offset) & 0x7fLL)
 #define MAX_GENERATION_NUMBER  127
 
 #define SET_GENERATION_NUMBER(offset,gen_number) (GET_HASH_VALUE(offset)|(gen_number))
-
- 
-
-
-
-
-
-
-
-
- 
- 
- 
- 
 
 struct disk_child {
 	__le32 dc_block_number;	 
@@ -998,41 +611,23 @@ struct disk_child {
 #define dc_block_number(dc_p)	(le32_to_cpu((dc_p)->dc_block_number))
 #define dc_size(dc_p)		(le16_to_cpu((dc_p)->dc_size))
 
- 
 #define B_N_CHILD(p_s_bh,n_pos)  ((struct disk_child *)\
 ((p_s_bh)->b_data+BLKH_SIZE+B_NR_ITEMS(p_s_bh)*KEY_SIZE+DC_SIZE*(n_pos)))
 
- 
 #define B_N_CHILD_NUM(p_s_bh,n_pos) (dc_block_number(B_N_CHILD(p_s_bh,n_pos)))
 #define PUT_B_N_CHILD_NUM(p_s_bh,n_pos, val) (put_dc_block_number(B_N_CHILD(p_s_bh,n_pos), val ))
 
-  
-  
 #define MAX_CHILD_SIZE(bh) ((int)( (bh)->b_size - BLKH_SIZE ))
 
- 
 #define B_CHILD_SIZE(cur) (MAX_CHILD_SIZE(cur)-(B_FREE_SPACE(cur)))
 
- 
 #define MAX_NR_KEY(bh) ( (MAX_CHILD_SIZE(bh)-DC_SIZE)/(KEY_SIZE+DC_SIZE) )
 #define MIN_NR_KEY(bh)    (MAX_NR_KEY(bh)/2)
-
- 
- 
- 
-
- 
-
-
-
-
-
-
 
 struct path_element {
 	struct buffer_head *pe_buffer;	 
 	int pe_position;	 
-	 
+
 };
 
 #define MAX_HEIGHT 5		 
@@ -1041,23 +636,6 @@ struct path_element {
 
 #define ILLEGAL_PATH_ELEMENT_OFFSET 1	 
 #define MAX_FEB_SIZE 6		 
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #define PATH_READA	0x1	 
 #define PATH_READA_BACK 0x2	 
@@ -1074,27 +652,17 @@ struct path {
 #define INITIALIZE_PATH(var) \
 struct path var = {.path_length = ILLEGAL_PATH_ELEMENT_OFFSET, .reada = 0,}
 
- 
 #define PATH_OFFSET_PELEMENT(p_s_path,n_offset)  ((p_s_path)->path_elements +(n_offset))
 
- 
 #define PATH_OFFSET_PBUFFER(p_s_path,n_offset)   (PATH_OFFSET_PELEMENT(p_s_path,n_offset)->pe_buffer)
 
- 
 #define PATH_OFFSET_POSITION(p_s_path,n_offset) (PATH_OFFSET_PELEMENT(p_s_path,n_offset)->pe_position)
 
 #define PATH_PLAST_BUFFER(p_s_path) (PATH_OFFSET_PBUFFER((p_s_path), (p_s_path)->path_length))
-				 
-
-
-
-
 
 #define PATH_LAST_POSITION(p_s_path) (PATH_OFFSET_POSITION((p_s_path), (p_s_path)->path_length))
 
 #define PATH_PITEM_HEAD(p_s_path)    B_N_PITEM_HEAD(PATH_PLAST_BUFFER(p_s_path),PATH_LAST_POSITION(p_s_path))
-
- 
 
 #define PATH_H_PBUFFER(p_s_path, h) PATH_OFFSET_PBUFFER (p_s_path, p_s_path->path_length - (h))	 
 #define PATH_H_PPARENT(path, h) PATH_H_PBUFFER (path, (h) + 1)	 
@@ -1110,44 +678,24 @@ struct path var = {.path_length = ILLEGAL_PATH_ELEMENT_OFFSET, .reada = 0,}
 #define item_moved(ih,path) comp_items(ih, path)
 #define path_changed(ih,path) comp_items (ih, path)
 
- 
- 
- 
-
- 
 #define UNFM_P_SIZE (sizeof(unp_t))
 #define UNFM_P_SHIFT 2
 
- 
 #define INODE_PKEY(inode) ((struct reiserfs_key *)(REISERFS_I(inode)->i_key))
 
 #define MAX_UL_INT 0xffffffff
 #define MAX_INT    0x7ffffff
 #define MAX_US_INT 0xffff
 
- 
 #define U32_MAX (~(__u32)0)
 
- 
-
-
-
-
-
-
-
-
-
- 
 #define MAX_KEY_OBJECTID	MAX_UL_INT
 
 #define MAX_B_NUM  MAX_UL_INT
 #define MAX_FC_NUM MAX_US_INT
 
- 
 #define REISERFS_LINK_MAX (MAX_US_INT - 1000)
 
- 
 #define REISERFS_KERNEL_MEM		0	 
 #define REISERFS_USER_MEM		1	 
 
@@ -1157,25 +705,8 @@ struct path var = {.path_length = ILLEGAL_PATH_ELEMENT_OFFSET, .reada = 0,}
 #define __fs_changed(gen,s) (gen != get_generation (s))
 #define fs_changed(gen,s) ({cond_resched(); __fs_changed(gen, s);})
 
- 
- 
- 
-
 #define VI_TYPE_LEFT_MERGEABLE 1
 #define VI_TYPE_RIGHT_MERGEABLE 2
-
- 
-
-
-
-
-
-
-
-
-
-
-
 
 struct virtual_item {
 	int vi_index;		 
@@ -1199,34 +730,16 @@ struct virtual_node {
 	struct virtual_item *vn_vi;	 
 };
 
- 
 struct direntry_uarea {
 	int flags;
 	__u16 entry_count;
 	__u16 entry_sizes[1];
 } ATTR_PACKED;
 
- 
- 
- 
-
- 
-
-
-
-
-
-
-
-
-
-
 #define MAX_FREE_BLOCK 7	 
 
- 
 #define MAX_AMOUNT_NEEDED 2
 
- 
 struct tree_balance {
 	int tb_mode;
 	int need_balance_dirty;
@@ -1246,13 +759,6 @@ struct tree_balance {
 	struct buffer_head *thrown[MAX_FEB_SIZE];
 	int lnum[MAX_HEIGHT];	 
 
-
-
-
-
-
-
-
 	int rnum[MAX_HEIGHT];	 
 	int lkey[MAX_HEIGHT];	 
 
@@ -1261,27 +767,19 @@ struct tree_balance {
 
 	int blknum[MAX_HEIGHT];	 
 
-
-
-
-
-	 
 	int cur_blknum;		 
 	int s0num;		 
 	int s1num;		 
 	int s2num;		 
 	int lbytes;		 
-	 
-	 
+
 	int rbytes;		 
-	 
-	 
+
 	int s1bytes;		 
-	 
+
 	int s2bytes;
 	struct buffer_head *buf_to_free[MAX_FREE_BLOCK];	 
 	char *vn_buf;		 
-
 
 	int vn_buf_size;	 
 	struct virtual_node *tb_vn;	 
@@ -1294,27 +792,19 @@ struct tree_balance {
 #endif
 };
 
- 
-
- 
 #define M_INSERT	'i'
- 
 
 #define M_PASTE		'p'
- 
+
 #define M_DELETE	'd'
- 
+
 #define M_CUT 		'c'
 
- 
 #define M_INTERNAL	'n'
-
- 
 
 #define M_SKIP_BALANCING 		's'
 #define M_CONVERT	'v'
 
- 
 #define LEAF_FROM_S_TO_L 0
 #define LEAF_FROM_S_TO_R 1
 #define LEAF_FROM_R_TO_L 2
@@ -1324,30 +814,12 @@ struct tree_balance {
 #define FIRST_TO_LAST 0
 #define LAST_TO_FIRST 1
 
- 
-
 struct buffer_info {
 	struct tree_balance *tb;
 	struct buffer_head *bi_bh;
 	struct buffer_head *bi_parent;
 	int bi_position;
 };
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 struct item_operations {
 	int (*bytes_number) (struct item_head * ih, int block_size);
@@ -1382,40 +854,24 @@ extern struct item_operations *item_ops[TYPE_ANY + 1];
 
 #define COMP_SHORT_KEYS comp_short_keys
 
- 
 #define I_UNFM_NUM(p_s_ih)	( ih_item_len(p_s_ih) / UNFM_P_SIZE )
 
- 
 #define I_POS_UNFM_SIZE(ih,pos,size) (((pos) == I_UNFM_NUM(ih) - 1 ) ? (size) - ih_free_space(ih) : (size))
 
- 
-
- 
 #define B_N_PITEM_HEAD(bh,item_num) ( (struct item_head * )((bh)->b_data + BLKH_SIZE) + (item_num) )
 
- 
 #define B_N_PDELIM_KEY(bh,item_num) ( (struct reiserfs_key * )((bh)->b_data + BLKH_SIZE) + (item_num) )
 
- 
 #define B_N_PKEY(bh,item_num) ( &(B_N_PITEM_HEAD(bh,item_num)->ih_key) )
 
- 
 #define B_N_PITEM(bh,item_num) ( (bh)->b_data + ih_location(B_N_PITEM_HEAD((bh),(item_num))))
 
- 
 #define B_N_STAT_DATA(bh,nr) \
 ( (struct stat_data *)((bh)->b_data + ih_location(B_N_PITEM_HEAD((bh),(nr))) ) )
 
-     
-
- 
 #define B_I_STAT_DATA(bh, ih) ( (struct stat_data * )((bh)->b_data + ih_location(ih)) )
 
- 
 #define MAX_DIRECT_ITEM_LEN(size) ((size) - BLKH_SIZE - 2*IH_SIZE - SD_SIZE - UNFM_P_SIZE)
-
- 
-
 
 #define B_I_POS_UNFM_POINTER(bh,ih,pos) le32_to_cpu(*(((unp_t *)B_I_PITEM(bh,ih)) + (pos)))
 #define PUT_B_I_POS_UNFM_POINTER(bh,ih,pos, val) do {*(((unp_t *)B_I_PITEM(bh,ih)) + (pos)) = cpu_to_le32(val); } while (0)
@@ -1425,19 +881,11 @@ struct reiserfs_iget_args {
 	__u32 dirid;
 };
 
- 
- 
- 
-
- 
 #define get_journal_desc_magic(bh) (bh->b_data + bh->b_size - 12)
 
 #define journal_trans_half(blocksize) \
 	((blocksize - sizeof (struct reiserfs_journal_desc) + sizeof (__u32) - 12) / sizeof (__u32))
 
- 
-
- 
 struct reiserfs_journal_desc {
 	__le32 j_trans_id;	 
 	__le32 j_len;		 
@@ -1453,7 +901,6 @@ struct reiserfs_journal_desc {
 #define set_desc_trans_len(d,val)      do { (d)->j_len = cpu_to_le32 (val); } while (0)
 #define set_desc_mount_id(d,val)       do { (d)->j_mount_id = cpu_to_le32 (val); } while (0)
 
- 
 struct reiserfs_journal_commit {
 	__le32 j_trans_id;	 
 	__le32 j_len;		 
@@ -1467,10 +914,6 @@ struct reiserfs_journal_commit {
 #define set_commit_trans_id(c,val)     do { (c)->j_trans_id = cpu_to_le32 (val); } while (0)
 #define set_commit_trans_len(c,val)    do { (c)->j_len = cpu_to_le32 (val); } while (0)
 
- 
-
-
-
 struct reiserfs_journal_header {
 	__le32 j_last_flush_trans_id;	 
 	__le32 j_first_unflushed_offset;	 
@@ -1478,7 +921,6 @@ struct reiserfs_journal_header {
 	  struct journal_params jh_journal;
 };
 
- 
 #define JOURNAL_BLOCK_COUNT 8192	 
 #define JOURNAL_TRANS_MAX_DEFAULT 1024	 
 #define JOURNAL_TRANS_MIN_DEFAULT 256
@@ -1488,12 +930,12 @@ struct reiserfs_journal_header {
 #define JOURNAL_MAX_TRANS_AGE 30
 #define JOURNAL_PER_BALANCE_CNT (3 * (MAX_HEIGHT-2) + 9)
 #ifdef CONFIG_QUOTA
- 
+
 #define REISERFS_QUOTA_TRANS_BLOCKS(s) (REISERFS_SB(s)->s_mount_opt & (1<<REISERFS_QUOTA) ? 2 : 0)
- 
+
 #define REISERFS_QUOTA_INIT_BLOCKS(s) (REISERFS_SB(s)->s_mount_opt & (1<<REISERFS_QUOTA) ? \
 (DQUOT_INIT_ALLOC*(JOURNAL_PER_BALANCE_CNT+2)+DQUOT_INIT_REWRITE+1) : 0)
- 
+
 #define REISERFS_QUOTA_DEL_BLOCKS(s) (REISERFS_SB(s)->s_mount_opt & (1<<REISERFS_QUOTA) ? \
 (DQUOT_DEL_ALLOC*(JOURNAL_PER_BALANCE_CNT+2)+DQUOT_DEL_REWRITE+1) : 0)
 #else
@@ -1501,12 +943,6 @@ struct reiserfs_journal_header {
 #define REISERFS_QUOTA_INIT_BLOCKS(s) 0
 #define REISERFS_QUOTA_DEL_BLOCKS(s) 0
 #endif
-
- 
-
-
-
-
 
 #define REISERFS_MIN_BITMAP_NODES 10
 #define REISERFS_MAX_BITMAP_NODES 100
@@ -1519,46 +955,12 @@ struct reiserfs_journal_header {
 	 (((block)<<(JBH_HASH_SHIFT - 6)) ^ ((block) >> 13) ^ ((block) << (JBH_HASH_SHIFT - 12))))
 #define journal_hash(t,sb,block) ((t)[_jhashfn((sb),(block)) & JBH_HASH_MASK])
 
- 
 #define journal_find_get_block(s, block) __find_get_block(SB_JOURNAL(s)->j_dev_bd, block, s->s_blocksize)
 #define journal_getblk(s, block) __getblk(SB_JOURNAL(s)->j_dev_bd, block, s->s_blocksize)
 #define journal_bread(s, block) __bread(SB_JOURNAL(s)->j_dev_bd, block, s->s_blocksize)
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
 struct reiserfs_transaction_handle {
 	struct super_block *t_super;	 
-
-
-
-
 
 	int t_refcount;
 	int t_blocks_logged;	 
@@ -1567,41 +969,13 @@ struct reiserfs_transaction_handle {
 	void *t_handle_save;	 
 	unsigned displace_new_blocks:1;	 
 
-	 
 };
-
- 
-
 
 struct reiserfs_jh {
 	struct reiserfs_journal_list *jl;
 	struct buffer_head *bh;
-	 
+
 };
-
- 
- 
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #define i_block_size(inode) ((inode)->i_sb->s_blocksize)
 #define file_size(inode) ((inode)->i_size)
@@ -1610,18 +984,12 @@ struct reiserfs_jh {
 #define tail_has_to_be_packed(inode) (have_large_tails ((inode)->i_sb)?\
 !STORE_TAIL_IN_UNFM_S1(file_size (inode), tail_size(inode), inode->i_sb->s_blocksize):have_small_tails ((inode)->i_sb)?!STORE_TAIL_IN_UNFM_S2(file_size (inode), tail_size(inode), inode->i_sb->s_blocksize):0 )
 
- 
- 
 #define GET_BLOCK_NO_CREATE 0	 
 #define GET_BLOCK_CREATE 1	 
 #define GET_BLOCK_NO_HOLE 2	 
 #define GET_BLOCK_READ_DIRECT 4	 
 #define GET_BLOCK_NO_IMUX     8	 
 #define GET_BLOCK_NO_DANGLE   16	 
-
- 
-
- 
 
 struct __reiserfs_blocknr_hint {
 	struct inode *inode;	 
@@ -1634,9 +1002,7 @@ struct __reiserfs_blocknr_hint {
 	b_blocknr_t beg, end;
 	b_blocknr_t search_start;	 
 
-
 	int prealloc_size;	 
-
 
 	unsigned formatted_node:1;	 
 
@@ -1645,41 +1011,24 @@ struct __reiserfs_blocknr_hint {
 
 typedef struct __reiserfs_blocknr_hint reiserfs_blocknr_hint_t;
 
- 
 __u32 keyed_hash(const signed char *msg, int len);
 __u32 yura_hash(const signed char *msg, int len);
 __u32 r5_hash(const signed char *msg, int len);
-
- 
-
-
 
 #define reiserfs_test_and_set_le_bit   ext2_set_bit
 #define reiserfs_test_and_clear_le_bit ext2_clear_bit
 #define reiserfs_test_le_bit           ext2_test_bit
 #define reiserfs_find_next_zero_le_bit ext2_find_next_zero_bit
 
- 
-
-
-
-
-
-
 #define SPARE_SPACE 500
 
- 
 #define REISERFS_IOC_UNPACK		_IOW(0xCD,1,long)
- 
 
 #define REISERFS_IOC_GETFLAGS		EXT2_IOC_GETFLAGS
 #define REISERFS_IOC_SETFLAGS		EXT2_IOC_SETFLAGS
 #define REISERFS_IOC_GETVERSION		EXT2_IOC_GETVERSION
 #define REISERFS_IOC_SETVERSION		EXT2_IOC_SETVERSION
 
-
-
 #pragma pack()
-
 
 #endif

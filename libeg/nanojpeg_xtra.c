@@ -3,37 +3,11 @@
  * resource content, never a prerequisite for scanning or launching an EFI
  * image. Adapter allocations are independent of loader and firmware handles.
  */
- 
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "../boot/screen.h"
 #include "../boot/lib.h"
- 
- 
+
 #define _NJ_INCLUDE_HEADER_ONLY
 #include "nanojpeg.c"
 
@@ -43,8 +17,6 @@ typedef struct _jpeg_color {
    UINT8 blue;
 } jpeg_color;
 
- 
- 
 /*
  * Runs the JPEG decoder and converts output into a graphics surface;
  * errors must not be mistaken for failure to discover the associated OS.
@@ -64,7 +36,6 @@ EG_IMAGE * egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ic
         Width = njGetWidth();
         Height = njGetHeight();
 
-         
         NewImage = egCreateImage(Width, Height, WantAlpha);
         if ((NewImage == NULL) || (NewImage->Width != Width) || (NewImage->Height != Height))
             return NULL;
@@ -76,14 +47,11 @@ EG_IMAGE * egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ic
          */
         JpegData = (jpeg_color *) njGetImage();
 
-         
-         
         for (i = 0; i < (NewImage->Height * NewImage->Width); i++) {
             NewImage->PixelData[i].r = JpegData[i].red;
             NewImage->PixelData[i].g = JpegData[i].green;
             NewImage->PixelData[i].b = JpegData[i].blue;
-             
-             
+
             if (WantAlpha)
                 NewImage->PixelData[i].a = 255;
         }

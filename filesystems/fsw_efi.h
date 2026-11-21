@@ -4,42 +4,6 @@
  * recovery but is not a cryptographic authenticity check. Protocol callbacks
  * must maintain EFI_STATUS, position and buffer-size semantics.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_EFI_H_
 #define _FSW_EFI_H_
@@ -81,9 +45,8 @@ typedef struct {
 
 } FSW_VOLUME_DATA;
 
- 
 #define FSW_VOLUME_DATA_SIGNATURE  EFI_SIGNATURE_32 ('f', 's', 'w', 'V')
- 
+
 #define FSW_VOLUME_FROM_FILE_SYSTEM(a)  CR (a, FSW_VOLUME_DATA, FileSystem, FSW_VOLUME_DATA_SIGNATURE)
 /*
  * Each published file protocol encloses its own FSW stream handle. Two opens
@@ -100,20 +63,13 @@ typedef struct {
 
 } FSW_FILE_DATA;
 
- 
 #define FSW_EFI_FILE_TYPE_FILE  (0)
- 
+
 #define FSW_EFI_FILE_TYPE_DIR   (1)
 
- 
 #define FSW_FILE_DATA_SIGNATURE    EFI_SIGNATURE_32 ('f', 's', 'w', 'F')
- 
+
 #define FSW_FILE_FROM_FILE_HANDLE(a)  CR (a, FSW_FILE_DATA, FileHandle, FSW_FILE_DATA_SIGNATURE)
-
-
- 
- 
- 
 
 VOID fsw_efi_decode_time(OUT EFI_TIME *EfiTime, IN UINT32 UnixTime);
 

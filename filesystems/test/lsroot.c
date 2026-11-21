@@ -3,45 +3,8 @@
  * test support, not evidence that any filesystem driver has been authenticated
  * or successfully executed by physical UEFI firmware.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "fsw_posix.h"
-
 
 extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(reiserfs);
 extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(iso9660);
@@ -60,14 +23,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-     
-     
     vol = fsw_posix_mount(argv[1], &FSW_FSTYPE_TABLE_NAME(FSTYPE));
     if (vol == NULL) {
         fprintf(stderr, "Mounting failed.\n");
         return 1;
     }
-     
+
     dir = fsw_posix_opendir(vol, "/");
     if (dir == NULL) {
         fprintf(stderr, "opendir call failed.\n");
@@ -85,5 +46,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
- 

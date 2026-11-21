@@ -4,39 +4,6 @@
  * modify the generator rather than applying a nonrepeatable manual change.
  * Invalid encodings and output capacity are relevant parser boundaries.
  */
- 
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static int fsw_streq_ISO88591_UTF8(void *s1data, void *s2data, int len)
 {
@@ -44,7 +11,7 @@ static int fsw_streq_ISO88591_UTF8(void *s1data, void *s2data, int len)
     fsw_u8 *p1 = (fsw_u8 *)s1data;
     fsw_u8 *p2 = (fsw_u8 *)s2data;
     fsw_u32 c1, c2;
-    
+
     for (i = 0; i < len; i++) {
         c1 = *p1++;
         c2 = *p2++;
@@ -70,7 +37,7 @@ static int fsw_streq_ISO88591_UTF16(void *s1data, void *s2data, int len)
     fsw_u8 *p1 = (fsw_u8 *)s1data;
     fsw_u16 *p2 = (fsw_u16 *)s2data;
     fsw_u32 c1, c2;
-    
+
     for (i = 0; i < len; i++) {
         c1 = *p1++;
         c2 = *p2++;
@@ -86,7 +53,7 @@ static int fsw_streq_ISO88591_UTF16_SWAPPED(void *s1data, void *s2data, int len)
     fsw_u8 *p1 = (fsw_u8 *)s1data;
     fsw_u16 *p2 = (fsw_u16 *)s2data;
     fsw_u32 c1, c2;
-    
+
     for (i = 0; i < len; i++) {
         c1 = *p1++;
         c2 = *p2++; c2 = FSW_SWAPVALUE_U16(c2);
@@ -102,7 +69,7 @@ static int fsw_streq_UTF8_UTF16(void *s1data, void *s2data, int len)
     fsw_u8 *p1 = (fsw_u8 *)s1data;
     fsw_u16 *p2 = (fsw_u16 *)s2data;
     fsw_u32 c1, c2;
-    
+
     for (i = 0; i < len; i++) {
         c1 = *p1++;
         if ((c1 & 0xe0) == 0xc0) {
@@ -128,7 +95,7 @@ static int fsw_streq_UTF8_UTF16_SWAPPED(void *s1data, void *s2data, int len)
     fsw_u8 *p1 = (fsw_u8 *)s1data;
     fsw_u16 *p2 = (fsw_u16 *)s2data;
     fsw_u32 c1, c2;
-    
+
     for (i = 0; i < len; i++) {
         c1 = *p1++;
         if ((c1 & 0xe0) == 0xc0) {
@@ -154,7 +121,7 @@ static int fsw_streq_UTF16_UTF16_SWAPPED(void *s1data, void *s2data, int len)
     fsw_u16 *p1 = (fsw_u16 *)s1data;
     fsw_u16 *p2 = (fsw_u16 *)s2data;
     fsw_u32 c1, c2;
-    
+
     for (i = 0; i < len; i++) {
         c1 = *p1++;
         c2 = *p2++; c2 = FSW_SWAPVALUE_U16(c2);
@@ -171,14 +138,14 @@ static fsw_status_t fsw_strcoerce_UTF8_ISO88591(void *srcdata, int srclen, struc
     fsw_u8       *sp;
     fsw_u8       *dp;
     fsw_u32         c;
-    
+
     dest->type = FSW_STRING_TYPE_ISO88591;
     dest->len  = srclen;
     dest->size = srclen * sizeof(fsw_u8);
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u8 *)srcdata;
     dp = (fsw_u8 *)dest->data;
     for (i = 0; i < srclen; i++) {
@@ -205,14 +172,14 @@ static fsw_status_t fsw_strcoerce_UTF16_ISO88591(void *srcdata, int srclen, stru
     fsw_u16       *sp;
     fsw_u8       *dp;
     fsw_u32         c;
-    
+
     dest->type = FSW_STRING_TYPE_ISO88591;
     dest->len  = srclen;
     dest->size = srclen * sizeof(fsw_u8);
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u16 *)srcdata;
     dp = (fsw_u8 *)dest->data;
     for (i = 0; i < srclen; i++) {
@@ -229,14 +196,14 @@ static fsw_status_t fsw_strcoerce_UTF16_SWAPPED_ISO88591(void *srcdata, int srcl
     fsw_u16       *sp;
     fsw_u8       *dp;
     fsw_u32         c;
-    
+
     dest->type = FSW_STRING_TYPE_ISO88591;
     dest->len  = srclen;
     dest->size = srclen * sizeof(fsw_u8);
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u16 *)srcdata;
     dp = (fsw_u8 *)dest->data;
     for (i = 0; i < srclen; i++) {
@@ -253,14 +220,14 @@ static fsw_status_t fsw_strcoerce_ISO88591_UTF16(void *srcdata, int srclen, stru
     fsw_u8       *sp;
     fsw_u16       *dp;
     fsw_u32         c;
-    
+
     dest->type = FSW_STRING_TYPE_UTF16;
     dest->len  = srclen;
     dest->size = srclen * sizeof(fsw_u16);
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u8 *)srcdata;
     dp = (fsw_u16 *)dest->data;
     for (i = 0; i < srclen; i++) {
@@ -277,14 +244,14 @@ static fsw_status_t fsw_strcoerce_UTF8_UTF16(void *srcdata, int srclen, struct f
     fsw_u8       *sp;
     fsw_u16       *dp;
     fsw_u32         c;
-    
+
     dest->type = FSW_STRING_TYPE_UTF16;
     dest->len  = srclen;
     dest->size = srclen * sizeof(fsw_u16);
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u8 *)srcdata;
     dp = (fsw_u16 *)dest->data;
     for (i = 0; i < srclen; i++) {
@@ -311,14 +278,14 @@ static fsw_status_t fsw_strcoerce_UTF16_SWAPPED_UTF16(void *srcdata, int srclen,
     fsw_u16       *sp;
     fsw_u16       *dp;
     fsw_u32         c;
-    
+
     dest->type = FSW_STRING_TYPE_UTF16;
     dest->len  = srclen;
     dest->size = srclen * sizeof(fsw_u16);
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u16 *)srcdata;
     dp = (fsw_u16 *)dest->data;
     for (i = 0; i < srclen; i++) {
@@ -335,12 +302,12 @@ static fsw_status_t fsw_strcoerce_ISO88591_UTF8(void *srcdata, int srclen, struc
     fsw_u8       *sp;
     fsw_u8       *dp;
     fsw_u32         c;
-    
+
     sp = (fsw_u8 *)srcdata;
     destsize = 0;
     for (i = 0; i < srclen; i++) {
         c = *sp++;
-        
+
         if (c < 0x000080)
             destsize++;
         else if (c < 0x000800)
@@ -350,19 +317,19 @@ static fsw_status_t fsw_strcoerce_ISO88591_UTF8(void *srcdata, int srclen, struc
         else
             destsize += 4;
     }
-    
+
     dest->type = FSW_STRING_TYPE_UTF8;
     dest->len  = srclen;
     dest->size = destsize;
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u8 *)srcdata;
     dp = (fsw_u8 *)dest->data;
     for (i = 0; i < srclen; i++) {
         c = *sp++;
-        
+
         if (c < 0x000080) {
             *dp++ = (fsw_u8)c;
         } else if (c < 0x000800) {
@@ -389,12 +356,12 @@ static fsw_status_t fsw_strcoerce_UTF16_UTF8(void *srcdata, int srclen, struct f
     fsw_u16       *sp;
     fsw_u8       *dp;
     fsw_u32         c;
-    
+
     sp = (fsw_u16 *)srcdata;
     destsize = 0;
     for (i = 0; i < srclen; i++) {
         c = *sp++;
-        
+
         if (c < 0x000080)
             destsize++;
         else if (c < 0x000800)
@@ -404,19 +371,19 @@ static fsw_status_t fsw_strcoerce_UTF16_UTF8(void *srcdata, int srclen, struct f
         else
             destsize += 4;
     }
-    
+
     dest->type = FSW_STRING_TYPE_UTF8;
     dest->len  = srclen;
     dest->size = destsize;
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u16 *)srcdata;
     dp = (fsw_u8 *)dest->data;
     for (i = 0; i < srclen; i++) {
         c = *sp++;
-        
+
         if (c < 0x000080) {
             *dp++ = (fsw_u8)c;
         } else if (c < 0x000800) {
@@ -443,12 +410,12 @@ static fsw_status_t fsw_strcoerce_UTF16_SWAPPED_UTF8(void *srcdata, int srclen, 
     fsw_u16       *sp;
     fsw_u8       *dp;
     fsw_u32         c;
-    
+
     sp = (fsw_u16 *)srcdata;
     destsize = 0;
     for (i = 0; i < srclen; i++) {
         c = *sp++; c = FSW_SWAPVALUE_U16(c);
-        
+
         if (c < 0x000080)
             destsize++;
         else if (c < 0x000800)
@@ -458,19 +425,19 @@ static fsw_status_t fsw_strcoerce_UTF16_SWAPPED_UTF8(void *srcdata, int srclen, 
         else
             destsize += 4;
     }
-    
+
     dest->type = FSW_STRING_TYPE_UTF8;
     dest->len  = srclen;
     dest->size = destsize;
     status = fsw_alloc(dest->size, &dest->data);
     if (status)
         return status;
-    
+
     sp = (fsw_u16 *)srcdata;
     dp = (fsw_u8 *)dest->data;
     for (i = 0; i < srclen; i++) {
         c = *sp++; c = FSW_SWAPVALUE_U16(c);
-        
+
         if (c < 0x000080) {
             *dp++ = (fsw_u8)c;
         } else if (c < 0x000800) {

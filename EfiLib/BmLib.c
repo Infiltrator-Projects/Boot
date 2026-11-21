@@ -3,19 +3,6 @@
  * pool reallocation. Callers must respect differences between an EFI handle,
  * a protocol instance and an allocated copy of firmware-managed structures.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifdef __MAKEWITH_TIANO
 #include "Platform.h"
@@ -23,20 +10,6 @@
 #include "gnuefi-helper.h"
 #endif
 #include "../include/refit_call_wrapper.h"
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 EFI_STATUS
 /*
@@ -59,15 +32,6 @@ EfiLibLocateProtocol (
   return Status;
 }
 
- 
-
-
-
-
-
-
-
-
 EFI_FILE_HANDLE
 EfiLibOpenRoot (
   IN EFI_HANDLE                   DeviceHandle
@@ -79,38 +43,21 @@ EfiLibOpenRoot (
 
   File = NULL;
 
-   
-   
-   
   Status = refit_call3_wrapper(gBS->HandleProtocol,
                   DeviceHandle,
                   &gEfiSimpleFileSystemProtocolGuid,
                   (VOID **) &Volume
                   );
 
-   
-   
-   
   if (!EFI_ERROR (Status)) {
     Status = Volume->OpenVolume (
                       Volume,
                       &File
                       );
   }
-   
-   
-   
+
   return EFI_ERROR (Status) ? NULL : File;
 }
-
- 
-
-
-
-
-
-
-
 
 CHAR16 *
 EfiStrDuplicate (
@@ -129,16 +76,6 @@ EfiStrDuplicate (
   return Dest;
 }
 
- 
-
-
-
-
-
-
-
-
-
 EFI_FILE_INFO *
 EfiLibFileInfo (
   IN EFI_FILE_HANDLE      FHand
@@ -147,13 +84,13 @@ EfiLibFileInfo (
   EFI_STATUS    Status;
   EFI_FILE_INFO *FileInfo = NULL;
   UINTN         Size = 0;
-  
+
   Status = FHand->GetInfo (FHand, &gEfiFileInfoGuid, &Size, FileInfo);
   if (Status == EFI_BUFFER_TOO_SMALL) {
     FileInfo = AllocateZeroPool (Size);
     Status = FHand->GetInfo (FHand, &gEfiFileInfoGuid, &Size, FileInfo);
   }
-  
+
   return EFI_ERROR(Status)?NULL:FileInfo;
 }
 
@@ -174,18 +111,6 @@ EfiLibFileSystemInfo (
 
   return EFI_ERROR(Status)?NULL:FileSystemInfo;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
 
 VOID *
 /*

@@ -4,18 +4,6 @@
  * CRC checking are mandatory before treating the parsed table as coherent.
  * A partition identity is not itself a readable filesystem.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __GPT_H_
 #define __GPT_H_
@@ -38,9 +26,6 @@ typedef struct {
    UINT32  start_lba;
    UINT32  size;
 } MBR_PART_INFO;
-
- 
- 
 
 typedef struct {
    UINT8            code[440];
@@ -93,7 +78,7 @@ typedef struct _gpt_data {
 
 VOID ClearGptData(GPT_DATA *Data);
 EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data);
- 
+
 GPT_ENTRY * FindPartWithGuid(EFI_GUID *Guid);
 VOID ForgetPartitionTables(VOID);
 VOID AddPartitionTable(REFIT_VOLUME *Volume);

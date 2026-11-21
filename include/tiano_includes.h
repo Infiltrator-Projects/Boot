@@ -3,8 +3,6 @@
  * exist for an alternative build environment; the published GNU-EFI binary
  * has separately established calling-convention and toolchain requirements.
  */
- 
- 
 
 #ifndef _BOOT_TIANO_INCLUDES_
 #define _BOOT_TIANO_INCLUDES_
@@ -29,7 +27,7 @@
 #include <Base.h>
 #include <Uefi.h>
 #include <FrameworkDxe.h>
- 
+
 #include <Protocol/AbsolutePointer.h>
 #include <Protocol/AcpiTable.h>
 #include <Protocol/BlockIo.h>
@@ -69,7 +67,6 @@
 #include <Protocol/UsbIo.h>
 #include <Protocol/LegacyBios.h>
 
- 
 #include <Guid/Acpi.h>
 #include <Guid/ConsoleInDevice.h>
 #include <Guid/ConsoleOutDevice.h>
@@ -86,16 +83,13 @@
 #include <Guid/SmBios.h>
 #include <Guid/StandardErrorDevice.h>
 
- 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/DxeServicesLib.h>
 #include <Library/DxeServicesTableLib.h>
- 
- 
- 
+
 #include <Library/HiiLib.h>
 #include <Library/HobLib.h>
 #include <Library/IoLib.h>
@@ -108,7 +102,6 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiScsiLib.h>
 
- 
 #include <IndustryStandard/Pci.h>
 #include <IndustryStandard/SmBus.h>
 #include <IndustryStandard/Acpi.h>
@@ -117,18 +110,13 @@
 
 #include "../EfiLib/Platform.h"
 
-
 BOOLEAN CheckError(IN EFI_STATUS Status, IN CHAR16 *where);
 
- 
- 
- 
 extern EFI_STATUS
 EfiLibLocateProtocol (
    IN  EFI_GUID    *ProtocolGuid,
    OUT VOID        **Interface
 );
-
 
 extern EFI_FILE_HANDLE
 EfiLibOpenRoot (
@@ -146,7 +134,6 @@ EfiStrDuplicate (
 
 extern EFI_FILE_INFO * EfiLibFileInfo (IN EFI_FILE_HANDLE      FHand);
 extern EFI_FILE_SYSTEM_INFO * EfiLibFileSystemInfo (IN EFI_FILE_HANDLE   Root);
-
 
 extern VOID *
 EfiReallocatePool (

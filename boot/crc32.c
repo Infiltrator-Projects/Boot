@@ -3,50 +3,6 @@
  * metadata such as GPT structures. A CRC detects accidental data corruption;
  * it is not a cryptographic signature or a trust decision.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
 
 #include "crc32.h"
 
@@ -113,4 +69,3 @@ UINT32 crc32(UINT32 crc, const VOID *buf, UINTN size)
 
    return crc ^ ~0U;
 }
-

@@ -2,16 +2,6 @@
 # Filesystem tree keys, item bounds and on-disk layout control readability.
 # The source and descriptor do not establish universal firmware support.
 
-
-
-
-
-
-
-
-
-
-
 [Defines]
   INF_VERSION                   = 0x00010005
   BASE_NAME                     = reiserfs
@@ -22,12 +12,6 @@
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = fsw_efi_main
   FSTYPE                        = reiserfs
-
-
-
-
-
-
 
 [Sources]
   fsw_efi.c

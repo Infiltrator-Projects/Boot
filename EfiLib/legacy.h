@@ -3,22 +3,6 @@
  * can read or mutate firmware boot variables; OS discovery should not call
  * these mutation paths unless that scan class is explicitly selected.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "LegacyBios.h"
 
@@ -33,10 +17,7 @@ typedef UINT8 BBS_TYPE;
 #define VAR_FLAG  EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS | EFI_VARIABLE_NON_VOLATILE
 
 #pragma pack(1)
- 
- 
- 
- 
+
 typedef struct {
    /*
     * BootOptionNumber selects a firmware Boot#### variable. BbsIndex is a
@@ -52,9 +33,7 @@ typedef struct {
 #pragma pack(1)
 typedef struct {
    BBS_TYPE  BbsType;
-    
-    
-    
+
    UINT16    Length;
    UINT16    Data[1];
 } LEGACY_DEV_ORDER_ENTRY;
@@ -64,13 +43,6 @@ EFI_STATUS
 BdsAddNonExistingLegacyBootOptions (
    VOID
 );
-
- 
-
-
-
-
-
 
 EFI_STATUS
 BdsDeleteAllInvalidLegacyBootOptions (

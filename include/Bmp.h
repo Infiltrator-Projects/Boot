@@ -3,19 +3,6 @@
  * header sizes, scanline strides and pixel offsets must be checked against
  * the provided file length before any cast to these on-disk structures.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _BMP_H__
 #define _BMP_H__

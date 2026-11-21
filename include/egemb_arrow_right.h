@@ -3,26 +3,6 @@
  * image data; firmware decoding owns validation of dimensions and byte count.
  * Do not hand-edit numerical asset contents during source commentary.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static const UINT8 egemb_arrow_right_data[2053] = {
  0xe2, 0xff, 0x8d, 0x00, 0x9d, 0xff, 0x8e, 0x00, 0x9c, 0xff, 0x90, 0x00,

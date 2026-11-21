@@ -3,10 +3,6 @@
  * available input/output space and a valid state/tables from the slower
  * validator. Its guards are essential to avoid cross-buffer overreads.
  */
- 
-
-
-
 
 #include "zutil.h"
 #include "inftrees.h"
@@ -20,7 +16,6 @@ union uu {
         unsigned char b[2];
 };
 
- 
 static inline unsigned short
 get_unaligned16(const unsigned short *p)
 {
@@ -31,43 +26,6 @@ get_unaligned16(const unsigned short *p)
         mm.b[1] = b[1];
         return mm.us;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
  * Decodes several symbols per iteration using a bounded input/output
@@ -96,12 +54,11 @@ void inflate_fast(z_streamp strm, unsigned start)
     unsigned dmask;              
     code this;                   
     unsigned op;                 
-                                 
+
     unsigned len;                
     unsigned dist;               
     unsigned char *from;         
 
-     
     state = (struct inflate_state *)strm->state;
     in = strm->next_in;
     last = in + (strm->avail_in - 5);
@@ -126,8 +83,6 @@ void inflate_fast(z_streamp strm, unsigned start)
     dcode = state->distcode;
     lmask = (1U << state->lenbits) - 1;
     dmask = (1U << state->distbits) - 1;
-
-     
 
     do {
         if (bits < 15) {
@@ -255,8 +210,7 @@ void inflate_fast(z_streamp strm, unsigned start)
                     unsigned long loops;
 
                     from = out - dist;           
-                     
-                     
+
                     if (!((long)(out - 1) & 1)) {
                         *out++ = *from++;
                         len--;
@@ -282,7 +236,7 @@ void inflate_fast(z_streamp strm, unsigned start)
                         pat16 = *(sout-1);
                         if (dist == 1) {
                                 union uu mm;
-                                 
+
                                 mm.us = pat16;
                                 mm.b[0] = mm.b[1];
                                 pat16 = mm.us;
@@ -322,13 +276,11 @@ void inflate_fast(z_streamp strm, unsigned start)
         }
     } while (in < last && out < end);
 
-     
     len = bits >> 3;
     in -= len;
     bits -= len << 3;
     hold &= (1U << bits) - 1;
 
-     
     strm->next_in = in;
     strm->next_out = out;
     strm->avail_in = (unsigned)(in < last ? 5 + (last - in) : 5 - (in - last));
@@ -338,19 +290,5 @@ void inflate_fast(z_streamp strm, unsigned start)
     state->bits = bits;
     return;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif  

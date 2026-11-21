@@ -3,26 +3,6 @@
  * resource is display-only and must not affect scanner or EFI loader state.
  * Keep encoded data intact when regenerating official BOOT artwork.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static const UINT8 egemb_arrow_left_data[2175] = {
  0xf9, 0xff, 0x8b, 0x00, 0x9d, 0xff, 0x8e, 0x00, 0x9a, 0xff, 0x90, 0x00,

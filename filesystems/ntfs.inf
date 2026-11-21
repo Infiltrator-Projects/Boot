@@ -2,16 +2,6 @@
 # NTFS is not among the six mandatory EFI drivers in the published .run.
 # The descriptor alone does not confer tested NTFS firmware boot support.
 
-
-
-
-
-
-
-
-
-
-
 [Defines]
   INF_VERSION                   = 0x00010005
   BASE_NAME                     = ntfs
@@ -22,12 +12,6 @@
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = fsw_efi_main
   FSTYPE                        = ntfs
-
-
-
-
-
-
 
 [Sources]
   fsw_efi.c

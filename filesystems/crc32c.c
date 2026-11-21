@@ -3,27 +3,6 @@
  * distinct from ordinary GPT CRC-32 and must not be substituted for it.
  * An on-disk checksum detects data inconsistency, not authenticated origin.
  */
- 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static uint32_t crc32c_table [256];
 

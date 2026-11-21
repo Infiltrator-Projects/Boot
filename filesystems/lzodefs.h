@@ -3,53 +3,6 @@
  * selection. Alignment assumptions and compile-time optimisation paths can
  * change decoder behaviour; preserve binary-compatible widths and bounds.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __LZODEFS_H_INCLUDED
 #define __LZODEFS_H_INCLUDED 1
@@ -1863,5 +1816,3 @@ extern "C" {
     " " __LZO_INFOSTR_OSNAME __LZO_INFOSTR_LIBC " " LZO_INFO_CC __LZO_INFOSTR_CCVER
 
 #endif  
-
- 

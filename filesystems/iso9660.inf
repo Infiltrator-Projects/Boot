@@ -2,16 +2,6 @@
 # Descriptor, optical-block and directory-record limits govern readability;
 # a valid ISO image does not prove its EFI payload can execute.
 
-
-
-
-
-
-
-
-
-
-
 [Defines]
   INF_VERSION                   = 0x00010005
   BASE_NAME                     = iso9660
@@ -22,12 +12,6 @@
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = fsw_efi_main
   FSTYPE                        = iso9660
-
-
-
-
-
-
 
 [Sources]
   fsw_efi.c

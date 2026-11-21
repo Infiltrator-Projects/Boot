@@ -3,18 +3,12 @@
  * Device paths, file handles and read buffers originate from UEFI services;
  * caller ownership and byte-count checks are prerequisites for image parsing.
  */
- 
-
-
-
-
 
 #include <global.h>
 #include "../include/refit_call_wrapper.h"
 
 #include "simple_file.h"
 #include "../boot/lib.h"
- 
 
 static EFI_GUID IMAGE_PROTOCOL = LOADED_IMAGE_PROTOCOL;
 static EFI_GUID SIMPLE_FS_PROTOCOL = SIMPLE_FILE_SYSTEM_PROTOCOL;
@@ -53,7 +47,6 @@ simple_file_open_by_handle(EFI_HANDLE device, CHAR16 *name, EFI_FILE_PROTOCOL **
    return efi_status;
 }
 
- 
 static
 EFI_STATUS
 generate_path(CHAR16* name, EFI_LOADED_IMAGE *li, EFI_DEVICE_PATH **path, CHAR16 **PathName)
@@ -156,7 +149,6 @@ simple_file_read_all(EFI_FILE_PROTOCOL *file, UINTN *size, void **buffer)
 
    *size = sizeof(buf);
    fi = (void *)buf;
-
 
    efi_status = uefi_call_wrapper(file->GetInfo, 4, file, &FILE_INFO,
                    size, fi);

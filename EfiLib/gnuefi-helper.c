@@ -3,22 +3,6 @@
  * operations. Device paths are variable-length firmware records; all offset
  * and instance walks must terminate at a validated end node.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "gnuefi-helper.h"
 #include "DevicePathUtilities.h"
@@ -26,39 +10,6 @@
 #include "LegacyBios.h"
 
 EFI_GUID gEfiLegacyBiosProtocolGuid = { 0xdb9a1e3d, 0x45cb, 0x4abb, { 0x85, 0x3b, 0xe5, 0x38, 0x7f, 0xdb, 0x2e, 0x2d }};
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 CHAR8 *
 UnicodeStrToAsciiStr (
@@ -70,25 +21,11 @@ UnicodeStrToAsciiStr (
   ASSERT (Source != NULL);
   ASSERT (((UINTN) Source & 0x01) == 0);
 
-   
-   
-   
   ASSERT ((UINTN) ((CHAR16 *) Destination -  Source) > StrLen (Source));
   ASSERT ((UINTN) ((CHAR8 *) Source - Destination) > StrLen (Source));
 
- 
- 
- 
- 
- 
- 
- 
-
   while (*Source != '\0') {
-     
-     
-     
-     
+
     ASSERT (*Source < 0x100);
     *(Destination++) = (CHAR8) *(Source++);
   }
@@ -97,22 +34,6 @@ UnicodeStrToAsciiStr (
 
   return Destination;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 UINTN
 /*
@@ -129,31 +50,10 @@ AsciiStrLen (
   ASSERT (String != NULL);
 
   for (Length = 0; *String != '\0'; String++, Length++) {
- 
- 
- 
- 
- 
- 
- 
+
   }
   return Length;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 BOOLEAN
 EFIAPI
@@ -166,7 +66,7 @@ IsDevicePathValid (
   IN       UINTN                    MaxSize
   )
 {
- 
+
   UINTN Size;
   UINTN NodeLength;
 
@@ -185,32 +85,10 @@ IsDevicePathValid (
       }
     }
 
- 
- 
- 
- 
- 
- 
   }
 
-   
-   
-   
   return (BOOLEAN) (DevicePathNodeLength (DevicePath) == END_DEVICE_PATH_LENGTH);
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
 
 UINTN
 EFIAPI
@@ -233,47 +111,13 @@ GetDevicePathSize (
     return 0;
   }
 
-   
-   
-   
   Start = DevicePath;
   while (!IsDevicePathEnd (DevicePath)) {
     DevicePath = NextDevicePathNode (DevicePath);
   }
 
-   
-   
-   
   return ((UINTN) DevicePath - (UINTN) Start) + DevicePathNodeLength (DevicePath);
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 EFI_DEVICE_PATH_PROTOCOL *
 EFIAPI
@@ -301,17 +145,11 @@ GetNextDevicePathInstance (
     return NULL;
   }
 
-   
-   
-   
   DevPath = *DevicePath;
   while (!IsDevicePathEndType (DevPath)) {
     DevPath = NextDevicePathNode (DevPath);
   }
 
-   
-   
-   
   *Size = ((UINTN) DevPath - (UINTN) (*DevicePath)) + sizeof (EFI_DEVICE_PATH_PROTOCOL);
   /*
    * DuplicateDevicePath stops at an end-of-path node. Temporarily promote the
@@ -324,10 +162,6 @@ GetNextDevicePathInstance (
   ReturnValue       = DuplicateDevicePath (*DevicePath);
   DevPath->SubType  = Temp;
 
-   
-   
-   
-   
   if (DevicePathSubType (DevPath) == END_ENTIRE_DEVICE_PATH_SUBTYPE) {
     *DevicePath = NULL;
   } else {

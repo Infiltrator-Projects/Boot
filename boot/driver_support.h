@@ -4,24 +4,6 @@
  * must sequence driver loading before dependent filesystem scans.
  * The handle type flags reflect EFI driver-model relationships.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _DRIVER_SUPPORT
 #define _DRIVER_SUPPORT
@@ -50,8 +32,6 @@
 #define EFI_HANDLE_TYPE_CONTROLLER_HANDLE           0x200
 #define EFI_HANDLE_TYPE_CHILD_HANDLE                0x400
 
- 
- 
 EFI_STATUS
 LibScanHandleDatabase (
   EFI_HANDLE  DriverBindingHandle, OPTIONAL

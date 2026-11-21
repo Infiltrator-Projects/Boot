@@ -4,49 +4,6 @@
  * operations. The screen's selected entry must belong to the current scan;
  * bootloader image validity remains an independent responsibility.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
 
 #ifndef __BOOT_MENU_H_
 #define __BOOT_MENU_H_
@@ -62,10 +19,6 @@
 #include "libeg.h"
 
 #include "pointer.h"
-
- 
- 
- 
 
 #define MENU_EXIT_ENTER   (1)
 #define MENU_EXIT_ESCAPE  (2)
@@ -111,7 +64,6 @@ typedef struct {
 #define INPUT_TIMEOUT     (2)
 #define INPUT_TIMER_ERROR (3)
 
- 
 #define MAX_LINE_LENGTH 65
 
 struct _refit_menu_screen;
@@ -144,5 +96,3 @@ VOID GenerateWaitList();
 UINTN WaitForInput(IN UINTN Timeout);
 
 #endif
-
- 

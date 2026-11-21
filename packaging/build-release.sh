@@ -4,7 +4,6 @@
 # performs native installation when executed. The released source SHA must
 # match this exact checkout; checksums protect the resulting artifact bytes.
 
-
 set -euo pipefail
 
 version="${1:?Usage: packaging/build-release.sh VERSION [OUTPUT_DIRECTORY]}"
@@ -39,7 +38,6 @@ for directory in icons fonts banners themes; do
     if [[ -d "$directory" ]]; then cp -a "$directory" "$root/boot/"; fi
 done
 install -m 0644 boot.conf-sample "$root/boot/boot.conf-sample"
-
 
 for document in README.txt BUILDING.txt; do
     if [[ -f "$document" ]]; then

@@ -4,68 +4,13 @@
  * the host table supplies block I/O and allocation. Cached block references
  * and dnode refcounts are explicit lifetime contracts across both layers.
  */
- 
- 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "fsw_core.h"
 #include "fsw_efi.h"
 
-
- 
-
 static void fsw_blockcache_free(struct fsw_volume *vol);
 
 #define MAX_CACHE_LEVEL (5)
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
  * Allocate the volume using the selected backend's structure size. Attach the
@@ -81,12 +26,10 @@ fsw_status_t fsw_mount(void *host_data,
     fsw_status_t    status;
     struct fsw_volume *vol;
 
-     
     status = fsw_alloc_zero(fstype_table->volume_struct_size, (void **)&vol);
     if (status)
         return status;
 
-     
     vol->phys_blocksize = 512;
     vol->log_blocksize  = 512;
     vol->label.type     = FSW_STRING_TYPE_EMPTY;
@@ -95,12 +38,9 @@ fsw_status_t fsw_mount(void *host_data,
     vol->fstype_table   = fstype_table;
     vol->host_string_type = host_table->native_string_type;
 
-     
     status = vol->fstype_table->volume_mount(vol);
     if (status)
         goto errorexit;
-
-     
 
     *vol_out = vol;
     return FSW_SUCCESS;
@@ -110,19 +50,10 @@ errorexit:
     return status;
 }
 
- 
-
-
-
-
-
-
-
 void fsw_unmount(struct fsw_volume *vol)
 {
     if (vol->root)
         fsw_dnode_release(vol->root);
-     
 
     vol->fstype_table->volume_free(vol);
 
@@ -131,24 +62,10 @@ void fsw_unmount(struct fsw_volume *vol)
     fsw_free(vol);
 }
 
- 
-
-
-
-
 fsw_status_t fsw_volume_stat(struct fsw_volume *vol, struct fsw_volume_stat *sb)
 {
     return vol->fstype_table->volume_stat(vol, sb);
 }
-
- 
-
-
-
-
-
-
-
 
 /*
  * A block number has meaning only with the geometry that produced it. Mount
@@ -158,13 +75,9 @@ fsw_status_t fsw_volume_stat(struct fsw_volume *vol, struct fsw_volume_stat *sb)
  */
 void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 log_blocksize)
 {
-     
-     
 
-     
     fsw_blockcache_free(vol);
 
-     
     vol->host_table->change_blocksize(vol,
                                       vol->phys_blocksize, vol->log_blocksize,
                                       phys_blocksize, log_blocksize);
@@ -172,23 +85,6 @@ void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 l
     vol->phys_blocksize = phys_blocksize;
     vol->log_blocksize = log_blocksize;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
  * A hit pins the existing buffer and raises its retention level when
@@ -202,16 +98,12 @@ fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 
     fsw_u32         i, discard_level, new_bcache_size;
     struct fsw_blockcache *new_bcache;
 
-     
-     
-
     if (cache_level > MAX_CACHE_LEVEL)
         cache_level = MAX_CACHE_LEVEL;
 
-     
     for (i = 0; i < vol->bcache_size; i++) {
         if (vol->bcache[i].phys_bno == phys_bno) {
-             
+
             if (vol->bcache[i].cache_level < cache_level)
                 vol->bcache[i].cache_level = cache_level;   
             vol->bcache[i].refcount++;
@@ -220,7 +112,6 @@ fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 
         }
     }
 
-     
     for (i = 0; i < vol->bcache_size; i++) {
         if (vol->bcache[i].phys_bno == (fsw_u64)FSW_INVALID_BNO)
             break;
@@ -236,7 +127,7 @@ fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 
         }
     }
     if (i >= vol->bcache_size) {
-         
+
         if (vol->bcache_size < 16)
             new_bcache_size = 16;
         else
@@ -254,7 +145,6 @@ fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 
         }
         i = vol->bcache_size;
 
-         
         if (vol->bcache != NULL)
             fsw_free(vol->bcache);
         vol->bcache = new_bcache;
@@ -262,7 +152,6 @@ fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 
     }
     vol->bcache[i].phys_bno = (fsw_u64)FSW_INVALID_BNO;
 
-     
     if (vol->bcache[i].data == NULL) {
         status = fsw_alloc(vol->phys_blocksize, &vol->bcache[i].data);
         if (status)
@@ -279,11 +168,6 @@ fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 
     return FSW_SUCCESS;
 }
 
- 
-
-
-
-
 /*
  * Decrements a matching cache entry reference; call only for a successfully
  * obtained block and do not retain its data after it becomes evictable.
@@ -292,20 +176,11 @@ void fsw_block_release(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, void *buffer
 {
     fsw_u32 i;
 
-     
-     
-
-     
     for (i = 0; i < vol->bcache_size; i++) {
         if (vol->bcache[i].phys_bno == phys_bno && vol->bcache[i].refcount > 0)
             vol->bcache[i].refcount--;
     }
 }
-
- 
-
-
-
 
 static void fsw_blockcache_free(struct fsw_volume *vol)
 {
@@ -323,12 +198,6 @@ static void fsw_blockcache_free(struct fsw_volume *vol)
     fsw_efi_clear_cache();
 }
 
- 
-
-
-
-
-
 static void fsw_dnode_register(struct fsw_volume *vol, struct fsw_dnode *dno)
 {
     dno->next = vol->dnode_head;
@@ -338,24 +207,15 @@ static void fsw_dnode_register(struct fsw_volume *vol, struct fsw_dnode *dno)
     vol->dnode_head = dno;
 }
 
- 
-
-
-
-
-
-
 fsw_status_t fsw_dnode_create_root_with_tree(struct fsw_volume *vol, fsw_u64 tree_id, fsw_u64 dnode_id, struct fsw_dnode **dno_out)
 {
     fsw_status_t    status;
     struct fsw_dnode *dno;
 
-     
     status = fsw_alloc_zero(vol->fstype_table->dnode_struct_size, (void **)&dno);
     if (status)
         return status;
 
-     
     dno->vol = vol;
     dno->parent = NULL;
     dno->tree_id = tree_id;
@@ -363,7 +223,6 @@ fsw_status_t fsw_dnode_create_root_with_tree(struct fsw_volume *vol, fsw_u64 tre
     dno->type = FSW_DNODE_TYPE_DIR;
     dno->refcount = 1;
     dno->name.type = FSW_STRING_TYPE_EMPTY;
-     
 
     fsw_dnode_register(vol, dno);
 
@@ -375,23 +234,6 @@ fsw_status_t fsw_dnode_create_root(struct fsw_volume *vol, fsw_u64 dnode_id, str
 {
 	return fsw_dnode_create_root_with_tree( vol, 0, dnode_id, dno_out);
 }
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 fsw_status_t fsw_dnode_create_with_tree(struct fsw_dnode *parent_dno, fsw_u64 tree_id, fsw_u64 dnode_id, int type,
                               struct fsw_string *name, struct fsw_dnode **dno_out)
@@ -400,7 +242,6 @@ fsw_status_t fsw_dnode_create_with_tree(struct fsw_dnode *parent_dno, fsw_u64 tr
     struct fsw_volume *vol = parent_dno->vol;
     struct fsw_dnode *dno;
 
-     
     for (dno = vol->dnode_head; dno; dno = dno->next) {
         /*
          * Dnode identity is local to a tree as well as a volume. A lookup hit
@@ -414,12 +255,10 @@ fsw_status_t fsw_dnode_create_with_tree(struct fsw_dnode *parent_dno, fsw_u64 tr
         }
     }
 
-     
     status = fsw_alloc_zero(vol->fstype_table->dnode_struct_size, (void **)&dno);
     if (status)
         return status;
 
-     
     dno->vol = vol;
     dno->parent = parent_dno;
     fsw_dnode_retain(dno->parent);
@@ -445,23 +284,10 @@ fsw_status_t fsw_dnode_create(struct fsw_dnode *parent_dno, fsw_u64 dnode_id, in
 	return fsw_dnode_create_with_tree(parent_dno, 0, dnode_id, type, name, dno_out);
 }
 
- 
-
-
-
-
-
 void fsw_dnode_retain(struct fsw_dnode *dno)
 {
     dno->refcount++;
 }
-
- 
-
-
-
-
-
 
 void fsw_dnode_release(struct fsw_dnode *dno)
 {
@@ -473,7 +299,6 @@ void fsw_dnode_release(struct fsw_dnode *dno)
     if (dno->refcount == 0) {
         parent_dno = dno->parent;
 
-         
         if (dno->next)
             dno->next->prev = dno->prev;
         if (dno->prev)
@@ -481,45 +306,21 @@ void fsw_dnode_release(struct fsw_dnode *dno)
         if (vol->dnode_head == dno)
             vol->dnode_head = dno->next;
 
-         
         vol->fstype_table->dnode_free(vol, dno);
 
         fsw_strfree(&dno->name);
         fsw_free(dno);
 
-         
         if (parent_dno)
             fsw_dnode_release(parent_dno);
     }
 }
 
- 
-
-
-
-
-
-
-
-
-
-
 fsw_status_t fsw_dnode_fill(struct fsw_dnode *dno)
 {
-     
 
     return dno->vol->fstype_table->dnode_fill(dno->vol, dno);
 }
-
- 
-
-
-
-
-
-
-
-
 
 fsw_status_t fsw_dnode_stat(struct fsw_dnode *dno, struct fsw_dnode_stat *sb)
 {
@@ -536,18 +337,6 @@ fsw_status_t fsw_dnode_stat(struct fsw_dnode *dno, struct fsw_dnode_stat *sb)
     return status;
 }
 
- 
-
-
-
-
-
-
-
-
-
-
-
 fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
                               struct fsw_string *lookup_name, struct fsw_dnode **child_dno_out)
 {
@@ -561,17 +350,6 @@ fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
 
     return dno->vol->fstype_table->dir_lookup(dno->vol, dno, lookup_name, child_dno_out);
 }
-
- 
-
-
-
-
-
-
-
-
-
 
 /*
  * Walk borrowed string slices while retaining the current dnode. An empty
@@ -593,9 +371,8 @@ fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
     remaining_path = *lookup_path;
     fsw_dnode_retain(dno);
 
-     
     for (root_if_empty = 1; fsw_strlen(&remaining_path) > 0; root_if_empty = 0) {
-         
+
         fsw_strsplit(&lookup_name, &remaining_path, separator);
 
         FSW_MSG_DEBUG((FSW_MSGSTR("fsw_dnode_lookup_path: split into %d '%s' and %d '%s'\n"),
@@ -610,45 +387,37 @@ fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
             fsw_dnode_retain(child_dno);
 
         } else {
-             
 
-             
             status = fsw_dnode_fill(dno);
             if (status)
                 goto errorexit;
 
-             
             if (dno->type == FSW_DNODE_TYPE_SYMLINK) {
                 status = fsw_dnode_resolve(dno, &child_dno);
                 if (status)
                     goto errorexit;
 
-                 
                 fsw_dnode_release(dno);
                 dno = child_dno;    
                 child_dno = NULL;
 
-                 
                 status = fsw_dnode_fill(dno);
                 if (status)
                     goto errorexit;
             }
 
-             
             if (dno->type != FSW_DNODE_TYPE_DIR) {
                 return FSW_UNSUPPORTED;
                 goto errorexit;
             }
 
-             
             if (fsw_streq_cstr(&lookup_name, ".")) {     
                 child_dno = dno;
                 fsw_dnode_retain(child_dno);
 
             } else if (fsw_streq_cstr(&lookup_name, "..")) {    
                 if (dno->parent == NULL) {
-                     
-                     
+
                     status = FSW_NOT_FOUND;
                     goto errorexit;
                 }
@@ -656,14 +425,13 @@ fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
                 fsw_dnode_retain(child_dno);
 
             } else {
-                 
+
                 status = vol->fstype_table->dir_lookup(vol, dno, &lookup_name, &child_dno);
                 if (status)
                     goto errorexit;
             }
         }
 
-         
         fsw_dnode_release(dno);
         dno = child_dno;    
         child_dno = NULL;
@@ -681,18 +449,6 @@ errorexit:
         fsw_dnode_release(child_dno);
     return status;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
 
 fsw_status_t fsw_dnode_dir_read(struct fsw_shandle *shand, struct fsw_dnode **child_dno_out)
 {
@@ -713,16 +469,6 @@ fsw_status_t fsw_dnode_dir_read(struct fsw_shandle *shand, struct fsw_dnode **ch
     return status;
 }
 
- 
-
-
-
-
-
-
-
-
-
 fsw_status_t fsw_dnode_readlink(struct fsw_dnode *dno, struct fsw_string *target_name)
 {
     fsw_status_t    status;
@@ -735,18 +481,6 @@ fsw_status_t fsw_dnode_readlink(struct fsw_dnode *dno, struct fsw_string *target
 
     return dno->vol->fstype_table->readlink(dno->vol, dno, target_name);
 }
-
- 
-
-
-
-
-
-
-
-
-
-
 
 fsw_status_t fsw_dnode_readlink_data(struct fsw_dnode *dno, struct fsw_string *link_target)
 {
@@ -764,7 +498,6 @@ fsw_status_t fsw_dnode_readlink_data(struct fsw_dnode *dno, struct fsw_string *l
     s.size = s.len = (int)dno->size;
     s.data = buffer;
 
-     
     status = fsw_shandle_open(dno, &shand);
     if (status)
         return status;
@@ -780,36 +513,23 @@ fsw_status_t fsw_dnode_readlink_data(struct fsw_dnode *dno, struct fsw_string *l
     return status;
 }
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
 fsw_status_t fsw_dnode_resolve(struct fsw_dnode *dno, struct fsw_dnode **target_dno_out)
 {
     fsw_status_t    status;
     struct fsw_string target_name;
     struct fsw_dnode *target_dno;
-     
+
     int link_count = 40;
 
     fsw_dnode_retain(dno);
 
     while (--link_count > 0) {
-         
+
         status = fsw_dnode_fill(dno);
         if (status)
             goto errorexit;
         if (dno->type != FSW_DNODE_TYPE_SYMLINK) {
-             
+
             *target_dno_out = dno;
             return FSW_SUCCESS;
         }
@@ -818,18 +538,15 @@ fsw_status_t fsw_dnode_resolve(struct fsw_dnode *dno, struct fsw_dnode **target_
             goto errorexit;
         }
 
-         
         status = fsw_dnode_readlink(dno, &target_name);
         if (status)
             goto errorexit;
 
-         
         status = fsw_dnode_lookup_path(dno->parent, &target_name, '/', &target_dno);
         fsw_strfree(&target_name);
         if (status)
             goto errorexit;
 
-         
         fsw_dnode_release(dno);
         dno = target_dno;    
     }
@@ -841,31 +558,15 @@ errorexit:
     return status;
 }
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 fsw_status_t fsw_shandle_open(struct fsw_dnode *dno, struct fsw_shandle *shand)
 {
     fsw_status_t    status;
     struct fsw_volume *vol = dno->vol;
 
-     
     status = vol->fstype_table->dnode_fill(vol, dno);
     if (status)
         return status;
 
-     
     fsw_dnode_retain(dno);
 
     shand->dnode = dno;
@@ -875,24 +576,12 @@ fsw_status_t fsw_shandle_open(struct fsw_dnode *dno, struct fsw_shandle *shand)
     return FSW_SUCCESS;
 }
 
- 
-
-
-
-
-
-
 void fsw_shandle_close(struct fsw_shandle *shand)
 {
     if (shand->extent.type == FSW_EXTENT_TYPE_BUFFER)
         fsw_free(shand->extent.buffer);
     fsw_dnode_release(shand->dnode);
 }
-
- 
-
-
-
 
 /*
  * Maps the file position through a backend extent into physical, buffer or
@@ -914,17 +603,16 @@ fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_in
         return FSW_SUCCESS;
     }
 
-     
     buffer = buffer_in;
     buflen = *buffer_size_inout;
     pos = (fsw_u32)shand->pos;
     cache_level = (dno->type != FSW_DNODE_TYPE_FILE) ? 1 : 0;
-     
+
     if (buflen > dno->size - pos)
         buflen = (fsw_u32)(dno->size - pos);
 
     while (buflen > 0) {
-         
+
         log_bno = FSW_U64_DIV(pos, vol->log_blocksize);
         if (shand->extent.type == FSW_EXTENT_TYPE_INVALID ||
             log_bno < shand->extent.log_start ||
@@ -933,7 +621,6 @@ fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_in
             if (shand->extent.type == FSW_EXTENT_TYPE_BUFFER)
                 fsw_free(shand->extent.buffer);
 
-             
             shand->extent.log_start = log_bno;
             status = vol->fstype_table->get_extent(vol, dno, &shand->extent);
             if (status) {
@@ -944,21 +631,18 @@ fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_in
 
         pos_in_extent = pos - shand->extent.log_start * vol->log_blocksize;
 
-         
         if (shand->extent.type == FSW_EXTENT_TYPE_PHYSBLOCK) {
-             
+
             phys_bno = shand->extent.phys_start + FSW_U64_DIV(pos_in_extent, vol->phys_blocksize);
             pos_in_physblock = pos_in_extent & (vol->phys_blocksize - 1);
             copylen = vol->phys_blocksize - pos_in_physblock;
             if (copylen > buflen)
                 copylen = buflen;
 
-             
             status = fsw_block_get(vol, phys_bno, cache_level, (void **)&block_buffer);
             if (status)
                 return status;
 
-             
             fsw_memcpy(buffer, block_buffer + pos_in_physblock, copylen);
             fsw_block_release(vol, phys_bno, block_buffer);
 
@@ -992,5 +676,3 @@ fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_in
 
     return FSW_SUCCESS;
 }
-
- 

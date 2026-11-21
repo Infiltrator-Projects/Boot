@@ -2,103 +2,11 @@
  * XXH64 streaming hash state and function interface. Its checksums are for
  * format consistency, not cryptographic authentication of EFI boot media.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef XXHASH_H
 #define XXHASH_H
 
- 
-
-
-
-
-
-
-
-
-
-
 uint64_t xxh64(const void *input, size_t length, uint64_t seed);
-
- 
-
-
-
- 
-
-
 
 /*
  * The four lanes accumulate 32-byte stripes. total_len and the buffered tail
@@ -115,41 +23,10 @@ struct xxh64_state {
 	uint32_t memsize;
 };
 
- 
-
-
-
-
-
 void xxh64_reset(struct xxh64_state *state, uint64_t seed);
-
- 
-
-
-
-
-
-
-
-
 
 int xxh64_update(struct xxh64_state *state, const void *input, size_t length);
 
- 
-
-
-
-
-
-
-
-
-
-
 uint64_t xxh64_digest(const struct xxh64_state *state);
-
- 
-
-
 
 #endif  

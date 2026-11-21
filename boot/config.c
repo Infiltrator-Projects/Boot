@@ -4,63 +4,6 @@
  * filesystem paths or authorisation to launch a payload.
  * BOOT-owned variable storage is separate from firmware global BootOrder.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "lib.h"
@@ -75,8 +18,6 @@
 #include "../include/refit_call_wrapper.h"
 #include "../mok/mok.h"
 
- 
-
 #define LINUX_OPTIONS_FILENAMES  L"boot_linux.conf,boot-linux.conf"
 #define MAXCONFIGFILESIZE        (128*1024)
 
@@ -86,10 +27,6 @@
 
 #define GetTime ST->RuntimeServices->GetTime
 #define LAST_MINUTE 1439  
-
- 
- 
- 
 
 EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFIT_FILE *File, OUT UINTN *size)
 {
@@ -102,7 +39,6 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
     File->Buffer = NULL;
     File->BufferSize = 0;
 
-     
     Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
     Message = PoolPrint(L"while loading the file '%s'", FileName);
     if (CheckError(Status, Message)) {
@@ -112,7 +48,7 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
 
     FileInfo = LibFileInfo(FileHandle);
     if (FileInfo == NULL) {
-         
+
         refit_call1_wrapper(FileHandle->Close, FileHandle);
         return EFI_LOAD_ERROR;
     }
@@ -137,35 +73,29 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
     }
     Status = refit_call1_wrapper(FileHandle->Close, FileHandle);
 
-     
     File->Current8Ptr  = (CHAR8 *)File->Buffer;
     File->End8Ptr      = File->Current8Ptr + File->BufferSize;
     File->Current16Ptr = (CHAR16 *)File->Buffer;
     File->End16Ptr     = File->Current16Ptr + (File->BufferSize >> 1);
 
-     
     File->Encoding = ENCODING_ISO8859_1;    
     if (File->BufferSize >= 4) {
         if (File->Buffer[0] == 0xFF && File->Buffer[1] == 0xFE) {
-             
+
             File->Encoding = ENCODING_UTF16_LE;    
             File->Current16Ptr++;
         } else if (File->Buffer[0] == 0xEF && File->Buffer[1] == 0xBB && File->Buffer[2] == 0xBF) {
-             
+
             File->Encoding = ENCODING_UTF8;        
             File->Current8Ptr += 3;
         } else if (File->Buffer[1] == 0 && File->Buffer[3] == 0) {
             File->Encoding = ENCODING_UTF16_LE;    
         }
-         
+
     }
 
     return EFI_SUCCESS;
 }
-
- 
- 
- 
 
 /*
  * Extracts a logical configuration line from a firmware-visible file.
@@ -208,7 +138,7 @@ static CHAR16 *ReadLine(REFIT_FILE *File)
             for (p = LineStart; p < LineEnd; )
                 *q++ = *p++;
         } else if (File->Encoding == ENCODING_UTF8) {
-             
+
             for (p = LineStart; p < LineEnd; )
                 *q++ = *p++;
         }
@@ -247,9 +177,6 @@ static CHAR16 *ReadLine(REFIT_FILE *File)
     return Line;
 }
 
- 
- 
- 
 static BOOLEAN KeepReading(IN OUT CHAR16 *p, IN OUT BOOLEAN *IsQuoted) {
     BOOLEAN MoreToRead = FALSE;
     CHAR16  *Temp = NULL;
@@ -280,9 +207,6 @@ static BOOLEAN KeepReading(IN OUT CHAR16 *p, IN OUT BOOLEAN *IsQuoted) {
     return MoreToRead;
 }  
 
- 
- 
- 
 /*
  * Return the next nonempty directive as separately allocated CHAR16 tokens.
  * Outside quotes the parser treats spaces, tabs, '=' and ',' as separators
@@ -305,7 +229,7 @@ UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
         p = Line;
         LineFinished = FALSE;
         while (!LineFinished) {
-             
+
             while ((*p == ' ' || *p == '\t' || *p == '=' || *p == ',') && !IsQuoted)
                 p++;
             if (*p == 0 || *p == '#')
@@ -317,7 +241,6 @@ UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
             }  
             Token = p;
 
-             
             while (KeepReading(p, &IsQuoted)) {
                if ((*p == L'/') && !IsQuoted)  
                   *p = L'\\';
@@ -341,11 +264,10 @@ UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
  */
 VOID FreeTokenLine(IN OUT CHAR16 ***TokenList, IN OUT UINTN *TokenCount)
 {
-     
+
     FreeList((VOID ***)TokenList, TokenCount);
 }
 
- 
 static VOID HandleInt(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT UINTN *Value)
 {
     if (TokenCount == 2) {
@@ -356,7 +278,6 @@ static VOID HandleInt(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT UINTN *Val
     }
 }
 
- 
 static VOID HandleString(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT CHAR16 **Target) {
     if ((TokenCount == 2) && Target) {
         MyFreePool(*Target);
@@ -364,11 +285,6 @@ static VOID HandleString(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT CHAR16 
     }  
 }  
 
- 
- 
- 
- 
- 
 static VOID HandleStrings(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT CHAR16 **Target) {
     UINTN i;
     BOOLEAN AddMode = FALSE;
@@ -389,11 +305,6 @@ static VOID HandleStrings(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT CHAR16
     }  
 }  
 
- 
- 
- 
- 
- 
 static VOID HandleHexes(IN CHAR16 **TokenList,
                         IN UINTN TokenCount,
                         IN UINTN MaxValue,
@@ -434,11 +345,6 @@ static VOID HandleHexes(IN CHAR16 **TokenList,
     }  
 }  
 
- 
- 
- 
- 
- 
 static UINTN HandleTime(IN CHAR16 *TimeString) {
     UINTN Hour = 0, Minute = 0, TimeLength, i = 0;
 
@@ -469,8 +375,6 @@ static BOOLEAN HandleBoolean(IN CHAR16 **TokenList, IN UINTN TokenCount) {
     return TruthValue;
 }  
 
- 
- 
 static VOID SetDefaultByTime(IN CHAR16 **TokenList, OUT CHAR16 **Default) {
     EFI_STATUS            Status;
     EFI_TIME              CurrentTime;
@@ -512,10 +416,6 @@ static LOADER_ENTRY * AddPreparedLoaderEntry(LOADER_ENTRY *Entry) {
     return(Entry);
 }  
 
- 
- 
- 
- 
 static VOID SetLinuxMatchPatterns(CHAR16 *Prefixes) {
     CHAR16 *Pattern, *PatternSet = NULL;
     UINTN i = 0;
@@ -530,7 +430,6 @@ static VOID SetLinuxMatchPatterns(CHAR16 *Prefixes) {
     GlobalConfig.LinuxMatchPatterns = PatternSet;
 }  
 
- 
 /*
  * Reading the primary file rebuilds the scan defaults and the '+' menu
  * preference. An included file applies directives to the state accumulated so
@@ -546,7 +445,6 @@ VOID ReadConfig(CHAR16 *FileName)
     CHAR16          *TempStr = NULL;
     UINTN           TokenCount, i;
 
-     
     if (MyStriCmp(FileName, GlobalConfig.ConfigFilename)) {
         MyFreePool(GlobalConfig.AlsoScan);
         GlobalConfig.AlsoScan = StrDuplicate(ALSO_SCAN_DIRS);
@@ -660,8 +558,7 @@ VOID ReadConfig(CHAR16 *FileName)
 
         } else if (MyStriCmp(TokenList[0], L"don't_scan_volumes") ||
                    MyStriCmp(TokenList[0], L"dont_scan_volumes")) {
-             
-             
+
             MyFreePool(GlobalConfig.DontScanVolumes);
             GlobalConfig.DontScanVolumes = NULL;
             for (i = 1; i < TokenCount; i++) {
@@ -866,13 +763,13 @@ VOID ReadConfig(CHAR16 *FileName)
             if (GlobalConfig.EnableMouse) {
                 GlobalConfig.EnableTouch = FALSE;
             }
-        
+
         } else if (MyStriCmp(TokenList[0], L"enable_touch")) {
             GlobalConfig.EnableTouch = HandleBoolean(TokenList, TokenCount);
             if (GlobalConfig.EnableTouch) {
                 GlobalConfig.EnableMouse = FALSE;
             }
-           
+
         } else if (MyStriCmp(TokenList[0], L"mouse_speed") && (TokenCount == 2)) {
             HandleInt(TokenList, TokenCount, &i);
             if (i < 1)
@@ -904,7 +801,6 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
 
     SubScreen = InitializeSubScreen(Entry);
 
-     
     SubEntry = InitializeLoaderEntry(Entry);
 
     if ((SubEntry == NULL) || (SubScreen == NULL))
@@ -969,9 +865,6 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
     Entry->me.SubScreen = SubScreen;
 }  
 
- 
- 
- 
 static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, CHAR16 *Title) {
     CHAR16       **TokenList;
     UINTN        TokenCount;
@@ -979,7 +872,6 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
     BOOLEAN      DefaultsSet = FALSE, AddedSubmenu = FALSE;
     REFIT_VOLUME *CurrentVolume = Volume, *PreviousVolume;
 
-     
     Entry = InitializeLoaderEntry(NULL);
     if (Entry == NULL)
         return NULL;
@@ -994,8 +886,6 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
     Entry->Volume          = CurrentVolume;
     Entry->DiscoveryType   = DISCOVERY_TYPE_MANUAL;
 
-     
-     
     while (((TokenCount = ReadTokenLine(File, &TokenList)) > 0) && (StrCmp(TokenList[0], L"}") != 0)) {
         if (MyStriCmp(TokenList[0], L"loader") && (TokenCount > 1)) {  
             Entry->LoaderPath = StrDuplicate(TokenList[1]);
@@ -1075,15 +965,13 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
     }  
 
     if (!DefaultsSet) {
-         
+
         SetLoaderDefaults(Entry, L"\\EFI\\BOOT\\nemo.efi", CurrentVolume);
     }
 
     return(Entry);
 }  
 
- 
- 
 /*
  * Walk manual stanzas with SelfVolume as their initial volume.
  * AddStanzaEntries consumes the stanza body. An enabled entry gets a
@@ -1130,10 +1018,6 @@ VOID ScanUserConfigured(CHAR16 *FileName)
     }  
 }  
 
- 
- 
- 
- 
 static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
     UINTN        TokenCount, i;
     REFIT_FILE   *Options = NULL, *Fstab = NULL;
@@ -1196,15 +1080,6 @@ static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
     return Options;
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
     REFIT_FILE   *Options = NULL;
     CHAR16       *Line, *GuidString, *WriteStatus;
@@ -1238,17 +1113,6 @@ static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
     return Options;
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Reads kernel-specific command-line hints from a particular volume.
  * An initrd or root option is not necessarily transferable to another kernel.
@@ -1290,14 +1154,13 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
          * and then, if necessary, the discovered partition type.
          */
         File = GenerateOptionsFromEtcFstab(Volume);
-         
+
         if (!File)
             File = GenerateOptionsFromPartTypes();
     }  
     return (File);
 }  
 
- 
 CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     UINTN        TokenCount;
     CHAR16       *Options = NULL;

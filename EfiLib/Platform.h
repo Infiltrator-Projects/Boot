@@ -3,25 +3,9 @@
  * Compiler, calling-convention and firmware structure macros constitute a
  * binary ABI, not a source-level convenience that can be changed casually.
  */
- 
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __REFIT_PLATFORM_H__
 #define __REFIT_PLATFORM_H__
-
 
 #include <Uefi.h>
 

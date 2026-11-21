@@ -4,31 +4,6 @@
 # cell metrics consistent with libeg's font decoder and do not influence
 # loader discovery.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if [[ $# != 4 ]] ; then
    echo "Usage: $0 font-name font-size y-offset bitmap-filename.png"
    echo "   font-name: Name of font (use 'convert -list font | less' to get list)"

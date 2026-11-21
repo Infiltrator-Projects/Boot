@@ -3,42 +3,6 @@
  * iterators. These utilities exercise parsers without executing EFI services;
  * host-test success is not an EFI driver or physical-hardware qualification.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_POSIX_H_
 #define _FSW_POSIX_H_
@@ -61,10 +25,6 @@ struct fsw_posix_volume {
 
 };
 
- 
-
-
-
 struct fsw_posix_file {
     struct fsw_posix_volume     *pvol;           
 
@@ -72,19 +32,12 @@ struct fsw_posix_file {
 
 };
 
- 
-
-
-
 struct fsw_posix_dir {
     struct fsw_posix_volume     *pvol;           
 
     struct fsw_shandle          shand;           
 
 };
-
-
- 
 
 struct fsw_posix_volume * fsw_posix_mount(const char *path, struct fsw_fstype_table *fstype_table);
 int fsw_posix_unmount(struct fsw_posix_volume *pvol);
@@ -98,6 +51,5 @@ struct fsw_posix_dir * fsw_posix_opendir(struct fsw_posix_volume *pvol, const ch
 struct dirent * fsw_posix_readdir(struct fsw_posix_dir *dir);
 void fsw_posix_rewinddir(struct fsw_posix_dir *dir);
 int fsw_posix_closedir(struct fsw_posix_dir *dir);
-
 
 #endif

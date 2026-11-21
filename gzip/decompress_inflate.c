@@ -4,13 +4,6 @@
  * not validate an EFI executable. Output size must be verified before passing
  * the buffer to LoadImage, and allocation belongs to EFI pool services.
  */
- 
-
- 
-
-
-
-
 
 #include "../boot/lib.h"
 #include "../libeg/lodepng.h"
@@ -32,7 +25,6 @@ static long nofill(void *buffer, unsigned long len)
     return -1;
 }
 
- 
 /*
  * Expands a bounded compressed buffer into caller-allocated storage.
  * A decoder error or an invalid resulting byte count must abort EFI loading.
@@ -80,7 +72,7 @@ int gunzip(unsigned char *buf, long len,
 
     strm->workspace = malloc(flush ? zlib_inflate_workspacesize() :
 #ifdef CONFIG_ZLIB_DFLTCC
-     
+
                  zlib_inflate_workspacesize());
 #else
                  sizeof(struct inflate_state));
@@ -96,25 +88,17 @@ int gunzip(unsigned char *buf, long len,
     if (len == 0)
         len = fill(zbuf, GZIP_IOBUF_SIZE);
 
-     
     if (len < 10 ||
        zbuf[0] != 0x1f || zbuf[1] != 0x8b || zbuf[2] != 0x08) {
         LOG(1, LOG_LINE_NORMAL, L"Not a gzip file");
         goto gunzip_5;
     }
 
-     
-
-
     strm->next_in = zbuf + 10;
     strm->avail_in = len - 10;
-     
+
     if (zbuf[3] & 0x8) {
         do {
-             
-
-
-
 
             if (strm->avail_in == 0) {
                 LOG(1, LOG_LINE_NORMAL, L"header error");
@@ -134,7 +118,7 @@ int gunzip(unsigned char *buf, long len,
     rc = zlib_inflateInit2(strm, -MAX_WBITS);
 
 #ifdef CONFIG_ZLIB_DFLTCC
-     
+
 #else
     if (!flush) {
         WS(strm)->inflate_state.wsize = 0;
@@ -144,7 +128,7 @@ int gunzip(unsigned char *buf, long len,
 
     while (rc == Z_OK) {
         if (strm->avail_in == 0) {
-             
+
             len = fill(zbuf, GZIP_IOBUF_SIZE);
             if (len < 0) {
                 rc = -1;
@@ -156,7 +140,6 @@ int gunzip(unsigned char *buf, long len,
         }
         rc = zlib_inflate(strm, 0);
 
-         
         if (flush && strm->next_out > out_buf) {
             long l = strm->next_out - out_buf;
             if (l != flush(out_buf, l)) {
@@ -168,7 +151,6 @@ int gunzip(unsigned char *buf, long len,
             strm->avail_out = out_len;
         }
 
-         
         if (rc == Z_STREAM_END) {
             /* total_out counts decoded bytes across all flushes. Only a
              * complete stream may supply a length to the image loader. */

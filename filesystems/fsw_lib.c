@@ -4,52 +4,10 @@
  * not automatically a character count. Caller-provided destination capacity
  * and invalid-encoding behaviour are critical when reading filesystem names.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "fsw_core.h"
 
- 
 #include "fsw_strfunc.h"
-
-
- 
-
-
 
 /*
  * Allocates and zero-initialises an FSW-owned buffer. The result must not
@@ -66,10 +24,6 @@ fsw_status_t fsw_alloc_zero(int len, void **ptr_out)
     return FSW_SUCCESS;
 }
 
- 
-
-
-
 fsw_status_t fsw_memdup(void **dest_out, void *src, int len)
 {
     fsw_status_t status;
@@ -81,10 +35,6 @@ fsw_status_t fsw_memdup(void **dest_out, void *src, int len)
     return FSW_SUCCESS;
 }
 
- 
-
-
-
 int fsw_strlen(struct fsw_string *s)
 {
     if (s->type == FSW_STRING_TYPE_EMPTY)
@@ -92,17 +42,10 @@ int fsw_strlen(struct fsw_string *s)
     return s->len;
 }
 
- 
-
-
-
-
-
 int fsw_streq(struct fsw_string *s1, struct fsw_string *s2)
 {
     struct fsw_string temp_s;
 
-     
     if (s1->type == FSW_STRING_TYPE_EMPTY) {
         temp_s.type = FSW_STRING_TYPE_ISO88591;
         temp_s.size = temp_s.len = 0;
@@ -116,20 +59,18 @@ int fsw_streq(struct fsw_string *s1, struct fsw_string *s2)
         return fsw_streq(s1, &temp_s);
     }
 
-     
     if (s1->len != s2->len)
         return 0;
     if (s1->len == 0)    
         return 1;
 
     if (s1->type == s2->type) {
-         
+
         if (s1->size != s2->size)
             return 0;
         return fsw_memeq(s1->data, s2->data, s1->size);
     }
 
-     
     #define STREQ_DISPATCH(type1, type2) \
       if (s1->type == FSW_STRING_TYPE_##type1 && s2->type == FSW_STRING_TYPE_##type2) \
         return fsw_streq_##type1##_##type2(s1->data, s2->data, s1->len); \
@@ -142,16 +83,8 @@ int fsw_streq(struct fsw_string *s1, struct fsw_string *s2)
     STREQ_DISPATCH(UTF8, UTF16_SWAPPED);
     STREQ_DISPATCH(UTF16, UTF16_SWAPPED);
 
-     
     return 0;
 }
-
- 
-
-
-
-
-
 
 int fsw_streq_cstr(struct fsw_string *s1, const char *s2)
 {
@@ -167,12 +100,6 @@ int fsw_streq_cstr(struct fsw_string *s1, const char *s2)
 
     return fsw_streq(s1, &temp_s);
 }
-
- 
-
-
-
-
 
 /*
  * Creates an owned string converted to the requested FSW encoding.
@@ -201,7 +128,6 @@ fsw_status_t fsw_strdup_coerce(struct fsw_string *dest, int type, struct fsw_str
         return FSW_SUCCESS;
     }
 
-     
     #define STRCOERCE_DISPATCH(type1, type2) \
       if (src->type == FSW_STRING_TYPE_##type1 && type == FSW_STRING_TYPE_##type2) \
         return fsw_strcoerce_##type1##_##type2(src->data, src->len, dest);
@@ -217,22 +143,6 @@ fsw_status_t fsw_strdup_coerce(struct fsw_string *dest, int type, struct fsw_str
 
     return FSW_UNSUPPORTED;
 }
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void fsw_strsplit(struct fsw_string *element, struct fsw_string *buffer, char separator)
 {
@@ -292,16 +202,11 @@ void fsw_strsplit(struct fsw_string *element, struct fsw_string *buffer, char se
         buffer->size  = buffer->len  * sizeof(fsw_u16);
 
     } else {
-         
+
         buffer->type = FSW_STRING_TYPE_EMPTY;
     }
 
-     
 }
-
- 
-
-
 
 /*
  * Releases the allocation associated with an FSW string; callers must not
@@ -313,5 +218,3 @@ void fsw_strfree(struct fsw_string *s)
         fsw_free(s->data);
     s->type = FSW_STRING_TYPE_EMPTY;
 }
-
- 

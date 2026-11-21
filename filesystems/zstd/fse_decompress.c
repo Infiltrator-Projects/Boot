@@ -4,75 +4,17 @@
  * external metadata; workspace capacity and table indices constrain safe
  * execution in the freestanding filesystem decoder.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
 
 #define FORCE_INLINE static __always_inline
 
- 
-
-
 #include "bitstream.h"
 #include "fse.h"
-
- 
-
 
 #define FSE_STATIC_ASSERT(c)                                   \
 	{                                                      \
 		enum { FSE_static_assert = 1 / (int)(!!(c)) }; \
 	}  
 
-
- 
-
-
- 
-
-
-
-
-
- 
 #ifndef FSE_FUNCTION_EXTENSION
 #error "FSE_FUNCTION_EXTENSION must be defined"
 #endif
@@ -80,12 +22,9 @@
 #error "FSE_FUNCTION_TYPE must be defined"
 #endif
 
- 
 #define FSE_CAT(X, Y) X##Y
 #define FSE_FUNCTION_NAME(X, Y) FSE_CAT(X, Y)
 #define FSE_TYPE_NAME(X, Y) FSE_CAT(X, Y)
-
- 
 
 /*
  * Constructs an entropy decoding table from normalised symbol frequencies.
@@ -101,7 +40,6 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 	U32 const tableSize = 1 << tableLog;
 	U32 highThreshold = tableSize - 1;
 
-	 
 	if (workspaceSize < sizeof(U16) * (FSE_MAX_SYMBOL_VALUE + 1))
 		return ERROR(tableLog_tooLarge);
 	if (maxSymbolValue > FSE_MAX_SYMBOL_VALUE)
@@ -109,7 +47,6 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 	if (tableLog > FSE_MAX_TABLELOG)
 		return ERROR(tableLog_tooLarge);
 
-	 
 	{
 		FSE_DTableHeader DTableH;
 		DTableH.tableLog = (U16)tableLog;
@@ -131,7 +68,6 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 		memcpy(dt, &DTableH, sizeof(DTableH));
 	}
 
-	 
 	{
                 /*
                  * A normalised count of -1 has already reserved a terminal
@@ -155,7 +91,6 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 			return ERROR(GENERIC);  
 	}
 
-	 
 	{
 		U32 u;
 		for (u = 0; u < tableSize; u++) {
@@ -168,9 +103,6 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 
 	return 0;
 }
-
- 
-
 
 size_t FSE_buildDTable_rle(FSE_DTable *dt, BYTE symbolValue)
 {
@@ -201,7 +133,6 @@ FORCE_INLINE size_t FSE_decompress_usingDTable_generic(void *dst, size_t maxDstS
 	FSE_DState_t state1;
 	FSE_DState_t state2;
 
-	 
 	CHECK_F(BIT_initDStream(&bitD, cSrc, cSrcSize));
 
 	FSE_initDState(&state1, &bitD, dt);
@@ -209,7 +140,6 @@ FORCE_INLINE size_t FSE_decompress_usingDTable_generic(void *dst, size_t maxDstS
 
 #define FSE_GETSYMBOL(statePtr) fast ? FSE_decodeSymbolFast(statePtr, &bitD) : FSE_decodeSymbol(statePtr, &bitD)
 
-	 
 	for (; (BIT_reloadDStream(&bitD) == BIT_DStream_unfinished) & (op < olimit); op += 4) {
 		op[0] = FSE_GETSYMBOL(&state1);
 
@@ -234,8 +164,6 @@ FORCE_INLINE size_t FSE_decompress_usingDTable_generic(void *dst, size_t maxDstS
 		op[3] = FSE_GETSYMBOL(&state2);
 	}
 
-	 
-	 
 	while (1) {
 		if (op > (omax - 2))
 			return ERROR(dstSize_tooSmall);
@@ -263,7 +191,6 @@ size_t FSE_decompress_usingDTable(void *dst, size_t originalSize, const void *cS
 	const FSE_DTableHeader *DTableH = (const FSE_DTableHeader *)ptr;
 	const U32 fastMode = DTableH->fastMode;
 
-	 
 	if (fastMode)
 		return FSE_decompress_usingDTable_generic(dst, originalSize, cSrc, cSrcSize, dt, 1);
 	return FSE_decompress_usingDTable_generic(dst, originalSize, cSrc, cSrcSize, dt, 0);
@@ -297,12 +224,10 @@ size_t FSE_decompress_wksp(void *dst, size_t dstCapacity, const void *cSrc, size
 	workspace = (U32 *)workspace + spaceUsed32;
 	workspaceSize -= (spaceUsed32 << 2);
 
-	 
 	NCountLength = FSE_readNCount(counting, &maxSymbolValue, &tableLog, istart, cSrcSize);
 	if (FSE_isError(NCountLength))
 		return NCountLength;
-	 
-	 
+
 	if (tableLog > maxLog)
 		return ERROR(tableLog_tooLarge);
 	ip += NCountLength;
@@ -312,9 +237,6 @@ size_t FSE_decompress_wksp(void *dst, size_t dstCapacity, const void *cSrc, size
 
 	return FSE_decompress_usingDTable(dst, dstCapacity, ip, cSrcSize, dt);  
 }
-
- 
-
 
 size_t FSE_readNCount(short *normalizedCounter, unsigned *maxSVPtr, unsigned *tableLogPtr, const void *headerBuffer, size_t hbSize)
 {

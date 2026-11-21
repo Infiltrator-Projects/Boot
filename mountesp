@@ -4,30 +4,9 @@
 # platform-specific; this helper must not be invoked as a generic Linux
 # ESP discovery routine or to write other vendors' EFI directories.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Locates or mounts an ESP using macOS disk utilities. When multiple ESPs
 # exist, selecting the correct disk is a prerequisite to any safe install.
 MountOSXESP() {
-
 
     Temp=$(mount | sed -n -E "/^(\/dev\/disk.*) on \/ \(.*$/s//\1/p")
     if [ "$Temp" ]; then
@@ -66,7 +45,6 @@ MountOSXESP() {
 
         mkdir /Volumes/ESP &> /dev/null
 
-
         if  ! mount -t msdos "$Esp" $MountPoint ; then
             if ! mount -t hfs "$Esp" $MountPoint ; then
                 printf "Unable to mount ESP!\n\n"
@@ -76,10 +54,6 @@ MountOSXESP() {
     fi
     echo "The ESP is mounted at $MountPoint"
 }
-
-
-
-
 
 case "$OSTYPE" in
     darwin*)

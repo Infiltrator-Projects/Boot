@@ -4,46 +4,6 @@
  * sliding-window offsets depend on bounded compressed input; malformed data
  * must not be treated as a valid EFI image or filesystem extent.
  */
- 
-
-
-
-
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
- 
-
-
- 
-
-
-
 
 #if 0
 #include <grub/err.h>
@@ -59,79 +19,67 @@
 GRUB_MOD_LICENSE ("GPLv3+");
 #endif
 
- 
-
-
-
-
-
 #define WSIZE   0x8000
-
 
 #define INBUFSIZ  0x2000
 
- 
 struct grub_gzio
 {
   int err;
-   
+
   int mem_input_size, mem_input_off;
   uint8_t *mem_input;
-   
+
   int data_offset;
-   
+
   int block_type;
-   
+
   int block_len;
-   
+
   int last_block;
-   
+
   int code_state;
-   
+
   unsigned inflate_n;
-   
+
   unsigned inflate_d;
-   
+
   uint8_t inbuf[INBUFSIZ];
   int inbuf_d;
-   
+
   unsigned long bb;
-   
+
   unsigned bk;
-   
+
   uint8_t slide[WSIZE];
-   
+
   unsigned wp;
-   
+
   struct huft *tl;
-   
+
   struct huft *td;
-   
+
   int bl;
-   
+
   int bd;
-   
+
   int saved_offset;
 };
 typedef struct grub_gzio *grub_gzio_t;
 
- 
 static void initialize_tables (grub_gzio_t);
 
- 
 #define GZIP_MAGIC      grub_le_to_cpu16 (0x8B1F)
 #define OLD_GZIP_MAGIC  grub_le_to_cpu16 (0x9E1F)
 
- 
 #define STORED      0
 #define COMPRESSED  1
- 
+
 #define LZHED       3
- 
+
 #define DEFLATED    8
 #define MAX_METHODS 9
 
- 
 #define ASCII_FLAG   0x01        
 #define CONTINUATION 0x02        
 #define EXTRA_FIELD  0x04        
@@ -142,7 +90,6 @@ static void initialize_tables (grub_gzio_t);
 
 #define UNSUPPORTED_FLAGS       (CONTINUATION | ENCRYPTED | RESERVED)
 
- 
 #define INFLATE_STORED  0
 #define INFLATE_FIXED   1
 #define INFLATE_DYNAMIC 2
@@ -150,13 +97,6 @@ static void initialize_tables (grub_gzio_t);
 typedef unsigned char uch;
 typedef unsigned short ush;
 typedef unsigned long ulg;
-
- 
-
-
-
-
-
 
 struct huft
 {
@@ -170,18 +110,6 @@ struct huft
   v;
 };
 
-
- 
-
-
-
- 
-
-
-
-
-
- 
 static unsigned bitorder[] =
 {                                
   16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
@@ -189,7 +117,7 @@ static ush cplens[] =
 {                                
   3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
   35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0};
-         
+
 static ush cplext[] =
 {                                
   0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
@@ -205,78 +133,11 @@ static ush cpdext[] =
   7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
   12, 12, 13, 13};
 
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static int lbits = 9;            
 static int dbits = 6;            
 
-
- 
 #define BMAX 16                  
 #define N_MAX 288                
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static ush mask_bits[] =
 {
@@ -307,18 +168,10 @@ gzio_seek (grub_gzio_t gzio, grub_off_t off)
         gzio->mem_input_off = off;
 }
 
- 
 static int huft_build (unsigned *, unsigned, unsigned, ush *, ush *,
                        struct huft **, int *);
 static int huft_free (struct huft *);
 static int inflate_codes_in_window (grub_gzio_t);
-
-
- 
-
-
-
-
 
 static int
 huft_build (unsigned *b,         
@@ -349,7 +202,6 @@ huft_build (unsigned *b,
   int y;                         
   unsigned z;                    
 
-   
   fsw_memzero ((char *) c, sizeof (c));
   p = b;
   i = n;
@@ -366,7 +218,6 @@ huft_build (unsigned *b,
       return 0;
     }
 
-   
   l = *m;
   for (j = 1; j <= BMAX; j++)
     if (c[j])
@@ -382,7 +233,6 @@ huft_build (unsigned *b,
     l = i;
   *m = l;
 
-   
   for (y = 1 << j; j < i; j++, y <<= 1)
     if ((y -= c[j]) < 0)
       return 2;                  
@@ -390,7 +240,6 @@ huft_build (unsigned *b,
     return 2;
   c[i] += y;
 
-   
   x[1] = j = 0;
   p = c + 1;
   xp = x + 2;
@@ -399,7 +248,6 @@ huft_build (unsigned *b,
       *xp++ = (j += *p++);
     }
 
-   
   p = b;
   i = 0;
   do
@@ -409,7 +257,6 @@ huft_build (unsigned *b,
     }
   while (++i < n);
 
-   
   x[0] = i = 0;                  
   p = v;                         
   h = -1;                        
@@ -418,20 +265,17 @@ huft_build (unsigned *b,
   q = (struct huft *) NULL;      
   z = 0;                         
 
-   
   for (; k <= g; k++)
     {
       a = c[k];
       while (a--)
         {
-           
-           
+
           while (k > w + l)
             {
               h++;
               w += l;            
 
-               
               z = (z = (unsigned) (g - w)) > (unsigned) l ? (unsigned) l : z;    
               if ((f = 1 << (j = k - w)) > a + 1)        
                 {                
@@ -446,7 +290,6 @@ huft_build (unsigned *b,
                 }
               z = 1 << j;        
 
-               
               q = (struct huft *) AllocatePool ((z + 1) * sizeof (struct huft));
               if (! q)
                 {
@@ -459,7 +302,6 @@ huft_build (unsigned *b,
               *(t = &(q->v.t)) = (struct huft *) NULL;
               u[h] = ++q;        
 
-               
               if (h)
                 {
                   x[h] = i;      
@@ -471,7 +313,6 @@ huft_build (unsigned *b,
                 }
             }
 
-           
           r.b = (uch) (k - w);
           if (p >= v + n)
             r.e = 99;            
@@ -487,17 +328,14 @@ huft_build (unsigned *b,
               r.v.n = d[*p++ - s];
             }
 
-           
           f = 1 << (k - w);
           for (j = i >> w; j < z; j += f)
             q[j] = r;
 
-           
           for (j = 1 << (k - 1); i & j; j >>= 1)
             i ^= j;
           i ^= j;
 
-           
           while ((i & ((1 << w) - 1)) != x[h])
             {
               h--;               
@@ -506,21 +344,14 @@ huft_build (unsigned *b,
         }
     }
 
-   
   return y != 0 && g != 1;
 }
-
-
- 
-
 
 static int
 huft_free (struct huft *t)
 {
   register struct huft *p, *q;
 
-
-   
   p = t;
   while (p != (struct huft *) NULL)
     {
@@ -530,12 +361,6 @@ huft_free (struct huft *t)
     }
   return 0;
 }
-
-
- 
-
-
-
 
 static int
 inflate_codes_in_window (grub_gzio_t gzio)
@@ -548,14 +373,12 @@ inflate_codes_in_window (grub_gzio_t gzio)
   register ulg b;                
   register unsigned k;           
 
-   
   d = gzio->inflate_d;
   n = gzio->inflate_n;
   b = gzio->bb;                  
   k = gzio->bk;
   w = gzio->wp;                  
 
-   
   ml = mask_bits[gzio->bl];              
   md = mask_bits[gzio->bd];
   for (;;)                       
@@ -585,21 +408,19 @@ inflate_codes_in_window (grub_gzio_t gzio)
                 break;
             }
           else
-             
+
             {
-               
+
               if (e == 15)
                 {
                   gzio->block_len = 0;
                   break;
                 }
 
-               
               NEEDBITS (e);
               n = t->v.n + ((unsigned) b & mask_bits[e]);
               DUMPBITS (e);
 
-               
               NEEDBITS ((unsigned) gzio->bd);
               if ((e = (t = gzio->td + ((unsigned) b & md))->e) > 16)
                 do
@@ -625,7 +446,7 @@ inflate_codes_in_window (grub_gzio_t gzio)
 
       if (gzio->code_state)
         {
-           
+
           do
             {
               n -= (e = (e = WSIZE - ((d &= WSIZE - 1) > w ? d : w)) > n ? n
@@ -638,7 +459,7 @@ inflate_codes_in_window (grub_gzio_t gzio)
                   d += e;
                 }
               else
-                 
+
                 {
                   while (e--)
                     gzio->slide[w++] = gzio->slide[d++];
@@ -652,13 +473,11 @@ inflate_codes_in_window (grub_gzio_t gzio)
           if (! n)
             gzio->code_state--;
 
-           
           if (w == WSIZE)
             break;
         }
     }
 
-   
   gzio->inflate_d = d;
   gzio->inflate_n = n;
   gzio->wp = w;                  
@@ -668,23 +487,17 @@ inflate_codes_in_window (grub_gzio_t gzio)
   return ! gzio->block_len;
 }
 
-
- 
-
 static void
 init_stored_block (grub_gzio_t gzio)
 {
   register ulg b;                
   register unsigned k;           
 
-   
   b = gzio->bb;                  
   k = gzio->bk;
 
-   
   DUMPBITS (k & 7);
 
-   
   NEEDBITS (16);
   gzio->block_len = ((unsigned) b & 0xffff);
   DUMPBITS (16);
@@ -693,15 +506,9 @@ init_stored_block (grub_gzio_t gzio)
     gzio->err = -1;
   DUMPBITS (16);
 
-   
   gzio->bb = b;
   gzio->bk = k;
 }
-
-
- 
-
-
 
 static void
 init_fixed_block (grub_gzio_t gzio)
@@ -709,7 +516,6 @@ init_fixed_block (grub_gzio_t gzio)
   int i;                         
   unsigned l[288];               
 
-   
   for (i = 0; i < 144; i++)
     l[i] = 8;
   for (; i < 256; i++)
@@ -725,7 +531,6 @@ init_fixed_block (grub_gzio_t gzio)
       return;
     }
 
-   
   for (i = 0; i < 30; i++)       
     l[i] = 5;
   gzio->bd = 5;
@@ -737,13 +542,9 @@ init_fixed_block (grub_gzio_t gzio)
       return;
     }
 
-   
   gzio->code_state = 0;
   gzio->block_len++;
 }
-
-
- 
 
 static void
 init_dynamic_block (grub_gzio_t gzio)
@@ -760,11 +561,9 @@ init_dynamic_block (grub_gzio_t gzio)
   register ulg b;                
   register unsigned k;           
 
-   
   b = gzio->bb;
   k = gzio->bk;
 
-   
   NEEDBITS (5);
   nl = 257 + ((unsigned) b & 0x1f);      
   DUMPBITS (5);
@@ -780,7 +579,6 @@ init_dynamic_block (grub_gzio_t gzio)
       return;
     }
 
-   
   for (j = 0; j < nb; j++)
     {
       NEEDBITS (3);
@@ -790,7 +588,6 @@ init_dynamic_block (grub_gzio_t gzio)
   for (; j < 19; j++)
     ll[bitorder[j]] = 0;
 
-   
   gzio->bl = 7;
   if (huft_build (ll, 19, 19, NULL, NULL, &gzio->tl, &gzio->bl) != 0)
     {
@@ -798,7 +595,6 @@ init_dynamic_block (grub_gzio_t gzio)
       return;
     }
 
-   
   n = nl + nd;
   m = mask_bits[gzio->bl];
   i = l = 0;
@@ -838,7 +634,7 @@ init_dynamic_block (grub_gzio_t gzio)
           l = 0;
         }
       else
-         
+
         {
           NEEDBITS (7);
           j = 11 + ((unsigned) b & 0x7f);
@@ -854,16 +650,13 @@ init_dynamic_block (grub_gzio_t gzio)
         }
     }
 
-   
   huft_free (gzio->tl);
   gzio->td = 0;
   gzio->tl = 0;
 
-   
   gzio->bb = b;
   gzio->bk = k;
 
-   
   gzio->bl = lbits;
   if (huft_build (ll, nl, 257, cplens, cplext, &gzio->tl, &gzio->bl) != 0)
     {
@@ -879,11 +672,9 @@ init_dynamic_block (grub_gzio_t gzio)
       return;
     }
 
-   
   gzio->code_state = 0;
   gzio->block_len++;
 }
-
 
 static void
 get_new_block (grub_gzio_t gzio)
@@ -891,21 +682,17 @@ get_new_block (grub_gzio_t gzio)
   register ulg b;                
   register unsigned k;           
 
-   
   b = gzio->bb;
   k = gzio->bk;
 
-   
   NEEDBITS (1);
   gzio->last_block = (int) b & 1;
   DUMPBITS (1);
 
-   
   NEEDBITS (2);
   gzio->block_type = (unsigned) b & 3;
   DUMPBITS (2);
 
-   
   gzio->bb = b;
   gzio->bk = k;
 
@@ -925,16 +712,11 @@ get_new_block (grub_gzio_t gzio)
     }
 }
 
-
 static void
 inflate_window (grub_gzio_t gzio)
 {
-   
+
   gzio->wp = 0;
-
-   
-
-
 
   while (gzio->wp < WSIZE && !gzio->err)
     {
@@ -952,16 +734,9 @@ inflate_window (grub_gzio_t gzio)
       if (gzio->err)
         return;
 
-       
-
-
       if (gzio->block_type == INFLATE_STORED)
         {
           int w = gzio->wp;
-
-           
-
-
 
           while (gzio->block_len && w < WSIZE && !gzio->err)
             {
@@ -974,10 +749,6 @@ inflate_window (grub_gzio_t gzio)
           continue;
         }
 
-       
-
-
-
       if (inflate_codes_in_window (gzio))
         {
           huft_free (gzio->tl);
@@ -989,9 +760,7 @@ inflate_window (grub_gzio_t gzio)
 
   gzio->saved_offset += WSIZE;
 
-   
 }
-
 
 static void
 initialize_tables (grub_gzio_t gzio)
@@ -999,29 +768,24 @@ initialize_tables (grub_gzio_t gzio)
   gzio->saved_offset = 0;
   gzio_seek (gzio, gzio->data_offset);
 
-   
   gzio->bk = 0;
   gzio->bb = 0;
 
-   
   gzio->last_block = 0;
   gzio->block_len = 0;
 
-   
   huft_free (gzio->tl);
   huft_free (gzio->td);
 }
-
 
 static int
 test_zlib_header (grub_gzio_t gzio)
 {
   uint8_t cmf, flg;
-  
+
   cmf = get_byte (gzio);
   flg = get_byte (gzio);
 
-   
   if ((cmf & 0xf) != DEFLATED)
     {
       return 0;
@@ -1032,7 +796,6 @@ test_zlib_header (grub_gzio_t gzio)
       return 0;
     }
 
-   
   if (flg & 0x20)
     {
       return 0;
@@ -1056,12 +819,6 @@ grub_gzio_read_real (grub_gzio_t gzio, grub_off_t offset,
    */
   if (gzio->saved_offset > offset + WSIZE)
     initialize_tables (gzio);
-
-   
-
-
-
-
 
   while (len > 0 && !gzio->err)
     {
@@ -1114,7 +871,5 @@ grub_zlib_decompress (char *inbuf, grub_size_t insize, grub_off_t off,
   ret = grub_gzio_read_real (gzio, off, outbuf, outsize);
   FreePool (gzio);
 
-   
   return ret;
 }
-

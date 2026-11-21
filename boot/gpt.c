@@ -4,26 +4,6 @@
  * untrusted blocks. Header CRC and entries CRC must both be valid before
  * a partition table is treated as coherent; this code does not repair disks.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #pragma pack(0)
 #include "gpt.h"
@@ -38,10 +18,6 @@
 
 GPT_DATA *gPartitions = NULL;
 
- 
- 
- 
- 
 /*
  * Allocates zero-initialised GPT bookkeeping. Ownership transfers to the
  * caller until ClearGptData releases the table and its subordinate buffers.
@@ -63,8 +39,6 @@ GPT_DATA * AllocateGptData(VOID) {
     return GptData;
 }  
 
- 
- 
 VOID ClearGptData(GPT_DATA *Data) {
     if (Data) {
         if (Data->ProtectiveMBR)
@@ -77,10 +51,6 @@ VOID ClearGptData(GPT_DATA *Data) {
     }  
 }  
 
- 
- 
- 
- 
 /*
  * Require a protective MBR, the supported GPT revision and 128-byte entries.
  * Hash the smaller of the claimed header length and the local structure size
@@ -105,7 +75,6 @@ static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
                           (GptData->Header->spec_revision == 0x00010000) &&
                           (GptData->Header->entry_size == 128));
 
-     
     if (IsValid) {
         if (GptData->Header->header_size < HeaderSize)
             HeaderSize = GptData->Header->header_size;
@@ -120,17 +89,6 @@ static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
     return IsValid;
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Read the protective MBR, primary header and partition array from a
  * whole-media Block I/O handle. The header supplies the array's starting LBA.
@@ -146,7 +104,6 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     if ((Volume == NULL) || (Data == NULL))
         return EFI_INVALID_PARAMETER;
 
-     
     if ((Status == EFI_SUCCESS) && (Volume->BlockIO == NULL)) {
         Status = refit_call3_wrapper(BS->HandleProtocol, Volume->DeviceHandle,
                                      &BlockIoProtocol, (VOID **) &(Volume->BlockIO));
@@ -168,21 +125,18 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
         }  
     }  
 
-     
     if (Status == EFI_SUCCESS) {
         Status = refit_call5_wrapper(Volume->BlockIO->ReadBlocks, Volume->BlockIO,
                                      Volume->BlockIO->Media->MediaId, 0,
                                      sizeof(MBR_RECORD), (VOID*) GptData->ProtectiveMBR);
     }
 
-     
     if (Status == EFI_SUCCESS) {
         Status = refit_call5_wrapper(Volume->BlockIO->ReadBlocks, Volume->BlockIO,
                                      Volume->BlockIO->Media->MediaId, 1,
                                      sizeof(GPT_HEADER), GptData->Header);
     }
 
-     
     if (Status == EFI_SUCCESS) {
         if (GptHeaderValid(GptData)) {
             /*
@@ -202,12 +156,10 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
                                              GptData->Header->entry_lba, BufferSize,
                                              GptData->Entries);
 
-             
             if ((Status == EFI_SUCCESS) &&
                 (crc32(0x0, GptData->Entries, BufferSize) != GptData->Header->entry_crc32))
                     Status = EFI_CRC_ERROR;
 
-             
             if (Status == EFI_SUCCESS) {
                 for (i = 0; i < GptData->Header->entry_count; i++)
                     GptData->Entries[i].name[35] = '\0';
@@ -218,7 +170,7 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     }  
 
     if (Status == EFI_SUCCESS) {
-         
+
         ClearGptData(*Data);
         *Data = GptData;
     } else {
@@ -228,9 +180,6 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     return Status;
 }  
 
- 
- 
- 
 /*
  * Looks up identity within parsed partition metadata; a matching GUID is
  * not proof of a mounted volume or a supported filesystem.
@@ -259,7 +208,6 @@ GPT_ENTRY * FindPartWithGuid(EFI_GUID *Guid) {
     return Found;
 }  
 
- 
 VOID ForgetPartitionTables(VOID) {
     GPT_DATA  *Next;
 
@@ -270,8 +218,6 @@ VOID ForgetPartitionTables(VOID) {
     }  
 }  
 
- 
- 
 VOID AddPartitionTable(REFIT_VOLUME *Volume) {
     GPT_DATA    *GptData = NULL, *GptList;
     EFI_STATUS  Status;
@@ -295,4 +241,3 @@ VOID AddPartitionTable(REFIT_VOLUME *Volume) {
         NumTables = 0;
     }  
 }  
-

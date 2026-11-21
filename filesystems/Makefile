@@ -3,25 +3,11 @@
 # AUDIT: the standalone 'install' recipe still names an old refind path;
 # that recipe is not the constrained /EFI/InfiltratorOS/BOOT .run install.
 
-
-
-
-
-
-
-
-
-
-
-
-
 INSTALL_DIR = /boot/efi/EFI/refind/drivers
 
 FILESYSTEMS = ext2 ext4 reiserfs iso9660 hfs btrfs
 FILESYSTEMS_GNUEFI = ext2_gnuefi ext4_gnuefi reiserfs_gnuefi iso9660_gnuefi hfs_gnuefi btrfs_gnuefi
 TEXTFILES = $(FILESYSTEMS:=*.txt)
-
-
 
 all:	$(FILESYSTEMS)
 
@@ -52,8 +38,6 @@ btrfs:
 ntfs:
 	rm -f fsw_efi.obj
 	+make DRIVERNAME=ntfs -f Make.tiano
-
-
 
 gnuefi: $(FILESYSTEMS_GNUEFI)
 
@@ -91,15 +75,10 @@ ntfs_gnuefi:
 # one driver's protocol table from being linked into another image.
 .NOTPARALLEL:
 
-
-
 clean:
 	rm -f *~ *.bak *.o *.obj *.so *.efi *.dll err.txt $(TEXTFILES)
 	+make -C test clean
 
-
 install:
 	mkdir -p $(INSTALL_DIR)
 	cp *.efi $(INSTALL_DIR)
-
-

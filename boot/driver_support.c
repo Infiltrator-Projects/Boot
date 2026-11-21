@@ -4,76 +4,6 @@
  * handles, and reconnection may affect pre-existing controller bindings.
  * This is the current EFI-driver path, not a Common V2 hosted .so ABI.
  */
- 
-
-
- 
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "driver_support.h"
 #include "lib.h"
@@ -93,7 +23,6 @@
 #define DRIVER_DIRS             L"drivers"
 #endif
 
- 
 EFI_GUID gMyEfiLoadedImageProtocolGuid = { 0x5B1B31A1, 0x9562, 0x11D2, { 0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
 EFI_GUID gMyEfiDriverBindingProtocolGuid = { 0x18A031AB, 0xB443, 0x4D1A, { 0xA5, 0xC0, 0x0C, 0x09, 0x26, 0x1E, 0x9F, 0x71 }};
 EFI_GUID gMyEfiDriverConfigurationProtocolGuid = { 0x107A772B, 0xD5E1, 0x11D4, { 0x9A, 0x46, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D }};
@@ -148,13 +77,6 @@ typedef struct _MY_EFI_BLOCK_IO_PROTOCOL {
 #define MY_EFI_BLOCK_IO_PROTOCOL EFI_BLOCK_IO_PROTOCOL
 #endif
 
- 
-
-
-
-
-
-
 EFI_STATUS
 /*
  * Classifies the firmware's handle database from installed protocols and
@@ -193,10 +115,6 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
   *HandleBuffer = NULL;
   *HandleType   = NULL;
 
-   
-   
-   
-
   Status = refit_call5_wrapper(BS->LocateHandleBuffer,
      AllHandles,
      NULL,
@@ -214,9 +132,7 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
   }
 
   for (HandleIndex = 0; HandleIndex < *HandleCount; HandleIndex++) {
-     
-     
-     
+
     (*HandleType)[HandleIndex] = EFI_HANDLE_TYPE_UNKNOWN;
 
     if (DriverBindingHandle != NULL &&
@@ -234,9 +150,6 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
   }
 
   for (HandleIndex = 0; HandleIndex < *HandleCount; HandleIndex++) {
-     
-     
-     
 
     Status = refit_call3_wrapper(BS->ProtocolsPerHandle,
                   (*HandleBuffer)[HandleIndex],
@@ -270,9 +183,6 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
         if (CompareGuid (ProtocolGuidArray[ProtocolIndex], &gMyEfiDevicePathProtocolGuid) == 0) {
           (*HandleType)[HandleIndex] |= EFI_HANDLE_TYPE_DEVICE_HANDLE;
         }
-         
-         
-         
 
         Status = refit_call4_wrapper(BS->OpenProtocolInformation,
                       (*HandleBuffer)[HandleIndex],
@@ -285,13 +195,9 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
           for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
             if (DriverBindingHandle != NULL && OpenInfo[OpenInfoIndex].AgentHandle == DriverBindingHandle) {
               if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
-                 
-                 
-                 
+
                 (*HandleType)[HandleIndex] |= (EFI_HANDLE_TYPE_DEVICE_HANDLE | EFI_HANDLE_TYPE_CONTROLLER_HANDLE);
-                 
-                 
-                 
+
                 if (DriverBindingHandleIndexValid) {
                   (*HandleType)[*DriverBindingHandleIndex] |= EFI_HANDLE_TYPE_DEVICE_DRIVER;
                 }
@@ -301,9 +207,7 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
                     OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
                 ) == EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
                   ) {
-                 
-                 
-                 
+
                 if (DriverBindingHandleIndexValid) {
                   (*HandleType)[*DriverBindingHandleIndex] |= EFI_HANDLE_TYPE_BUS_DRIVER;
                 }
@@ -368,7 +272,6 @@ Error:
 }  
 
 #ifdef __MAKEWITH_GNUEFI
- 
 
 EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 {
@@ -393,9 +296,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
         return Status;
 
     for (Index = 0; Index < AllHandleCount; Index++) {
-         
-         
-         
+
         Status = LibScanHandleDatabase(NULL,
                                        NULL,
                                        AllHandleBuffer[Index],
@@ -445,24 +346,6 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
 }
 #endif
 
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
 /*
  * Consider Disk I/O handles for logical partitions lacking Simple File
  * System. For each opener marked BY_DRIVER, disconnect that agent and, if
@@ -481,9 +364,6 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     UINTN                                 OpenInfoCount;
     EFI_HANDLE                            DriverHandleList[2];
 
-     
-     
-     
     Status = refit_call5_wrapper(gBS->LocateHandleBuffer,
                                  ByProtocol,
                                  &gMyEfiDiskIoProtocolGuid,
@@ -493,16 +373,8 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     if (EFI_ERROR(Status) || HandleCount == 0)
         return;
 
-     
-     
-     
     for (Index = 0; Index < HandleCount; Index++) {
-         
-         
-         
-         
-         
-         
+
         Status = refit_call3_wrapper(gBS->HandleProtocol,
                                      Handles[Index],
                                      &gMyEfiBlockIoProtocolGuid,
@@ -512,9 +384,6 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
         if (BlockIo->Media == NULL || !BlockIo->Media->LogicalPartition)
             continue;
 
-         
-         
-         
         Status = refit_call3_wrapper(gBS->HandleProtocol,
                                      Handles[Index],
                                      &gMyEfiSimpleFileSystemProtocolGuid,
@@ -522,10 +391,6 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
         if (Status == EFI_SUCCESS)
             continue;
 
-         
-         
-         
-         
         Status = refit_call4_wrapper(gBS->OpenProtocolInformation,
                                      Handles[Index],
                                      &gMyEfiDiskIoProtocolGuid,
@@ -555,8 +420,6 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     MyFreePool(Handles);
 }  
 
- 
- 
 /*
  * Return the number of visible matching filenames considered. NumFound
  * advances before StartEFIImage and its return status does not affect the
@@ -572,7 +435,7 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
     CHAR16                  *FileName;
 
     CleanUpPathNameSlashes(Path);
-     
+
     DirIterOpen(SelfRootDir, Path, &DirIter);
     while (DirIterNext(&DirIter, 2, LOADER_MATCH_PATTERNS, &DirEntry)) {
         if (DirEntry->FileName[0] == '.')
@@ -593,12 +456,6 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
     return (NumFound);
 }  
 
-
- 
- 
- 
- 
- 
 /*
  * Resolve built-in driver directories relative to BOOT's own directory, then
  * scan the additional paths supplied by configuration. A positive aggregate
@@ -610,8 +467,7 @@ BOOLEAN LoadDrivers(VOID) {
     UINTN         i = 0, Length, NumFound = 0;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Loading drivers");
-     
-     
+
     while ((Directory = FindCommaDelimited(DRIVER_DIRS, i++)) != NULL) {
         SelfDirectory = SelfDirPath ? StrDuplicate(SelfDirPath) : NULL;
         CleanUpPathNameSlashes(SelfDirectory);
@@ -621,7 +477,6 @@ BOOLEAN LoadDrivers(VOID) {
         MyFreePool(SelfDirectory);
     }
 
-     
     i = 0;
     while ((Directory = FindCommaDelimited(GlobalConfig.DriverDirs, i++)) != NULL) {
         CleanUpPathNameSlashes(Directory);
@@ -632,7 +487,6 @@ BOOLEAN LoadDrivers(VOID) {
         MyFreePool(Directory);
     }  
 
-     
     if (NumFound > 0)
         ConnectAllDriversToAllControllers();
     return (NumFound > 0);

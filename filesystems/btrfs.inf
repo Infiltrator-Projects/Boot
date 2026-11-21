@@ -2,16 +2,6 @@
 # Chunk mapping, subvolumes and tree feature support depend on this reader.
 # This is metadata for an alternative build, not a Common V2 .so ABI.
 
-
-
-
-
-
-
-
-
-
-
 [Defines]
   INF_VERSION                   = 0x00010005
   BASE_NAME                     = btrfs
@@ -22,12 +12,6 @@
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = fsw_efi_main
   FSTYPE                        = btrfs
-
-
-
-
-
-
 
 [Sources]
   fsw_efi.c

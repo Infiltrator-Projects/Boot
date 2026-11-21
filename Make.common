@@ -2,57 +2,17 @@
 # Compiler ABI, architecture, entry point and PE/COFF linker script are
 # part of the executable firmware contract, not optional style preferences.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 EFIINC          = /usr/include/efi
 GNUEFILIB       = /usr/lib
 EFILIB          = /usr/lib
 EFICRT0         = /usr/lib
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 GNUEFI_ARM64_TARGET_SUPPORT ?= n
 
 HOSTARCH        = $(shell uname -m | sed s,i[3456789]86,ia32,)
 ARCH            ?= $(HOSTARCH)
 
-
-
-
 BOOT_SBAT_CSV = boot-sbat.csv
-
-
 
 GENFW           = $(TIANOBASE)/BaseTools/Source/C/bin/GenFw
 prefix          = /usr/bin/
@@ -77,17 +37,10 @@ ifeq ($(MAKEWITH),TIANO)
 include $(TIANOBASE)/Conf/target.txt
 endif
 
-
-
-
-
-
 OPTIMFLAGS      = -Os -fno-strict-aliasing -fno-tree-loop-distribute-patterns
 CFLAGS          = $(OPTIMFLAGS) -fno-stack-protector -fshort-wchar -Wall
 
-
 GNUEFI_CFLAGS   = -fpic -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol -I../include -I../boot -I../libeg -I../mok -I../gzip
-
 
 TIANO_INCLUDE_DIRS = -I $(TIANOBASE)/MdePkg \
                      -I $(TIANOBASE)/MdePkg/Include \
@@ -102,10 +55,6 @@ TIANO_INCLUDE_DIRS = -I $(TIANOBASE)/MdePkg \
                      -I ../include \
                      -I ../mok
 
-
-
-
-
 SUBSYSTEM_LDFLAG  =
 GNUEFI_LDSCRIPT   = $(EFICRT0)/elf_$(ARCH)_efi.lds
 CRTOBJS           = $(EFICRT0)/crt0-efi-$(ARCH).o
@@ -116,24 +65,14 @@ CRTOBJS           = $(EFICRT0)/crt0-efi-$(ARCH).o
 GNUEFI_LDFLAGS    = -T $(GNUEFI_LDSCRIPT) -shared -Bsymbolic -nostdlib -L$(EFILIB) -L$(GNUEFILIB) $(CRTOBJS)
 GNUEFI_LIBS       = -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 
-
-
 ENTRYPOINT=efi_main
 TIANO_LDSCRIPT   = $(TIANOBASE)/BaseTools/Scripts/gcc4.9-ld-script
 
 TIANO_LDFLAGS   = -nostdlib -n -q --gc-sections --script=$(TIANO_LDSCRIPT) \
                   --entry $(ENTRYPOINT) -u $(ENTRYPOINT) -m $(LD_CODE)
 
-
-
-
-
 FORMAT          = --output-target=efi-app-$(ARCH)
 FORMAT_DRIVER   = --output-target=efi-bsdrv-$(ARCH)
-
-
-
-
 
 ifeq ($(ARCH),x86_64)
   GNUEFI_LDFLAGS += -znocombreloc -zdefs
@@ -150,8 +89,6 @@ endif
 
 ifeq ($(ARCH),ia32)
   GNUEFI_LDFLAGS += -znocombreloc -zdefs
-
-
 
   ifeq ($(HOSTARCH),x86_64)
     GNUEFILIB := $(GNUEFILIB)32
@@ -188,17 +125,13 @@ endif
   LD_CODE = aarch64elf
 endif
 
-
 %.o: %.c
 	$(CC) $(CFLAGS) $(ARCH_CFLAGS) $(GNUEFI_CFLAGS) $(LOCAL_GNUEFI_CFLAGS) \
 	      -D__MAKEWITH_GNUEFI -c $< -o $@
 
-
 %.obj: %.c
 	$(CC) $(CFLAGS) $(ARCH_CFLAGS) $(TIANO_INCLUDE_DIRS) -DNO_BUILTIN_VA_FUNCS \
 	      -D__MAKEWITH_TIANO -c $< -o $@
-
-
 
 ifneq (,$(filter %.efi,$(TARGET)))
 
@@ -206,19 +139,9 @@ SHLIB_TARGET = $(subst .efi,.so,$(TARGET))
 
 endif
 
-
-
-
 ifneq (,$(filter %.a,$(TARGET)))
 
 $(TARGET): $(OBJS)
 	$(AR) cq $@ $(OBJS)
 
 endif
-
-
-
-
-
-
-

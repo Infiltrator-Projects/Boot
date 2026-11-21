@@ -4,41 +4,6 @@
  * a loader is executable. A missing icon must not suppress an otherwise valid
  * candidate: dummy imagery is an explicit graphics fallback.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "lib.h"
@@ -47,10 +12,6 @@
 #include "config.h"
 #include "mystrings.h"
 #include "../boot/screen.h"
-
- 
- 
- 
 
 typedef struct {
     EG_IMAGE    *Image;
@@ -104,14 +65,6 @@ EG_IMAGE * BuiltinIcon(IN UINTN Id)
     return BuiltinIconTable[Id].Image;
 }
 
- 
- 
- 
-
- 
- 
- 
- 
 /*
  * Try the comma-separated OS names in order, followed by the fallback name. A
  * boot-logo request can then use the fallback OS icon. Only after those
@@ -128,7 +81,7 @@ EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconNam
         return NULL;
 
     LOG(4, LOG_LINE_NORMAL, L"Trying to find an icon from '%s'", OSIconName);
-     
+
     while (((CutoutName = FindCommaDelimited(OSIconName, Index++)) != NULL) && (Image == NULL)) {
        BaseName = PoolPrint(L"%s_%s", BootLogo ? L"boot" : L"os", CutoutName);
        Image = egFindIcon(BaseName, GlobalConfig.IconSizes[ICON_SIZE_BIG]);
@@ -136,7 +89,6 @@ EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconNam
        MyFreePool(BaseName);
     }
 
-     
     if (Image == NULL) {
        BaseName = PoolPrint(L"%s_%s", BootLogo ? L"boot" : L"os", FallbackIconName);
        LOG(4, LOG_LINE_NORMAL, L"Trying to find an icon from '%s'", BaseName);
@@ -144,7 +96,6 @@ EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconNam
        MyFreePool(BaseName);
     }
 
-     
     if (BootLogo && (Image == NULL)) {
        BaseName = PoolPrint(L"os_%s", FallbackIconName);
        LOG(4, LOG_LINE_NORMAL, L"Trying to find an icon from '%s'", BaseName);
@@ -152,7 +103,6 @@ EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconNam
        MyFreePool(BaseName);
     }
 
-     
     if (Image == NULL) {
        LOG(4, LOG_LINE_NORMAL, L"Setting dummy image");
        Image = DummyImage(GlobalConfig.IconSizes[ICON_SIZE_BIG]);
@@ -161,9 +111,7 @@ EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconNam
     return Image;
 }  
 
-
 static EG_PIXEL BlackPixel  = { 0x00, 0x00, 0x00, 0 };
- 
 
 /*
  * Constructs placeholder graphics when requested imagery is unavailable;

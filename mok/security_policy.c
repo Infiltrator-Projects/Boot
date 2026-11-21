@@ -4,13 +4,6 @@
  * used by child EFI execution, so status and restoration matter. This is
  * not an ordinary display setting or proof of global Secure Boot support.
  */
- 
-
-
-
-
-
-
 
 #include <global.h>
 
@@ -21,9 +14,6 @@
 #include "mok.h"
 
 #include <security_policy.h>
-
- 
-
 
 struct _EFI_SECURITY2_PROTOCOL;
 struct _EFI_SECURITY_PROTOCOL;
@@ -58,16 +48,9 @@ struct _EFI_SECURITY_PROTOCOL {
    EFI_SECURITY_FILE_AUTHENTICATION_STATE  FileAuthenticationState;
 };
 
-
 static EFI_SECURITY_FILE_AUTHENTICATION_STATE esfas = NULL;
 static EFI_SECURITY2_FILE_AUTHENTICATION es2fa = NULL;
 
- 
- 
- 
- 
- 
- 
 static MSABI EFI_STATUS
 /*
  * Routes a Security2 file authentication request through the installed
@@ -83,10 +66,8 @@ security2_policy_authentication (
 {
    EFI_STATUS Status;
 
-    
    Status = uefi_call_wrapper(es2fa, 5, This, DevicePath, FileBuffer, FileSize, BootPolicy);
 
-    
    if (Status == EFI_SUCCESS)
       return Status;
 
@@ -97,13 +78,6 @@ security2_policy_authentication (
    }
 }  
 
- 
- 
- 
- 
- 
- 
- 
 static MSABI EFI_STATUS
 security_policy_authentication (
    const EFI_SECURITY_PROTOCOL *This,
@@ -144,7 +118,7 @@ security_policy_authentication (
    if (ShimValidate(FileBuffer, FileSize)) {
       Status = EFI_SUCCESS;
    } else {
-       
+
       Status = uefi_call_wrapper(esfas, 3, This, AuthenticationStatus, DevicePathConst);
    }
    MyFreePool(FileBuffer);
@@ -168,18 +142,15 @@ security_policy_install(void)
    EFI_STATUS status;
 
    if (esfas) {
-       
+
       return EFI_ALREADY_STARTED;
    }
-
-    
-
 
    uefi_call_wrapper(BS->LocateProtocol, 3, &SECURITY2_PROTOCOL_GUID, NULL, (VOID**) &security2_protocol);
 
    status = uefi_call_wrapper(BS->LocateProtocol, 3, &SECURITY_PROTOCOL_GUID, NULL, (VOID**) &security_protocol);
    if (status != EFI_SUCCESS)
-       
+
       return status;
 
    if (security2_protocol) {
@@ -214,7 +185,7 @@ security_policy_uninstall(void)
       security_protocol->FileAuthenticationState = esfas;
       esfas = NULL;
    } else {
-       
+
       return EFI_NOT_STARTED;
    }
 

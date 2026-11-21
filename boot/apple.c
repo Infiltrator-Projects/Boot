@@ -3,26 +3,6 @@
  * information protocols. These interfaces are vendor-specific and must not
  * be assumed present on non-Apple UEFI platforms.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "config.h"
@@ -35,10 +15,6 @@
 
 CHAR16 gCsrStatus[512];
 
- 
- 
- 
- 
 /*
  * Reads the firmware-side CSR state when the relevant Apple interface
  * exists. An unavailable variable is not proof that security is disabled.
@@ -67,9 +43,6 @@ EFI_STATUS GetCsrStatus(UINT32 *CsrStatus) {
     return Status;
 }  
 
- 
- 
- 
 VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage) {
     EG_PIXEL    BGColor = COLOR_LIGHTBLUE;
 
@@ -93,9 +66,6 @@ VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage) {
     }  
 }  
 
- 
- 
- 
 /*
  * Read csr-active-config and find its mask in the configured sequence. An
  * unrecognised value or the last entry wraps to the first. Update the
@@ -132,13 +102,6 @@ VOID RotateCsrValue(VOID) {
     }  
 }  
 
-
- 
-
-
-
-
-
 #define EFI_APPLE_SET_OS_PROTOCOL_GUID  \
   { 0xc5c5da95, 0x7d5c, 0x45e6, \
     { 0xb2, 0xf1, 0x3f, 0xd5, 0x2b, 0xb1, 0x00, 0x77 } \
@@ -150,10 +113,6 @@ typedef struct EfiAppleSetOsInterface {
     EFI_STATUS EFIAPI (*SetOsVendor) (IN CHAR8 *Vendor);
 } EfiAppleSetOsInterface;
 
- 
- 
- 
- 
 /*
  * Apple's set-OS protocol is optional. If located, its version gates the
  * calls. Version 1 accepts an OS version string, and version 2 or higher can
@@ -169,7 +128,6 @@ EFI_STATUS SetAppleOSInfo() {
     LOG(1, LOG_LINE_NORMAL, L"Setting Apple OS information, if applicable");
     Status = refit_call3_wrapper(BS->LocateProtocol, &apple_set_os_guid, NULL, (VOID**) &SetOs);
 
-     
     if ((Status != EFI_SUCCESS) || (!SetOs)) {
         LOG(2, LOG_LINE_NORMAL, L"Not a Mac; not setting Apple OS information");
         return EFI_SUCCESS;

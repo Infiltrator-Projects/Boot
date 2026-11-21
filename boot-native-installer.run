@@ -5,8 +5,6 @@
 # NVRAM. /EFI/InfiltratorOS/BOOT is the only permitted installation target.
 # The generic .deb has a separate staging-only contract.
 
-
-
 set -euo pipefail
 
 SOURCE_SHA="__BOOT_SOURCE_COMMIT__"
@@ -18,7 +16,6 @@ if (($# != 0)); then
     exit 2
 fi
 [[ $(uname -m) == x86_64 ]] || { echo "BOOT native installer requires x86-64" >&2; exit 2; }
-
 
 if ((EUID != 0)); then
     command -v sudo >/dev/null || { echo "sudo is required for EFI installation" >&2; exit 1; }
@@ -71,7 +68,6 @@ cd "$source_dir"
 }
 echo "Building BOOT natively from source commit $SOURCE_SHA..."
 
-
 printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$RELEASE_VERSION" > boot-sbat-release.csv
 make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$RELEASE_VERSION\"'" gnuefi
 [[ -s boot/boot_x64.efi ]] || { echo "Native BOOT EFI build failed" >&2; exit 1; }
@@ -79,8 +75,6 @@ for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     [[ -s "drivers_x64/${filesystem}_x64.efi" ]] || { echo "Required EFI driver is missing: $filesystem" >&2; exit 1; }
 done
 echo "Running the native BOOT installation..."
-
-
 
 export BOOT_INSTALL_SOURCE_DIR="$source_dir"
 # The native build has completed. The following installer uses explicit status
@@ -90,121 +84,6 @@ set +e +u
 set +o pipefail
 
 set -- --alldrivers
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 RootDir="/"
 TargetDir=/EFI/InfiltratorOS/BOOT
@@ -222,10 +101,6 @@ EncryptKeys=0
 DeleteBootDir=0
 AlwaysYes=0
 EspGuid="C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
-
-
-
-
 
 # Historical parameter parser is used internally after the script sets
 # --alldrivers. The public entry point rejects external arguments; do not
@@ -274,9 +149,6 @@ GetParams() {
    EtcKeysDir="$RootDir/etc/boot.d/keys"
 }
 
-
-
-
 ReadYesNo() {
    if [[ $AlwaysYes == 1 ]] ; then
       YesNo="Y"
@@ -285,10 +157,6 @@ ReadYesNo() {
       read -r YesNo
    fi
 }
-
-
-
-
 
 ReadKeyPassphrase() {
    if [[ $EncryptKeys == 1 ]]  && [ -z "$KeyPassphrase" ]; then
@@ -312,9 +180,6 @@ ReadKeyPassphrase() {
       done
    fi
 }
-
-
-
 
 DeterminePlatform() {
    local CpuType
@@ -345,8 +210,6 @@ DeterminePlatform() {
          ;;
       i?86)
          Platform="ia32"
-
-
 
          if [[ -d /sys/firmware/efi ]] ; then
             if [[ "$ShimSource" != "none" && "$TargetDir" != "/BOOT/EFI" ]] ; then
@@ -385,22 +248,12 @@ DeterminePlatform() {
    esac
 }
 
-
-
-
-
-
-
 # Determines the source executable, driver and resource paths used in this
 # installation. Missing binary or configuration files must terminate rather
 # than leave an apparently valid but incomplete firmware installation.
 CheckForFiles() {
 
-
-
-
    if [[ -n "${BOOT_INSTALL_SOURCE_DIR:-}" ]] ; then
-
 
       ThisDir="$(cd -P "$BOOT_INSTALL_SOURCE_DIR" && pwd)" || exit 1
    else
@@ -467,8 +320,6 @@ CheckForFiles() {
    fi
 }
 
-
-
 CopyShimFiles() {
    local TargetMMName
    local inode1
@@ -497,7 +348,6 @@ CopyShimFiles() {
    fi
 }
 
-
 CopyKeys() {
    if [[ $LocalKeys == 1 ]] ; then
       mkdir -p "$InstallDir/$TargetDir/keys/"
@@ -505,14 +355,6 @@ CopyKeys() {
       cp "$EtcKeysDir/$LocalKeysBase.crt" "$InstallDir/$TargetDir/keys/"
    fi
 }
-
-
-
-
-
-
-
-
 
 DetermineTargetDir() {
    Upgrade=0
@@ -524,8 +366,6 @@ DetermineTargetDir() {
    fi
 }
 
-
-
 # Records the boot-volume filesystem identity used when selecting drivers;
 # filesystem detection is not itself proof of usable driver support.
 SetBootFS() {
@@ -536,21 +376,12 @@ SetBootFS() {
               BootPart=$(df "$RootDir"/boot | grep dev | cut -f 1 -d " ")
               BootFS=$(blkid -o export "$BootPart" 2> /dev/null | grep TYPE= | cut -f 2 -d =)
 
-
-
-
-
               if [[ -z "$BootFS" ]] ; then
                  BootFS=$(blkid "$BootPart" 2> /dev/null | grep -Po 'TYPE=\"\K[^\"]*')
               fi
            fi
            ;;
       darwin*)
-
-
-
-
-
 
            Temp=$(diskutil list | grep -i '0FC63DAF-8483-4772-8E79-3D69D8477DE4\|BC13C2FF-59E6-4262-A352-B275FD6F7172\|933AC7E1-2EB4-4F13-B844-0E14E2AEF915\|E6D6D379-F507-44C2-A23C-238F2A3DF928\|A19D880F-05FC-4D3B-A006-743F0F84911E\|0657FD6D-A4AB-43C4-84E5-0933C84B4F4F\|Linux')
            BootFS=""
@@ -562,9 +393,6 @@ SetBootFS() {
    esac
 }
 
-
-
-
 CopyDrivers() {
    if [[ $InstallDrivers == "all" ]] ; then
       mkdir -p "$InstallDir/$TargetDir/drivers_$1"
@@ -575,7 +403,6 @@ CopyDrivers() {
       DriverType=""
       case $BootFS in
          ext2 | ext3) DriverType="ext2"
-
 
               ;;
          ext4) DriverType="ext4"
@@ -599,8 +426,6 @@ CopyDrivers() {
    fi
 }
 
-
-
 CopyTools() {
    if [[ $OSTYPE == darwin* && -f "$BootDir/tools_$1/gptsync_$1.efi" ]] ; then
       cp -f "$BootDir/tools_$1/gptsync_$1.efi" "$InstallDir/$TargetDir/" || {
@@ -609,9 +434,6 @@ CopyTools() {
       }
    fi
 }
-
-
-
 
 BootFileHash() {
    if command -v sha256sum &> /dev/null ; then
@@ -623,7 +445,6 @@ BootFileHash() {
       return 1
    fi
 }
-
 
 # Protects the dedicated installation path against alternate roots, links
 # and unexpected replacement using BOOT's SHA-256 ownership marker.
@@ -742,7 +563,6 @@ CopyBootFiles() {
    fi
    if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -z "${Problems:-}" ]] ; then
 
-
       local verified marker temporary
       verified=$(BootFileHash "$InstallDir/$TargetDir/$TargetX64") || exit 1
       marker="$InstallDir/$TargetDir/.infiltrator-boot-loader.sha256"
@@ -759,11 +579,6 @@ CopyBootFiles() {
       rm -r "$BootDir"
    fi
 }
-
-
-
-
-
 
 CreateBootCsvFile() {
    IConv="$(command -v iconv 2> /dev/null)"
@@ -783,16 +598,7 @@ CreateBootCsvFile() {
    fi
 }
 
-
-
-
-
-
-
-
-
 MountOSXESP() {
-
 
    Temp=$(mount | sed -n -E "/^(\/dev\/disk.*) on \/ \(.*$/s//\1/p")
    if [ "$Temp" ]; then
@@ -820,7 +626,6 @@ MountOSXESP() {
    if [[ "$InstallDir" == '' ]] ; then
       mkdir /Volumes/ESP &> /dev/null
 
-
       if ! mount -t msdos "$Esp" /Volumes/ESP ; then
          OwnHfs=1
          InstallToEspOnMac=0
@@ -833,11 +638,6 @@ MountOSXESP() {
       InstallDir="/Volumes/ESP"
    fi
 }
-
-
-
-
-
 
 CheckForSIP() {
    local OKToInstall
@@ -892,8 +692,6 @@ CheckForSIP() {
    fi
 }
 
-
-
 InstallOnOSX() {
    echo "Installing BOOT on macOS...."
    [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] || {
@@ -925,15 +723,6 @@ InstallOnOSX() {
       fi
    fi
 }
-
-
-
-
-
-
-
-
-
 
 # Queries Secure Boot firmware state and interactive signing/shim choices.
 # Observed state and user prompts cannot substitute for firmware validation.
@@ -997,17 +786,11 @@ CheckSecureBoot() {
 
 }
 
-
-
-
 GenerateKeys() {
    PrivateKey="$EtcKeysDir/$LocalKeysBase.key"
    CertKey="$EtcKeysDir/$LocalKeysBase.crt"
    DerKey="$EtcKeysDir/$LocalKeysBase.cer"
    OpenSSL="$(command -v openssl 2> /dev/null)"
-
-
-
 
    if [[ ! -f "$PrivateKey" || ! -f "$CertKey" || ! -f "$DerKey" ]] ; then
       echo "Generating a fresh set of local keys...."
@@ -1044,11 +827,6 @@ GenerateKeys() {
    fi
 }
 
-
-
-
-
-
 SignOneBinary() {
    ReadKeyPassphrase --no-confirm
    if [[ "$EncryptKeys" == 1 ]] ; then
@@ -1069,9 +847,6 @@ SignOneBinary() {
       exit 1
    fi
 }
-
-
-
 
 ReSignBinaries() {
    SBSign="$(command -v sbsign 2> /dev/null)"
@@ -1102,11 +877,6 @@ ReSignBinaries() {
    DeleteBootDir=1
 }
 
-
-
-
-
-
 # Determines an EFI System Partition from native block/mount information.
 # Choosing the wrong partition is a critical side effect because later
 # operations write the resolved path and EFI firmware variables.
@@ -1130,11 +900,7 @@ FindLinuxESP() {
       exit 1
    fi
 
-
    for FatPart in $(blkid -t TYPE="vfat" -o device) ; do
-
-
-
 
       for PotentialParent in $(lsblk | grep disk | cut -f 1 -d " ") ; do
          IsItRaid=0
@@ -1146,8 +912,6 @@ FindLinuxESP() {
                IsItRaid=1
             fi
          fi
-
-
 
          if [[ $FatPart == *"/dev/$PotentialParent"* && $IsItRaid == 0 ]] ; then
             ParentDisk=$PotentialParent
@@ -1172,10 +936,6 @@ FindLinuxESP() {
       fi
    done
 }
-
-
-
-
 
 # Resolves a mounted ESP and expected filesystem state. A mount path is
 # not sufficient proof of BOOT ownership; destination constraints still apply.
@@ -1212,8 +972,6 @@ FindMountedESP() {
    fi
    echo "ESP was found at $InstallDir using $EspFilesystem"
 }
-
-
 
 # Creates or reorders a firmware Boot#### entry for BOOT. The operation
 # must preserve independent Windows, GRUB and fallback boot paths and reject
@@ -1253,7 +1011,6 @@ AddBootEntry() {
    EfiEntryFilename="${EntryFilename//\//\\}"
    local FirmwareEntries CurrentEntry LowerEntry CandidateNum
    local MatchCount BootEntryCount Registered=0
-
 
    while : ; do
       if ! FirmwareEntries=$("$Efibootmgr" -v) ; then
@@ -1322,7 +1079,6 @@ AddBootEntry() {
       fi
    done
 
-
    BootNum="${BootNum^^}"
    if ! "$Efibootmgr" -b "$BootNum" -a ; then
       echo "Could not activate BOOT UEFI entry." >&2
@@ -1361,7 +1117,6 @@ AddBootEntry() {
    echo "BOOT (Boot${BootNum}) explicitly set first in UEFI BootOrder."
 }
 
-
 InstallSBKey() {
     local UsedDerKey
     if [ "$LocalKeys" == "1" ] ; then
@@ -1399,8 +1154,6 @@ InstallSBKey() {
     fi
 }
 
-
-
 # Performs the Linux-host ESP/NVRAM mutation. It explicitly clears the prior
 # /EFI/InfiltratorOS/BOOT directory before CopyBootFiles, including any old
 # boot.conf and icons; no files in other vendor EFI paths are intended to be
@@ -1419,7 +1172,6 @@ InstallOnLinux() {
    fi
 
    CheckSecureBoot
-
 
    if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] ; then
       if [[ -L "$InstallDir/EFI" || -L "$InstallDir/EFI/InfiltratorOS" ||
@@ -1443,19 +1195,10 @@ InstallOnLinux() {
    CopyBootFiles
    AddBootEntry
 
-
-
-
-
    if [[ "$IsSecureBoot" == "1" && "$AlwaysYes" == "0" ]] ; then
       InstallSBKey
    fi
 }
-
-
-
-
-
 
 GetParams "$@"
 if [[ $UID != 0 ]] ; then
@@ -1524,6 +1267,5 @@ if [[ "$InstallDir" == /tmp/boot_install ]] ; then
 
    rmdir "$InstallDir"
 fi
-
 
 exit "$InstallationFailed"

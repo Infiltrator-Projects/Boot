@@ -4,41 +4,6 @@
  * must not remove discovered boot options. Images and surfaces have distinct
  * allocation/ownership boundaries from loader device handles.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __SCREEN_H_
 #define __SCREEN_H_
@@ -65,14 +30,8 @@
 #define ATTR_CHOICE_CURRENT (EFI_WHITE | EFI_BACKGROUND_GREEN)
 #define ATTR_SCROLLARROW (EFI_LIGHTGREEN | EFI_BACKGROUND_BLACK)
 
- 
- 
 #define LAYOUT_BANNER_YGAP 32
 
- 
- 
-
- 
 #define CENTER 0
 #define BOTTOM 1
 #define TOP 2
@@ -113,7 +72,7 @@ VOID SwitchToGraphicsAndClear(VOID);
 VOID BltClearScreen(IN BOOLEAN ShowBanner);
 VOID BltImage(IN EG_IMAGE *Image, IN UINTN XPos, IN UINTN YPos);
 VOID BltImageAlpha(IN EG_IMAGE *Image, IN UINTN XPos, IN UINTN YPos, IN EG_PIXEL *BackgroundPixel);
- 
+
 VOID BltImageCompositeBadge(IN EG_IMAGE *BaseImage, IN EG_IMAGE *TopImage, IN EG_IMAGE *BadgeImage, IN UINTN XPos, IN UINTN YPos);
 
 #endif

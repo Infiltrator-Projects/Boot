@@ -4,22 +4,8 @@
  * attach. Whole-platform reconnection has more side effects than file scanning;
  * callers must not confuse 'connected' with a bootable filesystem.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "Platform.h"
-
 
 /*
  * Index the handle buffer and its classification array in parallel.
@@ -46,9 +32,6 @@ EFI_STATUS ScanDeviceHandles(EFI_HANDLE ControllerHandle,
   *HandleBuffer = NULL;
   *HandleType   = NULL;
 
-   
-   
-   
   Status = gBS->LocateHandleBuffer (AllHandles, NULL, NULL, HandleCount, HandleBuffer);
   if (EFI_ERROR (Status)) goto Error;
 
@@ -57,9 +40,7 @@ EFI_STATUS ScanDeviceHandles(EFI_HANDLE ControllerHandle,
 
   for (HandleIndex = 0; HandleIndex < *HandleCount; HandleIndex++) {
     (*HandleType)[HandleIndex] = EFI_HANDLE_TYPE_UNKNOWN;
-     
-     
-     
+
     Status = gBS->ProtocolsPerHandle (
                   (*HandleBuffer)[HandleIndex],
                   &ProtocolGuidArray,
@@ -104,9 +85,6 @@ EFI_STATUS ScanDeviceHandles(EFI_HANDLE ControllerHandle,
           (*HandleType)[HandleIndex] |= EFI_HANDLE_TYPE_DEVICE_HANDLE;
         }
 
-         
-         
-         
         Status = gBS->OpenProtocolInformation (
                                                (*HandleBuffer)[HandleIndex],
                                                ProtocolGuidArray[ProtocolIndex],
@@ -170,8 +148,6 @@ Error:
   return Status;
 }
 
-
-
 /*
  * Skip executable and driver-binding handles, then recursively connect
  * eligible parentless device handles. The VGA branch disconnects the
@@ -192,26 +168,25 @@ EFI_STATUS BdsLibConnectMostlyAllEfi()
 	BOOLEAN           Device;
 	EFI_PCI_IO_PROTOCOL*	PciIo;
 	PCI_TYPE00				Pci;
-  
-  
+
 	Status = gBS->LocateHandleBuffer (AllHandles, NULL, NULL, &AllHandleCount, &AllHandleBuffer);
 	if (CheckError(Status, L"locating handle buffer")) 
 		return Status;
-  
+
 	for (Index = 0; Index < AllHandleCount; Index++) 
 	{
 		Status = ScanDeviceHandles(AllHandleBuffer[Index], &HandleCount, &HandleBuffer, &HandleType);
-    
+
 		if (EFI_ERROR (Status))
 			goto Done;
-    
+
 		Device = TRUE;
-		
+
 		if (HandleType[Index] & EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE)
 			Device = FALSE;
 		if (HandleType[Index] & EFI_HANDLE_TYPE_IMAGE_HANDLE)
 			Device = FALSE;
-    
+
 		if (Device) 
 		{					
 			Parent = FALSE;
@@ -220,7 +195,7 @@ EFI_STATUS BdsLibConnectMostlyAllEfi()
 				if (HandleType[HandleIndex] & EFI_HANDLE_TYPE_PARENT_HANDLE)
 					Parent = TRUE;
 			}
-      
+
 			if (!Parent) 
 			{
 				if (HandleType[Index] & EFI_HANDLE_TYPE_DEVICE_HANDLE) 
@@ -241,23 +216,15 @@ EFI_STATUS BdsLibConnectMostlyAllEfi()
 				}
 			}
 		}
-    
+
 		FreePool (HandleBuffer);
 		FreePool (HandleType);
 	}
-  
+
 Done:
 	FreePool (AllHandleBuffer);
 	return Status;
 }
-
-
- 
-
-
-
-
-
 
 VOID
 EFIAPI
@@ -268,18 +235,9 @@ BdsLibConnectAllDriversToAllControllers (
   EFI_STATUS  Status = EFI_UNSUPPORTED;
 
   do {
-     
-     
-     
-     
+
     BdsLibConnectMostlyAllEfi ();
 
-     
-     
-     
-     
-     
-     
     if (gDS)
         Status = gDS->Dispatch ();
 

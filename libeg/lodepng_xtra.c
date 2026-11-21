@@ -3,44 +3,11 @@
  * library memory callbacks are replaced with EFI-compatible allocation.
  * A valid decode must still satisfy requested image size and alpha semantics.
  */
- 
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "../boot/screen.h"
 #include "../boot/lib.h"
 #include "lodepng.h"
-
- 
- 
- 
- 
- 
- 
- 
- 
 
 void* lodepng_malloc(size_t size) {
    void *ptr;
@@ -85,7 +52,6 @@ void* lodepng_realloc(void *ptr, size_t new_size) {
    return new_pool;
 }  
 
- 
 int MyStrlen(const char *InString) {
    int Length = 0;
 
@@ -131,11 +97,10 @@ EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
       return NULL;
    }
 
-    
    NewImage = egCreateImage(Width, Height, WantAlpha);
    if (NewImage == NULL)
        return NULL;
-    
+
    if ((NewImage->Width != Width) || (NewImage->Height != Height)) {
       egFreeImage(NewImage);
       return NULL;
@@ -148,8 +113,6 @@ EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
     */
    LodeData = (lode_color *) PixelData;
 
-    
-    
    for (i = 0; i < (NewImage->Height * NewImage->Width); i++) {
       NewImage->PixelData[i].r = LodeData[i].red;
       NewImage->PixelData[i].g = LodeData[i].green;

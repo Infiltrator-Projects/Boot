@@ -2,14 +2,6 @@
 # firmware ABI profile. Linking success alone is not proof that a particular
 # UEFI vendor exposes every expected controller protocol.
 
-
-
-
-
-
-
-
-
 SRCDIR = .
 
 VPATH = $(SRCDIR)

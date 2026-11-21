@@ -3,21 +3,6 @@
  * must not be interpreted as the status of a loader transfer, and logging
  * should not require destructive operations on other EFI vendors' directories.
  */
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
 
 #ifndef __LOG_H_
 #define __LOG_H_

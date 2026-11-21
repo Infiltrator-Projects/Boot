@@ -4,21 +4,6 @@
 # that may replace local keys or trigger administrative actions.
 # Running the script is not the same as the native BOOT installer.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 FOUND_EXPIRED_KEY="0"
 FOUND_SHORT_KEY="0"
 REBOOT_AFTER="0"
@@ -31,8 +16,6 @@ BOOT_DER_KEY="$ETC_KEYS_DIR/$LOCAL_KEYS_BASE.cer"
 
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
-
-
 
 CheckPrerequisites() {
     local CpuType
@@ -66,8 +49,6 @@ CheckPrerequisites() {
 }
 
 GetYN() {
-
-
 
     YN=""
     while [ -z "$YN" ] ; do
@@ -104,15 +85,6 @@ PauseForKey() {
     read -r Answer
 }
 
-
-
-
-
-
-
-
-
-
 # Parses firmware boot-option text into paths and partition identifiers.
 # Firmware output is external data; do not assume labels uniquely identify ESPs.
 ParseBootLine() {
@@ -139,10 +111,6 @@ ParseBootLine() {
         fi
     fi
 }
-
-
-
-
 
 # Classifies observed firmware Secure Boot and shim state; absent records
 # must remain distinguishable from positive or negative trust decisions.
@@ -187,16 +155,12 @@ CheckSbState() {
         fi
     else
 
-
-
         echo "Unable to detect the current boot path!"
         echo "Terminating program!"
         exit 1
     fi
     echo
 }
-
-
 
 FindEspMountPoint() {
     if [[ -n "$ESP_GUID" ]] ; then
@@ -209,7 +173,6 @@ FindEspMountPoint() {
         read -r ESP_MOUNT_POINT
     fi
 }
-
 
 # Compares shim-related components and may request update action. This
 # is operational maintenance, not proof that BOOT's EFI image was validated.
@@ -248,7 +211,6 @@ CheckForShimUpdates() {
         CandidateShimFile=$(echo "$Line" | cut -d "-" -f 5-99)
         CandidateShimPath=$(echo "$CandidateShimFile" | rev | cut -d "/" -f 2-99 | rev)
         if [[ "$CurrentShimDate" < "$CandidateShimDate" ]] ; then
-
 
             echo "  --> $CandidateShimDate: $CandidateShimFile"
             if [[ -e "$CandidateShimPath/mm$PLATFORM.efi" && ! -d "$CandidateShimPath/mm$PLATFORM.efi" ]] ; then
@@ -342,8 +304,6 @@ ReplaceLocalBootKey() {
     cp -a "$ETC_KEYS_DIR/$LOCAL_KEYS_BASE"* "$ESP_MOUNT_POINT"/"$BL_PATH"/keys/
 }
 
-
-
 CheckBootLocalKeyExpiration() {
     local FullExpirationDate
     local ExpirationYear
@@ -394,13 +354,6 @@ CheckBootLocalKeyExpiration() {
     fi
 }
 
-
-
-
-
-
-
-
 CheckKeyExpiration() {
     KeyData="$1"
     KeyNum=0
@@ -418,7 +371,6 @@ CheckKeyExpiration() {
             DateStr=$(echo "$Line" | grep -Po 'After : \K[^)]*')
             ExpirationDate=$(date -d "$DateStr" "+%Y-%m-%d")
             ExpirationSeconds=$(date -d "$DateStr" "+%s")
-
 
             TimeToExpiration="(($ExpirationSeconds-CURRENT_SECONDS))"
 
@@ -541,12 +493,6 @@ CheckAllKeysExpiration() {
         echo "https://www.rodsbooks.com/efi-bootloaders/controlling-sb.html for details."
     fi
 }
-
-
-
-
-
-
 
 if [[ $UID != 0 ]] ; then
    echo "Not running as root; attempting to elevate privileges via sudo...."

@@ -3,29 +3,6 @@
  * which block-addressing scheme is active; unsupported superblock feature
  * combinations must fail explicitly before walking filesystem metadata.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_EXT4_H_
 #define _FSW_EXT4_H_
@@ -36,20 +13,13 @@
 
 #include "fsw_ext4_disk.h"
 
-
- 
 #define EXT4_SUPERBLOCK_BLOCKSIZE  1024
- 
+
 #define EXT4_SUPERBLOCK_BLOCKNO       1
-
-
- 
-
-
 
 struct fsw_ext4_volume {
     struct fsw_volume g;             
-    
+
     struct ext4_super_block *sb;     
     /*
      * Store the descriptor's combined high and low inode-table block address
@@ -62,15 +32,10 @@ struct fsw_ext4_volume {
     fsw_u32     inode_size;          
 };
 
- 
-
-
-
 struct fsw_ext4_dnode {
     struct fsw_dnode g;              
-    
+
     struct ext4_inode *raw;          
 };
-
 
 #endif

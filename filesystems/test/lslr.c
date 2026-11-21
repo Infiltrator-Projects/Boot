@@ -3,56 +3,15 @@
  * contents on a test filesystem image. Path traversal and file reads share
  * the same backend as EFI but not the same firmware host callbacks.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #define FSW_DEBUG_LEVEL 3
 
 #include "fsw_posix.h"
 
-
- 
- 
 extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(FSTYPE);
 
 static struct fsw_fstype_table *fstypes[] = {
-     
-     
+
     &FSW_FSTYPE_TABLE_NAME(FSTYPE       ),
     NULL
 };
@@ -143,5 +102,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
- 

@@ -2,16 +2,6 @@
 # HFS+ variants are distinct from legacy plain HFS, which may be detected
 # without being mountable by the current reader.
 
-
-
-
-
-
-
-
-
-
-
 [Defines]
   INF_VERSION                   = 0x00010005
   BASE_NAME                     = hfs
@@ -22,12 +12,6 @@
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = fsw_efi_main
   FSTYPE                        = hfs
-
-
-
-
-
-
 
 [Sources]
   fsw_efi.c

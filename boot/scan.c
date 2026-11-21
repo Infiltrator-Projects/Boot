@@ -4,62 +4,6 @@
  * which choices are displayed. Hidden menu entries are not deleted from disk.
  * Every supported installation should remain discoverable, not a fixed pair.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "config.h"
@@ -79,10 +23,6 @@
 #include "scan.h"
 #include "install.h"
 #include "../include/refit_call_wrapper.h"
-
-
- 
- 
 
 #define MACOSX_LOADER_DIR      L"System\\Library\\CoreServices"
 #define MACOSX_LOADER_PATH      ( MACOSX_LOADER_DIR L"\\boot.efi" )
@@ -128,20 +68,12 @@ static REFIT_MENU_ENTRY MenuEntryManageHidden = { L"Manage Hidden Tags Menu", TA
 static REFIT_MENU_ENTRY MenuEntryBootorder = { L"Manage EFI boot order", TAG_BOOTORDER, 1, 0, 0, NULL, NULL, NULL };
 static REFIT_MENU_ENTRY MenuEntryExit     = { L"Exit BOOT", TAG_EXIT, 1, 0, 0, NULL, NULL, NULL };
 
- 
- 
 struct LOADER_LIST {
     CHAR16              *FileName;
     EFI_TIME            TimeStamp;
     struct LOADER_LIST  *NextEntry;
 };
 
- 
- 
- 
-
- 
- 
 static REFIT_MENU_SCREEN* CopyMenuScreen(REFIT_MENU_SCREEN *Entry) {
     REFIT_MENU_SCREEN *NewEntry;
     UINTN i;
@@ -172,11 +104,6 @@ static REFIT_MENU_SCREEN* CopyMenuScreen(REFIT_MENU_SCREEN *Entry) {
     return (NewEntry);
 }  
 
- 
- 
- 
- 
- 
 static REFIT_MENU_ENTRY* CopyMenuEntry(REFIT_MENU_ENTRY *Entry) {
     REFIT_MENU_ENTRY *NewEntry;
 
@@ -201,11 +128,6 @@ static REFIT_MENU_ENTRY* CopyMenuEntry(REFIT_MENU_ENTRY *Entry) {
     return (NewEntry);
 }  
 
- 
- 
- 
- 
- 
 /*
  * Establishes a complete loader-entry baseline before discovery-specific
  * fields are assigned. Later scanning code depends on this initial state
@@ -236,13 +158,6 @@ LOADER_ENTRY *InitializeLoaderEntry(IN LOADER_ENTRY *Entry) {
     return (NewEntry);
 }  
 
- 
- 
- 
- 
- 
- 
- 
 REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
     CHAR16              *FileName, *MainOptions = NULL;
     REFIT_MENU_SCREEN   *SubScreen = NULL;
@@ -257,7 +172,7 @@ REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
                                          Entry->Volume->VolName);
             LOG(2, LOG_LINE_NORMAL, L"Creating subscreen '%s'", SubScreen->Title);
             SubScreen->TitleImage = Entry->me.Image;
-             
+
             SubEntry = InitializeLoaderEntry(Entry);
             if (SubEntry != NULL) {
                 LOG(2, LOG_LINE_NORMAL, L"Creating loader entry for '%s'", SubScreen->Title);
@@ -290,14 +205,12 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
     UINTN              TokenCount;
     CHAR16             **TokenList;
 
-     
     if (StrLen(Entry->Title) == 0) {
         MyFreePool(Entry->Title);
         Entry->Title = NULL;
     }
     SubScreen = InitializeSubScreen(Entry);
 
-     
     if (Entry->OSType == 'M') {           
 #if defined(EFIX64)
         SubEntry = InitializeLoaderEntry(Entry);
@@ -363,7 +276,6 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             }  
         }  
 
-         
         StrCpy(DiagsFileName, L"System\\Library\\CoreServices\\.diagnostics\\diags.efi");
         if (FileExists(Volume->RootDir, DiagsFileName) && !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_HWTEST)) {
             SubEntry = InitializeLoaderEntry(Entry);
@@ -386,9 +298,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             if (TokenCount >= 2) {
                 ReplaceSubstring(&(TokenList[1]), KERNEL_VERSION, KernelVersion);
             }
-             
-             
-             
+
             if ((TokenCount > 1) && (SubScreen->Entries != NULL) && (SubScreen->Entries[0] != NULL)) {
                 MyFreePool(SubScreen->Entries[0]->Title);
                 SubScreen->Entries[0]->Title = TokenList[0] ? StrDuplicate(TokenList[0]) : StrDuplicate(L"Boot Linux");
@@ -446,7 +356,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
         AddMenuInfoLine(SubScreen, L"marked with (*) may not work.");
 
     } else if (Entry->OSType == 'X') {    
-         
+
         Entry->LoadOptions = L"-s -h";
 
         SubEntry = InitializeLoaderEntry(Entry);
@@ -478,9 +388,6 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
     Entry->me.SubScreen = SubScreen;
 }  
 
- 
- 
- 
 VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Volume) {
     CHAR16      *NameClues, *PathOnly, *NoExtension, *OSIconName = NULL, *Temp;
     CHAR16      ShortcutLetter = 0;
@@ -493,8 +400,7 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
     if (Volume->DiskKind == DISK_KIND_NET) {
         MergeStrings(&NameClues, Entry->me.Title, L' ');
     } else {
-         
-         
+
         LOG(4, LOG_LINE_NORMAL, L"Trying to load icon in same directory as loader....");
         if (!Entry->me.Image) {
             Entry->me.Image = egLoadIconAnyType(Volume->RootDir, PathOnly, NoExtension,
@@ -504,8 +410,6 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
             Entry->me.Image = egCopyImage(Volume->VolIconImage);
         }
 
-         
-         
         LOG(4, LOG_LINE_NORMAL, L"Creating icon hint based on loader path '%s'", LoaderPath);
         Temp = FindLastDirName(LoaderPath);
         MergeStrings(&OSIconName, Temp, L',');
@@ -515,9 +419,6 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
             ShortcutLetter = OSIconName[0];
         }
 
-         
-         
-         
         LOG(4, LOG_LINE_NORMAL, L"Merging hints based on filesystem name ('%s')", Volume->FsName);
         MergeWords(&OSIconName, Volume->FsName, L',');
         LOG(4, LOG_LINE_NORMAL, L"Merging hints based on partition name ('%s')", Volume->PartName);
@@ -525,7 +426,7 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
     }  
 
     LOG(4, LOG_LINE_NORMAL, L"Adding hints based on specific loaders");
-     
+
     if (IsInSubstring(NameClues, GlobalConfig.LinuxPrefixes)) {
         if (Volume->DiskKind != DISK_KIND_NET) {
             GuessLinuxDistribution(&OSIconName, Volume, LoaderPath);
@@ -595,7 +496,6 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
     MyFreePool(NameClues);
 }  
 
- 
 static LOADER_ENTRY * AddEfiLoaderEntry(IN EFI_DEVICE_PATH *EfiLoaderPath,
                                         IN CHAR16 *LoaderTitle,
                                         IN UINT16 EfiBootNum,
@@ -643,8 +543,6 @@ static LOADER_ENTRY * AddEfiLoaderEntry(IN EFI_DEVICE_PATH *EfiLoaderPath,
     return Entry;
 }  
 
- 
- 
 static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
                                      IN REFIT_VOLUME *Volume, IN BOOLEAN SubScreenReturn) {
     LOADER_ENTRY  *Entry;
@@ -656,9 +554,7 @@ static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *Loade
         Entry->Title = StrDuplicate((LoaderTitle != NULL) ? LoaderTitle : LoaderPath);
         LOG(1, LOG_LINE_NORMAL, L"Adding loader entry for '%s'", Entry->Title);
         LOG(2, LOG_LINE_NORMAL, L"Loader path is '%s'", LoaderPath);
-         
-         
-         
+
         if ((Volume->VolName) && (!MyStriCmp(Volume->VolName, L"Recovery HD")))
             Entry->me.Title = PoolPrint(L"Boot %s from %s ",
                                         (LoaderTitle != NULL) ? LoaderTitle : LoaderPath, Volume->VolName);
@@ -684,15 +580,9 @@ static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *Loade
     return(Entry);
 }  
 
- 
- 
- 
- 
 static INTN TimeComp(IN EFI_TIME *Time1, IN EFI_TIME *Time2) {
     INT64 Time1InSeconds, Time2InSeconds;
 
-     
-     
     Time1InSeconds = Time1->Second + (Time1->Minute * 60) + (Time1->Hour * 3600) + (Time1->Day * 86400) +
                         (Time1->Month * 2678400) + ((Time1->Year - 1998) * 32140800);
     Time2InSeconds = Time2->Second + (Time2->Minute * 60) + (Time2->Hour * 3600) + (Time2->Day * 86400) +
@@ -705,11 +595,6 @@ static INTN TimeComp(IN EFI_TIME *Time1, IN EFI_TIME *Time2) {
     return 0;
 }  
 
- 
- 
- 
- 
- 
 static struct LOADER_LIST * AddLoaderListEntry(struct LOADER_LIST *LoaderList, struct LOADER_LIST *NewEntry) {
     struct LOADER_LIST *LatestEntry, *CurrentEntry, *PrevEntry = NULL;
     BOOLEAN LinuxRescue = FALSE;
@@ -735,7 +620,6 @@ static struct LOADER_LIST * AddLoaderListEntry(struct LOADER_LIST *LoaderList, s
     return (LatestEntry);
 }  
 
- 
 static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
     struct LOADER_LIST *Temp;
 
@@ -747,11 +631,6 @@ static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
     }  
 }  
 
- 
- 
- 
- 
- 
 /*
  * Directory eligibility depends on both the volume and the path. Match volume
  * exclusions by identifiers available at runtime, and exclude BOOT's own
@@ -776,7 +655,6 @@ static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
     if (MyStriCmp(Path, SelfDirPath) && (Volume->DeviceHandle == SelfVolume->DeviceHandle))
         return FALSE;
 
-     
     PathCopy = StrDuplicate(Path);
     if (SplitVolumeAndFilename(&PathCopy, &VolName)) {
         if (VolName && (!MyStriCmp(VolName, Volume->FsName) &&
@@ -788,7 +666,6 @@ static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
     MyFreePool(VolName);
     VolName = NULL;
 
-     
     while (ScanIt && (DontScanDir = FindCommaDelimited(GlobalConfig.DontScanDirs, i++))) {
         SplitVolumeAndFilename(&DontScanDir, &VolName);
         CleanUpPathNameSlashes(DontScanDir);
@@ -808,11 +685,6 @@ static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
     return ScanIt;
 }  
 
- 
- 
- 
- 
- 
 /*
  * Guards against presenting the same fallback boot target more than once.
  * Duplicate suppression is confined to menu discovery and does not change
@@ -874,17 +746,11 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
         MyFreePool(FallbackContents);
     }  
 
-     
-     
     refit_call1_wrapper(FileHandle->Close, FallbackHandle);
     refit_call1_wrapper(FileHandle->Close, FileHandle);
     return AreIdentical;
 }  
 
- 
- 
- 
- 
 /*
  * The EFI directory listing and an open handle can report different lengths
  * for a link and its target. This scan uses that difference as a heuristic. A
@@ -908,7 +774,6 @@ static BOOLEAN IsSymbolicLink(REFIT_VOLUME *Volume, CHAR16 *FullName, EFI_FILE_I
     return (DirEntry->FileSize != FileSize2);
 }  
 
- 
 static VOID LogMenuEntries(UINTN LogLevel) {
     UINTN i;
 
@@ -916,19 +781,13 @@ static VOID LogMenuEntries(UINTN LogLevel) {
         LOG(LogLevel, LOG_LINE_NORMAL, L"MainMenu currently has %ld entries; they are....", MainMenu.EntryCount);
         for (i = 0; i < MainMenu.EntryCount; i++) {
             if (MainMenu.Entries[i]) {
-                 
-                 
+
                 LOG(LogLevel, LOG_LINE_NORMAL, L"  --> Menu item %ld is '%s'", i, MainMenu.Entries[i]->Title);
             }
         }
     }
 }  
 
- 
- 
- 
- 
- 
 /*
  * Collect eligible filenames into a sorted list before creating menu entries.
  * With kernel folding enabled, the first qualifying Linux entry in that order
@@ -949,7 +808,7 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
     InSelfPath = MyStriCmp(Path, SelfDirPath);
     if ((!SelfDirPath || !Path || (InSelfPath && (Volume->DeviceHandle != SelfVolume->DeviceHandle)) ||
            (!InSelfPath)) && (ShouldScan(Volume, Path))) {
-        
+
        DirIterOpen(Volume->RootDir, Path, &DirIter);
        while (DirIterNext(&DirIter, 2, Pattern, &DirEntry)) {
           Extension = FindExtension(DirEntry->FileName);
@@ -1005,10 +864,7 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
 
        CleanUpLoaderList(LoaderList);
        Status = DirIterClose(&DirIter);
-        
-        
-        
-        
+
        if ((Status != EFI_NOT_FOUND) && (Status != EFI_INVALID_PARAMETER)) {
           if (Path)
              Message = PoolPrint(L"while scanning the %s directory on %s", Path, Volume->VolName);
@@ -1023,8 +879,6 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
     return FoundFallbackDuplicate;
 }  
 
- 
- 
 static CHAR16* RuniPXEDiscover(EFI_HANDLE Volume)
 {
     EFI_STATUS       Status;
@@ -1043,10 +897,6 @@ static CHAR16* RuniPXEDiscover(EFI_HANDLE Volume)
     return boot_info;
 }  
 
- 
- 
- 
- 
 static VOID ScanNetboot() {
     CHAR16        *iPXEFileName = IPXE_NAME;
     CHAR16        *Location;
@@ -1069,9 +919,6 @@ static VOID ScanNetboot() {
     }
 }  
 
- 
- 
- 
 static BOOLEAN ScanMacOsLoader(REFIT_VOLUME *Volume, CHAR16* FullFileName) {
     BOOLEAN  ScanFallbackLoader = TRUE;
     CHAR16   *VolName = NULL, *PathName = NULL, *FileName = NULL;
@@ -1108,7 +955,6 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
         if (GlobalConfig.ScanAllLinux)
             MergeStrings(&MatchPatterns, GlobalConfig.LinuxMatchPatterns, L',');
 
-         
         if (ShouldScan(Volume, MACOSX_LOADER_DIR)) {
             FileName = StrDuplicate(MACOSX_LOADER_PATH);
             ScanFallbackLoader &= ScanMacOsLoader(Volume, FileName);
@@ -1127,7 +973,6 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
             }  
             Status = DirIterClose(&EfiDirIter);
 
-             
             FileName = StrDuplicate(L"System\\Library\\CoreServices\\xom.efi");
             if (FileExists(Volume->RootDir, FileName) && !FilenameIn(Volume, MACOSX_LOADER_DIR, L"xom.efi",
                                                                      GlobalConfig.DontScanFiles)) {
@@ -1138,7 +983,6 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
             MyFreePool(FileName);
         }  
 
-         
         if (ShouldScan(Volume, L"EFI\\Microsoft\\Boot")) {
             FileName = StrDuplicate(L"EFI\\Microsoft\\Boot\\bkpbootmgfw.efi");
             if (FileExists(Volume->RootDir, FileName) &&  !FilenameIn(Volume, L"EFI\\Microsoft\\Boot", L"bkpbootmgfw.efi",
@@ -1162,11 +1006,9 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
             MyFreePool(FileName);
         }  
 
-         
         if (ScanLoaderDir(Volume, L"\\", MatchPatterns))
             ScanFallbackLoader = FALSE;
 
-         
         DirIterOpen(Volume->RootDir, L"EFI", &EfiDirIter);
         while (DirIterNext(&EfiDirIter, 1, NULL, &EfiDirEntry)) {
             if (MyStriCmp(EfiDirEntry->FileName, L"tools") || EfiDirEntry->FileName[0] == '.')
@@ -1183,7 +1025,6 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
             MyFreePool(Temp);
         }  
 
-         
         i = 0;
         while ((Directory = FindCommaDelimited(GlobalConfig.AlsoScan, i++)) != NULL) {
             if (ShouldScan(Volume, Directory)) {
@@ -1197,15 +1038,12 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
             MyFreePool(Directory);
         }  
 
-         
         SelfPath = DevicePathToStr(SelfLoadedImage->FilePath);
         CleanUpPathNameSlashes(SelfPath);
         if ((Volume->DeviceHandle == SelfLoadedImage->DeviceHandle) && DuplicatesFallback(Volume, SelfPath))
             ScanFallbackLoader = FALSE;
         MyFreePool(SelfPath);
 
-         
-         
         if (ScanFallbackLoader && FileExists(Volume->RootDir, FALLBACK_FULLNAME) && ShouldScan(Volume, L"EFI\\BOOT") &&
             !FilenameIn(Volume, L"EFI\\BOOT", FALLBACK_BASENAME, GlobalConfig.DontScanFiles)) {
                 Temp = StrDuplicate(FALLBACK_FULLNAME);
@@ -1218,7 +1056,6 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
     }
 }  
 
- 
 static VOID ScanInternal(VOID) {
     UINTN                   VolumeIndex;
 
@@ -1230,7 +1067,6 @@ static VOID ScanInternal(VOID) {
     }  
 }  
 
- 
 static VOID ScanExternal(VOID) {
     UINTN                   VolumeIndex;
 
@@ -1242,7 +1078,6 @@ static VOID ScanExternal(VOID) {
     }  
 }  
 
- 
 static VOID ScanOptical(VOID) {
     UINTN                   VolumeIndex;
 
@@ -1254,14 +1089,6 @@ static VOID ScanOptical(VOID) {
     }  
 }  
 
- 
- 
- 
- 
- 
- 
- 
- 
 /*
  * Firmware Boot#### entries are a separate discovery source. A firmware
  * entry and a filesystem-discovered image may refer to the same boot target.
@@ -1315,7 +1142,6 @@ static VOID ScanFirmwareDefined(IN UINTN Row, IN CHAR16 *MatchThis, IN EG_IMAGE 
     DeleteBootOrderEntries(BootEntries);
 }  
 
- 
 EG_IMAGE * GetDiskBadge(IN UINTN DiskType) {
     EG_IMAGE * Badge = NULL;
 
@@ -1332,10 +1158,6 @@ EG_IMAGE * GetDiskBadge(IN UINTN DiskType) {
     }  
     return Badge;
 }  
-
- 
- 
- 
 
 static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
                                    IN EG_IMAGE *Image, IN CHAR16 ShortcutLetter, IN BOOLEAN UseGraphicsMode)
@@ -1359,7 +1181,6 @@ static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, I
     return Entry;
 }  
 
- 
 /*
  * Temporarily merge persisted hidden entries with the configured exclusions
  * for this scan. Dispatch the requested scan classes, then restore the
@@ -1378,32 +1199,20 @@ VOID ScanForBootloaders(BOOLEAN ShowMessage) {
     if (ShowMessage)
         egDisplayMessage(L"Scanning for boot loaders; please wait....", &BGColor, CENTER);
 
-     
     for (i = 0; i < NUM_SCAN_OPTIONS; i++) {
         s = GlobalConfig.ScanFor[i];
         if ((s == 'c') || (s == 'C') || (s == 'h') || (s == 'H') || (s == 'b') || (s == 'B'))
             ScanForLegacy = TRUE;
     }  
 
-     
     if ((GlobalConfig.LegacyType == LEGACY_TYPE_UEFI) && ScanForLegacy && GlobalConfig.DeepLegacyScan) {
         BdsDeleteAllInvalidLegacyBootOptions();
         BdsAddNonExistingLegacyBootOptions();
     }  
 
-     
-     
-     
-     
-     
-     
-     
-     
-     
     OrigDontScanFiles = StrDuplicate(GlobalConfig.DontScanFiles);
     OrigDontScanVolumes = StrDuplicate(GlobalConfig.DontScanVolumes);
 
-     
     HiddenTags = ReadHiddenTags(L"HiddenTags");
     if ((HiddenTags) && (StrLen(HiddenTags) > 0)) {
         MergeStrings(&GlobalConfig.DontScanFiles, HiddenTags, L',');
@@ -1413,7 +1222,6 @@ VOID ScanForBootloaders(BOOLEAN ShowMessage) {
         MergeStrings(&GlobalConfig.DontScanVolumes, HiddenTags, L',');
     }
 
-     
     for (i = 0; i < NUM_SCAN_OPTIONS; i++) {
         switch(GlobalConfig.ScanFor[i]) {
             case 'c': case 'C':
@@ -1446,22 +1254,17 @@ VOID ScanForBootloaders(BOOLEAN ShowMessage) {
         }  
     }  
 
-     
     MyFreePool(GlobalConfig.DontScanFiles);
     GlobalConfig.DontScanFiles = OrigDontScanFiles;
     MyFreePool(GlobalConfig.DontScanVolumes);
     GlobalConfig.DontScanVolumes = OrigDontScanVolumes;
 
-     
     LOG(2, LOG_LINE_NORMAL, L"Assigning boot shortcut keys");
     for (i = 0; i < MainMenu.EntryCount && MainMenu.Entries[i]->Row == 0 && i < 9; i++)
         MainMenu.Entries[i]->ShortcutDigit = (CHAR16)('1' + i);
 
-     
 }  
 
- 
- 
 static BOOLEAN IsValidTool(IN REFIT_VOLUME *BaseVolume, CHAR16 *PathName) {
     CHAR16 *DontVolName = NULL, *DontPathName = NULL, *DontFileName = NULL, *DontScanThis = NULL;
     CHAR16 *TestVolName = NULL, *TestPathName = NULL, *TestFileName = NULL, *DontScanTools = NULL;
@@ -1508,8 +1311,6 @@ static BOOLEAN IsValidTool(IN REFIT_VOLUME *BaseVolume, CHAR16 *PathName) {
     return retval;
 }  
 
- 
- 
 VOID FindTool(CHAR16 *Locations, CHAR16 *Names, CHAR16 *Description, UINTN Icon) {
     UINTN j, k, VolumeIndex;
     CHAR16 *DirName, *FileName, *PathName, *FullDescription, *VolName = NULL;
@@ -1562,8 +1363,6 @@ VOID FindTool(CHAR16 *Locations, CHAR16 *Names, CHAR16 *Description, UINTN Icon)
     }  
 }  
 
- 
- 
 /*
  * Discovers utility EFI applications separately from operating-system boot
  * targets. The menu distinction influences presentation and dispatch but
@@ -1585,7 +1384,7 @@ VOID ScanForTools(VOID) {
     MergeStrings(&AllToolLocations, GlobalConfig.ExtraToolLocations, L',');
     for (i = 0; i < NUM_TOOLS; i++) {
         switch(GlobalConfig.ShowTools[i]) {
-             
+
             case TAG_SHUTDOWN:
                 TempMenuEntry = CopyMenuEntry(&MenuEntryShutdown);
                 TempMenuEntry->Image = BuiltinIcon(BUILTIN_ICON_FUNC_SHUTDOWN);

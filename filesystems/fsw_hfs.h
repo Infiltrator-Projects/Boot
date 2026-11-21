@@ -4,22 +4,6 @@
  * volume properties; recognising a plain HFS wrapper does not create support
  * for reading plain HFS contents.
  */
- 
- 
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_HFS_H_
 #define _FSW_HFS_H_
@@ -29,14 +13,10 @@
 
 #include "fsw_core.h"
 
-
- 
 #define HFS_BLOCKSIZE            512
 
- 
 #define HFS_SUPERBLOCK_BLOCKNO   2
 
- 
 #define __APPLE_API_PRIVATE
 #define __APPLE_API_UNSTABLE
 
@@ -62,8 +42,6 @@
 
 #pragma pack(1)
 #ifdef _MSC_VER
- 
-
 
 # pragma warning (disable:4201)
 # define inline __inline
@@ -86,17 +64,13 @@ struct fsw_hfs_key
 #pragma pack()
 
 typedef enum {
-     
+
     FSW_HFS_PLAIN = 0,
-     
+
     FSW_HFS_PLUS,
-     
+
     FSW_HFS_PLUS_EMB
 } fsw_hfs_kind;
-
- 
-
-
 
 struct fsw_hfs_dnode
 {
@@ -118,11 +92,6 @@ struct fsw_hfs_btree
     struct fsw_hfs_dnode*    file;
 };
 
-
- 
-
-
-
 struct fsw_hfs_volume
 {
     struct fsw_volume            g;             
@@ -137,7 +106,6 @@ struct fsw_hfs_volume
     fsw_u32                       emb_block_off;
 };
 
- 
 static inline fsw_u16
 swab16(fsw_u16 x)
 {
@@ -151,7 +119,6 @@ swab32(fsw_u32 x)
             (x & (fsw_u32)0x0000ff00UL)<<8 |
             (x & (fsw_u32)0x00ff0000UL)>>8;
 }
-
 
 static inline fsw_u64
 swab64(fsw_u64 x)
@@ -176,7 +143,6 @@ cpu_to_be16(fsw_u16 x)
 {
     return swab16(x);
 }
-
 
 static inline fsw_u32
 cpu_to_be32(fsw_u32 x)

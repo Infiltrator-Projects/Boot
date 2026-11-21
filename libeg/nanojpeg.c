@@ -4,128 +4,15 @@
  * untrusted; its decoder context is shared within this implementation and
  * must be initialised/cleared between independent decode attempts.
  */
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
-
- 
- 
- 
- 
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
- 
- 
- 
- 
-
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
-
- 
- 
- 
- 
 
 #ifndef _NANOJPEG_H
 #define _NANOJPEG_H
 
- 
 #define free MyFreePool
 #define malloc AllocatePool
 #define memset(b, c, v) MyMemSet(b, v, c)
 #define memcpy MyMemCpy
 
-
- 
 typedef enum _nj_result {
     NJ_OK = 0,         
     NJ_NO_JPEG,        
@@ -136,60 +23,23 @@ typedef enum _nj_result {
     __NJ_FINISHED,     
 } nj_result_t;
 
- 
- 
- 
- 
 int njInit(void);
 
- 
- 
- 
- 
- 
- 
 nj_result_t njDecode(const void* jpeg, const int size);
 
- 
- 
 int njGetWidth(void);
 
- 
- 
 int njGetHeight(void);
 
- 
- 
- 
 int njIsColor(void);
 
- 
- 
- 
- 
- 
- 
- 
 unsigned char* njGetImage(void);
 
- 
- 
- 
 int njGetImageSize(void);
 
- 
- 
- 
- 
 void njDone(void);
 
 #endif 
-
-
- 
- 
- 
- 
 
 #ifndef NJ_USE_LIBC
     #define NJ_USE_LIBC 1
@@ -206,12 +56,6 @@ void njDone(void);
 #ifndef NJ_CHROMA_FILTER
     #define NJ_CHROMA_FILTER 1
 #endif
-
-
- 
- 
- 
- 
 
 #ifdef  _NJ_EXAMPLE_PROGRAM
 
@@ -261,12 +105,6 @@ int main(int argc, char* argv[]) {
 }
 
 #endif
-
-
- 
- 
- 
- 
 
 #ifndef _NJ_INCLUDE_HEADER_ONLY
 
@@ -323,10 +161,6 @@ typedef struct _nj_cmp {
     unsigned char *pixels;
 } nj_component_t;
 
- 
- 
- 
- 
 typedef struct _nj_ctx {
     nj_result_t error;
     const unsigned char *pos;
@@ -865,7 +699,7 @@ NJ_INLINE void njConvert(void) {
         if ((c->width < nj.width) || (c->height < nj.height)) njThrow(NJ_INTERNAL_ERR);
     }
     if (nj.ncomp == 3) {
-         
+
         int x, yy;
         unsigned char *prgb = nj.rgb;
         const unsigned char *py  = nj.comp[0].pixels;
@@ -885,7 +719,7 @@ NJ_INLINE void njConvert(void) {
             pcr += nj.comp[2].stride;
         }
     } else if (nj.comp[0].width != nj.comp[0].stride) {
-         
+
         unsigned char *pin = &nj.comp[0].pixels[nj.comp[0].stride];
         unsigned char *pout = &nj.comp[0].pixels[nj.comp[0].width];
         int y;
@@ -898,11 +732,6 @@ NJ_INLINE void njConvert(void) {
     }
 }
 
- 
- 
- 
- 
- 
 int njInit(void) {
     int i, retval = 1;
     njFillMem(&nj, 0, sizeof(nj_context_t));
@@ -927,9 +756,6 @@ int njInit(void) {
     return retval;
 }
 
- 
- 
- 
 /*
  * Releases decoder-owned resources after a decode, whether it succeeded
  * or failed. Holding references across sessions would leak or reuse state.

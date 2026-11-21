@@ -4,25 +4,6 @@
  * the caller's input pointer. Keep the original owning pointer separately
  * when walking an allocated path.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
 
 #ifndef __EFILIB_GNUEFI_H
 #define __EFILIB_GNUEFI_H

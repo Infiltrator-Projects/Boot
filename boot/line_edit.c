@@ -3,34 +3,6 @@
  * The input is a mutable UTF-16 string; cursor offset, viewport origin and
  * allocated output size must remain consistent under every keystroke.
  */
- 
- 
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "screen.h"
@@ -197,13 +169,13 @@ BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
                 cursor--;
             if (cursor > 0 || first == 0)
                 continue;
-             
+
             if (len < x_max-2) {
                 cursor = first;
                 first = 0;
                 continue;
             }
-             
+
             if (first > 10) {
                 first -= 10;
                 cursor = 10;

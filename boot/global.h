@@ -5,49 +5,6 @@
  * Fields referring to EFI handles and allocated Unicode strings have firmware
  * or BOOT lifetime requirements, not process-independent ownership.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
 
 #ifndef __GLOBAL_H_
 #define __GLOBAL_H_
@@ -62,7 +19,6 @@
 
 #include "../libeg/libeg.h"
 
- 
 #define TAG_ABOUT            (1)
 #define TAG_REBOOT           (2)
 #define TAG_SHUTDOWN         (3)
@@ -91,27 +47,22 @@
 
 #define DEFAULT_ICONS_DIR L"icons"
 
- 
 #define GRAPHICS_FOR_OSX        1
 #define GRAPHICS_FOR_LINUX      2
 #define GRAPHICS_FOR_ELILO      4
 #define GRAPHICS_FOR_GRUB       8
 #define GRAPHICS_FOR_WINDOWS   16
 
- 
 #define LEGACY_TYPE_NONE 0
 #define LEGACY_TYPE_MAC  1
 #define LEGACY_TYPE_UEFI 2
 
- 
 #define DISCOVERY_TYPE_UNKNOWN  0
 #define DISCOVERY_TYPE_AUTO     1
 #define DISCOVERY_TYPE_MANUAL   2
 
 #ifdef __MAKEWITH_GNUEFI
- 
- 
- 
+
 #define BBS_FLOPPY        0x01
 #define BBS_HARDDISK      0x02
 #define BBS_CDROM         0x03
@@ -122,7 +73,6 @@
 #define BBS_UNKNOWN       0xff
 #endif
 
- 
 #define DEVICE_TYPE_HW         0x01
 #define DEVICE_TYPE_ACPI       0x02  
 #define DEVICE_TYPE_MESSAGING  0x03
@@ -130,7 +80,6 @@
 #define DEVICE_TYPE_BIOS       0x05  
 #define DEVICE_TYPE_END        0x75  
 
- 
 #define FS_TYPE_UNKNOWN        0
 #define FS_TYPE_WHOLEDISK      1
 #define FS_TYPE_FAT            2
@@ -147,29 +96,24 @@
 #define FS_TYPE_ISO9660        13
 #define NUM_FS_TYPES           14
 
- 
 #define BANNER_NOSCALE         0
 #define BANNER_FILLSCREEN      1
 
- 
 #define DEFAULT_SMALL_ICON_SIZE 48
 #define DEFAULT_BIG_ICON_SIZE   128
 #define DEFAULT_MOUSE_SIZE      16
 
- 
 #define ICON_SIZE_BADGE 0
 #define ICON_SIZE_SMALL 1
 #define ICON_SIZE_BIG   2
 #define ICON_SIZE_MOUSE 3
 
- 
 #define HIDPI_MIN 1921
 
 #ifndef EFI_OS_INDICATIONS_BOOT_TO_FW_UI
 #define EFI_OS_INDICATIONS_BOOT_TO_FW_UI 0x0000000000000001ULL
 #endif
 
- 
 #if defined (EFIX64)
 #define FWUPDATE_NAMES          L"fwupx64.efi"
 #define MEMTEST_NAMES           L"memtest86.efi,memtest86_x64.efi,memtest86x64.efi,memtest86+x64.efi"
@@ -192,30 +136,20 @@
 #define SHELL_NAMES             L"shell.efi"
 #endif
 
- 
 #define TOOL_LOCATIONS       L"EFI\\tools"
- 
+
 #define WINDOWS_RECOVERY_FILES  L"EFI\\Microsoft\\Boot\\LrsBootmgr.efi,Recovery:\\EFI\\BOOT\\bootx64.efi,Recovery:\\EFI\\BOOT\\bootia32.efi,\\EFI\\OEM\\Boot\\bootmgfw.efi"
- 
+
 #define MACOS_RECOVERY_FILES    L"com.apple.recovery.boot\\boot.efi"
 
- 
- 
- 
- 
- 
 #define LOADER_MATCH_PATTERNS   L"*.efi,*.EFI"
 
- 
- 
- 
 #if defined(EFIAARCH64)
 #define LINUX_PREFIXES          L"vmlinuz,Image,kernel"
 #else
 #define LINUX_PREFIXES          L"vmlinuz,bzImage,kernel"
 #endif
 
- 
 #define HIDEUI_FLAG_NONE       (0x0000)
 #define HIDEUI_FLAG_BANNER     (0x0001)
 #define HIDEUI_FLAG_LABEL      (0x0002)
@@ -228,7 +162,6 @@
 #define HIDEUI_FLAG_BADGES     (0x0100)
 #define HIDEUI_FLAG_ALL       ((0xffff))
 
- 
 #define SUBSCREEN_HINT1            L"Use arrow keys to move cursor; Enter to boot;"
 #define SUBSCREEN_HINT2            L"Insert or F2 to edit options; Esc to return to main menu"
 #define SUBSCREEN_HINT2_NO_EDITOR  L"Esc to return to main menu"
@@ -238,16 +171,8 @@
 #define ESP_GUID_VALUE { 0xc12a7328, 0xf81f, 0x11d2, { 0xba, 0x4b, 0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b } };
 #define SYSTEMD_GUID_VALUE { 0x4a67b082, 0x0a4c, 0x41cf, { 0xb6, 0xc7, 0x44, 0x0b, 0x29, 0xbb, 0x8c, 0x4f }};
 
-
- 
 #define KERNEL_VERSION L"%v"
 #define MAX_RES_CODE 2147483647  
-
- 
- 
- 
-
- 
 
 typedef struct _uint32_list {
     UINT32               Value;
@@ -410,8 +335,6 @@ typedef struct {
    CHAR8            ScanFor[NUM_SCAN_OPTIONS];  
 } REFIT_CONFIG;
 
- 
-
 extern EFI_HANDLE         SelfImageHandle;
 extern EFI_LOADED_IMAGE   *SelfLoadedImage;
 extern EFI_FILE_PROTOCOL  *SelfRootDir;
@@ -436,8 +359,6 @@ extern EFI_GUID BootGuid;
 extern REFIT_MENU_SCREEN MainMenu;
 extern REFIT_MENU_ENTRY MenuEntryReturn;
 
- 
-
 VOID AboutBOOT(VOID);
 EG_IMAGE * GetDiskBadge(IN UINTN DiskType);
 LOADER_ENTRY * MakeGenericLoaderEntry(VOID);
@@ -455,5 +376,3 @@ int gunzip(unsigned char *buf, long len,
            UINTN *decoded_size);
 
 #endif
-
- 

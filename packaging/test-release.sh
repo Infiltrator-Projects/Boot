@@ -4,7 +4,6 @@
 # firmware installer hooks, correct metadata and the single permitted ESP
 # destination. Text searches are structural checks, not live boot proof.
 
-
 set -euo pipefail
 
 version="${1:?Usage: packaging/test-release.sh VERSION [OUTPUT_DIRECTORY]}"
@@ -40,7 +39,6 @@ if grep -Eq '(^|/)(postinst|preinst|prerm|postrm)$' "$work/control.txt"; then
     echo "Generic package unexpectedly runs firmware installation scripts" >&2
     exit 1
 fi
-
 
 bash -n "$run"
 bash -n boot-native-installer.run

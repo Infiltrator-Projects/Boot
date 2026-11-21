@@ -4,35 +4,9 @@
  * later physical reads. Recognising EXT4 does not establish support for every
  * incompatible feature or journal recovery requirement.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_EXT4_DISK_H_
 #define _FSW_EXT4_DISK_H_
-
- 
 
 typedef fsw_s8  __s8;
 typedef fsw_u8  __u8;
@@ -47,13 +21,6 @@ typedef __u16   __le16;
 typedef __u32   __le32;
 typedef __u64   __le64;
 
- 
- 
- 
-
- 
-
-
 #define	EXT4_BAD_INO		 1	 
 #define EXT4_ROOT_INO		 2	 
 #define EXT4_USR_QUOTA_INO	 3	 
@@ -63,13 +30,7 @@ typedef __u64   __le64;
 #define EXT4_RESIZE_INO		 7	 
 #define EXT4_JOURNAL_INO	 8	 
 
- 
-
-
 #define EXT4_SUPER_MAGIC        0xEF53
-
- 
-
 
 #define EXT4_MIN_BLOCK_SIZE             1024
 #define EXT4_MAX_BLOCK_SIZE             4096
@@ -80,9 +41,6 @@ typedef __u64   __le64;
 #define EXT4_INODE_SIZE(s)      (((s)->s_rev_level == EXT4_GOOD_OLD_REV) ? \
                                  EXT4_GOOD_OLD_INODE_SIZE : \
                                  (s)->s_inode_size)
-
- 
-
 
 struct ext4_group_desc
 {
@@ -111,10 +69,6 @@ struct ext4_group_desc
 	__u32   bg_reserved;
 };
 
-
- 
-
-
 #define EXT4_MIN_DESC_SIZE              32
 #define EXT4_MIN_DESC_SIZE_64BIT        64
 #define EXT4_MAX_DESC_SIZE              EXT4_MIN_BLOCK_SIZE
@@ -123,17 +77,11 @@ struct ext4_group_desc
 #define EXT4_DESC_PER_BLOCK(s)         (EXT4_BLOCK_SIZE(s) / EXT4_DESC_SIZE(s))
 #define EXT4_INODES_PER_GROUP(s)       ((s)->s_inodes_per_group)
 
- 
-
-
 #define EXT4_NDIR_BLOCKS                12
 #define EXT4_IND_BLOCK                  EXT4_NDIR_BLOCKS
 #define EXT4_DIND_BLOCK                 (EXT4_IND_BLOCK + 1)
 #define EXT4_TIND_BLOCK                 (EXT4_DIND_BLOCK + 1)
 #define EXT4_N_BLOCKS                   (EXT4_TIND_BLOCK + 1)
-
- 
-
 
 #define EXT4_SECRM_FL                   0x00000001  
 #define EXT4_UNRM_FL                    0x00000002  
@@ -143,12 +91,12 @@ struct ext4_group_desc
 #define EXT4_APPEND_FL                  0x00000020  
 #define EXT4_NODUMP_FL                  0x00000040  
 #define EXT4_NOATIME_FL                 0x00000080  
- 
+
 #define EXT4_DIRTY_FL                   0x00000100
 #define EXT4_COMPRBLK_FL                0x00000200  
 #define EXT4_NOCOMP_FL                  0x00000400  
 #define EXT4_ECOMPR_FL                  0x00000800  
-       
+
 #define EXT4_INDEX_FL                   0x00001000  
 #define EXT4_IMAGIC_FL                  0x00002000  
 #define EXT4_JOURNAL_DATA_FL            0x00004000  
@@ -163,10 +111,6 @@ struct ext4_group_desc
 
 #define EXT4_FL_USER_VISIBLE		0x004BDFFF  
 #define EXT4_FL_USER_MODIFIABLE		0x004B80FF  
-
-
- 
-
 
 struct ext4_inode {
 	__le16	i_mode;		 
@@ -228,10 +172,6 @@ struct ext4_inode {
 	__le32  i_version_hi;	 
 };
 
-
- 
-
-
 enum {
 	EXT4_INODE_SECRM	= 0,	 
 	EXT4_INODE_UNRM		= 1,	 
@@ -241,12 +181,12 @@ enum {
 	EXT4_INODE_APPEND	= 5,	 
 	EXT4_INODE_NODUMP	= 6,	 
 	EXT4_INODE_NOATIME	= 7,	 
- 
+
 	EXT4_INODE_DIRTY	= 8,
 	EXT4_INODE_COMPRBLK	= 9,	 
 	EXT4_INODE_NOCOMPR	= 10,	 
 	EXT4_INODE_ECOMPR	= 11,	 
- 
+
 	EXT4_INODE_INDEX	= 12,	 
 	EXT4_INODE_IMAGIC	= 13,	 
 	EXT4_INODE_JOURNAL_DATA	= 14,	 
@@ -259,9 +199,6 @@ enum {
 	EXT4_INODE_EOFBLOCKS	= 22,	 
 	EXT4_INODE_RESERVED	= 31,	 
 };
-
- 
-
 
 struct ext4_super_block {
  	__le32	s_inodes_count;		 
@@ -289,18 +226,6 @@ struct ext4_super_block {
 	__le32	s_rev_level;		 
  	__le16	s_def_resuid;		 
 	__le16	s_def_resgid;		 
-	 
-
-
-
-
-
-
-
-
-
-
-
 
 	__le32	s_first_ino;		 
 	__le16  s_inode_size;		 
@@ -312,15 +237,10 @@ struct ext4_super_block {
  	char	s_volume_name[16];	 
  	char	s_last_mounted[64];	 
  	__le32	s_algorithm_usage_bitmap;  
-	 
-
-
 
 	__u8	s_prealloc_blocks;	 
 	__u8	s_prealloc_dir_blocks;	 
 	__le16	s_reserved_gdt_blocks;	 
-	 
-
 
  	__u8	s_journal_uuid[16];	 
  	__le32	s_journal_inum;		 
@@ -334,7 +254,7 @@ struct ext4_super_block {
 	__le32	s_first_meta_bg;	 
 	__le32	s_mkfs_time;		 
 	__le32	s_jnl_blocks[17];	 
-	 
+
  	__le32	s_blocks_count_hi;	 
 	__le32	s_r_blocks_count_hi;	 
 	__le32	s_free_blocks_count_hi;	 
@@ -376,9 +296,6 @@ struct ext4_super_block {
 	__le32	s_checksum;		 
 };
 
- 
-
-
 #define EXT4_GOOD_OLD_REV       0        
 #define EXT4_DYNAMIC_REV        1        
 
@@ -386,9 +303,6 @@ struct ext4_super_block {
 #define EXT4_MAX_SUPP_REV       EXT4_DYNAMIC_REV
 
 #define EXT4_GOOD_OLD_INODE_SIZE 128
-
- 
-
 
 #define EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER     0x0001
 
@@ -416,9 +330,6 @@ struct ext4_super_block {
 					 EXT4_FEATURE_INCOMPAT_FLEX_BG| \
 					 EXT4_FEATURE_INCOMPAT_MMP)
 
- 
-
-
 #define EXT4_NAME_LEN 255
 
 struct ext4_dir_entry {
@@ -428,12 +339,6 @@ struct ext4_dir_entry {
     __u8    file_type;
     char    name[EXT4_NAME_LEN];     
 };
- 
- 
-
- 
-
-
 
 enum {
     EXT4_FT_UNKNOWN,
@@ -447,28 +352,9 @@ enum {
     EXT4_FT_MAX
 };
 
- 
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
 struct ext4_extent_tail {
 	__le32	et_checksum;	 
 };
-
- 
-
-
 
 struct ext4_extent {
 	__le32	ee_block;	 
@@ -476,10 +362,6 @@ struct ext4_extent {
 	__le16	ee_start_hi;	 
 	__le32	ee_start_lo;	 
 };
-
- 
-
-
 
 struct ext4_extent_idx {
 	__le32	ei_block;	 
@@ -503,6 +385,5 @@ struct ext4_extent_header {
 };
 
 #define EXT4_EXT_MAGIC		(0xf30a)
-
 
 #endif

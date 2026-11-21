@@ -3,51 +3,8 @@
  * metadata. EFI_TIME and CHAR16 fields have fixed public layout and cannot
  * be populated by treating POSIX time or on-disk string encodings as native.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "fsw_efi.h"
-
-
- 
- 
- 
- 
- 
 
 #define SECSPERMIN      60
 #define MINSPERHOUR     60
@@ -111,10 +68,6 @@ VOID fsw_efi_decode_time(OUT EFI_TIME *EfiTime, IN UINT32 UnixTime)
     EfiTime->Day = (UINT8) (days + 1);
 }
 
- 
- 
- 
-
 UINTN fsw_efi_strsize(struct fsw_string *s)
 {
     if (s->type == FSW_STRING_TYPE_EMPTY)
@@ -135,9 +88,7 @@ VOID fsw_efi_strcpy(CHAR16 *Dest, struct fsw_string *src)
         refit_call3_wrapper(gBS->CopyMem, Dest, src->data, src->size);
         Dest[src->len] = 0;
     } else {
-         
+
         Dest[0] = 0;
     }
 }
-
- 

@@ -3,7 +3,6 @@
 # GPT disk and isolated firmware variable image. BOOT must start a gzipped
 # copy of its Btrfs EFI driver and reach the main menu.
 
-
 set -euo pipefail
 export LC_ALL=C
 test -s boot/boot_x64.efi

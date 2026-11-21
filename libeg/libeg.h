@@ -3,41 +3,6 @@
  * and firmware console state have separate lifetimes from filesystem handles.
  * A missing icon or banner must not suppress a legitimate boot choice.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __LIBEG_LIBEG_H__
 #define __LIBEG_LIBEG_H__
@@ -45,8 +10,6 @@
 #ifndef __MAKEWITH_GNUEFI
 #include "../include/tiano_includes.h"
 #endif
-
- 
 
 typedef enum ColorTypes {
    white,
@@ -61,7 +24,6 @@ typedef struct {
     UINT8 b, g, r, a;
 } EG_PIXEL;
 
- 
 #define COLOR_LIGHTBLUE {255, 175, 100, 0}
 #define COLOR_RED {0, 0, 200, 0}
 
@@ -98,8 +60,6 @@ typedef struct {
     UINTN       DataLength;
 } EG_EMBEDDED_IMAGE;
 
- 
-
 VOID egInitScreen(VOID);
 BOOLEAN egGetResFromMode(UINTN *ModeWidth, UINTN *Height);
 VOID egGetScreenSize(OUT UINTN *ScreenWidth, OUT UINTN *ScreenHeight);
@@ -107,10 +67,6 @@ CHAR16 * egScreenDescription(VOID);
 BOOLEAN egHasGraphicsMode(VOID);
 BOOLEAN egIsGraphicsModeEnabled(VOID);
 VOID egSetGraphicsModeEnabled(IN BOOLEAN Enable);
- 
- 
- 
- 
 
 EG_IMAGE * egCreateImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha);
 EG_IMAGE * egCreateFilledImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha, IN EG_PIXEL *Color);
@@ -164,5 +120,3 @@ EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
 EG_IMAGE * egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
 
 #endif  
-
- 

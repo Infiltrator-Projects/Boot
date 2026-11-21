@@ -3,26 +3,6 @@
  * image inspection. Alignment and fixed field widths are external executable
  * format contracts; parsing a header must not bypass firmware LoadImage trust.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __PE_IMAGE_H__
 #define __PE_IMAGE_H__
@@ -35,36 +15,22 @@
 #define ALIGN_VALUE(Value, Alignment) ((Value) + (((Alignment) - (Value)) & ((Alignment) - 1)))
 #define ALIGN_POINTER(Pointer, Alignment) ((VOID *) (ALIGN_VALUE ((UINTN)(Pointer), (Alignment))))
 
- 
- 
- 
 #define EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION         10
 #define EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
 #define EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER      12
 #define EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER      13  
 
-
- 
- 
- 
 #define IMAGE_FILE_MACHINE_I386            0x014c
 #define IMAGE_FILE_MACHINE_IA64            0x0200
 #define IMAGE_FILE_MACHINE_EBC             0x0EBC
 #define IMAGE_FILE_MACHINE_X64             0x8664
 #define IMAGE_FILE_MACHINE_ARMTHUMB_MIXED  0x01c2
 
- 
- 
- 
 #define EFI_IMAGE_DOS_SIGNATURE     SIGNATURE_16('M', 'Z')
 #define EFI_IMAGE_OS2_SIGNATURE     SIGNATURE_16('N', 'E')
 #define EFI_IMAGE_OS2_SIGNATURE_LE  SIGNATURE_16('L', 'E')
 #define EFI_IMAGE_NT_SIGNATURE      SIGNATURE_32('P', 'E', '\0', '\0')
 
- 
- 
- 
- 
 typedef struct {
   UINT16  e_magic;     
   UINT16  e_cblp;      
@@ -87,9 +53,6 @@ typedef struct {
   UINT32  e_lfanew;    
 } EFI_IMAGE_DOS_HEADER;
 
- 
- 
- 
 typedef struct {
   UINT16  Machine;
   UINT16  NumberOfSections;
@@ -100,14 +63,8 @@ typedef struct {
   UINT16  Characteristics;
 } EFI_IMAGE_FILE_HEADER;
 
- 
- 
- 
 #define EFI_IMAGE_SIZEOF_FILE_HEADER        20
 
- 
- 
- 
 #define EFI_IMAGE_FILE_RELOCS_STRIPPED      (1 << 0)      
 #define EFI_IMAGE_FILE_EXECUTABLE_IMAGE     (1 << 1)      
 #define EFI_IMAGE_FILE_LINE_NUMS_STRIPPED   (1 << 2)      
@@ -119,17 +76,11 @@ typedef struct {
 #define EFI_IMAGE_FILE_DLL                  (1 << 13)     
 #define EFI_IMAGE_FILE_BYTES_REVERSED_HI    (1 << 15)     
 
- 
- 
- 
 typedef struct {
   UINT32  VirtualAddress;
   UINT32  Size;
 } EFI_IMAGE_DATA_DIRECTORY;
 
- 
- 
- 
 #define EFI_IMAGE_DIRECTORY_ENTRY_EXPORT      0
 #define EFI_IMAGE_DIRECTORY_ENTRY_IMPORT      1
 #define EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE    2
@@ -150,21 +101,10 @@ typedef struct {
 
 #define EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES 16
 
- 
- 
- 
- 
- 
- 
 #define EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC 0x10b
-          
- 
- 
- 
+
 typedef struct {
-   
-   
-   
+
   UINT16                    Magic;
   UINT8                     MajorLinkerVersion;
   UINT8                     MinorLinkerVersion;
@@ -174,9 +114,7 @@ typedef struct {
   UINT32                    AddressOfEntryPoint;
   UINT32                    BaseOfCode;
   UINT32                    BaseOfData;   
-   
-   
-   
+
   UINT32                    ImageBase;
   UINT32                    SectionAlignment;
   UINT32                    FileAlignment;
@@ -201,21 +139,10 @@ typedef struct {
   EFI_IMAGE_DATA_DIRECTORY  DataDirectory[EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES];
 } EFI_IMAGE_OPTIONAL_HEADER32;
 
- 
- 
- 
- 
- 
- 
 #define EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC 0x20b
 
- 
- 
- 
 typedef struct {
-   
-   
-   
+
   UINT16                    Magic;
   UINT8                     MajorLinkerVersion;
   UINT8                     MinorLinkerVersion;
@@ -224,9 +151,7 @@ typedef struct {
   UINT32                    SizeOfUninitializedData;
   UINT32                    AddressOfEntryPoint;
   UINT32                    BaseOfCode;
-   
-   
-   
+
   UINT64                    ImageBase;
   UINT32                    SectionAlignment;
   UINT32                    FileAlignment;
@@ -251,10 +176,6 @@ typedef struct {
   EFI_IMAGE_DATA_DIRECTORY  DataDirectory[EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES];
 } EFI_IMAGE_OPTIONAL_HEADER64;
 
- 
- 
- 
- 
 typedef struct {
   UINT32                      Signature;
   EFI_IMAGE_FILE_HEADER       FileHeader;
@@ -263,10 +184,6 @@ typedef struct {
 
 #define EFI_IMAGE_SIZEOF_NT_OPTIONAL32_HEADER sizeof (EFI_IMAGE_NT_HEADERS32)
 
- 
- 
- 
- 
 typedef struct {
   UINT32                      Signature;
   EFI_IMAGE_FILE_HEADER       FileHeader;
@@ -275,9 +192,6 @@ typedef struct {
 
 #define EFI_IMAGE_SIZEOF_NT_OPTIONAL64_HEADER sizeof (EFI_IMAGE_NT_HEADERS64)
 
- 
- 
- 
 #define EFI_IMAGE_SUBSYSTEM_UNKNOWN     0
 #define EFI_IMAGE_SUBSYSTEM_NATIVE      1
 #define EFI_IMAGE_SUBSYSTEM_WINDOWS_GUI 2
@@ -285,14 +199,8 @@ typedef struct {
 #define EFI_IMAGE_SUBSYSTEM_OS2_CUI     5
 #define EFI_IMAGE_SUBSYSTEM_POSIX_CUI   7
 
- 
- 
- 
 #define EFI_IMAGE_SIZEOF_SHORT_NAME 8
 
- 
- 
- 
 typedef struct {
   UINT8 Name[EFI_IMAGE_SIZEOF_SHORT_NAME];
   union {
@@ -309,24 +217,18 @@ typedef struct {
   UINT32  Characteristics;
 } EFI_IMAGE_SECTION_HEADER;
 
- 
- 
- 
 #define EFI_IMAGE_SIZEOF_SECTION_HEADER       40
-         
- 
- 
- 
+
 #define EFI_IMAGE_SCN_TYPE_NO_PAD                  BIT3    
 #define EFI_IMAGE_SCN_CNT_CODE                     BIT5    
 #define EFI_IMAGE_SCN_CNT_INITIALIZED_DATA         BIT6    
 #define EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA       BIT7    
-                                                   
+
 #define EFI_IMAGE_SCN_LNK_OTHER                    BIT8    
 #define EFI_IMAGE_SCN_LNK_INFO                     BIT9    
 #define EFI_IMAGE_SCN_LNK_REMOVE                   BIT11   
 #define EFI_IMAGE_SCN_LNK_COMDAT                   BIT12   
-                                                   
+
 #define EFI_IMAGE_SCN_ALIGN_1BYTES                 BIT20   
 #define EFI_IMAGE_SCN_ALIGN_2BYTES                 BIT21   
 #define EFI_IMAGE_SCN_ALIGN_4BYTES          (BIT20|BIT21)  
@@ -334,7 +236,7 @@ typedef struct {
 #define EFI_IMAGE_SCN_ALIGN_16BYTES         (BIT20|BIT22)  
 #define EFI_IMAGE_SCN_ALIGN_32BYTES         (BIT21|BIT22)  
 #define EFI_IMAGE_SCN_ALIGN_64BYTES   (BIT20|BIT21|BIT22)  
-                                              
+
 #define EFI_IMAGE_SCN_MEM_DISCARDABLE              BIT25   
 #define EFI_IMAGE_SCN_MEM_NOT_CACHED               BIT26   
 #define EFI_IMAGE_SCN_MEM_NOT_PAGED                BIT27   
@@ -343,22 +245,12 @@ typedef struct {
 #define EFI_IMAGE_SCN_MEM_READ                     BIT30   
 #define EFI_IMAGE_SCN_MEM_WRITE                    BIT31   
 
- 
- 
- 
 #define EFI_IMAGE_SIZEOF_SYMBOL 18
 
- 
- 
- 
- 
 #define EFI_IMAGE_SYM_UNDEFINED (UINT16) 0   
 #define EFI_IMAGE_SYM_ABSOLUTE  (UINT16) -1  
 #define EFI_IMAGE_SYM_DEBUG     (UINT16) -2  
 
- 
- 
- 
 #define EFI_IMAGE_SYM_TYPE_NULL   0    
 #define EFI_IMAGE_SYM_TYPE_VOID   1    
 #define EFI_IMAGE_SYM_TYPE_CHAR   2    
@@ -376,17 +268,11 @@ typedef struct {
 #define EFI_IMAGE_SYM_TYPE_UINT   14
 #define EFI_IMAGE_SYM_TYPE_DWORD  15
 
- 
- 
- 
 #define EFI_IMAGE_SYM_DTYPE_NULL      0  
 #define EFI_IMAGE_SYM_DTYPE_POINTER   1
 #define EFI_IMAGE_SYM_DTYPE_FUNCTION  2
 #define EFI_IMAGE_SYM_DTYPE_ARRAY     3
 
- 
- 
- 
 #define EFI_IMAGE_SYM_CLASS_END_OF_FUNCTION   ((UINT8) -1)
 #define EFI_IMAGE_SYM_CLASS_NULL              0
 #define EFI_IMAGE_SYM_CLASS_AUTOMATIC         1
@@ -414,9 +300,6 @@ typedef struct {
 #define EFI_IMAGE_SYM_CLASS_SECTION           104
 #define EFI_IMAGE_SYM_CLASS_WEAK_EXTERNAL     105
 
- 
- 
- 
 #define EFI_IMAGE_N_BTMASK  017
 #define EFI_IMAGE_N_TMASK   060
 #define EFI_IMAGE_N_TMASK1  0300
@@ -424,39 +307,24 @@ typedef struct {
 #define EFI_IMAGE_N_BTSHFT  4
 #define EFI_IMAGE_N_TSHIFT  2
 
- 
- 
- 
 #define EFI_IMAGE_COMDAT_SELECT_NODUPLICATES    1
 #define EFI_IMAGE_COMDAT_SELECT_ANY             2
 #define EFI_IMAGE_COMDAT_SELECT_SAME_SIZE       3
 #define EFI_IMAGE_COMDAT_SELECT_EXACT_MATCH     4
 #define EFI_IMAGE_COMDAT_SELECT_ASSOCIATIVE     5
-                                       
- 
- 
- 
+
 #define EFI_IMAGE_WEAK_EXTERN_SEARCH_NOLIBRARY  1
 #define EFI_IMAGE_WEAK_EXTERN_SEARCH_LIBRARY    2
 #define EFI_IMAGE_WEAK_EXTERN_SEARCH_ALIAS      3
 
- 
- 
- 
 typedef struct {
   UINT32  VirtualAddress;
   UINT32  SymbolTableIndex;
   UINT16  Type;
 } EFI_IMAGE_RELOCATION;
 
- 
- 
- 
 #define EFI_IMAGE_SIZEOF_RELOCATION 10
 
- 
- 
- 
 #define EFI_IMAGE_REL_I386_ABSOLUTE 0x0000   
 #define EFI_IMAGE_REL_I386_DIR16    0x0001   
 #define EFI_IMAGE_REL_I386_REL16    0x0002   
@@ -467,9 +335,6 @@ typedef struct {
 #define EFI_IMAGE_REL_I386_SECREL   0x000B
 #define EFI_IMAGE_REL_I386_REL32    0x0014   
 
- 
- 
- 
 #define IMAGE_REL_AMD64_ABSOLUTE  0x0000
 #define IMAGE_REL_AMD64_ADDR64    0x0001
 #define IMAGE_REL_AMD64_ADDR32    0x0002
@@ -488,22 +353,13 @@ typedef struct {
 #define IMAGE_REL_AMD64_PAIR      0x000F
 #define IMAGE_REL_AMD64_SSPAN32   0x0010
 
- 
- 
- 
 typedef struct {
   UINT32  VirtualAddress;
   UINT32  SizeOfBlock;
 } EFI_IMAGE_BASE_RELOCATION;
 
- 
- 
- 
 #define EFI_IMAGE_SIZEOF_BASE_RELOCATION  8
 
- 
- 
- 
 #define EFI_IMAGE_REL_BASED_ABSOLUTE        0
 #define EFI_IMAGE_REL_BASED_HIGH            1
 #define EFI_IMAGE_REL_BASED_LOW             2
@@ -516,9 +372,6 @@ typedef struct {
 #define EFI_IMAGE_REL_BASED_MIPS_JMPADDR16  9
 #define EFI_IMAGE_REL_BASED_DIR64           10
 
- 
- 
- 
 typedef struct {
   union {
     UINT32  SymbolTableIndex;  
@@ -527,14 +380,8 @@ typedef struct {
   UINT16  Linenumber;          
 } EFI_IMAGE_LINENUMBER;
 
- 
- 
- 
 #define EFI_IMAGE_SIZEOF_LINENUMBER 6
 
- 
- 
- 
 #define EFI_IMAGE_ARCHIVE_START_SIZE        8
 #define EFI_IMAGE_ARCHIVE_START             "!<arch>\n"
 #define EFI_IMAGE_ARCHIVE_END               "`\n"
@@ -542,9 +389,6 @@ typedef struct {
 #define EFI_IMAGE_ARCHIVE_LINKER_MEMBER     "/               "
 #define EFI_IMAGE_ARCHIVE_LONGNAMES_MEMBER  "//              "
 
- 
- 
- 
 typedef struct {
   UINT8 Name[16];      
   UINT8 Date[12];      
@@ -555,19 +399,8 @@ typedef struct {
   UINT8 EndHeader[2];  
 } EFI_IMAGE_ARCHIVE_MEMBER_HEADER;
 
- 
- 
- 
 #define EFI_IMAGE_SIZEOF_ARCHIVE_MEMBER_HDR 60
 
-
- 
- 
- 
-
- 
- 
- 
 typedef struct {
   UINT32  Characteristics;
   UINT32  TimeDateStamp;
@@ -582,17 +415,11 @@ typedef struct {
   UINT32  AddressOfNameOrdinals;
 } EFI_IMAGE_EXPORT_DIRECTORY;
 
- 
- 
- 
 typedef struct {
   UINT16  Hint;
   UINT8   Name[1];
 } EFI_IMAGE_IMPORT_BY_NAME;
 
- 
- 
- 
 typedef struct {
   union {
     UINT32                    Function;
@@ -605,9 +432,6 @@ typedef struct {
 #define EFI_IMAGE_SNAP_BY_ORDINAL(Ordinal)  ((Ordinal & EFI_IMAGE_ORDINAL_FLAG) != 0)
 #define EFI_IMAGE_ORDINAL(Ordinal)          (Ordinal & 0xffff)
 
- 
- 
- 
 typedef struct {
   UINT32                Characteristics;
   UINT32                TimeDateStamp;
@@ -616,9 +440,6 @@ typedef struct {
   EFI_IMAGE_THUNK_DATA  *FirstThunk;
 } EFI_IMAGE_IMPORT_DESCRIPTOR;
 
- 
- 
- 
 typedef struct {
   UINT32  Characteristics;
   UINT32  TimeDateStamp;
@@ -632,23 +453,15 @@ typedef struct {
 
 #define EFI_IMAGE_DEBUG_TYPE_CODEVIEW 2      
 
- 
- 
- 
 #define CODEVIEW_SIGNATURE_NB10  SIGNATURE_32('N', 'B', '1', '0')
 typedef struct {
   UINT32  Signature;                         
   UINT32  Unknown;
   UINT32  Unknown2;
   UINT32  Unknown3;
-   
-   
-   
+
 } EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY;
 
- 
- 
- 
 #define CODEVIEW_SIGNATURE_RSDS  SIGNATURE_32('R', 'S', 'D', 'S')
 typedef struct {
   UINT32  Signature;                         
@@ -657,27 +470,16 @@ typedef struct {
   UINT32  Unknown3;
   UINT32  Unknown4;
   UINT32  Unknown5;
-   
-   
-   
+
 } EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY;
 
-
- 
- 
- 
 #define CODEVIEW_SIGNATURE_MTOC  SIGNATURE_32('M', 'T', 'O', 'C')
 typedef struct {
   UINT32    Signature;                        
   EFI_GUID      MachOUuid;
-   
-   
-   
+
 } EFI_IMAGE_DEBUG_CODEVIEW_MTOC_ENTRY;
 
- 
- 
- 
 typedef struct {
   UINT32  Characteristics;
   UINT32  TimeDateStamp;
@@ -685,14 +487,9 @@ typedef struct {
   UINT16  MinorVersion;
   UINT16  NumberOfNamedEntries;
   UINT16  NumberOfIdEntries;
-   
-   
-   
+
 } EFI_IMAGE_RESOURCE_DIRECTORY;
 
- 
- 
- 
 typedef struct {
   union {
     struct {
@@ -710,17 +507,11 @@ typedef struct {
   } u2;
 } EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY;
 
- 
- 
- 
 typedef struct {
   UINT16  Length;
   CHAR16  String[1];
 } EFI_IMAGE_RESOURCE_DIRECTORY_STRING;
 
- 
- 
- 
 typedef struct {
   UINT32  OffsetToData;
   UINT32  Size;
@@ -728,9 +519,6 @@ typedef struct {
   UINT32  Reserved;
 } EFI_IMAGE_RESOURCE_DATA_ENTRY;
 
- 
- 
- 
 typedef struct {
   UINT16                    Signature;             
   UINT16                    Machine;               
@@ -743,19 +531,11 @@ typedef struct {
   EFI_IMAGE_DATA_DIRECTORY  DataDirectory[2];      
 } EFI_TE_IMAGE_HEADER;
 
-
 #define EFI_TE_IMAGE_HEADER_SIGNATURE  SIGNATURE_16('V', 'Z')
 
- 
- 
- 
 #define EFI_TE_IMAGE_DIRECTORY_ENTRY_BASERELOC  0
 #define EFI_TE_IMAGE_DIRECTORY_ENTRY_DEBUG      1
 
-
- 
- 
- 
 typedef union {
   EFI_IMAGE_NT_HEADERS32   Pe32;
   EFI_IMAGE_NT_HEADERS64   Pe32Plus;
@@ -773,7 +553,7 @@ typedef struct _WIN_CERTIFICATE {
 	UINT32  dwLength;
 	UINT16  wRevision;
 	UINT16  wCertificateType;
-	 
+
 } WIN_CERTIFICATE;
 
 typedef struct {

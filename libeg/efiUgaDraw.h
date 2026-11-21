@@ -4,28 +4,6 @@
  * memory surface. libeg uses that stride when transferring a subrectangle of
  * a larger image.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __UGA_DRAW_H__
 #define __UGA_DRAW_H__
@@ -35,7 +13,6 @@
     0x982c298b, 0xf4fa, 0x41cb, { 0xb8, 0x38, 0x77, 0xaa, 0x68, 0x8f, 0xb8, 0x39 } \
 }
 
- 
 struct _EFI_UGA_DRAW_PROTOCOL;
 
 typedef
@@ -47,23 +24,6 @@ EFI_STATUS
                                           OUT UINT32                *ColorDepth,
                                           OUT UINT32                *RefreshRate
                                           )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -76,22 +36,6 @@ EFI_STATUS
                                           IN  UINT32                ColorDepth,
                                           IN  UINT32                RefreshRate
                                           )
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 
@@ -129,51 +73,6 @@ EFI_STATUS
                                      IN  UINTN                                   Height,
                                      IN  UINTN                                   Delta         OPTIONAL
                                      );
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 

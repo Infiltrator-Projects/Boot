@@ -3,14 +3,6 @@
  * These are decoding constants, not a parser for attacker-provided tables;
  * re-generation must preserve code assignments and memory layout.
  */
-     
-
-
-
-     
-
-
-
 
     static const code lenfix[512] = {
         {96,7,0},{0,8,80},{0,8,16},{20,8,115},{18,7,31},{0,8,112},{0,8,48},

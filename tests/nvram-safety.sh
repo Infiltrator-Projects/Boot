@@ -3,7 +3,6 @@
 # Tests BOOT entry priority, idempotent registration and rejection of
 # ambiguous/stale records. Passing cannot establish behaviour on every OEM.
 
-
 set -euo pipefail
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
@@ -60,7 +59,6 @@ echo 0001,0002 > "$MOCK_NVRAM/order"
 set +e +u
 set +o pipefail
 
-
 Problems=""
 AddBootEntry || exit 1
 test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
@@ -77,14 +75,11 @@ test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 51 || exit 1
 test "$(command grep -c '^Boot' "$MOCK_NVRAM/entries")" = 3 || exit 1
 
-
 echo "0001,0004,0002" > "$MOCK_NVRAM/order"
 AddBootEntry || exit 1
 test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
 test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 52 || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
-
-
 
 echo "0004,NOPE,0002" > "$MOCK_NVRAM/order"
 Problems=""
@@ -93,7 +88,6 @@ if AddBootEntry >/dev/null 2>&1; then
     exit 1
 fi
 test "$Problems" = 1 || exit 1
-
 
 echo "0004,0001,0002" > "$MOCK_NVRAM/order"
 printf '%s\n' 'Boot0007* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)' >> "$MOCK_NVRAM/entries"
@@ -117,7 +111,6 @@ fi
 test "$Problems" = 1 || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = "$creates_before" || exit 1
 unset MOCK_FAIL_READ
-
 
 command grep -v '^Boot0007' "$MOCK_NVRAM/entries" | command grep -v '^Boot0004' > "$MOCK_NVRAM/entries.tmp"
 mv "$MOCK_NVRAM/entries.tmp" "$MOCK_NVRAM/entries"

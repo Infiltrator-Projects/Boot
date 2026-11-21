@@ -3,30 +3,6 @@
  * in several routines is ASCII-oriented rather than full Unicode collation;
  * caller allocation and NULL handling are function-specific.
  */
- 
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __MYSTRINGS_H_
 #define __MYSTRINGS_H_

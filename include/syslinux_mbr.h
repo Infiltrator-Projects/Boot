@@ -3,48 +3,11 @@
  * This byte sequence has executable semantics when written to a disk;
  * it is not ordinary source data and must never be modified for appearance.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef __SYSLINUX_MBR_H__
 #define __SYSLINUX_MBR_H__
 
-
 #define MBR_BOOTCODE_SIZE (440)
-
 
 #define SYSLINUX_MBR_SIZE (304)
 
@@ -89,7 +52,4 @@ static UINT8 syslinux_mbr[SYSLINUX_MBR_SIZE] = {
     0x65, 0x72, 0x72, 0x6f, 0x72, 0x0d, 0x0a, 0x00
 };
 
-
 #endif  
-
- 

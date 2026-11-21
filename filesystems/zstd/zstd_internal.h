@@ -3,41 +3,17 @@
  * wild-copy operations may depend on spare buffer space; their call sites
  * must prove any overread/write allowance rather than assume host padding.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef ZSTD_CCOMMON_H_MODULE
 #define ZSTD_CCOMMON_H_MODULE
 
- 
-
-
 #define FORCE_INLINE static __always_inline
 #define FORCE_NOINLINE static  
-
- 
-
 
 #include "error_private.h"
 #include "mem.h"
 #include "xxhash.h"
 #include "zstd.h"
-
- 
-
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -66,9 +42,6 @@
 	{                                                       \
 		enum { ZSTD_static_assert = 1 / (int)(!!(c)) }; \
 	}
-
- 
-
 
 #define ZSTD_OPT_NUM (1 << 12)
 #define ZSTD_DICT_MAGIC 0xEC30A437  
@@ -124,13 +97,9 @@ static const S16 OF_defaultNorm[MaxOff + 1] = {1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 
 #define OF_DEFAULTNORMLOG 5  
 static const U32 OF_defaultNormLog = OF_DEFAULTNORMLOG;
 
- 
-
-
 ZSTD_STATIC void ZSTD_copy8(void *dst, const void *src) {
 	memcpy(dst, src, 8);
 }
- 
 
 #define WILDCOPY_OVERLENGTH 8
 ZSTD_STATIC void ZSTD_wildcopy(void *dst, const void *src, ptrdiff_t length)
@@ -138,10 +107,6 @@ ZSTD_STATIC void ZSTD_wildcopy(void *dst, const void *src, ptrdiff_t length)
 	const BYTE* ip = (const BYTE*)src;
 	BYTE* op = (BYTE*)dst;
 	BYTE* const oend = op + length;
-	 
-
-
-
 
 	if (length <= 8)
 		return ZSTD_copy8(dst, src);
@@ -152,9 +117,6 @@ ZSTD_STATIC void ZSTD_wildcopy(void *dst, const void *src, ptrdiff_t length)
 	} while (op < oend);
 }
 
- 
-
 ZSTD_STATIC U32 ZSTD_highbit32(U32 val) { return 31 - __builtin_clz(val); }
-
 
 #endif  

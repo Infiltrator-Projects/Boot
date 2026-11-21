@@ -4,34 +4,9 @@
  * structures. Arithmetic using on-disk counts and block sizes requires
  * validation before allocation, division or physical reads.
  */
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifndef _FSW_EXT2_DISK_H_
 #define _FSW_EXT2_DISK_H_
-
- 
 
 typedef fsw_s8  __s8;
 typedef fsw_u8  __u8;
@@ -46,25 +21,12 @@ typedef __u16   __le16;
 typedef __u32   __le32;
 typedef __u64   __le64;
 
- 
- 
- 
-
- 
-
-
 #define EXT2_BAD_INO             1       
 #define EXT2_ROOT_INO            2       
 #define EXT2_BOOT_LOADER_INO     5       
 #define EXT2_UNDEL_DIR_INO       6       
 
- 
-
-
 #define EXT2_SUPER_MAGIC        0xEF53
-
- 
-
 
 #define EXT2_MIN_BLOCK_SIZE             1024
 #define EXT2_MAX_BLOCK_SIZE             4096
@@ -95,24 +57,15 @@ struct ext2_group_desc
     __le32  bg_reserved[3];
 };
 
- 
-
-
 #define EXT2_BLOCKS_PER_GROUP(s)       ((s)->s_blocks_per_group)
 #define EXT2_DESC_PER_BLOCK(s)         (EXT2_BLOCK_SIZE(s) / sizeof (struct ext2_group_desc))
 #define EXT2_INODES_PER_GROUP(s)       ((s)->s_inodes_per_group)
-
- 
-
 
 #define EXT2_NDIR_BLOCKS                12
 #define EXT2_IND_BLOCK                  EXT2_NDIR_BLOCKS
 #define EXT2_DIND_BLOCK                 (EXT2_IND_BLOCK + 1)
 #define EXT2_TIND_BLOCK                 (EXT2_DIND_BLOCK + 1)
 #define EXT2_N_BLOCKS                   (EXT2_TIND_BLOCK + 1)
-
- 
-
 
 #define EXT2_SECRM_FL                   0x00000001  
 #define EXT2_UNRM_FL                    0x00000002  
@@ -122,12 +75,12 @@ struct ext2_group_desc
 #define EXT2_APPEND_FL                  0x00000020  
 #define EXT2_NODUMP_FL                  0x00000040  
 #define EXT2_NOATIME_FL                 0x00000080  
- 
+
 #define EXT2_DIRTY_FL                   0x00000100
 #define EXT2_COMPRBLK_FL                0x00000200  
 #define EXT2_NOCOMP_FL                  0x00000400  
 #define EXT2_ECOMPR_FL                  0x00000800  
-       
+
 #define EXT2_BTREE_FL                   0x00001000  
 #define EXT2_INDEX_FL                   0x00001000  
 #define EXT2_IMAGIC_FL                  0x00002000  
@@ -139,9 +92,6 @@ struct ext2_group_desc
 
 #define EXT2_FL_USER_VISIBLE            0x0003DFFF  
 #define EXT2_FL_USER_MODIFIABLE         0x000380FF  
-
- 
-
 
 struct ext2_inode {
     __le16  i_mode;          
@@ -199,9 +149,6 @@ struct ext2_inode {
 
 #define i_size_high     i_dir_acl
 
- 
-
-
 struct ext2_super_block {
     __le32  s_inodes_count;          
     __le32  s_blocks_count;          
@@ -228,18 +175,6 @@ struct ext2_super_block {
     __le32  s_rev_level;             
     __le16  s_def_resuid;            
     __le16  s_def_resgid;            
-     
-
-
-
-
-
-
-
-
-
-
-
 
     __le32  s_first_ino;             
     __le16  s_inode_size;            
@@ -251,15 +186,10 @@ struct ext2_super_block {
     char    s_volume_name[16];       
     char    s_last_mounted[64];      
     __le32  s_algorithm_usage_bitmap;  
-     
-
-
 
     __u8    s_prealloc_blocks;       
     __u8    s_prealloc_dir_blocks;   
     __u16   s_padding1;
-     
-
 
     __u8    s_journal_uuid[16];      
     __u32   s_journal_inum;          
@@ -274,9 +204,6 @@ struct ext2_super_block {
     __u32   s_reserved[190];         
 };
 
- 
-
-
 #define EXT2_GOOD_OLD_REV       0        
 #define EXT2_DYNAMIC_REV        1        
 
@@ -284,10 +211,6 @@ struct ext2_super_block {
 #define EXT2_MAX_SUPP_REV       EXT2_DYNAMIC_REV
 
 #define EXT2_GOOD_OLD_INODE_SIZE 128
-
- 
-
-
 
 #define EXT2_HAS_COMPAT_FEATURE(sb,mask)                        \
         ( EXT2_SB(sb)->s_es->s_feature_compat & cpu_to_le32(mask) )
@@ -328,20 +251,6 @@ struct ext2_super_block {
 #define EXT2_FEATURE_INCOMPAT_META_BG           0x0010
 #define EXT2_FEATURE_INCOMPAT_ANY               0xffffffff
 
- 
-
-
-
-
-
-
-
-
-
-
- 
-
-
 #define EXT2_NAME_LEN 255
 
 struct ext2_dir_entry {
@@ -351,12 +260,6 @@ struct ext2_dir_entry {
     __u8    file_type;
     char    name[EXT2_NAME_LEN];     
 };
- 
- 
-
- 
-
-
 
 enum {
     EXT2_FT_UNKNOWN,
@@ -369,6 +272,5 @@ enum {
     EXT2_FT_SYMLINK,
     EXT2_FT_MAX
 };
-
 
 #endif

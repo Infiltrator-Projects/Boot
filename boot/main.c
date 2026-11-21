@@ -4,62 +4,6 @@
  * A visible menu entry describes a possible handoff, never a confirmed OS boot.
  * The manager must not constrain OS discovery to an assumed installation count.
  */
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #include "global.h"
 #include "config.h"
@@ -85,9 +29,6 @@
 #ifndef __MAKEWITH_GNUEFI
 #define LibLocateProtocol EfiLibLocateProtocol
 #endif
-
- 
- 
 
 REFIT_MENU_ENTRY MenuEntryReturn   = { L"Return to Main Menu", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
 
@@ -166,10 +107,6 @@ CHAR16 *gHiddenTools = NULL;
 
 EFI_GUID BootGuid = BOOT_GUID_VALUE;
 
- 
- 
- 
-
 VOID AboutBOOT(VOID)
 {
     CHAR16     *FirmwareVendor;
@@ -231,8 +168,6 @@ VOID AboutBOOT(VOID)
     RunMenu(&AboutMenu, NULL);
 }  
 
- 
- 
 /*
  * Persists the last selected menu label under BOOT's own vendor GUID.
  * The terminating UTF-16 code unit is included in the byte count; this
@@ -245,7 +180,6 @@ VOID StoreLoaderName(IN CHAR16 *Name) {
     }  
 }  
 
- 
 /*
  * Reconstructs firmware-derived volume and loader state; scanned entries
  * must not be reused as though device topology were immutable.
@@ -255,8 +189,7 @@ VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
     FreeList((VOID ***) &(MainMenu.Entries), &MainMenu.EntryCount);
     MainMenu.Entries = NULL;
     MainMenu.EntryCount = 0;
-     
-     
+
     if (Reconnect) {
         ConnectAllDriversToAllControllers();
         ScanVolumes();
@@ -269,7 +202,6 @@ VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
 
 #ifdef __MAKEWITH_TIANO
 
- 
 /*
  * Establishes boot/runtime-service access and the self-image identity.
  * All later EFI handle operations depend on this lifetime and service table.
@@ -278,22 +210,19 @@ static VOID InitializeLib(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *System
     EFI_STATUS Status;
 
     gST            = SystemTable;
-     
+
     gBS            = SystemTable->BootServices;
-     
+
     gRT = SystemTable->RuntimeServices;  
     Status = EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **) &gDS);
     if (EFI_ERROR(Status)) {
-         
-         
+
         gDS = 0;
     }
 }
 
 #endif
 
- 
- 
 /*
  * Changes Secure Boot-related menu state via EFI-facing routines, not via
  * the host installer. Firmware policy remains authoritative for image trust.
@@ -318,8 +247,6 @@ static BOOLEAN SecureBootSetup(VOID) {
     return Success;
 }  
 
- 
- 
 static BOOLEAN SecureBootUninstall(VOID) {
     EFI_STATUS Status;
     BOOLEAN    Success = TRUE;
@@ -337,10 +264,6 @@ static BOOLEAN SecureBootUninstall(VOID) {
     return Success;
 }  
 
- 
- 
- 
- 
 /*
  * Examines the image's firmware-supplied load options for a -c override.
  * A candidate configuration is selected only when visible in SelfDir;
@@ -372,9 +295,6 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
     }  
 }  
 
- 
- 
- 
 /*
  * Expand each '+' in the configured preference list to the saved PreviousBoot
  * name. A missing variable drops just that element. The rebuilt list is
@@ -405,7 +325,6 @@ static VOID AdjustDefaultSelection() {
     GlobalConfig.DefaultSelection = NewCommaDelimited;
 }  
 
- 
 /*
  * Records firmware revision, platform capabilities and boot-environment
  * diagnostics after library initialization. Log output describes observed
@@ -480,8 +399,6 @@ VOID LogBasicInfo(VOID) {
         LOG(1, LOG_LINE_NORMAL, L"EFI 1.x; EFI non-volatile storage information is unavailable");
     }
 
-     
-     
     Status = LibLocateProtocol(&ConsoleControlProtocolGuid, (VOID **) &TempStr);
     LOG(1, LOG_LINE_NORMAL, L"System does%s support text mode",
         EFI_ERROR(Status) ? L" not" : L"");
@@ -502,9 +419,6 @@ VOID LogBasicInfo(VOID) {
 #endif
 }  
 
- 
- 
- 
 EFI_STATUS
 /*
  * UEFI application entry point and lifetime owner. Initialisation precedes
@@ -524,13 +438,11 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     CHAR16             *SelectionName = NULL;
     EG_PIXEL           BGColor = COLOR_LIGHTBLUE;
 
-     
     InitializeLib(ImageHandle, SystemTable);
     Status = InitRefitLib(ImageHandle);
     if (EFI_ERROR(Status))
         return Status;
 
-     
     MyCopyMem(GlobalConfig.ScanFor, "ieom       ", NUM_SCAN_OPTIONS);
     FindLegacyBootType();
     if (GlobalConfig.LegacyType == LEGACY_TYPE_MAC)
@@ -563,18 +475,14 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     WarnIfLegacyProblems();
     MainMenu.TimeoutSeconds = GlobalConfig.Timeout;
 
-     
     LOG(1, LOG_LINE_NORMAL, L"Setting watchdog timer");
     refit_call4_wrapper(BS->SetWatchdogTimer, 0x0000, 0x0000, 0x0000, NULL);
 
-     
     SetupScreen();
     SetVolumeIcons();
     ScanForBootloaders(FALSE);
     ScanForTools();
 
-     
-     
     BltClearScreen(TRUE);
     pdInitialize();
 
@@ -598,7 +506,6 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     while (MainLoopRunning) {
         MenuExit = RunMainMenu(&MainMenu, &SelectionName, &ChosenEntry);
 
-         
         if (MenuExit == MENU_EXIT_ESCAPE) {
             MenuExit = 0;
             RescanAll(TRUE, TRUE);
@@ -679,8 +586,6 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }  
     MyFreePool(SelectionName);
 
-     
-     
     LOG(1, LOG_LINE_SEPARATOR, L"Main loop has exited, but it should not have!");
     UninitRefitLib();
     refit_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
