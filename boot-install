@@ -950,15 +950,46 @@ AddBootEntry() {
       Problems=1
       return 1
    }
-   # Identify the exact mounted ESP and its real parent, including NVMe.
+   # Identify the already-mounted ESP without guessing a disk or changing
+   # partitions. Linux Mint / NVMe devices can expose partition metadata via
+   # sysfs, lsblk and blkid differently; accept independently verified sources.
    install_part="$(findmnt -n --mountpoint "$InstallDir" -o SOURCE 2>/dev/null | head -n1)"
    install_part="$(readlink -f -- "$install_part" 2>/dev/null)"
-   install_disk="$(lsblk -no PKNAME -- "$install_part" 2>/dev/null | head -n1)"
-   part_num="$(lsblk -no PARTN -- "$install_part" 2>/dev/null | head -n1)"
-   part_guid="$(blkid -s PARTUUID -o value "$install_part" 2>/dev/null)"
-   if [[ ! -b "$install_part" || -z "$install_disk" ||
-         ! "$part_num" =~ ^[0-9]+$ || -z "$part_guid" ]]; then
-      echo "Cannot prove the ESP partition; leaving NVRAM untouched." >&2
+   if [[ ! -b "$install_part" ]]; then
+      echo "ESP source is not a block device: ${install_part:-<empty>}; NVRAM unchanged." >&2
+      Problems=1
+      return 1
+   fi
+   local part_name="${install_part##*/}" sys_partition sys_parent
+   sys_partition="/sys/class/block/$part_name"
+   install_disk="$(lsblk -dnro PKNAME -- "$install_part" 2>/dev/null | head -n1)"
+   if [[ -z "$install_disk" && -e "$sys_partition/partition" ]]; then
+      sys_parent="$(readlink -f -- "$sys_partition" 2>/dev/null)"
+      install_disk="${sys_parent%/*}"
+      install_disk="${install_disk##*/}"
+   fi
+   part_num="$(lsblk -dnro PARTN -- "$install_part" 2>/dev/null | head -n1)"
+   if [[ ! "$part_num" =~ ^[0-9]+$ && -r "$sys_partition/partition" ]]; then
+      part_num="$(cat "$sys_partition/partition")"
+   fi
+   # udev is a last-resort metadata source on systems whose lsblk PARTN is
+   # unavailable. Require a numeric partition index before touching firmware.
+   if [[ ! "$part_num" =~ ^[0-9]+$ ]] && command -v udevadm >/dev/null 2>&1; then
+      part_num="$(udevadm info --query=property --name="$install_part" 2>/dev/null |
+                  sed -n 's/^ID_PART_ENTRY_NUMBER=//p' | head -n1)"
+   fi
+   part_guid="$(lsblk -dnro PARTUUID -- "$install_part" 2>/dev/null | head -n1)"
+   if [[ -z "$part_guid" ]]; then
+      part_guid="$(blkid -s PARTUUID -o value "$install_part" 2>/dev/null)"
+   fi
+   if [[ -z "$part_guid" ]] && command -v udevadm >/dev/null 2>&1; then
+      part_guid="$(udevadm info --query=property --name="$install_part" 2>/dev/null |
+                   sed -n 's/^ID_PART_ENTRY_UUID=//p' | head -n1)"
+   fi
+   if [[ -z "$install_disk" || "$install_disk" == "$part_name" ||
+         ! "$part_num" =~ ^[0-9]+$ ||
+         ! "$part_guid" =~ ^[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}$ ]]; then
+      echo "Cannot prove ESP metadata: device=$install_part parent=${install_disk:-missing} partition=${part_num:-missing} PARTUUID=${part_guid:-missing}; NVRAM unchanged." >&2
       Problems=1
       return 1
    fi
