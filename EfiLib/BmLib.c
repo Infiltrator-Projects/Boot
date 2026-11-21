@@ -43,6 +43,11 @@ EFI_STATUS
  * Locates a firmware protocol by GUID; absence is a supported runtime
  * condition and must not be converted into an assumed usable interface.
  */
+/*
+ * Resolves a requested protocol GUID through EFI Boot Services.
+ * The resulting interface pointer is firmware-managed and remains subject
+ * to firmware protocol and handle lifetime rules.
+ */
 EfiLibLocateProtocol (
   IN  EFI_GUID    *ProtocolGuid,
   OUT VOID        **Interface
@@ -190,6 +195,11 @@ VOID *
 /*
  * Replaces a pool-backed buffer while preserving intended bytes; callers
  * must not keep using the old pointer after successful reallocation.
+ */
+/*
+ * Reallocates pool storage for EFI library consumers. Callers must update
+ * their owning pointer from the result and avoid dereferencing an obsolete
+ * allocation after a successful move.
  */
 EfiReallocatePool (
   IN VOID                 *OldPool,
