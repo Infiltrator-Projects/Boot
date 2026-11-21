@@ -55,6 +55,11 @@ EFI_STATUS DeleteFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
  * Handles the previous log during a new session. A missing or unwritable
  * log file must remain distinguishable from a firmware boot failure.
  */
+/*
+ * Manages existing diagnostic-log content before further writes. Rotation
+ * is a potentially persistent filesystem mutation; an unsuccessful rename
+ * or deletion should not be interpreted as a boot or driver-load failure.
+ */
 EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
     EFI_STATUS Status = EFI_SUCCESS;
 
@@ -77,6 +82,11 @@ EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
  
 /*
  * Opens the current log destination after required firmware/file state exists.
+ */
+/*
+ * Opens the logging destination and establishes its active file handle.
+ * Log availability is optional diagnostic state; boot-control decisions
+ * must continue to use EFI_STATUS from the operations they describe.
  */
 EFI_STATUS StartLogging(BOOLEAN Restart) {
     EFI_STATUS      Status = EFI_SUCCESS;
@@ -152,6 +162,11 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
     return Status;
 }  
 
+/*
+ * Ends the active logging session and disposes of its open EFI file handle.
+ * Later diagnostic emission must not assume that the prior handle remains
+ * valid across child-image dispatch or protocol reinitialisation.
+ */
 VOID StopLogging(VOID) {
     if (GlobalConfig.LogLevel > 0)
         refit_call1_wrapper(gLogHandle->Close, gLogHandle);  
