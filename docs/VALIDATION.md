@@ -72,3 +72,30 @@ At this revision, the released BOOT builds the original EFI filesystem drivers r
 Failed CI stops the current release pipeline and must be investigated from the failing step and log. Source-only comment removal previously required an update to a package-size assertion; removal of obsolete `COPYING.txt` later required deleting references from the workflow and release scripts. These are examples of repository-contract changes, not filesystem fixes.
 
 Documentation should state **what passed**, **what failed**, and **what was not tested**. It must not infer success merely because a tag, artifact, EFI image or filesystem source file exists.
+
+
+## Source-to-evidence traceability and outstanding regressions
+
+The table distinguishes *existing fixture coverage* from *missing tests*. It does not claim these proposed assertions ran in CI.
+
+| Contract or risk | Existing evidence | Missing regression evidence |
+| --- | --- | --- |
+| Fixed installation destination and preservation of other EFI vendors | `tests/install-safety.sh` uses a disposable ESP and checks three non-BOOT paths | A full Linux installation attempt with an unowned existing `BOOTX64.EFI` must reject *before any deletion*; the present code does not implement that ordering |
+| Existing loader marker and replacement | `GuardDefaultBootLocation` is exercised in isolation against fixture files | End-to-end check that the marker is consulted prior to `InstallOnLinux` clearing the old BOOT directory |
+| Duplicate and ambiguous firmware entries | `tests/nvram-safety.sh`, workflow repeat-install checks | Physical firmware variable-write failure and partial-update recovery across different OEMs |
+| FSW mount on untrusted disk images | Filesystem readers and a POSIX test adapter exist | Fault-injected zero inode-group count, failed allocation and truncated metadata, with no divide-by-zero or null dereference |
+| FSW large-file reads | `filesystems/fsw_core.c` documents its current narrowing | Read at offsets below and above 4 GiB against independent expected bytes |
+| EFI directory buffer negotiation | `filesystems/fsw_efi.c` documents cursor advancement | An `EFI_BUFFER_TOO_SMALL` retry must return the same entry instead of skipping one |
+| EXT4 dirty filesystem | RECOVER is accepted by the current feature mask | Explicit tests of recovery-required images, plus a declared refusal or a validated read-only consistency policy |
+| OS menu and direct Linux boot | `tests/ovmf-smoke.sh` observes driver loading and main-menu entry | Multi-volume discovery, duplicate suppression, direct kernel/initrd arguments and successful OS userspace on actual hardware |
+| Common V2 filesystem ABI | No end-to-end BOOT V2 module validation in this revision | Exact V2 ABI conformance, shared implementation, freestanding build, authentication, load and representative read-path tests |
+
+### Reproducible checks and their limits
+
+From the repository root, `bash tests/install-safety.sh`, `bash tests/nvram-safety.sh`, `bash packaging/test-release.sh` (with its expected release artifacts) and `bash tests/ovmf-smoke.sh` (with its QEMU, OVMF and prebuilt-image prerequisites) are the maintained entry points. `make gnuefi` compiles the firmware targets using the installed GNU-EFI toolchain. Some tests require setup or artifacts and should not be interpreted as executable on an arbitrary clean host without inspection of their scripts.
+
+A review of source text is not a fresh execution of those commands. For a meaningful claim, record the tested commit SHA, environment, command, exit status, fixture inputs and observed artifact or log. Link each claim to the relevant executable assertion rather than relying on a passing badge or a file's existence.
+
+### Comment-quality audit acceptance
+
+A complete source-comment review checks each active, high-impact routine for verified preconditions, output and allocation ownership, integer/unit assumptions, error propagation and firmware side effects. Documentation must describe the current call order, including destructive steps, not the safer order intended by its authors. A remaining static hazard is a recorded limitation until its behaviour and regression tests are corrected. Comments must be dense in technical information, not blank-line padding or repetitive function-name paraphrases.

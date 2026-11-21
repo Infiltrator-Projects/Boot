@@ -52,3 +52,8 @@ The generic AMD64 `.deb` **stages** the executable, drivers and resources under 
 `.github/workflows/boot.yml` compiles the EFI executable and drivers, verifies the release files, exercises installation and firmware-entry safeguards on disposable fixtures, and starts BOOT in QEMU/OVMF to confirm that the main menu can be reached. These checks do not prove compatibility with every real firmware, operating system, filesystem variant, Secure Boot configuration or direct-kernel boot path.
 
 The definitive contracts, hardware coverage and precise test boundaries are maintained in [Architecture](docs/ARCHITECTURE.md), [Hardware](docs/HARDWARE.md) and [Validation](docs/VALIDATION.md). See the [documentation index](docs/README.md) and [Changelog](docs/CHANGELOG.md).
+
+
+## Current documented risks
+
+The Linux native reinstall currently deletes BOOT's dedicated directory before the later SHA-256 ownership-marker guard can inspect the previous executable. The filesystem wrapper also has documented limits involving malformed EXT2 metadata, a failed mount allocation, 4 GiB stream-position narrowing and directory retry semantics. Comments identify these defects; they do not repair them. See [Architecture](docs/ARCHITECTURE.md) and [Validation](docs/VALIDATION.md) for source locations, current test coverage and missing regressions.

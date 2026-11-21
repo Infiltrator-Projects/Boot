@@ -2,6 +2,13 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Documentation fidelity and comment-quality audit
+
+- Corrected the Linux reinstall ownership-check description to reflect the actual delete-before-guard ordering.
+- Recorded static FSW, EXT2, EXT4 and EFI directory-read limitations with their exact source locations and validation gaps.
+- Defined concrete commentary, evidence and regression criteria without claiming that source inspection or prose changes repaired execution paths.
+- Updated stale commentary status and icon-provenance references; did not modify firmware logic, installer behaviour or ABI.
+
 ## 2026-11-21 — Engineering documentation structure
 
 - Introduced the central README and six technical documents, following the major documentation categories used by System Monitor.

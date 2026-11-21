@@ -143,7 +143,7 @@ os_ubuntu.png
 os_xenial.png
 os_zesty.png
 
-Icons created by me (Roderick W. Smith):
+Icons attributed in the historical source to Roderick W. Smith:
 
 boot_win.png
 func_csr_rotate.png
@@ -174,7 +174,7 @@ tool_windows_rescue.png: os_win8.png with AwOken's gnome_network_preferences.png
 Licneses
 --------
 
-The "licenses" subdirectory contains the text of the relevant licenses:
+The historical icons catalogue referred to a "licenses" subdirectory. That subdirectory is not present in the current BOOT tree. The identifiers and external references below are provenance information, not a claim that bundled licence copies remain:
 
 CC-SA 3.0: Creative Commons Legal Code.html
            (See also https://creativecommons.org/licenses/by-sa/3.0/us/)

@@ -48,3 +48,16 @@ A real-hardware result should record device model, firmware revision, Secure Boo
 ## Common V2 distinction
 
 The repository's current firmware access uses EFI filesystem driver binaries and EFI protocols. It does not establish a completed Common V2 `.so` loading, authentication or execution pathway. Such future compatibility must be demonstrated against the actual V2 specification on each target build profile, including freestanding UEFI constraints.
+
+
+## Evidence record for future hardware claims
+
+For any physical qualification claim record: model and board revision; CPU architecture; UEFI manufacturer, version and mode; Secure Boot and key state; storage controller and physical device; partition layout; filesystem revision and incompatibility flags; selected EFI entry; loader pathname; kernel and initrd versions when applicable; the full observed transition (detected, selected, started, entered OS) and any firmware error codes. A link to the exact BOOT commit and installer checksum must accompany the record.
+
+The current documentation does not contain a completed per-device result matrix. Therefore no unlisted OEM model, filesystem feature set, Secure Boot key chain, 32-bit or AArch64 architecture, or multi-OS configuration is declared fully qualified. The GNU-EFI x86-64 build and OVMF smoke are narrower evidence. The Linux EXT4 success mentioned above is one observation without a complete reproducible hardware record.
+
+## Media and read-path considerations
+
+UEFI Block I/O and Disk I/O handle exposure is platform-dependent. An ESP on FAT does not demonstrate that additional disks can be read through BOOT's separate EFI filesystem drivers. Drivers may bind to newly discovered controllers, but detection and successful file reading must be measured separately. Failure to mount a dirty EXT4 filesystem, an unsupported HFS variant, an incompatible Btrfs profile or an unreadable optical device must remain visible as an unsupported or failed path rather than becoming a false boot candidate.
+
+A Common V2 hosted `.so`, a freestanding module and a PE/COFF EFI driver differ in binary format and execution environment. Until the source and integration tests establish a shared V2 implementation, hardware claims apply to the present EFI-driver integration only.
