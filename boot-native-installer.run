@@ -847,7 +847,7 @@ SignOneBinary() {
 # Coordinate local signing of BOOT binaries after selecting a signing tool
 # and key material. The action changes executable bytes and therefore
 # requires a matching boot-time trust configuration. It is distinct from
-# checksum-based ownership of a prior installed loader.
+# firmware verification of signed EFI executables.
 ReSignBinaries() {
    SBSign="$(command -v sbsign 2> /dev/null)"
    echo "Found sbsign at $SBSign"
@@ -938,7 +938,7 @@ FindLinuxESP() {
 }
 
 # Resolves a mounted ESP and expected filesystem state. A mount path is
-# not sufficient proof of BOOT ownership; destination constraints still apply.
+# does not by itself establish a correct EFI installation destination.
 FindMountedESP() {
    mount /boot &> /dev/null
    mount /boot/efi &> /dev/null
@@ -1163,7 +1163,7 @@ InstallSBKey() {
 # Performs the Linux-host ESP/NVRAM mutation. It explicitly clears the prior
 # /EFI/InfiltratorOS/BOOT directory before CopyBootFiles, including any old
 # boot.conf and icons; no files in other vendor EFI paths are intended to be
-# deleted. AUDIT: existing-loader ownership checks occur after this removal.
+# deleted. The fixed-path and symlink checks run before this removal.
 InstallOnLinux() {
    if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
       echo "Refusing installation outside /EFI/InfiltratorOS/BOOT." >&2

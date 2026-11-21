@@ -79,7 +79,7 @@ boot_generic_install_files() {
 
 boot_generic_register() {
     local disk="$1" partition="$2" uuid="$3"
-    local listing line lower number boot_number="" match_count matches total
+    local listing line lower number boot_number="" match_count total created=0
     local order new_order item verified
     local -a numbers=()
     local loader_path='\EFI\InfiltratorOS\BOOT\BOOTX64.EFI'
@@ -122,7 +122,7 @@ boot_generic_register() {
             echo "BOOT UEFI entry is duplicate, stale or ambiguous; refusing a second entry." >&2
             return 1
         fi
-        if [[ "${created:-0}" == 1 ]]; then
+        if [[ "$created" == 1 ]]; then
             echo "BOOT could not verify the newly registered firmware entry." >&2
             return 1
         fi
