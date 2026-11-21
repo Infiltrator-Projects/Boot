@@ -94,7 +94,7 @@ jobs:
         shell: bash
         run: bash tests/install-safety.sh
 
-      - name: Test BOOT firmware registration, replacement and default priority
+      - name: Test BOOT default priority on fresh and 50 repeated installations
         shell: bash
         run: sudo bash tests/nvram-safety.sh
 

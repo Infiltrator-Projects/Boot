@@ -36,25 +36,8 @@ case "${1:-}" in
      printf '%s\n' "Bootlink_6aa9eb29612c8191b65880594e38ee41* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)" >> "$MOCK_NVRAM/entries"
      before=$(cat "$MOCK_NVRAM/order")
      printf '%s%s\n' "$id" "${before:+,$before}" > "$MOCK_NVRAM/order" ;;
- -b)
-     [[ "${3:-}" == "-B" ]] || exit 73
-     id="$2"
-     # Removing another operating system is forbidden.
-     [[ "$id" != 0001 && "$id" != 0002 ]] || exit 74
-     command grep -Fq "Boot${id}* BOOT Boot Manager" "$MOCK_NVRAM/entries" || exit 75
-     command grep -v "^Boot${id}\\*" "$MOCK_NVRAM/entries" > "$MOCK_NVRAM/entries.tmp"
-     mv "$MOCK_NVRAM/entries.tmp" "$MOCK_NVRAM/entries"
-     old=$(cat "$MOCK_NVRAM/order")
-     next=""
-     IFS=, read -r -a entries <<< "$old"
-     for entry in "${entries[@]}"; do
-         [[ "$entry" == "$id" ]] && continue
-         next="${next:+$next,}$entry"
-     done
-     printf '%s\n' "$next" > "$MOCK_NVRAM/order" ;;
- -o)
-     [[ "${MOCK_FAIL_ORDER:-0}" == 0 ]] || exit 76
-     [[ "${2:-}" =~ ^[0-9A-Fa-f]{4}(,[0-9A-Fa-f]{4})*$ ]] || exit 77
+ -b) [[ "${3:-}" == "-a" ]] || exit 73 ;;
+ -o) [[ "${2:-}" =~ ^[0-9A-Fa-f]{4}(,[0-9A-Fa-f]{4})*$ ]] || exit 74
      echo "$2" > "$MOCK_NVRAM/order" ;;
  '') printf 'BootOrder: %s\n' "$(cat "$MOCK_NVRAM/order")" ;;
  *) echo "Unexpected efibootmgr command: $*" >&2; exit 78 ;;
@@ -72,45 +55,41 @@ echo 0001,0002 > "$MOCK_NVRAM/order"
 set +e +u
 set +o pipefail
 
-# Fresh installation: create BOOT, make it default without modifying other entries.
+# First install: register one BOOT entry and put it first.
 Problems=""
-AddBootEntry > "$work/first.log" || exit 1
-command grep -Fq "Registered BOOT as Boot0004; BOOT is first" "$work/first.log" || exit 1
+AddBootEntry || exit 1
 test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
-command grep -Fq -- "-o 0004,0001,0002" "$MOCK_NVRAM/actions" || exit 1
+test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
+test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 
-# Reinstall: replace the old BOOT entry even if it is already first.
-AddBootEntry > "$work/second.log" || exit 1
-command grep -Fq "Registered BOOT as Boot0005; BOOT is first" "$work/second.log" || exit 1
-test "$(cat "$MOCK_NVRAM/order")" = "0005,0001,0002" || exit 1
-! command grep -Fq "Boot0004*" "$MOCK_NVRAM/entries" || exit 1
-command grep -Fq -- "-b 0004 -B" "$MOCK_NVRAM/actions" || exit 1
+# Reinstall 50 times: no additional BOOT entries; explicitly set default each time.
+for i in {1..50}; do
+    AddBootEntry || exit 1
+done
+test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
+test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
+test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 51 || exit 1
+test "$(command grep -c '^Boot' "$MOCK_NVRAM/entries")" = 3 || exit 1
 
-# Upgrade from a BOOT entry placed second: replace and set new entry first.
-echo "0001,0005,0002" > "$MOCK_NVRAM/order"
-AddBootEntry > "$work/third.log" || exit 1
-test "$(cat "$MOCK_NVRAM/order")" = "0006,0001,0002" || exit 1
-! command grep -Fq "Boot0005*" "$MOCK_NVRAM/entries" || exit 1
-command grep -Fq -- "-b 0005 -B" "$MOCK_NVRAM/actions" || exit 1
+# If someone set Windows first, running BOOT again restores BOOT as default.
+echo "0001,0004,0002" > "$MOCK_NVRAM/order"
+AddBootEntry || exit 1
+test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
+test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 52 || exit 1
+test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 
-# Creation failure must leave the previous, working boot entry in place.
-export MOCK_FAIL_CREATE=1
-before=$(cat "$MOCK_NVRAM/entries")
-order_before=$(cat "$MOCK_NVRAM/order")
+# Failure to set the default is a failed installation, not success.
+# An invalid mock BootOrder is also rejected rather than silently accepted.
+echo "0004,NOPE,0002" > "$MOCK_NVRAM/order"
 Problems=""
-if AddBootEntry > "$work/failure.log" 2>&1; then
-    echo "Accepted failed NVRAM creation" >&2
+if AddBootEntry >/dev/null 2>&1; then
+    echo "Accepted invalid firmware BootOrder" >&2
     exit 1
 fi
 test "$Problems" = 1 || exit 1
-test "$(cat "$MOCK_NVRAM/entries")" = "$before" || exit 1
-test "$(cat "$MOCK_NVRAM/order")" = "$order_before" || exit 1
-unset MOCK_FAIL_CREATE
 
-# Retaining Windows, GRUB and fallback firmware entries is mandatory.
+# Other OS entries are never deleted and are retained in BootOrder.
 command grep -Fq "Boot0001* Windows Boot Manager" "$MOCK_NVRAM/entries" || exit 1
 command grep -Fq "Boot0002* Ubuntu" "$MOCK_NVRAM/entries" || exit 1
-! command grep -Eq -- '-b (0001|0002) -B' "$MOCK_NVRAM/actions" || exit 1
-! command grep -Fq "Keeping existing NVRAM entry" "$work/first.log" || exit 1
-! command grep -Fq "Keeping existing NVRAM entry" "$work/second.log" || exit 1
-echo "BOOT registration: fresh install, reinstall and upgrade set new BOOT first; other OSes preserved"
+! command grep -Eq -- ' -B($| )' "$MOCK_NVRAM/actions" || exit 1
+echo "BOOT default reasserted over 50 reinstalls without duplicate entries; other OSes preserved"

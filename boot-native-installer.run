@@ -1179,146 +1179,116 @@ FindMountedESP() {
    echo "ESP was found at $InstallDir using $EspFilesystem"
 } # FindMountedESP
 
-# Re-register BOOT on every installation and make it the default UEFI entry.
-# Replace only entries for this exact ESP and BOOT loader path. Other OSes stay.
+# Always set BOOT as default in UEFI BootOrder on every installation.
+# Create an entry only if one for this ESP and BOOT executable does not exist.
 AddBootEntry() {
-   local PartNum InstallDisk InstallPart InstallPartGuid Name
-   local EntryFilename EfiEntryFilename OldBootNum NewBootNum
-   local CurrentEntry LowerEntry WantedFile BootOrder PreferredOrder Candidate
-   local EntryFound=0
-   local -a OldBootEntries=() OrderEntries=()
-   local -A BeforeEntries=()
-
+   local InstallPart InstallDisk="" PartNum="" Name InstallPartGuid
+   local EntryFilename EfiEntryFilename ExistingEntry BootNum BootOrder NewOrder Candidate
+   local RealBootBinary Efibootmgr
+   local -a OrderEntries=()
    Efibootmgr="$(command -v efibootmgr 2> /dev/null)"
    if [[ -z "$Efibootmgr" ]] ; then
-      echo "Cannot register BOOT: efibootmgr is unavailable." >&2
+      echo "Cannot set BOOT as default: efibootmgr is unavailable." >&2
       Problems=1
       return 1
    fi
    InstallPart=$(grep "$InstallDir " /etc/mtab | grep -v autofs | cut -d " " -f 1 | tail -n1)
    for Name in $(lsblk -r | grep disk | cut -f 1 -d " ") ; do
       if [[ $InstallPart == *"$Name"* ]] ; then
-         InstallDisk="/dev/"$Name
+         InstallDisk="/dev/$Name"
          PartNum=${InstallPart#"$InstallDisk"}
          PartNum="${PartNum//[!0-9]/}"
          break
       fi
    done
    if [[ -z "$InstallDisk" || -z "$PartNum" ]] ; then
-      echo "Cannot identify the BOOT ESP for firmware registration." >&2
+      echo "Cannot identify BOOT EFI partition." >&2
       Problems=1
       return 1
    fi
    InstallPartGuid=$(blkid -s PARTUUID -o value "$InstallPart")
    if [[ -z "$InstallPartGuid" ]] ; then
-      echo "Cannot identify the BOOT ESP partition GUID." >&2
+      echo "Cannot identify BOOT EFI partition GUID." >&2
       Problems=1
       return 1
    fi
    EntryFilename="$TargetDir/$Boot"
-   EfiEntryFilename=$(printf "%s" "$EntryFilename" | tr "/" "\\\\")
-   WantedFile="file(${EfiEntryFilename,,})"
+   EfiEntryFilename="${EntryFilename//\//\\}"
+   ExistingEntry=$("$Efibootmgr" -v | grep -iF "$InstallPartGuid" | grep -iF "File($EfiEntryFilename)" | head -n1)
+   BootNum=$(printf "%s\n" "$ExistingEntry" | sed -nE 's/^Boot([[:xdigit:]]{4})\*?.*/\1/p')
 
-   # Snapshot exact matching entries. Never remove another OS or disk entry.
-   while IFS= read -r CurrentEntry ; do
-      if [[ "$CurrentEntry" =~ ^Boot([[:xdigit:]]{4})\*?[[:space:]] ]] ; then
-         OldBootNum="${BASH_REMATCH[1]^^}"
-         BeforeEntries["$OldBootNum"]=1
-         LowerEntry="${CurrentEntry,,}"
-         if [[ "$LowerEntry" == *"$WantedFile"* && "$LowerEntry" == *"${InstallPartGuid,,}"* ]] ; then
-            OldBootEntries+=("$OldBootNum")
+   if [[ -z "$BootNum" ]] ; then
+      # Fresh installation: register BOOT just once.
+      if [[ "$Boot" == *"shim"* ]] ; then
+         if [[ "$KeepName" == 1 ]] ; then
+            RealBootBinary="$TargetDir/boot_$Platform.efi"
+         else
+            RealBootBinary="$TargetDir/grub$Platform.efi"
          fi
+         "$Efibootmgr" -c -l "$RealBootBinary" -L "BOOT Boot Manager (direct)" -d "$InstallDisk" -p "$PartNum" || {
+            Problems=1
+            return 1
+         }
       fi
-   done < <("$Efibootmgr" -v)
-
-   # Create a NEW firmware entry even when BOOT is already the default.
-   # If creation fails, do not destroy the existing working BOOT entry.
-   if [[ "$Boot" == *"shim"* ]] ; then
-      local RealBootBinary
-      if [[ "$KeepName" == 1 ]] ; then
-         RealBootBinary="$TargetDir/boot_$Platform.efi"
+      if [[ "$KeepName" == 0 ]] ; then
+         "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" -p "$PartNum" || {
+            Problems=1
+            return 1
+         }
       else
-         RealBootBinary="$TargetDir/grub$Platform.efi"
+         "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" -p "$PartNum" -u "$TargetShim $TargetX64" || {
+            Problems=1
+            return 1
+         }
       fi
-      if ! "$Efibootmgr" -c -l "$RealBootBinary" -L "BOOT Boot Manager (direct)" -d "$InstallDisk" -p "$PartNum" ; then
-         echo "Unable to register the optional direct BOOT entry." >&2
-         Problems=1
-         return 1
-      fi
-   fi
-   if [[ "$KeepName" == 0 ]] ; then
-      if ! "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" -p "$PartNum" ; then
-         echo "Unable to create the new BOOT UEFI entry." >&2
-         Problems=1
-         return 1
-      fi
-   else
-      if ! "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" -p "$PartNum" -u "$TargetShim $TargetX64" ; then
-         echo "Unable to create the new BOOT UEFI entry." >&2
+      ExistingEntry=$("$Efibootmgr" -v | grep -iF "$InstallPartGuid" | grep -iF "File($EfiEntryFilename)" | head -n1)
+      BootNum=$(printf "%s\n" "$ExistingEntry" | sed -nE 's/^Boot([[:xdigit:]]{4})\*?.*/\1/p')
+      if [[ -z "$BootNum" ]] ; then
+         echo "Could not identify newly registered BOOT entry." >&2
          Problems=1
          return 1
       fi
    fi
 
-   # Identify the NEW entry from firmware output, not a hardcoded Boot0007.
-   NewBootNum=""
-   while IFS= read -r CurrentEntry ; do
-      if [[ "$CurrentEntry" =~ ^Boot([[:xdigit:]]{4})\*?[[:space:]] ]] ; then
-         Candidate="${BASH_REMATCH[1]^^}"
-         LowerEntry="${CurrentEntry,,}"
-         if [[ -z "${BeforeEntries[$Candidate]:-}" && "$LowerEntry" == *"$WantedFile"* && "$LowerEntry" == *"${InstallPartGuid,,}"* ]] ; then
-            NewBootNum="$Candidate"
-            EntryFound=$((EntryFound + 1))
-         fi
-      fi
-   done < <("$Efibootmgr" -v)
-   if [[ "$EntryFound" != 1 ]] ; then
-      echo "Cannot verify a unique new BOOT NVRAM entry; older entries were left intact." >&2
+   # Every run must activate BOOT and write BootOrder, even if already first.
+   BootNum="${BootNum^^}"
+   if ! "$Efibootmgr" -b "$BootNum" -a ; then
+      echo "Could not activate BOOT UEFI entry." >&2
       Problems=1
       return 1
    fi
-
-   # Only after verifying the replacement, retire old BOOT entries.
-   for OldBootNum in "${OldBootEntries[@]}" ; do
-      if ! "$Efibootmgr" -b "$OldBootNum" -B ; then
-         echo "Could not remove old BOOT entry Boot${OldBootNum}." >&2
-         Problems=1
-         return 1
-      fi
-   done
-
-   # Do not trust -c or the firmware to leave BOOT first. Set it explicitly.
-   BootOrder=$("$Efibootmgr" | sed -n "s/^BootOrder:[[:space:]]*//p" | head -n1)
+   BootOrder=$("$Efibootmgr" | sed -n 's/^BootOrder:[[:space:]]*//p' | head -n1)
    if [[ -z "$BootOrder" ]] ; then
-      echo "Cannot read firmware BootOrder after registering BOOT." >&2
+      echo "Cannot read UEFI BootOrder." >&2
       Problems=1
       return 1
    fi
-   PreferredOrder="$NewBootNum"
-   IFS="," read -r -a OrderEntries <<< "$BootOrder"
+   NewOrder="$BootNum"
+   IFS=, read -r -a OrderEntries <<< "$BootOrder"
    for Candidate in "${OrderEntries[@]}" ; do
       if [[ ! "$Candidate" =~ ^[[:xdigit:]]{4}$ ]] ; then
-         echo "Unexpected firmware BootOrder: $BootOrder" >&2
+         echo "Unexpected UEFI BootOrder: $BootOrder" >&2
          Problems=1
          return 1
       fi
-      if [[ "${Candidate^^}" != "$NewBootNum" ]] ; then
-         PreferredOrder+=",$Candidate"
+      if [[ "${Candidate^^}" != "$BootNum" ]] ; then
+         NewOrder+=",$Candidate"
       fi
    done
-   if ! "$Efibootmgr" -o "$PreferredOrder" ; then
-      echo "Failed to set BOOT as the first firmware boot entry." >&2
+   if ! "$Efibootmgr" -o "$NewOrder" ; then
+      echo "Could not set BOOT first in UEFI BootOrder." >&2
       Problems=1
       return 1
    fi
-   BootOrder=$("$Efibootmgr" | sed -n "s/^BootOrder:[[:space:]]*//p" | head -n1)
-   if [[ "${BootOrder%%,*}" != "$NewBootNum" ]] ; then
-      echo "Firmware did not retain BOOT as its first boot entry." >&2
+   BootOrder=$("$Efibootmgr" | sed -n 's/^BootOrder:[[:space:]]*//p' | head -n1)
+   if [[ "${BootOrder%%,*}" != "$BootNum" ]] ; then
+      echo "Firmware did not retain BOOT as the default." >&2
       Problems=1
       return 1
    fi
-   echo "Registered BOOT as Boot${NewBootNum}; BOOT is first in UEFI BootOrder."
+   echo "BOOT (Boot${BootNum}) explicitly set first in UEFI BootOrder."
 } # AddBootEntry()
+
 # Install a Secure Boot key as a MOK
 InstallSBKey() {
     local UsedDerKey
