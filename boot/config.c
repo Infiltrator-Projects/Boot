@@ -167,6 +167,11 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
  
  
 
+/*
+ * Extracts a logical configuration line from a firmware-visible file.
+ * The returned UTF-16 representation is parser input, not validated syntax;
+ * ownership and end-of-file behaviour must be respected by callers.
+ */
 static CHAR16 *ReadLine(REFIT_FILE *File)
 {
     CHAR16  *Line, *q;
@@ -282,6 +287,11 @@ static BOOLEAN KeepReading(IN OUT CHAR16 *p, IN OUT BOOLEAN *IsQuoted) {
  * Returns a tokenised line according to the parser's quoting rules.
  * Consumers must respect token counts and release the allocated token list.
  */
+/*
+ * Tokenises the next configuration directive while respecting quoting.
+ * Its token vector is dynamically allocated and must be paired with
+ * FreeTokenLine after consumers have copied any retained values.
+ */
 UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
 {
     BOOLEAN         LineFinished, IsQuoted = FALSE;
@@ -328,6 +338,10 @@ UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
     return (TokenCount);
 }  
 
+/*
+ * Releases parser tokens and resets their caller-visible ownership state.
+ * No downstream configuration field may retain borrowed token pointers.
+ */
 VOID FreeTokenLine(IN OUT CHAR16 ***TokenList, IN OUT UINTN *TokenCount)
 {
      
@@ -524,6 +538,12 @@ static VOID SetLinuxMatchPatterns(CHAR16 *Prefixes) {
  * Maps text options into GlobalConfig. dont_scan_files changes visibility;
  * default_selection changes preference, not firmware boot order.
  * use_nvram=false concerns BOOT's variable namespace, not installer NVRAM.
+ */
+/*
+ * Converts text directives into GlobalConfig, thereby defining subsequent
+ * volume discovery, driver directories, UI behaviour and selection rules.
+ * Configuration is external input and should not be conflated with verified
+ * firmware capabilities or authenticated executable content.
  */
 VOID ReadConfig(CHAR16 *FileName)
 {
@@ -1075,6 +1095,11 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
 /*
  * Manual menu stanzas supplement automatic discovery. The presence of a
  * configured path is not evidence that the EFI image will load successfully.
+ */
+/*
+ * Adds explicit, user-configured boot entries alongside automatic discovery.
+ * An explicit path is a launch candidate only: the executable remains
+ * subject to normal EFI file access, image validation and load errors.
  */
 VOID ScanUserConfigured(CHAR16 *FileName)
 {
