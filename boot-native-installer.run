@@ -1216,7 +1216,7 @@ AddBootEntry() {
       return 1
    fi
    EntryFilename="$TargetDir/$Boot"
-   EfiEntryFilename=$(printf "%s" "$EntryFilename" | tr "/" "\\")
+   EfiEntryFilename=$(printf "%s" "$EntryFilename" | tr "/" "\\\\")
    WantedFile="file(${EfiEntryFilename,,})"
 
    # Snapshot exact matching entries. Never remove another OS or disk entry.
