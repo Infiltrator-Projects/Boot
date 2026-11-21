@@ -235,6 +235,11 @@ static EFI_STATUS FinishInitRefitLib(VOID)
     return EFI_SUCCESS;
 }
 
+/*
+ * Establishes the library's own image, device and volume context from the
+ * firmware handle supplied at entry. File/protocol operations elsewhere
+ * require successful initialisation and valid owned handles.
+ */
 EFI_STATUS InitRefitLib(IN EFI_HANDLE ImageHandle)
 {
     EFI_STATUS  Status;
@@ -323,6 +328,11 @@ VOID ReinitVolumes(VOID)
 }  
 
  
+/*
+ * Releases BOOT-managed firmware resources ahead of an external handoff or
+ * reset. The corresponding reinitialisation path is needed if control
+ * returns rather than leaving the application permanently.
+ */
 VOID UninitRefitLib(VOID)
 {
      
@@ -437,6 +447,11 @@ EFI_STATUS CreateVarsDir(VOID) {
  * firmware-owned variables are accessed through Runtime Services.
  * Callers must pass valid output pointers and check returned data length.
  */
+/*
+ * Reads an arbitrary UEFI variable identified by vendor GUID and UTF-16
+ * name. Raw bytes have no intrinsic structure: every caller interpreting
+ * BootOrder or Boot#### must validate length before decoding fields.
+ */
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL) {
     UINT8 *buf = NULL;
     UINTN l;
@@ -493,6 +508,11 @@ EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer
 /*
  * Avoids writing a variable when its value is unchanged. The optional
  * disk-storage preference does not disable firmware Boot#### writes elsewhere.
+ */
+/*
+ * Central persistent/volatile UEFI variable-write boundary. The caller
+ * selects both namespace and bytes; firmware may reject writes for policy,
+ * resource, attribute or authentication reasons, which must propagate.
  */
 EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, BOOLEAN persistent) {
     UINT32      flags;
@@ -1297,6 +1317,11 @@ static VOID ScanExtendedPartition(REFIT_VOLUME *WholeDiskVolume, MBR_PARTITION_I
  * Builds a runtime inventory of volumes exposed by firmware and loaded
  * drivers. Later controller changes may invalidate those discovery assumptions.
  */
+/*
+ * Enumerates presently accessible EFI volumes and their controller context.
+ * The resulting list is a snapshot, not an invariant: external media and
+ * newly bound filesystem drivers can change exposed handles.
+ */
 VOID ScanVolumes(VOID)
 {
     EFI_STATUS              Status;
@@ -1590,6 +1615,11 @@ MetaiMatch (IN CHAR16 *String, IN CHAR16 *Pattern)
 
 #endif
 
+/*
+ * Advances a directory iterator and applies caller-specified filters.
+ * Returned file metadata belongs to the iterator/consumer ownership scheme;
+ * filtering a name must not be mistaken for inspecting executable trust.
+ */
 BOOLEAN DirIterNext(IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR16 *FilePattern OPTIONAL,
                     OUT EFI_FILE_INFO **DirEntry)
 {
