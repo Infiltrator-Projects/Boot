@@ -644,6 +644,15 @@ GuardDefaultBootLocation() {
       echo "Shim installation requires verified ownership of all affected EFI executables." >&2
       return 1
    fi
+   # Refuse writes through links even when an existing loader is correctly
+   # owned. This also protects resources left by a failed earlier install.
+   local resource
+   for resource in icons icons-backup keys drivers_x64 boot.conf boot.conf-sample BOOT.CSV; do
+      if [[ -L "$dir/$resource" ]]; then
+         echo "BOOT resource is a symbolic link: $dir/$resource; refusing replacement." >&2
+         return 1
+      fi
+   done
    if [[ -e "$existing" || -e "$marker" ]] ; then
       if [[ ! -f "$existing" || ! -f "$marker" ]] ; then
          echo "BOOT's target executable has no matching ownership record; refusing replacement." >&2
@@ -660,10 +669,18 @@ GuardDefaultBootLocation() {
            -n "$(find "$dir" -mindepth 1 -print -quit)" ]] ; then
       echo "The shared UEFI fallback directory is already in use; refusing replacement." >&2
       return 1
-   elif [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -d "$dir" &&
-           -n "$(find "$dir" -mindepth 1 -maxdepth 1 ! -name drivers_x64 -print -quit)" ]] ; then
-      echo "BOOT's dedicated directory contains unrecognised files; refusing replacement." >&2
-      return 1
+   elif [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" && -d "$dir" ]] ; then
+      # Firmware-registration rollback can leave BOOT's own configuration,
+      # icons and keys behind even after the executable was safely removed.
+      local unexpected
+      unexpected="$(find "$dir" -mindepth 1 -maxdepth 1 \
+         ! -name drivers_x64 ! -name icons ! -name icons-backup \
+         ! -name keys ! -name boot.conf ! -name boot.conf-sample \
+         ! -name BOOT.CSV -print -quit)" || return 1
+      if [[ -n "$unexpected" ]]; then
+         echo "BOOT's dedicated directory contains unrecognised files: $unexpected; refusing replacement." >&2
+         return 1
+      fi
    fi
 }
 

@@ -39,6 +39,31 @@ test "$(sha256sum "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" | cut -d ' ' 
 GuardDefaultBootLocation || exit 1
 rm -f "$marker"
 if GuardDefaultBootLocation; then echo "Accepted unowned loader" >&2; exit 1; fi
+# Reproduce v0.1.98 rollback residue: resources remain after BOOTX64.EFI
+# and its ownership record have been removed.
+rm -f "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI"
+printf 'BOOT CSV' > "$InstallDir/EFI/InfiltratorOS/BOOT/BOOT.CSV"
+printf 'sample' > "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf-sample"
+mkdir -p "$InstallDir/EFI/InfiltratorOS/BOOT/icons-backup"
+if ! GuardDefaultBootLocation; then
+    echo "Rejected BOOT resources after a previous rollback" >&2
+    exit 1
+fi
+printf 'unknown' > "$InstallDir/EFI/InfiltratorOS/BOOT/unknown.efi"
+if GuardDefaultBootLocation; then
+    echo "Accepted an unknown EFI executable" >&2
+    exit 1
+fi
+rm -f "$InstallDir/EFI/InfiltratorOS/BOOT/unknown.efi"
+mv "$InstallDir/EFI/InfiltratorOS/BOOT/icons" "$work/preserved-icons"
+ln -s "$work/preserved-icons" "$InstallDir/EFI/InfiltratorOS/BOOT/icons"
+if GuardDefaultBootLocation; then
+    echo "Accepted symlinked BOOT icons" >&2
+    exit 1
+fi
+rm -f "$InstallDir/EFI/InfiltratorOS/BOOT/icons"
+mv "$work/preserved-icons" "$InstallDir/EFI/InfiltratorOS/BOOT/icons"
+GuardDefaultBootLocation || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
 test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1

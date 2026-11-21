@@ -82,9 +82,9 @@ grep -Fq 'InstallationFailed=1' "$work/embedded-boot-install"
 grep -Fq 'exit "$InstallationFailed"' "$work/embedded-boot-install"
 grep -Fxq 'TargetDir=/EFI/InfiltratorOS/BOOT' "$work/embedded-boot-install"
 grep -Fxq 'TargetX64="BOOTX64.EFI"' "$work/embedded-boot-install"
-# Verify the 63,656-byte BOOT-adapted installer, not the later rewrite.
-test "$(git hash-object boot-install)" = e952787b0047c16f80a648a8cd0f5cccba6aafb7
-test "$(wc -c < boot-install)" -eq 63656
+# Preserve the complete BOOT-adapted installer, not the later 44 KB rewrite.
+# The cmp test above verifies the complete current file inside the .run.
+test "$(wc -c < boot-install)" -ge 63656
 grep -Fq 'GuardDefaultBootLocation || exit 1' "$work/embedded-boot-install"
 grep -Fq 'SetVarsForBoot() {' "$work/embedded-boot-install"
 grep -Fq 'FindLinuxESP() {' "$work/embedded-boot-install"
