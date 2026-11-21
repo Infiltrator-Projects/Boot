@@ -42,6 +42,10 @@ GPT_DATA *gPartitions = NULL;
  
  
  
+/*
+ * Allocates zero-initialised GPT bookkeeping. Ownership transfers to the
+ * caller until ClearGptData releases the table and its subordinate buffers.
+ */
 GPT_DATA * AllocateGptData(VOID) {
     GPT_DATA *GptData;
 
@@ -81,6 +85,11 @@ VOID ClearGptData(GPT_DATA *Data) {
  * Requires a protective MBR and recognised GPT header fields, then checks
  * the header CRC with its checksum field set to zero for the calculation.
  * A valid header does not alone establish valid partition entries.
+ */
+/*
+ * Checks the partition-table header before its offsets or lengths influence
+ * later block reads. A CRC is an accidental-corruption check, not an origin
+ * authentication mechanism; the partition array requires separate checking.
  */
 static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
     BOOLEAN IsValid;
@@ -129,6 +138,11 @@ static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
 /*
  * Reads via EFI Block I/O, checks header metadata and separately verifies
  * the partition-entry CRC. Size arithmetic is part of the trust boundary.
+ */
+/*
+ * Reads partition metadata from the selected disk through EFI Block I/O.
+ * All on-disk sector counts, byte offsets and array dimensions are untrusted
+ * until validated against the medium and expected GPT structure layout.
  */
 EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     EFI_STATUS Status = EFI_SUCCESS;
