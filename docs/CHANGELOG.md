@@ -2,6 +2,12 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — UTF-16 substitution and GUID parser correction
+
+- Replaced the unsafe `ReplaceSubstring` pointer-to-pointer pool free with one bounded, transactional UTF-16 allocation, preserving its escaped-token semantics and the original string on failure.
+- Repaired the impossible decimal-digit rejection condition in `IsGuid`, so nonhex characters no longer pass syntax validation.
+- Recorded the need for firmware-hosted malformed-input and allocation-failure regression tests; C source inspection is not equivalent to executing those tests.
+
 ## 2026-11-22 — Post-audit accuracy and hosted test maintenance
 
 - Updated installation and firmware-safety documentation to reflect replacement of BOOT's dedicated directory without prior ownership markers.

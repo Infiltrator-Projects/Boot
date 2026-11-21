@@ -343,39 +343,68 @@ BOOLEAN IsInSubstring(IN CHAR16 *BigString, IN CHAR16 *List) {
 }  
 
 /**
- * Only the first match is considered. A preceding percent sign removes that
- * escape and emits the search text itself, so %%v leaves a literal %v. The
- * replacement branch passes MainString to MyFreePool. That is the address of the
- * caller's pointer, while the original pool allocation is *MainString.
+ * Replace only the first nonempty SearchString occurrence. A percent sign
+ * immediately preceding that occurrence escapes the substitution: remove the
+ * escape and insert SearchString literally instead of ReplString. A successful
+ * call replaces the caller-owned pool allocation; a failed match, invalid
+ * argument or allocation failure leaves the caller's string untouched.
+ *
+ * Allocate exactly once after checking the UTF-16 code-unit arithmetic. The
+ * original cannot be modified or released until the complete replacement has
+ * been assembled. This matters for kernel command lines and loader options:
+ * both can contain user-supplied percent tokens and arbitrary suffixes.
  */
 BOOLEAN ReplaceSubstring(IN OUT CHAR16 **MainString, IN CHAR16 *SearchString, IN CHAR16 *ReplString) {
-    BOOLEAN WasReplaced = FALSE;
-    CHAR16 *FoundSearchString = NULL, *NewString, *EndString;
+    CHAR16 *Match, *NewString, *Tail, *Replacement;
+    UINTN SearchLength, PrefixLength, ReplacementLength, TailLength;
+    UINTN MaxChars, ResultLength;
 
-    if (MainString) {
-        if (MainString[0]) {
-            FoundSearchString = MyStrStr(*MainString, SearchString);
-        }
+    if (MainString == NULL || *MainString == NULL || SearchString == NULL || ReplString == NULL)
+        return FALSE;
+
+    SearchLength = StrLen(SearchString);
+    if (SearchLength == 0)
+        return FALSE;
+
+    Match = MyStrStr(*MainString, SearchString);
+    if (Match == NULL)
+        return FALSE;
+
+    PrefixLength = (UINTN)(Match - *MainString);
+    Replacement = ReplString;
+    if (PrefixLength > 0 && Match[-1] == L'%') {
+        --PrefixLength;
+        Replacement = SearchString;
     }
-    if (FoundSearchString) {
-        NewString = AllocateZeroPool(sizeof(CHAR16) * StrLen(*MainString));
-        if (NewString) {
-            EndString = &(FoundSearchString[StrLen(SearchString)]);
-            FoundSearchString[0] = L'\0';
-            if ((FoundSearchString > *MainString) && (FoundSearchString[-1] == L'%')) {
-                FoundSearchString[-1] = L'\0';
-                ReplString = SearchString;
-            }  
-            StrCpy(NewString, *MainString);
-            MergeStrings(&NewString, ReplString, L'\0');
-            MergeStrings(&NewString, EndString, L'\0');
-            MyFreePool(MainString);
-            *MainString = NewString;
-            WasReplaced = TRUE;
-        }  
-    }  
-    return WasReplaced;
-}  
+
+    Tail = Match + SearchLength;
+    ReplacementLength = StrLen(Replacement);
+    TailLength = StrLen(Tail);
+
+    /*
+     * ResultLength includes the terminal CHAR16. Reject size_t overflow before
+     * multiplying by sizeof(CHAR16), not after an untrusted length wraps.
+     */
+    MaxChars = ((UINTN)-1) / sizeof(CHAR16);
+    if (PrefixLength >= MaxChars ||
+        ReplacementLength > MaxChars - 1 - PrefixLength ||
+        TailLength > MaxChars - 1 - PrefixLength - ReplacementLength)
+        return FALSE;
+
+    ResultLength = PrefixLength + ReplacementLength + TailLength + 1;
+    NewString = AllocatePool(ResultLength * sizeof(CHAR16));
+    if (NewString == NULL)
+        return FALSE;
+
+    CopyMem(NewString, *MainString, PrefixLength * sizeof(CHAR16));
+    CopyMem(NewString + PrefixLength, Replacement, ReplacementLength * sizeof(CHAR16));
+    CopyMem(NewString + PrefixLength + ReplacementLength, Tail, TailLength * sizeof(CHAR16));
+    NewString[ResultLength - 1] = L'\0';
+
+    MyFreePool(*MainString);
+    *MainString = NewString;
+    return TRUE;
+}
 
 BOOLEAN IsValidHex(CHAR16 *Input) {
     BOOLEAN IsHex = TRUE;
@@ -425,9 +454,10 @@ UINT64 StrToHex(CHAR16 *Input, UINTN Pos, UINTN NumChars) {
 }  
 
 /*
- * Recognises a textual GUID representation before conversion or matching.
- * Syntactic acceptance is not proof that the GUID identifies an installed
- * partition, device, image or expected firmware protocol.
+ * Accept exactly eight-four-four-four-twelve hexadecimal digits separated
+ * by hyphens. Every non-separator position must be in [0-9A-Fa-f]; the three
+ * disjoint range checks must each use OR for the out-of-range condition.
+ * This validates syntax, not the existence of a partition or EFI protocol.
  */
 BOOLEAN IsGuid(CHAR16 *UnknownString) {
     UINTN   Length, i;
@@ -448,7 +478,7 @@ BOOLEAN IsGuid(CHAR16 *UnknownString) {
                 retval = FALSE;
         } else if (((a < L'a') || (a > L'f')) &&
                    ((a < L'A') || (a > L'F')) &&
-                   ((a < L'0') && (a > L'9'))) {
+                   ((a < L'0') || (a > L'9'))) {
             retval = FALSE;
         }  
     }  
