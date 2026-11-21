@@ -342,6 +342,11 @@ BdsFindLegacyBootOptionByDevTypeAndName (
 
 
 EFI_STATUS
+/*
+ * Constructs a legacy boot option from BBS state and its device path.
+ * The output participates in firmware boot-order bookkeeping; a created
+ * descriptor does not certify that a BIOS compatibility handoff will work.
+ */
 BdsCreateLegacyBootOption (
   IN BBS_TABLE                        *CurrentBbsEntry,
   IN EFI_DEVICE_PATH_PROTOCOL         *CurrentBbsDevPath,
@@ -851,6 +856,11 @@ BdsAddNonExistingLegacyBootOptions (
 
 
 EFI_STATUS
+/*
+ * Removes a selected firmware boot option from the managed order data.
+ * This concerns persistent boot configuration, not the display-only
+ * hiding of a menu entry; callers must propagate firmware write failures.
+ */
 BdsDeleteBootOption (
   IN UINTN                       OptionNumber,
   IN OUT UINT16                  *BootOrder,
