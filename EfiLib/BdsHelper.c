@@ -129,6 +129,11 @@ VOID UpdateBbsTable (BDS_COMMON_OPTION *Option) {
 
 
 EFI_STATUS
+/*
+ * Dispatches a selected legacy boot option through the firmware legacy
+ * BIOS protocol. Success depends on platform CSM support and selected
+ * boot-option state, not on the native EFI LoadImage implementation.
+ */
 BdsLibDoLegacyBoot (
   IN  BDS_COMMON_OPTION           *Option
   )
