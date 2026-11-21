@@ -15,6 +15,8 @@ cat <<'HEAD'
 typedef size_t UINTN;
 typedef ptrdiff_t INTN;
 typedef uint8_t UINT8;
+typedef void VOID;
+#define IN
 #define CompareMem memcmp
 typedef int fsw_status_t;
 #define FSW_SUCCESS 0
