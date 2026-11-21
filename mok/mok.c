@@ -90,6 +90,11 @@ BOOLEAN secure_mode (VOID)
  * Checks whether a compatible shim validation interface is available.
  * This is not equivalent to verifying a specific child EFI image.
  */
+/*
+ * Queries the firmware protocol database for shim's lock interface.
+ * Presence permits an attempt at validation but does not establish that
+ * any particular EFI image is trusted or executable.
+ */
 BOOLEAN ShimLoaded(void) {
    SHIM_LOCK   *shim_lock;
    EFI_GUID    ShimLockGuid = SHIM_LOCK_GUID;
@@ -103,6 +108,11 @@ BOOLEAN ShimLoaded(void) {
 /*
  * Requests signature validation through the shim interface for supplied
  * bytes. Caller must respect status, actual buffer size and trust policy.
+ */
+/*
+ * Invokes shim's validation operation for an explicit byte buffer.
+ * Buffer length, protocol availability and the returned validation result
+ * are all necessary; menu selection alone cannot satisfy this contract.
  */
 BOOLEAN ShimValidate (VOID *data, UINT32 size)
 {
