@@ -293,6 +293,12 @@ VOID FreeTokenLine(IN OUT CHAR16 ***TokenList, IN OUT UINTN *TokenCount)
     FreeList((VOID ***)TokenList, TokenCount);
 }
 
+/*
+ * Read exactly one numeric argument into UINTN. The text -1 becomes an
+ * all-ones sentinel; other values pass through Atoi without a
+ * field-specific range check. If the token count is not two, the prior
+ * destination value is unchanged.
+ */
 static VOID HandleInt(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT UINTN *Value)
 {
     if (TokenCount == 2) {
@@ -303,6 +309,12 @@ static VOID HandleInt(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT UINTN *Val
     }
 }
 
+/*
+ * Replace an owned configuration string with a duplicate of the second
+ * token. The previous allocation is freed before StrDuplicate succeeds; a
+ * pool-allocation failure can therefore leave Target null. The parser token
+ * can be released after the copy.
+ */
 static VOID HandleString(IN CHAR16 **TokenList, IN UINTN TokenCount, OUT CHAR16 **Target) {
     if ((TokenCount == 2) && Target) {
         MyFreePool(*Target);

@@ -222,6 +222,13 @@ typedef struct {
  * uses one stored payload byte irrespective of its expanded byte count, which is
  * retained in origSize.
  */
+/*
+ * Classify a Zstandard block header and its declared compressed size. RLE
+ * has one compressed value and a separate regenerated length, unlike raw or
+ * compressed blocks. The caller must compare header-derived sizes with
+ * remaining input before advancing; parsing does not prove filesystem
+ * metadata authenticity.
+ */
 size_t ZSTD_getcBlockSize(const void *src, size_t srcSize, blockProperties_t *bpPtr)
 {
 	if (srcSize < ZSTD_blockHeaderSize)

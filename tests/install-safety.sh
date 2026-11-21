@@ -35,6 +35,10 @@ printf 'original-native-binary' > "$BootDir/boot_x64.efi"
 printf 'showtools about\n' > "$ConfFile"
 printf 'icon' > "$IconsDir/test.png"
 
+# This fixture calls CopyBootFiles and GuardDefaultBootLocation separately.
+# It does not seed an unowned previous BOOT directory and exercise a complete
+# InstallOnLinux refusal before any deletion. The delete-before-guard defect
+# therefore remains outside the assertions of this passing fixture.
 set +e +u
 set +o pipefail
 GuardDefaultBootLocation || exit 1

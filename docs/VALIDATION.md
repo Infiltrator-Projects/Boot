@@ -88,6 +88,7 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 | EFI directory buffer negotiation | `filesystems/fsw_efi.c` documents cursor advancement | An `EFI_BUFFER_TOO_SMALL` retry must return the same entry instead of skipping one |
 | EXT4 dirty filesystem | RECOVER is accepted by the current feature mask | Explicit tests of recovery-required images, plus a declared refusal or a validated read-only consistency policy |
 | OS menu and direct Linux boot | `tests/ovmf-smoke.sh` observes driver loading and main-menu entry | Multi-volume discovery, duplicate suppression, direct kernel/initrd arguments and successful OS userspace on actual hardware |
+| Controller reconnect topology | `boot/driver_support.c` enumerates firmware handles | Synthetic handle databases with global and per-query counts that differ, proving classification indexing cannot exceed its allocation |
 | Common V2 filesystem ABI | No end-to-end BOOT V2 module validation in this revision | Exact V2 ABI conformance, shared implementation, freestanding build, authentication, load and representative read-path tests |
 
 ### Reproducible checks and their limits

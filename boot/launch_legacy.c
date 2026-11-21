@@ -400,6 +400,13 @@ VOID StartLegacy(IN LEGACY_ENTRY *Entry, IN CHAR16 *SelectionName)
 #endif
 }  
 
+/*
+ * Dispatch an x86 firmware BDS legacy option rather than a normal EFI file.
+ * The BOOT library closes handles before the firmware-mediated legacy call
+ * and reopens them only if control returns. The return path reports
+ * unsuccessful legacy handoff; it does not attest to an operating system
+ * boot.
+ */
 VOID StartLegacyUEFI(LEGACY_ENTRY *Entry, CHAR16 *SelectionName)
 {
 #if defined(EFI32) || defined(EFIX64)

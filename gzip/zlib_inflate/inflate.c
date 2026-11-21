@@ -214,9 +214,11 @@ static int zlib_inflateSyncPacket(z_streamp strm)
     } while (0)
 
 /*
- * Runs the DEFLATE state machine until output, input or a stream boundary
- * requires a return. Callers must distinguish a completed stream from
- * needing more input/output space or encountering corrupt data.
+ * The DEFLATE state machine retains its bit accumulator, sliding history and
+ * partially decoded match state across calls. It may stop on input exhaustion,
+ * output exhaustion, malformed Huffman data or successful stream completion.
+ * Only Z_STREAM_END establishes completed output; Z_OK/Z_BUF_ERROR must not
+ * be accepted as a fully decompressed EFI image by the firmware caller.
  */
 int zlib_inflate(z_streamp strm, int flush)
 {

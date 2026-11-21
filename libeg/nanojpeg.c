@@ -508,6 +508,13 @@ static int njGetVLC(nj_vlc_code_t* vlc, unsigned char* code) {
     return value;
 }
 
+/*
+ * Decode one JPEG block from Huffman-coded coefficients through
+ * dequantisation and inverse transform. The component's DC predictor
+ * persists across blocks, and coefficient order follows the JPEG zigzag
+ * mapping. Valid input bounds and tables depend on the enclosing marker
+ * parser; a decoded block is not file authentication.
+ */
 NJ_INLINE void njDecodeBlock(nj_component_t* c, unsigned char* out) {
     unsigned char code = 0;
     int value, coef = 0;

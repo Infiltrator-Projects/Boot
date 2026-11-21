@@ -273,6 +273,14 @@ Error:
 
 #ifdef __MAKEWITH_GNUEFI
 
+/*
+ * Enumerate firmware handles and connect device controllers that lack
+ * discovered parents. KNOWN REVIEW POINT: Index belongs to the outer
+ * AllHandleBuffer traversal but HandleType comes from LibScanHandleDatabase
+ * for one selected handle. Their indices and counts are not shown to
+ * coincide; HandleType[Index] needs range and correspondence validation.
+ * Connecting controllers can also mutate the handle database.
+ */
 EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 {
     EFI_STATUS           Status;

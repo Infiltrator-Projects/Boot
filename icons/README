@@ -171,8 +171,8 @@ sources:
 tool_part.png -- vol_internal.png with AwOken's gparted2.png
 tool_windows_rescue.png: os_win8.png with AwOken's gnome_network_preferences.png
 
-Licneses
---------
+Licence references
+------------------
 
 The historical icons catalogue referred to a "licenses" subdirectory. That subdirectory is not present in the current BOOT tree. The identifiers and external references below are provenance information, not a claim that bundled licence copies remain:
 
