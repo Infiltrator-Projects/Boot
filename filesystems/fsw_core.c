@@ -71,6 +71,13 @@ static void fsw_blockcache_free(struct fsw_volume *vol);
  * Creates a filesystem volume by invoking the selected backend's mount
  * callback. Unsupported on-disk features must not be treated as an empty disk.
  */
+/*
+ * Allocates the filesystem-specific volume object and installs two distinct
+ * dispatch tables: the host owns block I/O and allocation services, while
+ * the filesystem backend owns mount, inode and directory interpretation.
+ * The returned volume is usable only after volume_mount succeeds; the
+ * corresponding fsw_unmount owns its eventual teardown.
+ */
 fsw_status_t fsw_mount(void *host_data,
                        struct fsw_host_table *host_table,
                        struct fsw_fstype_table *fstype_table,
@@ -192,6 +199,12 @@ void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 l
  * Caches physical blocks using cache levels and reference counts. An in-use
  * entry is not evictable; a failed read must not publish the block number as
  * valid cached data. Caller must eventually release a successful acquisition.
+ */
+/*
+ * Looks up a physical block by number in the shared cache, incrementing
+ * the reference count on a hit. A cache entry must not be reclaimed while
+ * a consumer holds the buffer; fsw_block_release is the matching operation.
+ * Cache priority is bounded by MAX_CACHE_LEVEL, not an access-control level.
  */
 fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 cache_level, void **buffer_out)
 {
@@ -568,6 +581,12 @@ fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
 /*
  * Walks a filesystem path across backend dnodes and potentially links.
  * Each intermediate dnode's lifetime and link resolution status matter.
+ */
+/*
+ * Resolves a delimited path component by component through backend dnode
+ * lookup, retaining intermediate references while it walks the tree.
+ * A successful string split is not equivalent to a valid directory entry;
+ * error paths must balance every retained dnode reference.
  */
 fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
                                    struct fsw_string *lookup_path, char separator,
