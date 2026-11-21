@@ -165,6 +165,12 @@ struct fsw_ntfs_dnode
     fsw_u8 *cbuf;		 
 };
 
+/*
+ * Applies the NTFS update-sequence-array fixup to a multi-sector record.
+ * The per-sector trailers must match the sequence value before replacement;
+ * the record, offset and sector-count fields are disk-controlled and must
+ * be bounded before the function dereferences the corresponding positions.
+ */
 static fsw_status_t fixup(fsw_u8 *record, char *magic, int sectorsize, int size)
 {
     int off, cnt, i;
@@ -260,6 +266,12 @@ static fsw_status_t find_attrlist_direct(fsw_u8 *atlst, int atlen, int type, fsw
     return FSW_NOT_FOUND;
 }
 
+/*
+ * Decodes a variable-length NTFS runlist descriptor, producing logical
+ * length and location information for a file attribute. Relative LCN
+ * deltas and sparse runs are distinct cases, and truncated runlists must
+ * never advance the input pointer beyond its remaining byte count.
+ */
 static fsw_status_t get_extent(fsw_u8 **rlep, int *rlenp, fsw_u64 *lcnp, fsw_u64 *lenp, fsw_u64 *pos)
 {
     fsw_u8 *rle = *rlep;
@@ -651,6 +663,12 @@ static int tobits(fsw_u32 val)
 /*
  * Interprets the boot sector and metadata needed to access NTFS records.
  * Code presence alone does not establish qualification of the NTFS EFI driver.
+ */
+/*
+ * Reads NTFS boot-sector geometry and locates the Master File Table.
+ * Bytes-per-sector and cluster-size power-of-two checks constrain later
+ * shifts and offsets, but an NTFS OEM signature is not by itself sufficient
+ * to establish a readable, internally consistent volume.
  */
 static fsw_status_t fsw_ntfs_volume_mount(struct fsw_volume *volg)
 {
