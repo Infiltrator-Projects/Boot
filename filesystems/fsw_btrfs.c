@@ -1634,6 +1634,7 @@ static fsw_status_t fsw_btrfs_get_extent(struct fsw_volume *volg, struct fsw_dno
     uint64_t tree = dnog->tree_id;
     uint64_t pos0 = extent->log_start << vol->sectorshift;
     extent->type = FSW_EXTENT_TYPE_INVALID;
+    extent->buffer = NULL;
     extent->log_count = 1;
     uint64_t pos = pos0;
     fsw_size_t csize;
@@ -1795,17 +1796,13 @@ static fsw_status_t fsw_btrfs_get_extent(struct fsw_volume *volg, struct fsw_dno
 			tmp, zsize,
 			extoff + fsw_u64_le_swap (vol->extent->offset),
 			buf, csize);
-                /*
-                 * tmp owns the compressed input and buf owns the decoded
-                 * output. The unconditional free consumes tmp here. The
-                 * short-decode branch below frees tmp again and leaves buf
-                 * allocated.
-                 */
+                /* The decoder borrows both buffers. Only a complete output
+                 * transfers to extent->buffer at the end of this function. */
                 FreePool (tmp);
 
                 if (ret != (fsw_ssize_t) csize) {
-                    FreePool(tmp);
-                    return -FSW_VOLUME_CORRUPTED;
+                    FreePool(buf);
+                    return FSW_VOLUME_CORRUPTED;
                 }
 
                 break;

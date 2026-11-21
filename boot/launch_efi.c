@@ -198,10 +198,8 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
 
  
 /*
- * Load native images by device path. For gzip, allocate an output buffer and
- * pass its address to LoadImage. The SourceSize argument on that path comes
- * from gunzip's compressed-input position, which can differ from the decoded
- * image length.
+ * Load native images by device path. For gzip, LoadImage receives a memory
+ * buffer and the exact number of bytes the decoder wrote to it.
  */
 EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR16 *Filename,
@@ -219,10 +217,9 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     CHAR16                  *FullLoadOptions = NULL;
     CHAR16                  *EspGUID;
     UINT8                   *gzData = NULL, *ImageData = NULL;
-    UINTN                   gzSize, ImageSize;
+    UINTN                   gzSize, ImageCapacity, DecodedSize;
     UINTN                   LoaderType;
     int                     gzStatus;
-    long                    ReadSize = 0;
     EFI_GUID                SystemdGuid = SYSTEMD_GUID_VALUE;
 
      
@@ -275,26 +272,20 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                     LOG(1, LOG_LINE_NORMAL, L"Gzip EFI image is too large");
                     ReturnStatus = Status = EFI_OUT_OF_RESOURCES;
                 } else {
-                    ImageSize = gzSize * 10;
-                    ImageData = AllocateZeroPool(ImageSize);
+                    ImageCapacity = gzSize * 10;
+                    ImageData = AllocateZeroPool(ImageCapacity);
                     if (!ImageData) {
                         ReturnStatus = Status = EFI_OUT_OF_RESOURCES;
                     } else {
                         gzStatus = gunzip(gzData, gzSize, NULL, NULL,
-                                         ImageData, ImageSize, &ReadSize);
-                        LOG(1, LOG_LINE_NORMAL, L"gunzip returned '%d'; ReadSize of '%ld'",
-                            gzStatus, ReadSize);
-                        /*
-                         * ReadSize is gunzip's input cursor plus its trailer
-                         * allowance. Testing it against the output capacity
-                         * limits the length passed to firmware but does not
-                         * establish how many bytes inflate produced.
-                         */
-                        if (gzStatus == 0 && ReadSize > 0 &&
-                            (UINTN)ReadSize <= ImageSize) {
+                                         ImageData, ImageCapacity, &DecodedSize);
+                        LOG(1, LOG_LINE_NORMAL, L"gunzip status %d, decoded %lu bytes",
+                            gzStatus, (UINT64)DecodedSize);
+                        if (gzStatus == 0 && DecodedSize > 0 &&
+                            DecodedSize <= ImageCapacity) {
                             ReturnStatus = Status = refit_call6_wrapper(
                                 BS->LoadImage, FALSE, SelfImageHandle,
-                                DevicePath, ImageData, (UINTN)ReadSize,
+                                DevicePath, ImageData, DecodedSize,
                                 &ChildImageHandle);
                         } else {
                             LOG(1, LOG_LINE_NORMAL, L"Invalid gzip EFI image size or content");

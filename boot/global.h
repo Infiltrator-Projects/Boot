@@ -444,15 +444,15 @@ LOADER_ENTRY * MakeGenericLoaderEntry(VOID);
 VOID StoreLoaderName(IN CHAR16 *Name);
 VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect);
 /*
- * gunzip writes decoded bytes to out_buf or a flush callback. In the
- * in-memory input case, pos follows the compressed input cursor plus eight
- * trailer bytes. It cannot be used to size the expanded image.
+ * gunzip writes to out_buf or a flush callback. On success, decoded_size
+ * receives the total number of output bytes. On failure it receives zero.
+ * Callers that do not need the byte count may pass NULL.
  */
 int gunzip(unsigned char *buf, long len,
            long (*fill)(void*, unsigned long),
            long (*flush)(void*, unsigned long),
            unsigned char *out_buf, long out_len,
-           long *pos);
+           UINTN *decoded_size);
 
 #endif
 

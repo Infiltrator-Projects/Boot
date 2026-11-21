@@ -41,11 +41,13 @@ int gunzip(unsigned char *buf, long len,
                long (*fill)(void*, unsigned long),
                long (*flush)(void*, unsigned long),
                unsigned char *out_buf, long out_len,
-               long *pos) {
+               UINTN *decoded_size) {
     u8 *zbuf;
     struct z_stream_s *strm;
     int rc;
 
+    if (decoded_size)
+        *decoded_size = 0;
     rc = -1;
     if (flush) {
         out_len = 0x8000;  
@@ -97,8 +99,6 @@ int gunzip(unsigned char *buf, long len,
      
     if (len < 10 ||
        zbuf[0] != 0x1f || zbuf[1] != 0x8b || zbuf[2] != 0x08) {
-        if (pos)
-            *pos = 0;
         LOG(1, LOG_LINE_NORMAL, L"Not a gzip file");
         goto gunzip_5;
     }
@@ -170,6 +170,10 @@ int gunzip(unsigned char *buf, long len,
 
          
         if (rc == Z_STREAM_END) {
+            /* total_out counts decoded bytes across all flushes. Only a
+             * complete stream may supply a length to the image loader. */
+            if (decoded_size)
+                *decoded_size = strm->total_out;
             rc = 0;
             break;
         } else if (rc != Z_OK) {
@@ -179,15 +183,6 @@ int gunzip(unsigned char *buf, long len,
     }
 
     zlib_inflateEnd(strm);
-    /*
-     * For a single input buffer this is the position just after the
-     * compressed member, allowing eight bytes for its trailer. It comes from
-     * next_in. The number of decoded bytes would have to come from the output
-     * side of the stream.
-     */
-    if (pos)
-         
-        *pos = strm->next_in - zbuf+8;
 
 gunzip_5:
     free(strm->workspace);
