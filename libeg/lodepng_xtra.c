@@ -74,6 +74,11 @@ void* lodepng_realloc(void *ptr, size_t new_size) {
 
    new_pool = lodepng_malloc(new_size);
    if (new_pool && ptr) {
+      /*
+       * The shim prefixes each pool allocation with its byte length. Copy at
+       * most the smaller payload into the new block. This implementation
+       * returns the replacement without freeing ptr.
+       */
       old_size = report_size(ptr);
       MyCopyMem(new_pool, ptr, (old_size < new_size) ? old_size : new_size);
    }
@@ -136,6 +141,11 @@ EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
       return NULL;
    }
 
+   /*
+    * The decoder was asked for eight-bit RGBA, while EG_PIXEL stores colour
+    * components in BGR order. Assign the named fields explicitly and retain
+    * source alpha only for an alpha-bearing surface.
+    */
    LodeData = (lode_color *) PixelData;
 
     

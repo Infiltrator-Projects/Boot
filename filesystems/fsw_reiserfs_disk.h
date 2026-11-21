@@ -223,9 +223,11 @@ struct unfm_nodeinfo {
 	unp_t unfm_nodenum;
 	unsigned short unfm_freespace;
 };
-
- 
-
+/*
+ * The key version determines how the item offset and type are encoded.
+ * Old-format keys carry a separate uniqueness value. The newer on-disk format
+ * packs the type into the high bits of the offset word.
+ */
 #define KEY_FORMAT_3_5 0
 #define KEY_FORMAT_3_6 1
 

@@ -443,14 +443,10 @@ EFI_STATUS CreateVarsDir(VOID) {
  
  
 /*
- * BOOT's own variables can be stored on disk when use_nvram=false;
- * firmware-owned variables are accessed through Runtime Services.
- * Callers must pass valid output pointers and check returned data length.
- */
-/*
- * Reads an arbitrary UEFI variable identified by vendor GUID and UTF-16
- * name. Raw bytes have no intrinsic structure: every caller interpreting
- * BootOrder or Boot#### must validate length before decoding fields.
+ * use_nvram=false redirects only BOOT's GUID to its variable directory.
+ * Failure to open that directory switches the read to firmware. On success
+ * the caller owns the returned buffer. Although size is declared optional,
+ * the error path writes through it.
  */
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL) {
     UINT8 *buf = NULL;
@@ -506,13 +502,10 @@ EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer
  
  
 /*
- * Avoids writing a variable when its value is unchanged. The optional
- * disk-storage preference does not disable firmware Boot#### writes elsewhere.
- */
-/*
- * Central persistent/volatile UEFI variable-write boundary. The caller
- * selects both namespace and bytes; firmware may reject writes for policy,
- * resource, attribute or authentication reasons, which must propagate.
+ * Read the previous value before writing. Equal lengths and equal bytes
+ * suppress the write. For firmware storage, persistent adds the nonvolatile
+ * attribute to the boot-service and runtime attributes. BOOT's private
+ * file-backed variables use the same byte comparison.
  */
 EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, BOOLEAN persistent) {
     UINT32      flags;
@@ -1314,13 +1307,10 @@ static VOID ScanExtendedPartition(REFIT_VOLUME *WholeDiskVolume, MBR_PARTITION_I
  
  
 /*
- * Builds a runtime inventory of volumes exposed by firmware and loaded
- * drivers. Later controller changes may invalidate those discovery assumptions.
- */
-/*
- * Enumerates presently accessible EFI volumes and their controller context.
- * The resulting list is a snapshot, not an invariant: external media and
- * newly bound filesystem drivers can change exposed handles.
+ * Build the volume list from firmware Block I/O handles, then relate
+ * partition handles back to whole disks. The later MBR matching compares
+ * sector contents as well as partition size. A handle's position in the
+ * firmware list is insufficient to identify its partition.
  */
 VOID ScanVolumes(VOID)
 {
@@ -1513,7 +1503,12 @@ EFI_STATUS DirNextEntry(IN EFI_FILE_PROTOCOL *Directory, IN OUT EFI_FILE_INFO **
            *DirEntry = NULL;
         }
 
-         
+        /*
+         * EFI_FILE_INFO includes a variable-length filename. On
+         * EFI_BUFFER_TOO_SMALL retry with the reported size, doubling when
+         * the driver reports no growth. Each new directory read also releases
+         * the previous entry buffer.
+         */
         LastBufferSize = BufferSize = 256;
         Buffer = AllocatePool(BufferSize);
         for (IterCount = 0; ; IterCount++) {

@@ -106,10 +106,11 @@ struct fsw_hfs_dnode
   fsw_u32                   mtime;
   fsw_u64                   used_bytes;
 };
-
- 
-
-
+/*
+ * A tree has its own file, root node number and node size. Resolving a node
+ * first maps its offset within that file through the data fork's allocation
+ * extents. A node number alone is not a disk block address.
+ */
 struct fsw_hfs_btree
 {
     fsw_u32                  root_node;

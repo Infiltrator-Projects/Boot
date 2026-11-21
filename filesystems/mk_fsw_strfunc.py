@@ -69,7 +69,10 @@ if ((VARC & 0xe0) == 0xc0) {
 combos = ( ('ISO88591', 'UTF8'), ('ISO88591', 'UTF16'), ('ISO88591', 'UTF16_SWAPPED'),
            ('UTF8', 'UTF16'), ('UTF8', 'UTF16_SWAPPED'),
            ('UTF16', 'UTF16_SWAPPED') )
-
+# Comparison only needs one representative of each distinct encoding pair.
+# Conversion is directional. The generator builds a source set for each
+# destination encoding so the emitted functions can size and write that
+# representation.
 coerce_combos = {}
 for combo in combos:
     coerce_combos.setdefault(combo[0], []).append(combo[1])

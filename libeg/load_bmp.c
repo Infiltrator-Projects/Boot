@@ -107,8 +107,12 @@ EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
     if (BmpHeader->BitPerPixel != 1 && BmpHeader->BitPerPixel != 4 &&
         BmpHeader->BitPerPixel != 8 && BmpHeader->BitPerPixel != 24)
         return NULL;
-
-     
+    /*
+     * Convert pixels to packed row bytes for the selected depth, then round
+     * up to a four-byte BMP row boundary. Padding affects the source stride
+     * and file-length check. The destination stores one full EG_PIXEL per
+     * pixel.
+     */
     ImageLineOffset = BmpHeader->PixelWidth;
     if (BmpHeader->BitPerPixel == 24)
         ImageLineOffset *= 3;

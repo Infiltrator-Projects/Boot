@@ -24,11 +24,11 @@
 
 
 
-
-
-
-
-
+/*
+ * bits counts code bits consumed by this lookup. op directs the decoder to a
+ * literal, a base value with extra bits, a subtable, or an end/error
+ * condition. val is interpreted according to that operation.
+ */
 typedef struct {
     unsigned char op;            
     unsigned char bits;          

@@ -347,6 +347,12 @@ static fsw_status_t fsw_hfs_volume_mount(struct fsw_hfs_volume *vol)
          
         status = fsw_dnode_create_root(vol, kHFSCatalogFileID, &vol->catalog_tree.file);
         CHECK(status);
+        /*
+         * The catalog and extents-overflow files are themselves B-trees.
+         * Their initial fork extents come from the volume header so that
+         * finding the tree roots can proceed before catalog lookup is
+         * available.
+         */
         fsw_memcpy (vol->catalog_tree.file->extents,
                     vol->primary_voldesc->catalogFile.extents,
                     sizeof vol->catalog_tree.file->extents);
@@ -377,6 +383,11 @@ static fsw_status_t fsw_hfs_volume_mount(struct fsw_hfs_volume *vol)
             status = FSW_VOLUME_CORRUPTED;
             break;
         }
+        /*
+         * For HFSX the catalog header supplies the comparison rule. Binary
+         * ordering selects the case-sensitive comparator, which must agree
+         * with the order in which the catalog keys were inserted.
+         */
         vol->case_sensitive =
                 (signature == kHFSXSigWord) &&
                 (tree_header.keyCompareType == kHFSBinaryCompare);
@@ -1093,6 +1104,12 @@ static fsw_status_t fsw_hfs_get_extent(struct fsw_hfs_volume * vol,
 
          
         overflowkey.fileID = dno->g.dnode_id;
+        /*
+         * The overflow key measures allocation blocks already covered by
+         * earlier records. lbno is the residual after fsw_hfs_find_block
+         * consumes those records. Their difference gives the key even for a
+         * request in the middle of a later extent.
+         */
         overflowkey.startBlock = extent->log_start - lbno;
 
         if (node != NULL)
@@ -1260,7 +1277,12 @@ static fsw_status_t fsw_hfs_dir_lookup(struct fsw_hfs_volume * vol,
         goto done;
 
     file_key = (HFSPlusCatalogKey *)fsw_hfs_btree_rec (&vol->catalog_tree, node, ptr);
-     
+    /*
+     * The catalog key length excludes its own two-byte length field. Step
+     * over both before interpreting the record type. Key and payload are
+     * contiguous bytes within the node, so using sizeof a maximum-length key
+     * would misplace the record.
+     */
     base = (fsw_u8*)file_key + be16_to_cpu(file_key->keyLength) + 2;
     rec_type =  be16_to_cpu(*(fsw_u16*)base);
 

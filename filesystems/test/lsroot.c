@@ -73,6 +73,10 @@ int main(int argc, char **argv)
         fprintf(stderr, "opendir call failed.\n");
         return 1;
     }
+    /*
+     * Consume each name before the next readdir call. The POSIX adapter
+     * returns one static dirent shared by its directory handles.
+     */
     while ((dent = fsw_posix_readdir(dir)) != NULL) {
         fprintf(stderr, "- %s\n", dent->d_name);
     }

@@ -28,7 +28,11 @@
 
  
 #define CSR_GUID { 0x7c436110, 0xab2a, 0x4bbb, { 0xa8, 0x80, 0xfe, 0x41, 0x99, 0x5c, 0x9f, 0x82 } };
- 
+/*
+ * Each bit relaxes one SIP restriction. csr-active-config stores the combined
+ * 32-bit mask. Rotating the configured values writes a complete mask, so
+ * combinations can differ in more than one restriction.
+ */
 #define CSR_ALLOW_UNTRUSTED_KEXTS            0x01
 #define CSR_ALLOW_UNRESTRICTED_FS            0x02
 #define CSR_ALLOW_TASK_FOR_PID               0x04

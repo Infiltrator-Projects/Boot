@@ -172,11 +172,11 @@ enum {
     FSW_UNKNOWN_ERROR
 };
 
-
- 
-
-
-
+/*
+ * A string carries both a character count and a byte count. Disk names can be
+ * unterminated slices. A UTF-16 name occupies two bytes per code unit, so
+ * copying len bytes would discard half the representation.
+ */
 struct fsw_string {
     int         type;                
     int         len;                 
@@ -274,11 +274,12 @@ enum {
     FSW_DNODE_TYPE_SYMLINK,
     FSW_DNODE_TYPE_SPECIAL
 };
-
- 
-
-
-
+/*
+ * The caller supplies a starting logical block. The backend returns a run in
+ * logical blocks plus a physical block address, a buffer, or a sparse marker.
+ * Buffered runs transfer storage to the stream handle, which frees it on
+ * replacement or close.
+ */
 struct fsw_extent {
     fsw_u32     type;                
     fsw_u64     log_start;           
@@ -350,11 +351,11 @@ struct fsw_host_table
                                      fsw_u32 new_phys_blocksize, fsw_u32 new_log_blocksize);
     fsw_status_t EFIAPI (*read_block)(struct fsw_volume *vol, fsw_u64 phys_bno, void *buffer);
 };
-
- 
-
-
-
+/*
+ * The size fields let the core allocate a backend-specific volume and dnode
+ * while retaining the common prefix layout. get_extent and the directory
+ * callbacks interpret those objects. Physical reads return to the host table.
+ */
 struct fsw_fstype_table
 {
     struct fsw_string name;          

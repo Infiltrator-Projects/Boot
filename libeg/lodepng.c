@@ -4386,6 +4386,11 @@ unsigned lodepng_inspect(unsigned* w, unsigned* h, LodePNGState* state,
   return state->error;
 }
 
+/*
+ * PNG filters operate on bytes of a scanline before colour conversion.
+ * bytewidth is the distance to the previous pixel in that representation. On
+ * the first row the absent previous row contributes zeros to the predictors.
+ */
 static unsigned unfilterScanline(unsigned char* recon, const unsigned char* scanline, const unsigned char* precon,
                                  size_t bytewidth, unsigned char filterType, size_t length) {
    
@@ -4682,9 +4687,11 @@ static void removePaddingBits(unsigned char* out, const unsigned char* in,
   }
 }
 
- 
-
-
+/*
+ * Filtering belongs to each Adam7 pass separately. Undo its scanline filters
+ * and remove byte padding from sub-byte samples before placing pass pixels at
+ * their final coordinates. A preceding row from another pass is unrelated.
+ */
 static unsigned postProcessScanlines(unsigned char* out, unsigned char* in,
                                      unsigned w, unsigned h, const LodePNGInfo* info_png) {
    
@@ -5242,8 +5249,11 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
     data = lodepng_chunk_data_const(chunk);
 
     unknown = 0;
-
-     
+    /*
+     * IDAT boundaries can fall inside a compressed code. Append their
+     * payloads in file order so zlib sees one continuous stream regardless of
+     * how the encoder partitioned it.
+     */
     if(lodepng_chunk_type_equals(chunk, "IDAT")) {
       size_t newsize;
       if(lodepng_addofl(idatsize, chunkLength, &newsize)) CERROR_BREAK(state->error, 95);

@@ -1,7 +1,8 @@
 /*
- * Install/uninstall interface for BOOT's EFI security policy bridge.
- * These operations affect firmware image-authentication callbacks; call
- * order and error propagation are security rather than cosmetic concerns.
+ * Installation saves firmware's current authentication callbacks before
+ * replacing them. Both operations return EFI_STATUS. Restoration can fail
+ * after one of the two interfaces has already been restored, so status
+ * matters at teardown as well as setup.
  */
 EFI_STATUS
 security_policy_install(void);

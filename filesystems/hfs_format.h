@@ -258,9 +258,12 @@ struct FndrOpaqueInfo {
 	int8_t opaque[16];
 } HFS_ALIGNMENT;
 typedef struct FndrOpaqueInfo FndrOpaqueInfo;
-
-
- 
+/*
+ * Each fork stores a byte length, a count of allocation blocks and an initial
+ * extent record. Once that record is exhausted the reader continues through
+ * the extents-overflow tree using the file ID and logical allocation-block
+ * index.
+ */
 struct HFSPlusForkData {
 	u_int64_t		logicalSize;	 
 	u_int32_t		clumpSize;	 

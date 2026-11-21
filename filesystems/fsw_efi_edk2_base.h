@@ -75,6 +75,11 @@
 # define SIZE_OF_EFI_FILE_SYSTEM_VOLUME_LABEL_INFO  SIZE_OF_EFI_FILE_SYSTEM_VOLUME_LABEL
 # define EFI_FILE_SYSTEM_VOLUME_LABEL_INFO EFI_FILE_SYSTEM_VOLUME_LABEL
 # define EFI_SIGNATURE_32(a, b, c, d) SIGNATURE_32(a, b, c, d)
+/*
+ * This EDK compatibility macro discards the third argument. It serves FSW
+ * callers that need only the quotient. Code needing a remainder must select a
+ * routine that actually returns it.
+ */
 # define DivU64x32(x,y,z) DivU64x32((x),(y))
 
 

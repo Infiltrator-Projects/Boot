@@ -68,7 +68,12 @@ EG_IMAGE * egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ic
         NewImage = egCreateImage(Width, Height, WantAlpha);
         if ((NewImage == NULL) || (NewImage->Width != Width) || (NewImage->Height != Height))
             return NULL;
-
+        /*
+         * This loop consumes an RGB triple per pixel and supplies an opaque
+         * alpha channel on request. The decoder returns a one-byte plane for
+         * grayscale images, so this path assumes a three-component decoder
+         * result.
+         */
         JpegData = (jpeg_color *) njGetImage();
 
          

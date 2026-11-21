@@ -85,7 +85,11 @@
 
 
 struct internal_state;
-
+/*
+ * The next pointers and avail counts describe the current input and output
+ * slices. The decoder advances both together. total_in and total_out
+ * accumulate progress independently of buffer replacement.
+ */
 typedef struct z_stream_s {
     const Byte *next_in;    
 	uLong avail_in;   

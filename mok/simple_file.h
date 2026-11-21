@@ -1,7 +1,7 @@
 /*
- * EFI file open/read/close helper declarations for the security layer.
- * The returned file buffer and file-handle lifetimes must be released on
- * all success and failure paths; raw file bytes are not trusted metadata.
+ * The open routines return an EFI file handle that the caller closes.
+ * read_all allocates a separate pool buffer and updates size through Read.
+ * Closing the handle does not release that data buffer.
  */
 EFI_STATUS
 simple_file_open (EFI_HANDLE image, CHAR16 *name, EFI_FILE_PROTOCOL **file, UINT64 mode);

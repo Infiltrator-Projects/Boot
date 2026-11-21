@@ -376,13 +376,9 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
  
  
 /*
- * A preferred graphical selection is not a persistent BootOrder update.
- * An unmatched vmlinuz default must leave other discovered loaders available.
- */
-/*
- * Expands the '+' selection token using the persisted PreviousBoot label.
- * Rebuilds the comma-delimited preference in owned pool memory; when the
- * variable is unavailable, the token contributes no selection candidate.
+ * Expand each '+' in the configured preference list to the saved PreviousBoot
+ * name. A missing variable drops just that element. The rebuilt list is
+ * consumed by menu selection. Firmware BootOrder is managed separately.
  */
 static VOID AdjustDefaultSelection() {
     UINTN i = 0, j;
@@ -540,11 +536,12 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     if (GlobalConfig.LegacyType == LEGACY_TYPE_MAC)
        MyCopyMem(GlobalConfig.ScanFor, "ihebocm    ", NUM_SCAN_OPTIONS);
     SetConfigFilename(ImageHandle);
-
-     
-     
-     
-     
+    /*
+     * The first inventory lets configuration refer to known volumes. A
+     * matching driver file triggers a second inventory after connection
+     * because controllers can now expose additional filesystem handles.
+     * Loader discovery uses the resulting inventory.
+     */
     ScanVolumes();
     ReadConfig(GlobalConfig.ConfigFilename);
     if (GlobalConfig.LogLevel > 0) {

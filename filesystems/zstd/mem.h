@@ -63,6 +63,11 @@ ZSTD_STATIC U32 ZSTD_readLE32(const void *memPtr) { return get_unaligned_le32(me
 
 ZSTD_STATIC U64 ZSTD_readLE64(const void *memPtr) { return get_unaligned_le64(memPtr); }
 
+/*
+ * The bitstream reader refills its accumulator one size_t at a time. Select a
+ * 32-bit or 64-bit little-endian load to match the accumulator width on this
+ * build target.
+ */
 ZSTD_STATIC size_t ZSTD_readLEST(const void *memPtr)
 {
 	if (ZSTD_32bits())

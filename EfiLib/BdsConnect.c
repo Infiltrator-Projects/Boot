@@ -22,13 +22,10 @@
 
 
 /*
- * Classifies controller-related firmware handles and their protocol
- * relationships; returned buffers are EFI allocations with explicit ownership.
- */
-/*
- * Builds a snapshot of the firmware handle graph around a controller.
- * OpenProtocolInformation exposes driver relationships; its returned
- * arrays require caller cleanup and become stale after driver rebinding.
+ * Index the handle buffer and its classification array in parallel.
+ * OpenProtocolInformation identifies the driver agent and controller links. A
+ * handle can accumulate several role bits, so treating them as an enumeration
+ * would lose relationships.
  */
 EFI_STATUS ScanDeviceHandles(EFI_HANDLE ControllerHandle,
                              UINTN *HandleCount,
@@ -176,13 +173,10 @@ Error:
 
 
 /*
- * Connects eligible EFI driver-controller relationships according to this
- * compatibility policy, not as a guarantee of readable media.
- */
-/*
- * Attempts broad controller connection through the firmware driver model.
- * This operation can introduce new child handles and filesystem protocols;
- * discovery must not equate a connected controller with a bootable image.
+ * Skip executable and driver-binding handles, then recursively connect
+ * eligible parentless device handles. The VGA branch disconnects the
+ * controller first. Each iteration classifies a fresh handle list but uses
+ * the index from the outer enumeration, which assumes stable ordering.
  */
 EFI_STATUS BdsLibConnectMostlyAllEfi()
 {

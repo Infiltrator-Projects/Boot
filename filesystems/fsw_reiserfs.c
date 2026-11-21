@@ -358,8 +358,11 @@ static fsw_status_t fsw_reiserfs_get_extent(struct fsw_reiserfs_volume *vol, str
 
     extent->type = FSW_EXTENT_TYPE_SPARSE;
     extent->log_count = 1;
-
-     
+    /*
+     * ReiserFS file-item keys count bytes starting at one. FSW requests
+     * zero-based logical blocks. Adding one after the block-to-byte
+     * conversion locates the first byte of the requested block.
+     */
     search_offset = (fsw_u64)extent->log_start * vol->g.log_blocksize + 1;
     status = fsw_reiserfs_item_search(vol, dno->dir_id, dno->g.dnode_id, search_offset, &item);
     if (status)
@@ -404,6 +407,11 @@ static fsw_status_t fsw_reiserfs_get_extent(struct fsw_reiserfs_volume *vol, str
         }
 
         extent->type = FSW_EXTENT_TYPE_BUFFER;
+        /*
+         * A packed tail lives in the leaf item. Copy it into the returned FSW
+         * buffer before releasing the tree block. The stream handle
+         * subsequently owns that copy.
+         */
         status = fsw_memdup(&extent->buffer, item.item_data, item.ih.ih_item_len);
         fsw_reiserfs_item_release(vol, &item);
         if (status)
@@ -552,8 +560,11 @@ static fsw_status_t fsw_reiserfs_dir_read(struct fsw_reiserfs_volume *vol, struc
                 continue;   
             if (dhead->deh_offset == DOT_OFFSET || dhead->deh_offset == DOT_DOT_OFFSET)
                 continue;   
-
-             
+            /*
+             * Entry headers grow forwards and names are packed from the
+             * opposite end of the item. The previous header's location, or
+             * the item length for slot zero, bounds the current name.
+             */
             name_offset = dhead->deh_location;
             if (i == 0)
                 next_name_offset = item.ih.ih_item_len;
@@ -569,8 +580,11 @@ static fsw_status_t fsw_reiserfs_dir_read(struct fsw_reiserfs_volume *vol, struc
 
             if (fsw_streq_cstr(&entry_name, ".reiserfs_priv"))
                 continue;   
-
-             
+            /*
+             * The next directory read resumes using the on-disk directory
+             * offset. Records vary in length, so a byte count or an array
+             * index would replay or skip entries.
+             */
             shand->pos = dhead->deh_offset + 1;
 
              

@@ -1564,8 +1564,11 @@ DevicePathToStr (
       DumpNode = DevPathNodeUnknown;
     }
      
-     
-     
+    /*
+     * Each renderer contributes one node to the textual path. The
+     * end-of-instance renderer supplies its own separator, so adding a slash
+     * before it would change the grammar of a multi-instance path.
+     */
     if ((Str.Len != 0) && (DumpNode != DevPathEndInstance)) {
       MyCatPrint (&Str, L"/");
     }

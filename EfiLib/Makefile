@@ -15,7 +15,9 @@ SRCDIR = .
 VPATH = $(SRCDIR)
 
 LOCAL_GNUEFI_CFLAGS  = -I$(SRCDIR) -I$(SRCDIR)/../include
-
+# This GNU-EFI archive selects the compatibility shims and legacy BDS
+# implementation used by BOOT. The other source files in this directory are
+# not all linked by this recipe.
 OBJS            = gnuefi-helper.o legacy.o BdsHelper.o BdsTianoCore.o
 TARGET          = libEfiLib.a
 

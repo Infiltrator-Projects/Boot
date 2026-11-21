@@ -66,8 +66,9 @@ AddBootEntry || exit 1
 test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 1 || exit 1
-
-
+# Count registration and ordering separately. The first install creates one
+# firmware record. Reinstalling reuses its number but explicitly writes the
+# order each time, even when BOOT is already first.
 for i in {1..50}; do
     AddBootEntry || exit 1
 done
@@ -104,8 +105,9 @@ if AddBootEntry >/dev/null 2>&1; then
 fi
 test "$Problems" = 1 || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = "$creates_before" || exit 1
-
-
+# An unreadable firmware listing and a successful listing with no matching
+# entry have different consequences. This fixture checks that failed
+# inspection cannot increase the number of create operations.
 export MOCK_FAIL_READ=1
 Problems=""
 if AddBootEntry >/dev/null 2>&1; then

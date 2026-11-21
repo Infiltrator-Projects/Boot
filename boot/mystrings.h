@@ -45,6 +45,11 @@ typedef struct _string_list {
 } STRING_LIST;
 
 BOOLEAN StriSubCmp(IN CHAR16 *TargetStr, IN CHAR16 *BigStr);
+/*
+ * Returns a Boolean equality result, so TRUE means the strings matched. The
+ * implementation masks one case bit per UTF-16 code unit. It supplies neither
+ * lexical ordering nor Unicode case folding.
+ */
 BOOLEAN MyStriCmp(IN CONST CHAR16 *String1, IN CONST CHAR16 *String2);
 CHAR16* MyStrStr (IN CHAR16  *String, IN CHAR16  *StrCharSet);
 VOID ToLower(CHAR16 * MyString);

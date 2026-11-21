@@ -550,7 +550,11 @@ VOID egDrawImageArea(IN EG_IMAGE *Image,
 {
     if (!egHasGraphics)
         return;
-
+    /*
+     * Clipping changes the width transferred but does not repack the source
+     * rows. Both BLT protocols need the original image width in bytes as
+     * Delta to reach the same column on the next row.
+     */
     egRestrictImageArea(Image, AreaPosX, AreaPosY, &AreaWidth, &AreaHeight);
     if (AreaWidth == 0)
         return;

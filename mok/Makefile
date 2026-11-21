@@ -16,7 +16,9 @@ SRCDIR = .
 VPATH = $(SRCDIR)
 
 LOCAL_GNUEFI_CFLAGS  = -I$(SRCDIR) -I$(SRCDIR)/../include
-
+# The archive links shim verification, firmware policy hooks and the file
+# adapter those hooks use. The running boot manager installs the hooks
+# conditionally after querying firmware state.
 OBJS            = guid.o mok.o security_policy.o simple_file.o
 TARGET          = libmok.a
 

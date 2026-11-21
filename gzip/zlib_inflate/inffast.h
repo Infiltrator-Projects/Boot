@@ -1,7 +1,7 @@
 /*
- * Fast DEFLATE decoder declaration. Its use requires the caller to have
- * validated Huffman tables and established the minimum input/output space
- * expected by the unrolled decoding loop.
+ * The caller enters the fast loop with at least six input bytes and room for
+ * a 258-byte match. start is the output capacity at entry to the enclosing
+ * inflate call and is used to find the boundary with saved history.
  */
  
 

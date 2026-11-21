@@ -284,13 +284,10 @@ static BOOLEAN KeepReading(IN OUT CHAR16 *p, IN OUT BOOLEAN *IsQuoted) {
  
  
 /*
- * Returns a tokenised line according to the parser's quoting rules.
- * Consumers must respect token counts and release the allocated token list.
- */
-/*
- * Tokenises the next configuration directive while respecting quoting.
- * Its token vector is dynamically allocated and must be paired with
- * FreeTokenLine after consumers have copied any retained values.
+ * Return the next nonempty directive as separately allocated CHAR16 tokens.
+ * Outside quotes the parser treats spaces, tabs, '=' and ',' as separators
+ * and normalises '/' to the EFI path separator. Duplicating each token lets
+ * the temporary input line be freed at the end of the iteration.
  */
 UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
 {
@@ -535,15 +532,10 @@ static VOID SetLinuxMatchPatterns(CHAR16 *Prefixes) {
 
  
 /*
- * Maps text options into GlobalConfig. dont_scan_files changes visibility;
- * default_selection changes preference, not firmware boot order.
- * use_nvram=false concerns BOOT's variable namespace, not installer NVRAM.
- */
-/*
- * Converts text directives into GlobalConfig, thereby defining subsequent
- * volume discovery, driver directories, UI behaviour and selection rules.
- * Configuration is external input and should not be conflated with verified
- * firmware capabilities or authenticated executable content.
+ * Reading the primary file rebuilds the scan defaults and the '+' menu
+ * preference. An included file applies directives to the state accumulated so
+ * far. Resetting those lists for every include would discard the effect of
+ * earlier directives.
  */
 VOID ReadConfig(CHAR16 *FileName)
 {
@@ -1093,13 +1085,10 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
  
  
 /*
- * Manual menu stanzas supplement automatic discovery. The presence of a
- * configured path is not evidence that the EFI image will load successfully.
- */
-/*
- * Adds explicit, user-configured boot entries alongside automatic discovery.
- * An explicit path is a launch candidate only: the executable remains
- * subject to normal EFI file access, image validation and load errors.
+ * Walk manual stanzas with SelfVolume as their initial volume.
+ * AddStanzaEntries consumes the stanza body. An enabled entry gets a
+ * generated submenu only if the stanza did not supply one. Includes are
+ * followed only from the primary configuration.
  */
 VOID ScanUserConfigured(CHAR16 *FileName)
 {
@@ -1295,7 +1284,11 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
         OptionsFilename = FullFilename = NULL;
     } while (GoOn);
     if (!FileFound) {
-         
+        /*
+         * The first readable options file beside the kernel wins. Only when
+         * none was read does BOOT synthesise options from this volume's fstab
+         * and then, if necessary, the discovered partition type.
+         */
         File = GenerateOptionsFromEtcFstab(Volume);
          
         if (!File)

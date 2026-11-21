@@ -1,7 +1,7 @@
 /*
- * Small convenience wrapper for decompressing a supplied DEFLATE/gzip
- * memory blob into a caller-owned output buffer. Caller capacity and actual
- * output byte count are independent of the compressed input length.
+ * Inflate a raw DEFLATE payload into a caller-supplied buffer. Negative
+ * window bits suppress wrapper parsing. A complete stream returns the number
+ * of output bytes computed from remaining output capacity.
  */
 #include "zutil.h"
 #include "zlib.h"

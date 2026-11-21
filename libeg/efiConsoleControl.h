@@ -1,7 +1,7 @@
 /*
- * EFI Console Control protocol GUID, text/graphics mode and method
- * signatures. Firmware-specific mode transitions must respect EFIAPI and
- * may fail even when a text console is present.
+ * Console Control selects the firmware console's text or graphics
+ * presentation. BOOT uses it alongside GOP or UGA. Changing console mode and
+ * writing a rectangle of pixels are separate protocol operations.
  */
  
 

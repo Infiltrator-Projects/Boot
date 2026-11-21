@@ -1,7 +1,8 @@
 /*
- * External firmware security and signature-format GUID declarations.
- * Binary GUID field values are interoperability identifiers, not mutable
- * application preferences.
+ * Declarations for GUID objects defined in guid.c. Security and Security2
+ * identify protocol interfaces. Certificate GUIDs classify signature-list
+ * contents, while the variable-vendor GUID is part of a variable's lookup
+ * key.
  */
  
 

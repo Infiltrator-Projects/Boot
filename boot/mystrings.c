@@ -71,6 +71,11 @@ BOOLEAN StriSubCmp(IN CHAR16 *SmallStr, IN CHAR16 *BigStr) {
  */
 BOOLEAN MyStriCmp(IN CONST CHAR16 *FirstString, IN CONST CHAR16 *SecondString) {
     if (FirstString && SecondString) {
+        /*
+         * Clearing bit 5 implements the ASCII A/a distinction for letters,
+         * but also collapses punctuation pairs such as '[' and '{'. Callers
+         * using this equality for paths inherit that comparison rule.
+         */
         while ((*FirstString != L'\0') && ((*FirstString & ~0x20) == (*SecondString & ~0x20))) {
                 FirstString++;
                 SecondString++;
@@ -274,7 +279,12 @@ CHAR16 *FindNumbers(IN CHAR16 *InString) {
         MyFreePool(LookFor);
     }  
 
-     
+    /*
+     * Use the span from the earliest to the latest digit, widened by a
+     * configured extra version string if one matched. Separators and flavour
+     * text inside that span survive, which affects how FindInitrd compares
+     * kernel and initrd names.
+     */
     for (i = 0; InString[i] != L'\0'; i++) {
         if ((InString[i] >= L'0') && (InString[i] <= L'9')) {
             if (StartOfElement > i)

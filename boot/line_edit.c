@@ -63,13 +63,10 @@ static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
 }
 
 /*
- * Edits loader options in a bounded visible field. A changed command line
- * may affect kernel launch semantics; it must not mutate on-disk loader files.
- */
-/*
- * Interactive command-line editor for EFI boot options. The caller provides
- * the initial UTF-16 text and receives replacement text through line_out;
- * cursor, visible viewport and input-length checks are interdependent.
+ * Edit a private UTF-16 copy. first is the index of the leftmost visible
+ * character and cursor is a screen-column offset, so insertions and deletions
+ * use first + cursor. Enter transfers the buffer to line_out. Cancelling
+ * releases the private copy.
  */
 BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
     CHAR16 *line;

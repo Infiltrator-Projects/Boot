@@ -45,6 +45,11 @@
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
+/*
+ * Evaluate a size-returning operation once. An encoded error leaves the
+ * enclosing decoder immediately, while a successful size can be discarded
+ * when the caller only needs its side effects.
+ */
 #define CHECK_F(f)                       \
 	{                                \
 		size_t const errcod = f; \

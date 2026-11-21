@@ -394,6 +394,11 @@ ZSTD_STATIC void FSE_updateState(FSE_DState_t *DStatePtr, BIT_DStream_t *bitD)
 	DStatePtr->state = DInfo.newState + lowBits;
 }
 
+/*
+ * Each table entry supplies a symbol, a base for the next state and the
+ * number of bits to read. The decoder adds those bits to the base to select
+ * the next table entry. The caller retains this state between symbols.
+ */
 ZSTD_STATIC BYTE FSE_decodeSymbol(FSE_DState_t *DStatePtr, BIT_DStream_t *bitD)
 {
 	FSE_decode_t const DInfo = ((const FSE_decode_t *)(DStatePtr->table))[DStatePtr->state];

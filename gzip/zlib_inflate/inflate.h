@@ -71,11 +71,11 @@ typedef enum {
 
 
 
-
-
-
-
- 
+/*
+ * The resumable decoder carries both its mode and the partially consumed bit
+ * accumulator across calls. A pending match can also outlive one output
+ * buffer, so its remaining length and backward distance live in this state.
+ */
 struct inflate_state {
     inflate_mode mode;           
     int last;                    

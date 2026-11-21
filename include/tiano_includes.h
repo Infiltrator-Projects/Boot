@@ -8,7 +8,11 @@
 
 #ifndef _BOOT_TIANO_INCLUDES_
 #define _BOOT_TIANO_INCLUDES_
-
+/*
+ * Map BOOT's common service-table names to the EDK build environment. These
+ * aliases select the tables initialised for this image. Calls still go
+ * through the service or protocol interface appropriate to each operation.
+ */
 #define ST gST
 #define BS gBS
 #define RT gRT

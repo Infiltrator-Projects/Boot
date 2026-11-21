@@ -1296,6 +1296,11 @@ extern "C" {
 #  define LZO_ABI_LITTLE_ENDIAN     1
 #endif
 #endif
+/*
+ * Byte order selects the specialised word-load paths in the LZO
+ * implementation. Conflicting results from architecture detection and
+ * explicit configuration cannot describe a single target ABI.
+ */
 #if (LZO_ABI_BIG_ENDIAN) && (LZO_ABI_LITTLE_ENDIAN)
 #  error "this should not happen"
 #endif

@@ -155,7 +155,11 @@ static fsw_status_t fsw_ext4_volume_mount(struct fsw_ext4_volume *vol)
                                          EXT4_FEATURE_INCOMPAT_64BIT | EXT4_FEATURE_INCOMPAT_META_BG |
                                          EXT4_FEATURE_INCOMPAT_ENCRYPT | EXT4_FEATURE_INCOMPAT_BG_USE_META_CSUM)))
         return FSW_UNSUPPORTED;
-
+    /*
+     * RECOVER is admitted by the feature mask. This branch logs the dirty
+     * journal and continues with the metadata currently on disk. Nothing here
+     * replays transactions before the inode tables are read.
+     */
     if (vol->sb->s_rev_level == EXT4_DYNAMIC_REV &&
         (vol->sb->s_feature_incompat & EXT4_FEATURE_INCOMPAT_RECOVER))
     {
@@ -203,8 +207,12 @@ static fsw_status_t fsw_ext4_volume_mount(struct fsw_ext4_volume *vol)
     status = fsw_alloc(sizeof(fsw_u64) * groupcnt, &vol->inotab_bno);
     if (status)
         return status;
-
-     
+    /*
+     * META_BG changes where the descriptor block lives. Within that block the
+     * group number still selects a slot modulo gdesc_per_block. Whether a
+     * backup superblock occupies the first block of the meta group changes
+     * the physical address by one.
+     */
     for (groupno = 0; groupno < groupcnt; groupno++) {
 
          
@@ -319,8 +327,11 @@ static fsw_status_t fsw_ext4_dnode_fill(struct fsw_ext4_volume *vol, struct fsw_
     fsw_block_release(vol, ino_bno, buffer);
     if (status)
         return status;
-
-     
+    /*
+     * Only the low size word reaches the shared dnode. A 64-bit inode-table
+     * address above identifies where to fetch the inode and does not extend
+     * the file-length value exported here.
+     */
     dno->g.size = dno->raw->i_size_lo;  
 
     if (S_ISREG(dno->raw->i_mode))
@@ -453,6 +464,12 @@ static fsw_status_t fsw_ext4_get_by_extent(struct fsw_ext4_volume *vol, struct f
                  
                 if(bno >= ext4_extent->ee_block && bno < ext4_extent->ee_block + ext4_extent->ee_len)
                 {
+                    /*
+                     * FSW asks for a run starting at the requested logical
+                     * block. Advance the combined physical address by the
+                     * displacement within the leaf and shorten the returned
+                     * run by exactly the same displacement.
+                     */
                     extent->phys_start = ((fsw_u64)ext4_extent->ee_start_hi << 32) | ext4_extent->ee_start_lo;
                     extent->phys_start += (bno - ext4_extent->ee_block);
                     extent->log_count = ext4_extent->ee_len - (bno - ext4_extent->ee_block);

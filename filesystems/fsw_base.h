@@ -60,9 +60,11 @@
 
 #define FSW_DEBUG_LEVEL 1
 #endif
-
- 
-
+/*
+ * The FSW_MSG macros emit diagnostics according to the build's debug level.
+ * In particular, a disabled FSW_MSG_ASSERT expands to nothing. Any control
+ * flow that rejects bad metadata must be expressed by the calling code.
+ */
 #if FSW_DEBUG_LEVEL >= 1
 #define FSW_MSG_ASSERT(params) FSW_MSGFUNC params
 #else

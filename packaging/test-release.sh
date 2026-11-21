@@ -47,7 +47,9 @@ bash -n boot-native-installer.run
 test "$(head -n 1 "$run")" = '#!/usr/bin/env bash'
 test "$(stat -c '%s' "$run")" -ge 40000
 test "$(stat -c '%s' "$run")" -lt 200000
-
+# Reconstruct the published installer from the tracked template and the two
+# release substitutions. Byte comparison catches changes elsewhere in the
+# script that individual checks for commands or filenames could miss.
 expected=$(git rev-parse --verify HEAD)
 sed -e "s/__BOOT_SOURCE_COMMIT__/$expected/g" \
     -e "s/__BOOT_RELEASE_VERSION__/$version/g" \

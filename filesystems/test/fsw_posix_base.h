@@ -50,7 +50,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-
+/*
+ * This test host declares little-endian native order. The FSW byte-swap
+ * selections follow that declaration when interpreting on-disk multibyte
+ * fields.
+ */
 #define FSW_LITTLE_ENDIAN (1)
  
 

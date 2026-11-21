@@ -405,11 +405,11 @@ void lodepng_compress_settings_init(LodePNGCompressSettings* settings);
 #endif  
 
 #ifdef LODEPNG_COMPILE_PNG
- 
-
-
-
-
+/*
+ * A colour mode describes how samples are encoded, including palette and
+ * transparency information. The firmware adapter requests RGBA at eight bits
+ * per channel, irrespective of the source PNG's colour mode.
+ */
 typedef struct LodePNGColorMode {
    
   LodePNGColorType colortype;  

@@ -38,6 +38,11 @@ typedef UINT8 BBS_TYPE;
  
  
 typedef struct {
+   /*
+    * BootOptionNumber selects a firmware Boot#### variable. BbsIndex is a
+    * slot in the BIOS device table and BbsType identifies its class. Grouping
+    * boot options needs this explicit translation between numbering schemes.
+    */
    UINT16    BootOptionNumber;
    UINT16    BbsIndex;
    UINT16    BbsType;

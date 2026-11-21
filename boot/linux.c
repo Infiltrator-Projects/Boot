@@ -134,6 +134,13 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
         if (InitrdNames->Next == NULL) {
             InitrdName = StrDuplicate(InitrdNames -> Value);
         } else {
+            /*
+             * Candidates already match the parsed version. Resolve flavour
+             * suffixes by the length of the common prefix starting at the
+             * version, then favour the shorter candidate path on a tie.
+             * Directory enumeration order alone cannot distinguish kernel
+             * flavours.
+             */
             MaxSharedInitrd = CurrentInitrdName = InitrdNames;
             MaxSharedChars = 0;
             while (CurrentInitrdName != NULL) {
@@ -169,13 +176,9 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
  
  
 /*
- * Returns a newly prepared options string, substituting version tokens or
- * appending initrd= only when applicable. The caller owns its allocation.
- */
-/*
- * Incorporates a selected initramfs path into the kernel load-options text.
- * This modifies a launch argument, not an initramfs image or filesystem;
- * kernel acceptance depends on the loader's supported command-line syntax.
+ * Start with an owned copy of the existing options. When an initrd is
+ * available, '%v' substitution takes precedence. Otherwise append an initrd=
+ * argument only if one is absent. The caller owns the result.
  */
 CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
     CHAR16 *NewOptions = NULL;

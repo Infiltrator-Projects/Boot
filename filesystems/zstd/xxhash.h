@@ -100,11 +100,11 @@ uint64_t xxh64(const void *input, size_t length, uint64_t seed);
 
 
 
-
-
- 
-
-
+/*
+ * The four lanes accumulate 32-byte stripes. total_len and the buffered tail
+ * let digest finish the hash without requiring the caller to preserve earlier
+ * portions of the decoded frame.
+ */
 struct xxh64_state {
 	uint64_t total_len;
 	uint64_t v1;

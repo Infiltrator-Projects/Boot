@@ -110,6 +110,12 @@ BdsLibConnectDevicePath (
 
       if (!EFI_ERROR (Status)) {
 #ifdef __MAKEWITH_TIANO
+         /*
+          * LocateDevicePath returns the longest connected prefix and advances
+          * RemainingDevicePath. Seeing the same handle again signals stalled
+          * progress. The Tiano build tries the DXE dispatcher before another
+          * controller connection.
+          */
          if (Handle == PreviousHandle) {
            
            
@@ -225,10 +231,12 @@ BdsLibVariableToOption (
    
   FilePathSize =  *(UINT16 *) TempPtr;
   TempPtr      += sizeof (UINT16);
-
-   
-   
-   
+  /*
+   * The variable layout supplies a terminated UTF-16 description followed by
+   * FilePathSize bytes and then optional load data. This legacy parser calls
+   * StrSize before comparing the resulting cursor with VariableSize. Its
+   * layout assumptions differ from the bounded menu parser in boot/install.c.
+   */
   Description = (CHAR16 *) TempPtr;
 
    

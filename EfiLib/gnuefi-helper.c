@@ -313,10 +313,12 @@ GetNextDevicePathInstance (
    
    
   *Size = ((UINTN) DevPath - (UINTN) (*DevicePath)) + sizeof (EFI_DEVICE_PATH_PROTOCOL);
- 
-   
-   
-   
+  /*
+   * DuplicateDevicePath stops at an end-of-path node. Temporarily promote the
+   * end-of-instance marker so the copy owns exactly one complete path.
+   * Restore the input marker before deciding how to advance the caller's
+   * cursor.
+   */
   Temp              = DevPath->SubType;
   DevPath->SubType  = END_ENTIRE_DEVICE_PATH_SUBTYPE;
   ReturnValue       = DuplicateDevicePath (*DevicePath);

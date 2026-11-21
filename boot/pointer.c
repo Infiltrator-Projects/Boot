@@ -54,13 +54,10 @@ POINTER_STATE State;
  
  
 /*
- * Discovers and opens available pointer protocols. Failure or zero handles
- * must leave the rest of the firmware menu usable without pointer input.
- */
-/*
- * Discovers optional firmware pointer protocols and initialises cached
- * pointer state. Input-device enumeration is independent of keyboard menu
- * navigation, which remains required on pointer-less systems.
+ * Probe absolute and relative pointer protocols independently. Each
+ * successful OpenProtocol contributes an interface to a compact array. The
+ * event list uses the counts of opened interfaces, which can be smaller than
+ * the counts returned by LocateHandleBuffer.
  */
 VOID pdInitialize() {
     pdCleanup();  
@@ -119,13 +116,10 @@ VOID pdInitialize() {
  
  
 /*
- * Closes opened firmware protocols and releases cursor-related state;
- * subsequent pointer reads require fresh initialisation.
- */
-/*
- * Releases pointer-protocol references and cached graphics resources on
- * screen teardown. Handles from a prior scan are not permanently stable
- * across driver reconnection or firmware mode transitions.
+ * Close protocol opens and release enumeration buffers before resetting the
+ * coordinate and button history. Open interfaces are compacted during
+ * initialisation, while this loop indexes the original handle arrays. Its
+ * handle pairing assumes no earlier open was skipped.
  */
 VOID pdCleanup() {
     PointerAvailable = FALSE;
@@ -204,13 +198,10 @@ EFI_EVENT pdWaitEvent(UINTN Index) {
  
  
 /*
- * Aggregates pointer device reports into screen coordinates; devices have
- * different motion conventions and may fail independently.
- */
-/*
- * Polls firmware pointer inputs and transforms device-specific coordinates
- * into menu pointer state. The update may fail without invalidating the
- * underlying menu entries or selected boot target.
+ * Absolute reports map device coordinates to screen coordinates. Relative
+ * reports accumulate movement scaled by device resolution and configured
+ * mouse speed. Press is a release edge computed from the previous and current
+ * holding states.
  */
 EFI_STATUS pdUpdateState() {
 #if defined(EFI32) && defined(__MAKEWITH_GNUEFI)

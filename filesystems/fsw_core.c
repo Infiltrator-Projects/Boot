@@ -68,15 +68,10 @@ static void fsw_blockcache_free(struct fsw_volume *vol);
 
 
 /*
- * Creates a filesystem volume by invoking the selected backend's mount
- * callback. Unsupported on-disk features must not be treated as an empty disk.
- */
-/*
- * Allocates the filesystem-specific volume object and installs two distinct
- * dispatch tables: the host owns block I/O and allocation services, while
- * the filesystem backend owns mount, inode and directory interpretation.
- * The returned volume is usable only after volume_mount succeeds; the
- * corresponding fsw_unmount owns its eventual teardown.
+ * Allocate the volume using the selected backend's structure size. Attach the
+ * host callbacks and provisional 512-byte geometry before invoking
+ * volume_mount. Failure goes through fsw_unmount, so the backend's cleanup
+ * must tolerate partially initialised state.
  */
 fsw_status_t fsw_mount(void *host_data,
                        struct fsw_host_table *host_table,
@@ -155,12 +150,12 @@ fsw_status_t fsw_volume_stat(struct fsw_volume *vol, struct fsw_volume_stat *sb)
 
 
 
-
-
-
-
-
-
+/*
+ * A block number has meaning only with the geometry that produced it. Mount
+ * code can switch from probe geometry to volume geometry. Drop old cache
+ * entries and pass both geometries to the host before installing the new
+ * sizes.
+ */
 void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 log_blocksize)
 {
      
@@ -196,15 +191,10 @@ void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 l
 
 
 /*
- * Caches physical blocks using cache levels and reference counts. An in-use
- * entry is not evictable; a failed read must not publish the block number as
- * valid cached data. Caller must eventually release a successful acquisition.
- */
-/*
- * Looks up a physical block by number in the shared cache, incrementing
- * the reference count on a hit. A cache entry must not be reclaimed while
- * a consumer holds the buffer; fsw_block_release is the matching operation.
- * Cache priority is bounded by MAX_CACHE_LEVEL, not an access-control level.
+ * A hit pins the existing buffer and raises its retention level when
+ * requested. On a miss, prefer unused slots, then unpinned entries starting
+ * at the lowest retention level. Mark the chosen slot invalid until the host
+ * read succeeds. Each successful acquisition needs a matching release.
  */
 fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 cache_level, void **buffer_out)
 {
@@ -412,6 +402,11 @@ fsw_status_t fsw_dnode_create_with_tree(struct fsw_dnode *parent_dno, fsw_u64 tr
 
      
     for (dno = vol->dnode_head; dno; dno = dno->next) {
+        /*
+         * Dnode identity is local to a tree as well as a volume. A lookup hit
+         * retains the existing object. A subvolume can reuse an inode number,
+         * so omitting tree_id would alias entries across roots.
+         */
         if (dno->dnode_id == dnode_id && dno->tree_id == tree_id) {
             fsw_dnode_retain(dno);
             *dno_out = dno;
@@ -579,14 +574,10 @@ fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
 
 
 /*
- * Walks a filesystem path across backend dnodes and potentially links.
- * Each intermediate dnode's lifetime and link resolution status matter.
- */
-/*
- * Resolves a delimited path component by component through backend dnode
- * lookup, retaining intermediate references while it walks the tree.
- * A successful string split is not equivalent to a valid directory entry;
- * error paths must balance every retained dnode reference.
+ * Walk borrowed string slices while retaining the current dnode. An empty
+ * first component selects the root, while an interior empty component retains
+ * the current node. Resolve intermediate symlinks before asking the backend
+ * to look up a child.
  */
 fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
                                    struct fsw_string *lookup_path, char separator,
@@ -711,7 +702,10 @@ fsw_status_t fsw_dnode_dir_read(struct fsw_shandle *shand, struct fsw_dnode **ch
 
     if (dno->type != FSW_DNODE_TYPE_DIR)
         return FSW_UNSUPPORTED;
-
+    /*
+     * Directory cursors belong to the backend. Save the opaque value before
+     * dispatch so a failed backend read can be retried from the same entry.
+     */
     saved_pos = shand->pos;
     status = dno->vol->fstype_table->dir_read(dno->vol, dno, shand, child_dno_out);
     if (status)
@@ -987,6 +981,12 @@ fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_in
         pos    += copylen;
     }
 
+    /*
+     * fsw_shandle_read commits the byte count and cursor here. Earlier
+     * failures may follow copies into the caller's buffer, but return before
+     * this commit. Callers cannot infer a successful partial read from those
+     * bytes.
+     */
     *buffer_size_inout = (fsw_u32)(pos - shand->pos);
     shand->pos = pos;
 

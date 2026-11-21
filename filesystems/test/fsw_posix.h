@@ -49,11 +49,11 @@
 #include <sys/types.h>
 #include <sys/dir.h>
 
-
- 
-
-
-
+/*
+ * The host file descriptor supplies raw image reads for the mounted FSW
+ * volume. File and directory wrappers below each retain their own FSW stream
+ * cursor above that shared backing descriptor.
+ */
 struct fsw_posix_volume {
     struct fsw_volume           *vol;            
 

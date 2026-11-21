@@ -1,7 +1,7 @@
 /*
- * Firmware-reported BOOT version label. The native release build overrides
- * BOOT_RELEASE_VERSION; this header's development fallback is not evidence
- * of which release was installed or successfully started.
+ * BOOT_VERSION is a CHAR16 literal for firmware formatting. Release builds
+ * inject BOOT_RELEASE_VERSION while compiling. A plain source build falls
+ * back to the development string defined here.
  */
  
 

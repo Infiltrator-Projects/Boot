@@ -1,7 +1,8 @@
 /*
- * Legacy BIOS/CSM boot entry and handoff interfaces. These routines depend
- * on firmware-specific legacy capability, independent of UEFI native loaders.
- * Legacy partition-state writes are not merely a menu-presentation operation.
+ * Apple-compatible legacy startup prepares the disk and starts a firmware
+ * loader image. The UEFI legacy route dispatches a BDS boot option through
+ * the legacy BIOS protocol. Scan functions populate the entry type that
+ * selects the corresponding launch route.
  */
  
 

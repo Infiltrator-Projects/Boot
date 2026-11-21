@@ -24,10 +24,11 @@
 
 #ifndef _DEVICE_PATH_UTILITIES_PROTOCOL_H_
 #define _DEVICE_PATH_UTILITIES_PROTOCOL_H_
-
- 
- 
- 
+/*
+ * Utilities operate on variable-length node sequences whose terminators
+ * distinguish instance boundaries from the end of the whole path. Size and
+ * duplication operations must include the terminating node.
+ */
 #define EFI_DEVICE_PATH_UTILITIES_PROTOCOL_GUID \
   { \
     0x379be4e, 0xd706, 0x437d, {0xb0, 0x37, 0xed, 0xb8, 0x2f, 0xb7, 0x72, 0xa4}  \

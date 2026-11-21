@@ -488,11 +488,12 @@ struct ext4_extent_idx {
 	__le16	ei_leaf_hi;	 
 	__u16	ei_unused;
 };
-
-
- 
-
-
+/*
+ * The inode's i_block area and external extent-tree blocks begin with this
+ * header. eh_depth selects an array of child indices or leaf extents. The two
+ * entry formats assign different meanings to the words following the shared
+ * header.
+ */
 struct ext4_extent_header {
 	__le16	eh_magic;	 
 	__le16	eh_entries;	 

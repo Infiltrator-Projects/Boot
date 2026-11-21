@@ -109,6 +109,10 @@ TIANO_INCLUDE_DIRS = -I $(TIANOBASE)/MdePkg \
 SUBSYSTEM_LDFLAG  =
 GNUEFI_LDSCRIPT   = $(EFICRT0)/elf_$(ARCH)_efi.lds
 CRTOBJS           = $(EFICRT0)/crt0-efi-$(ARCH).o
+# The CRT supplies the firmware entry shim. The architecture-specific linker
+# script lays out sections and relocation data in the intermediate ELF. On
+# x86-64 the application and driver recipes select the PE/COFF subsystem
+# during conversion.
 GNUEFI_LDFLAGS    = -T $(GNUEFI_LDSCRIPT) -shared -Bsymbolic -nostdlib -L$(EFILIB) -L$(GNUEFILIB) $(CRTOBJS)
 GNUEFI_LIBS       = -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 

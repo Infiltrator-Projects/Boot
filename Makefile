@@ -9,7 +9,9 @@ include Make.common
 
 .PHONY: all gnuefi clean
 all: gnuefi
-
+# Build the support archives before linking the application. Filesystem
+# drivers are separate firmware images compiled afterwards, so building BOOT
+# successfully does not by itself produce the release's driver set.
 gnuefi:
 	+$(MAKE) MAKEWITH=GNUEFI -C libeg
 	+$(MAKE) MAKEWITH=GNUEFI -C mok

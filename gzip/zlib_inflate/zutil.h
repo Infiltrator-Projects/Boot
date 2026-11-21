@@ -32,6 +32,11 @@ typedef unsigned long  ulg;
  
 
 #define MIN_MATCH  3
+/*
+ * This DEFLATE limit also sets the fast loop's output headroom. Once a match
+ * has been decoded there must be space to emit all 258 bytes without another
+ * capacity check in that loop.
+ */
 #define MAX_MATCH  258
  
 

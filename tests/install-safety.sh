@@ -61,6 +61,9 @@ if GuardDefaultBootLocation; then echo "Accepted symlinked EFI path" >&2; exit 1
 InstallDir="$work/esp"
 TargetDir=/EFI/InfiltratorOS/BOOT
 printf 'obsolete' > "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt"
+# Seed BOOT's own directory with recognisable obsolete contents. Changes
+# inside that directory and byte-for-byte preservation of the separate vendor
+# files are independent expectations of a reinstall.
 printf 'previous config' > "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf"
 printf 'previous icons' > "$InstallDir/EFI/InfiltratorOS/BOOT/icons/old.png"
 printf 'new-clean-install' > "$BootDir/boot_x64.efi"

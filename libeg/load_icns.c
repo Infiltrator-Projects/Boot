@@ -204,6 +204,12 @@ EG_IMAGE * egDecodeICNS(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ic
          
         CompData = DataPtr;
         CompLen  = DataLen;
+        /*
+         * ICNS stores successive colour planes in one compressed payload.
+         * Each call advances CompData and reduces CompLen for the next plane,
+         * while its output advances four bytes at a time to fill a single
+         * interleaved EG_PIXEL component.
+         */
         egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, r), PixelCount);
         egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, g), PixelCount);
         egDecompressIcnsRLE(&CompData, &CompLen, PLPTR(NewImage, b), PixelCount);

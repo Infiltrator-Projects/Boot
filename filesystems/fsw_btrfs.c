@@ -902,6 +902,12 @@ static fsw_status_t fsw_btrfs_read_logical (struct fsw_btrfs_volume *vol, uint64
         uint64_t chaddr;
 
 	err = 0;
+        /*
+         * Chunk-tree nodes have logical addresses too. First consult the
+         * system chunk mappings copied from the superblock. They supply the
+         * physical reads needed to traverse the chunk tree for all other
+         * mappings.
+         */
         for (ptr = vol->bootstrap_mapping; ptr < vol->bootstrap_mapping + sizeof (vol->bootstrap_mapping) - sizeof (struct btrfs_key);)
         {
             key = (struct btrfs_key *) ptr;
@@ -964,27 +970,21 @@ chunk_found:
                 goto volume_corrupted;
 
 	    uint16_t nstripes = fsw_u16_le_swap (chunk->nstripes);
-
             DPRINT(L"btrfs chunk 0x%lx+0xlx %d stripes (%d substripes) of %lx\n",
                     fsw_u64_le_swap (key->offset),
                     fsw_u64_le_swap (chunk->size),
                     nstripes,
                     fsw_u16_le_swap (chunk->nsubstripes),
                     fsw_u64_le_swap (chunk->stripe_length));
-
-             
             switch (fsw_u64_le_swap (chunk->type)
                     & ~GRUB_BTRFS_CHUNK_TYPE_BITS_DONTCARE)
             {
                 case GRUB_BTRFS_CHUNK_TYPE_SINGLE:
                     {
                         uint64_t stripe_length;
-
                         stripe_length = DivU64x32 (fsw_u64_le_swap (chunk->size), nstripes, NULL);
-
                         if(stripe_length >= 1ULL<<32)
                             return FSW_VOLUME_CORRUPTED;
-
                         stripen = DivU64x32 (off, (uint32_t)stripe_length, &stripe_offset);
                         csize = (stripen + 1) * stripe_length - off;
                         DPRINT(L"read_logical %d chunk_found single csize=%d\n", __LINE__, csize);
@@ -1645,7 +1645,11 @@ static fsw_status_t fsw_btrfs_get_extent(struct fsw_volume *volg, struct fsw_dno
      
     if (!vol->is_master)
         return FSW_NOT_FOUND;
-
+    /*
+     * A cached extent is valid for a tree, inode and half-open byte range
+     * together. Subvolumes can reuse inode numbers, so matching only the
+     * inode and file offset could return another subvolume's data.
+     */
     if (!vol->extent || vol->extstart > pos || vol->extino != ino
             || vol->exttree != tree || vol->extend <= pos)
     {
@@ -1791,7 +1795,12 @@ static fsw_status_t fsw_btrfs_get_extent(struct fsw_volume *volg, struct fsw_dno
 			tmp, zsize,
 			extoff + fsw_u64_le_swap (vol->extent->offset),
 			buf, csize);
-
+                /*
+                 * tmp owns the compressed input and buf owns the decoded
+                 * output. The unconditional free consumes tmp here. The
+                 * short-decode branch below frees tmp again and leaves buf
+                 * allocated.
+                 */
                 FreePool (tmp);
 
                 if (ret != (fsw_ssize_t) csize) {
@@ -1884,6 +1893,11 @@ static fsw_status_t fsw_btrfs_lookup_dir_item(struct fsw_btrfs_volume *vol,
 
     key.object_id = object_id;
     key.type = GRUB_BTRFS_ITEM_TYPE_DIR_ITEM;
+    /*
+     * The CRC-32C of the name selects a DIR_ITEM key. Several names can share
+     * that key, so only the length and byte comparison inside the item
+     * establishes a match.
+     */
     key.offset = fsw_u64_le_swap (~grub_getcrc32c (1, lookup_name->data, lookup_name->size));
 
     err = lower_bound (vol, &key, &key_out, tree_id, &elemaddr, &elemsize, NULL, 0);

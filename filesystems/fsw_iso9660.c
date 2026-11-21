@@ -173,6 +173,11 @@ static fsw_status_t rr_find_nm(struct fsw_iso9660_volume *vol, struct iso9660_di
     str->type = 0;
     while(off < limit)
     {
+        /*
+         * A CE entry redirects parsing to a continuation area. Its offset and
+         * length describe the auxiliary data. An NM name can span entries, so
+         * the accumulated name must survive that change of input buffer.
+         */
         if (r[0] == 'C' && r[1] == 'E' && r[2] == 28)
         {
             int rc;
@@ -624,7 +629,12 @@ static fsw_status_t fsw_iso9660_read_dirrec(struct fsw_iso9660_volume *vol, stru
     struct iso9660_dirrec *dirrec = &dirrec_buffer->dirrec;
     int sp_off;
     int rc;
-
+    /*
+     * ISO directory records have no inode field. FSW synthesises an
+     * identifier from the containing directory's extent address in bytes plus
+     * the record's stream offset, captured before the fixed header is
+     * consumed.
+     */
     dirrec_buffer->ino = (ISOINT(((struct fsw_iso9660_dnode *)shand->dnode)->dirrec.extent_location)
                           << ISO9660_BLOCKSIZE_BITS)
         + (fsw_u32)shand->pos;
@@ -679,7 +689,11 @@ static fsw_status_t fsw_iso9660_read_dirrec(struct fsw_iso9660_volume *vol, stru
             return FSW_SUCCESS;
     }
 
-     
+    /*
+     * Reaching this point selects the base ISO identifier. Drop the version
+     * suffix and a trailing period when computing the display length. The
+     * name here borrows storage from dirrec_buffer.
+     */
     name_len = dirrec->file_identifier_length;
     for (i = name_len - 1; i > 0; i--) {
         if (dirrec->file_identifier[i] == ';') {

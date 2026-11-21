@@ -1,7 +1,8 @@
 /*
- * GNU-EFI implementations of EFI protocol and device-path helper functions.
- * Lengths and EFI_STATUS results are part of the public contract; returned
- * pointers may use firmware pool allocation rather than host malloc.
+ * Bridge EDK-style device-path operations to GNU-EFI.
+ * GetNextDevicePathInstance allocates one terminated instance and advances
+ * the caller's input pointer. Keep the original owning pointer separately
+ * when walking an allocated path.
  */
  
 

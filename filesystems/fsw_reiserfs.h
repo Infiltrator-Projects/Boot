@@ -40,12 +40,12 @@
 #define REISERFS_SUPERBLOCK_BLOCKSIZEBITS  12
  
 #define REISERFS_SUPERBLOCK_BLOCKSIZE  (1<<REISERFS_SUPERBLOCK_BLOCKSIZEBITS)
-
-
- 
-
-
-
+/*
+ * item_data points into the pinned leaf in block_buffer. path_bno and
+ * path_index record the search descent so item_next can reach a successor in
+ * a different leaf. Release the pin before discarding or replacing this
+ * cursor.
+ */
 struct fsw_reiserfs_item {
     int valid;
     

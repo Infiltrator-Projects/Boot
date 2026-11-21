@@ -198,9 +198,10 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
 
  
 /*
- * Handles EFI LoadImage/StartImage and compressed-image memory input. The
- * gzip branch caps input and checks actual expanded size before LoadImage.
- * Returned EFI_STATUS is material; driver execution can change device binding.
+ * Load native images by device path. For gzip, allocate an output buffer and
+ * pass its address to LoadImage. The SourceSize argument on that path comes
+ * from gunzip's compressed-input position, which can differ from the decoded
+ * image length.
  */
 EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR16 *Filename,
@@ -283,6 +284,12 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                                          ImageData, ImageSize, &ReadSize);
                         LOG(1, LOG_LINE_NORMAL, L"gunzip returned '%d'; ReadSize of '%ld'",
                             gzStatus, ReadSize);
+                        /*
+                         * ReadSize is gunzip's input cursor plus its trailer
+                         * allowance. Testing it against the output capacity
+                         * limits the length passed to firmware but does not
+                         * establish how many bytes inflate produced.
+                         */
                         if (gzStatus == 0 && ReadSize > 0 &&
                             (UINTN)ReadSize <= ImageSize) {
                             ReturnStatus = Status = refit_call6_wrapper(
@@ -336,6 +343,11 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     if (CheckError(Status, L"while getting a LoadedImageProtocol handle")) {
         goto bailout_unload;
     }
+    /*
+     * LoadedImage borrows the option buffer for StartImage. Its size is in
+     * bytes and includes the UTF-16 terminator. BOOT keeps the buffer until
+     * the call returns or the launch unwinds.
+     */
     ChildLoadedImage->LoadOptions = (VOID *)FullLoadOptions;
     ChildLoadedImage->LoadOptionsSize = FullLoadOptions ? ((UINT32)StrLen(FullLoadOptions) + 1) * sizeof(CHAR16) : 0;
      
@@ -356,6 +368,12 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
 
      
     LOG(1, LOG_LINE_NORMAL, L"Launching '%s'", ImageTitle);
+    /*
+     * Release BOOT's open filesystem handles before handing control to the
+     * child. A returning child may have changed controller bindings, so the
+     * return path reacquires BOOT's handles. Started drivers are kept
+     * resident for subsequent protocol calls.
+     */
     UninitRefitLib();
 
      
@@ -394,10 +412,10 @@ bailout:
 
  
 /*
- * Requests firmware setup on the next reset through OsIndications.
- * OsIndications is a UINT64 UEFI variable; the firmware must support the
- * requested capability, and SetVariable/ResetSystem may still fail.
- * This path changes next-boot behaviour rather than invoking an EFI image.
+ * Request entry to firmware setup through the 64-bit OsIndications variable
+ * before a cold reset. The read path dereferences only the first CHAR8 of the
+ * returned buffer. Existing indication bits in higher bytes are therefore not
+ * carried into the new value.
  */
 EFI_STATUS RebootIntoFirmware(VOID) {
     CHAR8 *b;

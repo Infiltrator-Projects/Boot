@@ -306,6 +306,12 @@ static fsw_status_t get_extent(fsw_u8 **rlep, int *rlenp, fsw_u64 *lcnp, fsw_u64
 	}
 
 	*pos += v;
+        /*
+         * The mapping pair stores the physical cluster delta in as many
+         * little-endian bytes as its header specifies. m is one past the
+         * largest value at that width. Subtracting it for a set sign bit
+         * extends a backward delta to the running cluster address.
+         */
 	if(v & (m>>1))
 	    *pos -= m;
 
@@ -477,6 +483,12 @@ static fsw_status_t read_mft(struct fsw_ntfs_volume *vol, fsw_u8 *mft, fsw_u64 m
     int l = 0;
     int r = vol->extmap.used - 1;
     int m;
+    /*
+     * The extent map describes the MFT file in clusters, while mftno counts
+     * fixed-size records. Convert the record offset to a virtual cluster
+     * before searching the map. A record larger than a cluster can cross a
+     * run boundary.
+     */
     fsw_u64 vcn = (mftno << vol->mftbits) >> vol->clbits;
     struct extent_slot *e = vol->extmap.extent;
 
@@ -661,14 +673,10 @@ static int tobits(fsw_u32 val)
 }
 
 /*
- * Interprets the boot sector and metadata needed to access NTFS records.
- * Code presence alone does not establish qualification of the NTFS EFI driver.
- */
-/*
- * Reads NTFS boot-sector geometry and locates the Master File Table.
- * Bytes-per-sector and cluster-size power-of-two checks constrain later
- * shifts and offsets, but an NTFS OEM signature is not by itself sufficient
- * to establish a readable, internally consistent volume.
+ * Bootstrap the MFT from its starting cluster in the volume boot sector. Read
+ * and fix up its own FILE record before building the virtual-to-physical run
+ * map. Further records, including the volume-label record, can then be
+ * addressed through the MFT itself.
  */
 static fsw_status_t fsw_ntfs_volume_mount(struct fsw_volume *volg)
 {
@@ -972,6 +980,11 @@ static fsw_status_t fsw_ntfs_dnode_stat(struct fsw_volume *volg, struct fsw_dnod
 static fsw_status_t fsw_ntfs_dnode_get_lcn(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dnode *dno, fsw_u64 vcn, fsw_u64 *lcnp)
 {
     fsw_status_t err;
+    /*
+     * This interval caches the decoded run for sequential reads. The
+     * displacement from its starting VCN is in clusters and is added only
+     * within the cached run's half-open interval.
+     */
     if(vcn >= dno->cext.vcn && vcn < dno->cext.vcn+dno->cext.cnt) {
 	*lcnp = dno->cext.lcn + vcn - dno->cext.vcn;
 	return FSW_SUCCESS;

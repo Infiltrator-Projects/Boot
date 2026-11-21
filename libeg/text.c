@@ -148,6 +148,12 @@ VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN
     FontPixelData = FontImage->PixelData;
     FontLineOffset = FontImage->Width;
     for (i = 0; i < TextLength; i++) {
+        /*
+         * The font atlas stores printable ASCII in consecutive cells starting
+         * at space. Unsupported characters share its last cell. Each glyph
+         * copy uses the full atlas width as source stride while the
+         * destination advances by one cell.
+         */
         c = Text[i];
         if (c < 32 || c >= 127)
             c = 95;

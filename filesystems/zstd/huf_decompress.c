@@ -239,6 +239,12 @@ size_t HUF_decompress1X2_DCtx_wksp(HUF_DTable *DCtx, void *dst, size_t dstSize, 
 	return HUF_decompress1X2_usingDTable_internal(dst, dstSize, ip, cSrcSize, DCtx);
 }
 
+/*
+ * The four Huffman streams have independent bit cursors but share one
+ * decoding table. The jump table supplies compressed lengths for the first
+ * three streams. Output segments are derived separately from the requested
+ * decoded size.
+ */
 static size_t HUF_decompress4X2_usingDTable_internal(void *dst, size_t dstSize, const void *cSrc, size_t cSrcSize, const HUF_DTable *DTable)
 {
 	 

@@ -154,16 +154,13 @@ security_policy_authentication (
    return Status;
 }  
 
+/*
+ * The original Security callback saved in esfas doubles as the installation
+ * marker. Locate the required Security interface before publishing either
+ * replacement. When Security2 is available, save and replace its separate
+ * buffer-based callback as well.
+ */
 EFI_STATUS
-/*
- * Installs security policy callbacks into firmware-visible interfaces.
- * Failure must not leave callers believing an authentication hook is active.
- */
-/*
- * Integrates with firmware security protocols for the current BOOT lifetime.
- * Changes to image-authentication callbacks affect child execution, and
- * successful installation cannot be inferred without checking EFI_STATUS.
- */
 security_policy_install(void)
 {
    EFI_SECURITY_PROTOCOL *security_protocol;
@@ -195,16 +192,13 @@ security_policy_install(void)
    return EFI_SUCCESS;
 }
 
+/*
+ * Restore Security first and clear its saved pointer immediately. If locating
+ * Security2 then fails, its saved pointer survives but a later call will see
+ * esfas cleared and return EFI_NOT_STARTED. Teardown can therefore be
+ * partial.
+ */
 EFI_STATUS
-/*
- * Restores the prior policy context; protocol changes must not be retained
- * unintentionally after a temporary loader handoff.
- */
-/*
- * Tears down the security-policy integration on exit from its intended
- * scope. Restoration matters because child images must not inherit an
- * accidental callback configuration from this loader.
- */
 security_policy_uninstall(void)
 {
    EFI_STATUS status;

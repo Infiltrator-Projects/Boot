@@ -89,6 +89,11 @@ extern "C" {
 
 #define LZO1X_MEM_COMPRESS      LZO1X_1_MEM_COMPRESS
 #define LZO1X_1_MEM_COMPRESS    ((lzo_uint32) (16384L * lzo_sizeof_dict_t))
+/*
+ * Decompression requires no caller-supplied scratch dictionary. LZO
+ * back-references use the output already produced. The safe entry point also
+ * takes the destination capacity through dst_len on entry.
+ */
 #define LZO1X_MEM_DECOMPRESS    (0)
 
 

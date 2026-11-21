@@ -48,6 +48,10 @@ MountOSXESP() {
             exit 1
         fi
     fi
+    # Temp now holds a diskutil device identifier. Reuse an existing df
+    # mountpoint if present, otherwise attempt the mount under /Volumes/ESP.
+    # The earlier selection takes the first matching EFI partition reported by
+    # diskutil.
     Esp=/dev/$Temp
     echo "The ESP has been identified as $Esp; attempting to mount it...."
 

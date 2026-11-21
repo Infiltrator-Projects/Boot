@@ -40,6 +40,11 @@
 
 typedef struct PointerStateStruct {
     UINTN X, Y;
+    /*
+     * Holding describes the current touch or button level. Press is set on
+     * its transition from held to released. Menu activation relies on this
+     * edge to avoid repeating an action on every sample.
+     */
     BOOLEAN Press;
     BOOLEAN Holding;
 } POINTER_STATE;

@@ -85,7 +85,12 @@
 #else
 #define BDS_LOAD_OPTION_SIGNATURE EFI_SIGNATURE_32 ('B', 'd', 'C', 'O')
 #endif
-
+/*
+ * This is the in-memory BDS representation after parsing a Boot#### variable.
+ * DevicePath, Description and LoadOptions are pointers. The serialized
+ * firmware record instead stores variable-length data inline after its fixed
+ * prefix.
+ */
 typedef struct {
 
   UINTN                     Signature;

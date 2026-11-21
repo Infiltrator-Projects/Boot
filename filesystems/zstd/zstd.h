@@ -83,11 +83,11 @@ int ZSTD_maxCLevel(void);
 
 size_t ZSTD_compressBound(size_t srcSize);
  
-
-
-
-
-
+/*
+ * Several streaming operations return a size hint on success or an encoded
+ * error in the same unsigned type. The input and output pos fields separately
+ * report actual progress.
+ */
 static __attribute__((unused)) unsigned int ZSTD_isError(size_t code)
 {
 	return code > (size_t)-ZSTD_error_maxCode;

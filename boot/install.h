@@ -28,6 +28,11 @@
 #endif
 
 typedef struct {
+    /*
+     * BootNum identifies the Boot#### variable. Size counts the device-path
+     * list in bytes. The parser duplicates the UTF-16 label and path
+     * separately because their original firmware variable buffer is released.
+     */
     UINT16           BootNum;
     UINT32           Options;
     UINT16           Size;

@@ -39,7 +39,12 @@
 
 typedef UINT8                       SERIAL_MODE;
 typedef UINT8                       PARALLEL_MODE;
-
+/*
+ * The legacy firmware table begins with a signature, checksum and length.
+ * Packing is part of the data contract since both firmware components must
+ * agree on byte offsets, including the segment and offset fields used for
+ * 16-bit calls.
+ */
 #define EFI_COMPATIBILITY16_TABLE_SIGNATURE SIGNATURE_32 ('I', 'F', 'E', '$')
 
  

@@ -624,11 +624,12 @@ static const FSE_decode_t4 OF_defaultDTable[(1 << OF_DEFAULTNORMLOG) + 1] = {
     {{0, 25, 5}},
     {{0, 24, 5}},
 };  
-
- 
-
-
-
+/*
+ * The sequence header chooses a table separately for literal lengths, match
+ * lengths and offsets. Repeating a table requires the corresponding entropy
+ * state from an earlier block or dictionary. A freshly reset decoder cannot
+ * infer those symbols from a repeat header alone.
+ */
 static size_t ZSTD_buildSeqTable(FSE_DTable *DTableSpace, const FSE_DTable **DTablePtr, symbolEncodingType_e type, U32 max, U32 maxLog, const void *src,
 				 size_t srcSize, const FSE_decode_t4 *defaultTable, U32 flagRepeatTable, void *workspace, size_t workspaceSize)
 {
@@ -1346,6 +1347,12 @@ static size_t ZSTD_decompressBlock_internal(ZSTD_DCtx *dctx, void *dst, size_t d
 	return ZSTD_decompressSequences(dctx, dst, dstCapacity, ip, srcSize);
 }
 
+/*
+ * When adjacent blocks use disjoint destination buffers, keep the previous
+ * prefix as dictionary history. The virtual base lets a match distance be
+ * interpreted consistently when a match crosses into the current output
+ * segment.
+ */
 static void ZSTD_checkContinuity(ZSTD_DCtx *dctx, const void *dst)
 {
 	if (dst != dctx->previousDstEnd) {  
@@ -1683,6 +1690,11 @@ size_t ZSTD_decompressContinue(ZSTD_DCtx *dctx, void *dst, size_t dstCapacity, c
 		}
 		return rSize;
 	}
+        /*
+         * An optional frame checksum covers the decoded bytes. Compare the
+         * low 32 bits of the running XXH64 digest with the four-byte trailer
+         * only after the final block.
+         */
 	case ZSTDds_checkChecksum: {
 		U32 const h32 = (U32)xxh64_digest(&dctx->xxhState);
 		U32 const check32 = ZSTD_readLE32(src);  

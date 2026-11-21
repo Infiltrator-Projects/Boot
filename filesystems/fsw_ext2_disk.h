@@ -78,10 +78,11 @@ typedef __u64   __le64;
 #define EXT2_FIRST_INO(s)       (((s)->s_rev_level == EXT2_GOOD_OLD_REV) ? \
                                  EXT2_GOOD_OLD_FIRST_INO : \
                                  (s)->s_first_ino)
-
- 
-
-
+/*
+ * bg_inode_table is the starting filesystem block of the group's inode array.
+ * The group's bitmap fields locate allocation data. They are separate from
+ * the table address used on the file lookup path.
+ */
 struct ext2_group_desc
 {
     __le32  bg_block_bitmap;         

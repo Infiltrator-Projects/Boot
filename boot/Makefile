@@ -47,7 +47,9 @@ OBJS            = apple.o config.o crc32.o driver_support.o gpt.o icns.o \
 include $(SRCDIR)/../Make.common
 
 all: $(TARGET)
-
+# Resolve BOOT's references against the firmware support archives at the ELF
+# link. The objcopy rule below carries the loaded data and relocation sections
+# forward into the executable firmware image.
 $(SHLIB_TARGET): $(OBJS)
 	$(LD) $(LOCAL_LDFLAGS) $(GNUEFI_LDFLAGS) $(SUBSYSTEM_LDFLAG) $(OBJS) \
 	      -o $@ $(LOCAL_LIBS) $(GNUEFI_LIBS)

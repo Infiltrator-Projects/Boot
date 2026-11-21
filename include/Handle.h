@@ -111,7 +111,11 @@ LibLocateProtocol (
   IN  EFI_GUID    *ProtocolGuid,
   OUT VOID        **Interface
   );
-
+/*
+ * Shell handle numbers belong to a particular enumeration of the firmware
+ * handle database. Convert back to EFI_HANDLE before requesting a protocol.
+ * Neither value identifies a persistent disk or boot option.
+ */
 EFI_HANDLE
 ShellHandleFromIndex (
   IN UINTN        Value

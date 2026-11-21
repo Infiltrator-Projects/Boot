@@ -419,13 +419,10 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
 
 
 /*
- * Uninstalls the filesystem protocol and releases the controller/volume
- * resources; handles must not outlive this binding teardown.
- */
-/*
- * Unbinds a filesystem instance from the controller, withdrawing firmware
- * protocols and releasing volume-related state. Open file references and
- * owned protocol instances must not survive their backing mount lifetime.
+ * Unpublish Simple File System before freeing the embedded protocol's
+ * containing volume. If firmware refuses the uninstall, return immediately
+ * while that volume is still live. After detachment, unmount FSW, close Disk
+ * I/O and clear the read cache.
  */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                              IN  EFI_HANDLE                   ControllerHandle,
@@ -540,15 +537,10 @@ void EFIAPI fsw_efi_change_blocksize(struct fsw_volume *vol,
 
 
 /*
- * Uses a small EFI Disk I/O read cache with direct-block fallback. Cache
- * keys include volume identity and byte offset; stale media or failed reads
- * must never be returned as valid sector data.
- */
-/*
- * Translates an FSW physical-block request to EFI disk access. StartRead is
- * computed from the block index and the active physical block size, then
- * checked against this bridge's read-cache windows before firmware I/O.
- * A cache hit is only valid for the same mounted volume and byte interval.
+ * Translate the FSW physical block number into a byte offset for EFI Disk
+ * I/O. A cached window must match the volume and cover the requested
+ * interval. When read-ahead cannot serve this request, the fallback asks
+ * firmware for just the original block.
  */
 fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno, void *buffer) {
    int              i, ReadCache = -1;
@@ -1028,19 +1020,22 @@ EFI_STATUS fsw_efi_dir_read(IN FSW_FILE_DATA *File,
     }
     if (EFI_ERROR(Status))
         return Status;
-
-     
+    /*
+     * The backend has already advanced the directory cursor. A size
+     * negotiation failure from FileInfo therefore leaves it past this entry.
+     * The cursor rollback in fsw_dnode_dir_read covers backend errors only.
+     */
     Status = fsw_efi_dnode_fill_FileInfo(Volume, dno, BufferSize, Buffer);
     fsw_dnode_release(dno);
     return Status;
 }
 
  
-
-
-
-
-
+/*
+ * UEFI directories support a rewind here. Other numeric positions would
+ * expose an internal directory cookie whose interpretation depends on the
+ * filesystem.
+ */
 EFI_STATUS fsw_efi_dir_setpos(IN FSW_FILE_DATA *File, IN UINT64 Position)
 {
     if (Position == 0) {

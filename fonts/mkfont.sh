@@ -49,6 +49,9 @@ if [[ ! -x $Convert ]] ; then
 fi
 
 Height=$2
+# Bake 96 equal-width cells into one strip. libeg maps printable ASCII to
+# cells zero through 94 and sends unsupported characters to cell 95, which is
+# why the final question mark is present twice in the atlas.
 let CellWidth=(${Height}*6+5)/10
 
 let Width=${CellWidth}*96

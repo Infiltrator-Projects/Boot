@@ -106,6 +106,11 @@ void inflate_fast(z_streamp strm, unsigned start)
     in = strm->next_in;
     last = in + (strm->avail_in - 5);
     out = strm->next_out;
+    /*
+     * beg marks the beginning of output produced since the outer inflate call
+     * started. A match distance larger than out - beg must obtain its prefix
+     * from the saved history window.
+     */
     beg = out - (start - strm->avail_out);
     end = out + (strm->avail_out - 257);
 #ifdef INFLATE_STRICT

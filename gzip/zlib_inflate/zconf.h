@@ -56,6 +56,11 @@
 
 typedef unsigned char  Byte;   
 typedef unsigned int   uInt;   
+/*
+ * This port uses uLong for both the current buffer's available byte count and
+ * the cumulative stream totals. Its width follows the target C ABI, which
+ * also determines the range of those counters.
+ */
 typedef unsigned long  uLong;  
 typedef void     *voidp;
 

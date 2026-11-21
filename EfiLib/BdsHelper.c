@@ -79,8 +79,12 @@ VOID UpdateBbsTable (BDS_COMMON_OPTION *Option) {
       }
 
       BdsBuildLegacyDevNameString (&LocalBbsTable[Idx], Idx, sizeof (Desc), Desc);
-
-       
+      /*
+       * Type alone can identify several BIOS devices. The generated
+       * description distinguishes the selected one for priority zero. Other
+       * devices of the same type get priority one, ahead of unrelated entries
+       * previously in those slots.
+       */
       if (LocalBbsTable[Idx].DeviceType == OptionBBS->DeviceType) {
          if (MyStriCmp(Desc, Option->Description)) {
              

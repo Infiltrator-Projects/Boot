@@ -15,7 +15,9 @@ SRCDIR = .
 
 VPATH = $(SRCDIR)
 HOSTARCH        = $(shell uname -m | sed s,i[3456789]86,ia32,)
-
+# FSTYPE is used when compiling the firmware bridge to select a backend table
+# by symbol name. The matching fsw_$(DRIVERNAME).o below supplies that table
+# to the link.
 LOCAL_GNUEFI_CFLAGS   = -DFSTYPE=$(DRIVERNAME) -I$(SRCDIR)
 ifeq ($(HOSTARCH),x86_64)
   LOCAL_GNUEFI_CFLAGS += "-DEFIAPI=__attribute__((ms_abi))"

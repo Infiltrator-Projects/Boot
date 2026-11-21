@@ -103,8 +103,9 @@ void xxh64_reset(struct xxh64_state *statePtr, const uint64_t seed)
 }
 
 /*
- * Accumulates input bytes into the streaming hash state. State lifetime
- * and input length belong to the caller, including zero-length updates.
+ * Updates may end inside a 32-byte stripe. Save the trailing bytes in mem64
+ * until the next update can complete the four accumulator lanes or the digest
+ * consumes the final tail.
  */
 int xxh64_update(struct xxh64_state *state, const void *input, const size_t len)
 {

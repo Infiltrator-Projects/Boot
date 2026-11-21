@@ -123,8 +123,9 @@ UINTN fsw_efi_strsize(struct fsw_string *s)
 }
 
 /*
- * Converts the filesystem library's string representation into EFI CHAR16.
- * The caller must provide enough destination storage for the result.
+ * The EFI host requests UTF-16 when constructing the FSW volume. CopyMem
+ * below therefore copies already-converted bytes. An unexpected encoding
+ * produces an empty string.
  */
 VOID fsw_efi_strcpy(CHAR16 *Dest, struct fsw_string *src)
 {

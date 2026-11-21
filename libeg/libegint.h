@@ -68,7 +68,11 @@ VOID egRawCopy(IN OUT EG_PIXEL *CompBasePtr, IN EG_PIXEL *TopBasePtr,
 VOID egRawCompose(IN OUT EG_PIXEL *CompBasePtr, IN EG_PIXEL *TopBasePtr,
                   IN UINTN Width, IN UINTN Height,
                   IN UINTN CompLineOffset, IN UINTN TopLineOffset);
-
+/*
+ * Form a byte pointer to one component of the first pixel. The plane helpers
+ * advance by sizeof(EG_PIXEL) to visit the same component in successive
+ * interleaved pixels.
+ */
 #define PLPTR(imagevar, colorname) ((UINT8 *) &((imagevar)->PixelData->colorname))
 
 VOID egDecompressIcnsRLE(IN OUT UINT8 **CompData, IN OUT UINTN *CompLen, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);

@@ -97,13 +97,9 @@ VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage) {
  
  
 /*
- * Changes the CSR menu selection through the supported Apple path.
- * This operation is separate from general-purpose EFI loader discovery.
- */
-/*
- * Requests a change to Apple-specific CSR configuration state. This action
- * is firmware/vendor dependent and should remain distinct from ordinary
- * cross-platform menu preferences and EFI image validation.
+ * Read csr-active-config and find its mask in the configured sequence. An
+ * unrecognised value or the last entry wraps to the first. Update the
+ * displayed SIP state only after the four-byte persistent write succeeds.
  */
 VOID RotateCsrValue(VOID) {
     UINT32       CurrentValue, TargetCsr;
@@ -159,13 +155,9 @@ typedef struct EfiAppleSetOsInterface {
  
  
 /*
- * Exposes Apple-specific OS identification to the booted environment;
- * firmware protocol availability constrains the result.
- */
-/*
- * Installs Apple-compatible OS information exposed through the relevant
- * EFI protocol. Such vendor integration is optional; callers must not infer
- * its presence on arbitrary UEFI implementations.
+ * Apple's set-OS protocol is optional. If located, its version gates the
+ * calls. Version 1 accepts an OS version string, and version 2 or higher can
+ * also receive the vendor after the version call succeeds.
  */
 EFI_STATUS SetAppleOSInfo() {
     CHAR16 *AppleOSVersion = NULL;

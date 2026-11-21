@@ -59,7 +59,11 @@ EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconNam
 EG_IMAGE * DummyImage(IN UINTN PixelSize);
 
 EG_IMAGE * BuiltinIcon(IN UINTN Id);
-
+/*
+ * These numeric IDs index BuiltinIconTable directly. The table determines
+ * both the resource basename and which configured icon size to request for
+ * this entry.
+ */
 #define BUILTIN_ICON_FUNC_ABOUT            (0)
 #define BUILTIN_ICON_FUNC_RESET            (1)
 #define BUILTIN_ICON_FUNC_SHUTDOWN         (2)

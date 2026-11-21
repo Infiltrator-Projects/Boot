@@ -54,6 +54,11 @@ typedef struct {
    UINT64  signature;
    UINT32  spec_revision;
    UINT32  header_size;
+   /*
+    * The checksum covers the header with this field set to zero. The
+    * independent entry_crc32 covers the partition entry array and uses the
+    * geometry specified later in this header.
+    */
    UINT32  header_crc32;
    UINT32  reserved;
    UINT64  header_lba;

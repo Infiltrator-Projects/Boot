@@ -90,6 +90,12 @@ static fsw_ssize_t zstd_decompress(char *data_in, fsw_size_t srclen,
 		goto finish;
 	}
 
+        /*
+         * A file extent can reference the interior of a compressed stream.
+         * Decode and discard the prefix in page-sized pieces to reconstruct
+         * the Zstandard history before writing the requested slice to the
+         * caller's buffer.
+         */
 	while(start_byte > 0) {
 	    out_buf.size = start_byte < PAGE_SIZE ? start_byte : PAGE_SIZE;
 	    if(out_buf.dst == NULL)
@@ -126,6 +132,12 @@ static fsw_ssize_t zstd_decompress(char *data_in, fsw_size_t srclen,
 	    goto finish;
 	}
 
+        /*
+         * The wrapper reports the requested length after a successful final
+         * stream call. The finish path zero-fills any remainder using
+         * out_buf.pos, so a successful full-length return does not imply that
+         * the decoder supplied every byte.
+         */
 	ret = destlen;
 finish:
 	if(out_buf.dst && out_buf.dst != data_out)

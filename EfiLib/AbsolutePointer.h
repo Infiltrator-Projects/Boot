@@ -41,6 +41,11 @@ typedef struct _EFI_ABSOLUTE_POINTER_PROTOCOL EFI_ABSOLUTE_POINTER_PROTOCOL;
 
 
 typedef struct {
+  /*
+   * Mode reports the native coordinate range. pdUpdateState scales CurrentX
+   * and CurrentY by their reported maxima when mapping a touch to pixels,
+   * effectively assuming a zero origin for those axes.
+   */
   UINT64 AbsoluteMinX;  
   UINT64 AbsoluteMinY;  
   UINT64 AbsoluteMinZ;  

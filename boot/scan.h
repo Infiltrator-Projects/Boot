@@ -1,8 +1,7 @@
 /*
- * EFI/legacy loader scanning and submenu population interface.
- * Entries represent discovered candidates across available firmware volumes,
- * not a hardcoded number of OSs. Hidden entries are UI filtering, not writes
- * to the loader files or firmware's one-time boot alternatives.
+ * Discovery builds menu entries from a volume and loader pathname. Generated
+ * submenus hold alternate options and folded kernels for that entry. Actual
+ * firmware image loading is deferred until the menu dispatches a selection.
  */
  
 

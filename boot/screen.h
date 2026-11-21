@@ -52,10 +52,10 @@
 
 #include "libeg.h"
 
- 
- 
- 
-
+/*
+ * This sentinel leaves firmware's current text mode alone. A numeric mode or
+ * a resolution request uses a different path during screen setup.
+ */
 #define DONT_CHANGE_TEXT_MODE 1024  
 
 #define ATTR_BASIC (EFI_LIGHTGRAY | EFI_BACKGROUND_BLACK)

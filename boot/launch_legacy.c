@@ -94,13 +94,9 @@ EFI_GUID EfiGlobalVariableGuid = { 0x8BE4DF61, 0x93CA, 0x11D2, { 0xAA, 0x0D, 0x0
 
 #if defined(EFI32) || defined(EFIX64)
 /*
- * Modifies MBR active-partition state for a legacy chainload path. This
- * operation is not read-only discovery and must be confined to its intended disk.
- */
-/*
- * Performs a legacy active-partition operation through EFI Block I/O.
- * Unlike menu discovery this can modify persistent partition metadata;
- * callers must distinguish the selected disk and partition from EFI NVRAM.
+ * The Apple legacy launch path writes the active flag to sector zero before
+ * it walks any extended partition records. Each EBR update is a separate disk
+ * write. A later error can therefore leave an earlier flag change in place.
  */
 static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN PartitionIndex)
 {
@@ -174,7 +170,11 @@ static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN Partit
                 if (EMbrTable[i].StartLBA == 0 || EMbrTable[i].Size == 0)
                     break;
                 if (IS_EXTENDED_PART_TYPE(EMbrTable[i].Type)) {
-                     
+                    /*
+                     * An EBR's link to the next EBR is relative to the start
+                     * of the extended partition. Using the current EBR as the
+                     * origin would compound offsets at each step.
+                     */
                     NextExtCurrent = ExtBase + EMbrTable[i].StartLBA;
                     EMbrTable[i].Flags = (PartitionIndex >= LogicalPartitionIndex) ? 0x80 : 0x00;
                     break;
@@ -202,13 +202,9 @@ static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN Partit
 static EFI_GUID AppleVariableVendorID = { 0x7C436110, 0xAB2A, 0x4BBB, { 0xA8, 0x80, 0xFE, 0x41, 0x99, 0x5C, 0x9F, 0x82 } };
 
 /*
- * Communicates a legacy boot disk choice via firmware-specific state.
- * The data must match the selected device path, not merely a displayed label.
- */
-/*
- * Writes a firmware-facing hint identifying a legacy boot disk. The hint
- * concerns compatibility-mode dispatch and is distinct from launching a
- * native UEFI image or setting a permanent BootOrder preference.
+ * Persist the whole disk's binary EFI device path in Apple's BootCampHD
+ * variable. The legacy loader uses this disk hint even when the menu
+ * selection represents one of its partitions.
  */
 static EFI_STATUS WriteBootDiskHint(IN EFI_DEVICE_PATH *WholeDiskDevicePath)
 {

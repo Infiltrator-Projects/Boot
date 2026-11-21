@@ -58,12 +58,12 @@
 #include "../include/tiano_includes.h"
 #endif
 #include "global.h"
-
-
- 
- 
- 
-
+/*
+ * Both cursor pairs describe the same file buffer. BufferSize is in bytes,
+ * while advancing a CHAR16 pointer consumes two bytes. ReadLine selects the
+ * pair using the detected encoding and stops at its corresponding end
+ * pointer.
+ */
 typedef struct {
     UINT8   *Buffer;
     UINTN   BufferSize;

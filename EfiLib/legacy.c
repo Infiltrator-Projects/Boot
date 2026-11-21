@@ -614,6 +614,11 @@ GroupMultipleLegacyBootOption4SameType (
 
     ASSERT ((mBootOptionBbsMapping[MappingIndex].BbsType & 0xF) < 
              sizeof (DeviceTypeIndex) / sizeof (DeviceTypeIndex[0]));
+    /*
+     * Each type remembers its next insertion slot in BootOption. Moving a
+     * later option into its group shifts all intervening entries, including
+     * other groups' saved slots, which the following loop adjusts.
+     */
     NextIndex = &DeviceTypeIndex[mBootOptionBbsMapping[MappingIndex].BbsType & 0xF];
     if (*NextIndex == (UINTN) -1) {
        

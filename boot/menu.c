@@ -395,13 +395,10 @@ static VOID SaveScreen(VOID) {
  
  
 /*
- * Consumes key/pointer events, scroll state and timeouts to choose an action.
- * An unselected or hidden entry must not become an implicit boot target.
- */
-/*
- * Central menu event loop for input, selection, timeout and redraw.
- * The return value describes the user's menu action; callers decide whether
- * that action launches an image, changes firmware state or simply exits.
+ * The menu owns the selection index while the selected style renders it. A
+ * key, pointer action or timeout supplies the exit reason. The caller
+ * interprets that reason together with the chosen entry, since selecting
+ * details and starting the entry require different actions.
  */
 UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
                      IN MENU_STYLE_FUNC StyleFunc,
@@ -1420,6 +1417,12 @@ UINTN WaitForInput(UINTN Timeout) {
 
     LOG(3, LOG_LINE_NORMAL, L"Entering WaitForInput(), Timeout = %d", Timeout);
     Status = refit_call5_wrapper(BS->CreateEvent, EVT_TIMER, 0, NULL, NULL, &TimerEvent);
+    /*
+     * The wait list starts with the keyboard, then pointers, then an optional
+     * timer. A zero timeout excludes its final slot. In that case the last
+     * included event is a pointer when one exists, yet the final index test
+     * below still classifies that slot as a timeout.
+     */
     if (Timeout == 0) {
         Length--;
     } else {
@@ -1836,13 +1839,10 @@ UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry)
 }
 
 /*
- * Matches a configured default against the discovered entry set. No
- * assumption about the number or operating systems represented is permitted.
- */
-/*
- * Applies default-selection policy to the main boot menu and returns the
- * selected entry to the lifetime coordinator. A default entry is a user
- * preference; it is not an implicit firmware NVRAM boot-order rewrite.
+ * Run the main menu and any requested submenu in a loop. Returning from a
+ * submenu or cancelling option editing resumes selection. Clear the main
+ * timeout after the first pass so time spent in details cannot trigger a
+ * subsequent automatic selection.
  */
 UINTN RunMainMenu(REFIT_MENU_SCREEN *Screen, CHAR16** DefaultSelection, REFIT_MENU_ENTRY **ChosenEntry)
 {

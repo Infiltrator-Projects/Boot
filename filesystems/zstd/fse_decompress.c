@@ -133,6 +133,12 @@ size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsi
 
 	 
 	{
+                /*
+                 * A normalised count of -1 has already reserved a terminal
+                 * table slot for a rare symbol. Spread the positive counts
+                 * across the remaining states using the fixed step. Returning
+                 * to zero checks that the distribution completed a cycle.
+                 */
 		U32 const tableMask = tableSize - 1;
 		U32 const step = FSE_TABLESTEP(tableSize);
 		U32 s, position = 0;

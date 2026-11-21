@@ -75,9 +75,12 @@
 #define MENU_EXIT_HIDE    (6)
 
 #define TAG_RETURN       (99)
-
- 
-
+/*
+ * CurrentSelection indexes the whole Entries array. FirstVisible and
+ * LastVisible describe the displayed interval. Keeping both coordinate
+ * systems lets keyboard selection survive scrolling and lets hit testing
+ * recover the original entry index.
+ */
 typedef struct {
    INTN CurrentSelection, PreviousSelection, MaxIndex;
    INTN FirstVisible, LastVisible, MaxVisible;

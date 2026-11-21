@@ -52,8 +52,11 @@ typedef enum ColorTypes {
    white,
    black
 } Colors;
-
- 
+/*
+ * The in-memory byte order matches EFI BLT colour components. HasAlpha on the
+ * enclosing image tells software composition whether to use the fourth byte
+ * for opacity. Firmware blits take the full four-byte pixel stride.
+ */
 typedef struct {
     UINT8 b, g, r, a;
 } EG_PIXEL;
@@ -81,7 +84,11 @@ typedef struct {
 #define EG_EICOMPMODE_EFICOMPRESS   (2)
 
 #define ICON_EXTENSIONS L"png,icns,jpg,jpeg,bmp"
-
+/*
+ * Embedded images describe a stream of colour planes. PixelMode determines
+ * which planes follow, and CompressMode tells the reader how to consume them
+ * before interleaving samples into EG_PIXEL.
+ */
 typedef struct {
     UINTN       Width;
     UINTN       Height;

@@ -244,6 +244,11 @@ void fsw_strsplit(struct fsw_string *element, struct fsw_string *buffer, char se
     }
 
     maxlen = buffer->len;
+    /*
+     * Both descriptors now view the same storage. Splitting advances the
+     * remaining view past the separator and shortens the element view. Only
+     * the owner of the original allocation may release it.
+     */
     *element = *buffer;
 
     if (buffer->type == FSW_STRING_TYPE_ISO88591) {

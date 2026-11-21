@@ -234,6 +234,10 @@ CheckForShimUpdates() {
     CurrentShimDate=$(echo "$CurrentShim" | tr -s "-" | cut -d "-" -f 1-4)
     echo "The current Shim program is $ESP_MOUNT_POINT/$BL_FULLNAME"
     echo "Its date stamp is: $CurrentShimDate"
+    # Candidate ordering uses filesystem modification timestamps. A candidate
+    # becomes eligible for replacement only when the matching MokManager
+    # filename also exists beside it. These checks establish which files to
+    # offer the operator.
     NewestShimFile="$CurrentShimFile"
     NewestShimDate="$CurrentShimDate"
     echo ""

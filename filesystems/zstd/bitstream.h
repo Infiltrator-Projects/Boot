@@ -120,11 +120,11 @@ static const unsigned BIT_mask[] = {0,       1,       3,       7,	0xF,      0x1F
 
 
  
-
-
-
-
-
+/*
+ * Initialise a reverse bit reader from the end of the supplied buffer. The
+ * highest set bit in the last byte marks the end of meaningful data. It
+ * determines how many leading bits of the initial accumulator to skip.
+ */
 ZSTD_STATIC size_t BIT_initDStream(BIT_DStream_t *bitD, const void *srcBuffer, size_t srcSize)
 {
 	if (srcSize < 1) {

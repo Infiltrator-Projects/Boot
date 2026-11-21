@@ -67,10 +67,11 @@ typedef INT32   fsw_s32;
 typedef UINT32  fsw_u32;
 typedef INT64   fsw_s64;
 typedef UINT64  fsw_u64;
-
-
- 
-
+/*
+ * Translate an EFI pool allocation into both an FSW status and an output
+ * pointer. This double-indirection contract is also used by fsw_memdup when a
+ * backend copies metadata out of a pinned block.
+ */
 #define fsw_alloc(size, ptrptr) (((*(ptrptr) = AllocatePool(size)) == NULL) ? FSW_OUT_OF_MEMORY : FSW_SUCCESS)
 #define fsw_free(ptr) FreePool(ptr)
 

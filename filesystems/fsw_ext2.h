@@ -50,6 +50,11 @@ struct fsw_ext2_volume {
     struct fsw_volume g;             
     
     struct ext2_super_block *sb;     
+    /*
+     * One entry per block group gives the physical start of its inode table.
+     * inode_size then determines both which table block contains an inode and
+     * its byte offset within that block.
+     */
     fsw_u32     *inotab_bno;         
     fsw_u32     ind_bcnt;            
     fsw_u32     dind_bcnt;           

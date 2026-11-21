@@ -65,11 +65,11 @@
 #include <limits.h>
 #include <stddef.h>
 
-
- 
-
-
-
+/*
+ * The compressed format and decoder pointer arithmetic count eight-bit
+ * octets. Fail the build if a C byte on the target cannot represent that
+ * unit.
+ */
 #if !defined(CHAR_BIT) || (CHAR_BIT != 8)
 #  error "invalid CHAR_BIT"
 #endif

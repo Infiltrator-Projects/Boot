@@ -52,13 +52,9 @@ EFI_STATUS DeleteFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
  
  
 /*
- * Handles the previous log during a new session. A missing or unwritable
- * log file must remain distinguishable from a firmware boot failure.
- */
-/*
- * Manages existing diagnostic-log content before further writes. Rotation
- * is a potentially persistent filesystem mutation; an unsuccessful rename
- * or deletion should not be interpreted as a boot or driver-load failure.
+ * Make room for the new session by discarding the old backup and attempting
+ * to rename the current log. If backup fails, delete the current log and
+ * propagate the deletion status.
  */
 EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
     EFI_STATUS Status = EFI_SUCCESS;
@@ -81,12 +77,10 @@ EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
  
  
 /*
- * Opens the current log destination after required firmware/file state exists.
- */
-/*
- * Opens the logging destination and establishes its active file handle.
- * Log availability is optional diagnostic state; boot-control decisions
- * must continue to use EFI_STATUS from the operations they describe.
+ * Temporarily suppress logging while opening the logging destination. Fresh
+ * sessions rotate and create a log. Restart reopens an existing one. If
+ * BOOT's own directory fails, try the EFI System Partition before disabling
+ * the log.
  */
 EFI_STATUS StartLogging(BOOLEAN Restart) {
     EFI_STATUS      Status = EFI_SUCCESS;

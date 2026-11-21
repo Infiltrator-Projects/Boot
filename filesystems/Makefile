@@ -86,9 +86,9 @@ btrfs_gnuefi:
 ntfs_gnuefi:
 	rm -f fsw_efi.o
 	+make DRIVERNAME=ntfs -f Make.gnuefi
-
-
-
+# All backends share the same fsw_efi.o pathname. Each recipe removes and
+# rebuilds it with its own FSTYPE. Serialising the backend targets prevents
+# one driver's protocol table from being linked into another image.
 .NOTPARALLEL:
 
 

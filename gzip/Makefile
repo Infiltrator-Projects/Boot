@@ -15,7 +15,9 @@ SRCDIR = .
 VPATH = $(SRCDIR)
 
 LOCAL_GNUEFI_CFLAGS  = -I$(SRCDIR) -I$(SRCDIR)/../include
-
+# decompress_inflate.c includes the DEFLATE table builder, fast loop and state
+# machine directly. Listing those sources again here would link their
+# definitions twice.
 OBJS            = decompress_inflate.o
 TARGET          = libgzip.a
 

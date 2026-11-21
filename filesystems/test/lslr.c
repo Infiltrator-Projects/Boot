@@ -73,7 +73,11 @@ static int listdir(struct fsw_posix_volume *vol, char *path, int level)
         for (i = 0; i < level*2; i++)
             fputc(' ', stderr);
         fprintf(stderr, "%d  %s\n", dent->d_type, dent->d_name);
-
+        /*
+         * The directory entry is reused by readdir. Build a child pathname in
+         * this invocation's local buffer before recursing. The child opens
+         * its own directory stream, so it cannot advance the parent's cursor.
+         */
         if (dent->d_type == DT_DIR) {
             snprintf(subpath, 4095, "%s%s/", path, dent->d_name);
             listdir(vol, subpath, level + 1);

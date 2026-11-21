@@ -324,7 +324,11 @@ fsw_status_t fsw_posix_open_dno(struct fsw_posix_volume *pvol, const char *path,
         return status;
     }
 
-     
+    /*
+     * Lookup and link resolution each yield a retained dnode on success.
+     * Release the lookup reference even if the resolved target happens to be
+     * the same object. The stream handle later acquires its own reference.
+     */
     status = fsw_dnode_resolve(dno, &target_dno);
     fsw_dnode_release(dno);
     if (status) {
@@ -383,8 +387,11 @@ fsw_status_t fsw_posix_read_block(struct fsw_volume *vol, fsw_u32 phys_bno, void
     ssize_t         read_result;
 
     FSW_MSG_DEBUGV((FSW_MSGSTR("fsw_posix_read_block: %d  (%d)\n"), phys_bno, vol->phys_blocksize));
-
-     
+    /*
+     * The image file is the backing device. Multiply in off_t before seeking
+     * because the FSW input is a block number. A short host read is an I/O
+     * error to the cache, even when POSIX reports it as a normal EOF.
+     */
     block_offset = (off_t)phys_bno * vol->phys_blocksize;
     seek_result = lseek(pvol->fd, block_offset, SEEK_SET);
     if (seek_result != block_offset)

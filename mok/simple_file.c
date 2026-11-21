@@ -141,16 +141,13 @@ simple_file_open(EFI_HANDLE image, CHAR16 *name, EFI_FILE_PROTOCOL **file, UINT6
    return efi_status;
 }
 
+/*
+ * Use GetInfo to obtain the advertised size, allocate that many bytes, and
+ * let Read report the actual count through size. Once allocation succeeds the
+ * buffer is exposed through the out-parameter, including if the subsequent
+ * read returns an error.
+ */
 EFI_STATUS
-/*
- * Allocates and reads the entire EFI file; returned length is the only safe
- * bound for subsequent certificate or image parsing.
- */
-/*
- * Materialises file bytes into a caller-visible buffer for subsequent
- * inspection. Reported size and allocation must remain paired; consumers
- * may not read beyond the actual data returned by firmware.
- */
 simple_file_read_all(EFI_FILE_PROTOCOL *file, UINTN *size, void **buffer)
 {
    EFI_STATUS efi_status;

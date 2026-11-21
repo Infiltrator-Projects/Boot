@@ -55,8 +55,9 @@ trap 'rm -rf -- "$work"' EXIT
 source_dir="$work/Boot"
 git -C "$work" init -q Boot
 git -C "$source_dir" remote add origin "$SOURCE_URL"
-
-
+# Sparse checkout limits the materialised source directories. Fetch by the
+# packaged object ID and verify the detached HEAD before compiling so a newer
+# main cannot silently change what this installer builds.
 git -C "$source_dir" sparse-checkout init --cone
 git -C "$source_dir" sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys filesystems
 git -C "$source_dir" -c protocol.version=2 fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"
@@ -82,7 +83,9 @@ echo "Running the native BOOT installation..."
 
 
 export BOOT_INSTALL_SOURCE_DIR="$source_dir"
-
+# The native build has completed. The following installer uses explicit status
+# checks and its InstallationFailed flag. It receives the verified source
+# directory and a fixed driver-selection argument in this same shell.
 set +e +u
 set +o pipefail
 

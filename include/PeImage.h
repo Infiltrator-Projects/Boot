@@ -134,6 +134,12 @@ typedef struct {
 #define EFI_IMAGE_DIRECTORY_ENTRY_IMPORT      1
 #define EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE    2
 #define EFI_IMAGE_DIRECTORY_ENTRY_EXCEPTION   3
+/*
+ * The certificate directory is special in PE images. Its address field is a
+ * file offset, whereas most other data-directory entries use relative virtual
+ * addresses. A parser locating embedded signatures must preserve that
+ * distinction.
+ */
 #define EFI_IMAGE_DIRECTORY_ENTRY_SECURITY    4
 #define EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC   5
 #define EFI_IMAGE_DIRECTORY_ENTRY_DEBUG       6

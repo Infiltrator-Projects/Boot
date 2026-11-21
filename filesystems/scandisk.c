@@ -131,6 +131,11 @@ static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), str
         struct fsw_volume *vol = create_dummy_volume(diskio, blockio->Media->MediaId);
         if(vol) {
             DPRINT(L"Checking disk %d\n", i);
+            /*
+             * The hook borrows this temporary probe volume for one iteration.
+             * A Btrfs member retained past this call needs independent state
+             * because the scanner releases the probe immediately afterwards.
+             */
             if(hook(master, vol) == FSW_SUCCESS)
                 scanned++;
             free_dummy_volume(vol);

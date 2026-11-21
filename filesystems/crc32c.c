@@ -76,7 +76,11 @@ grub_getcrc32c (uint32_t crc, const void *buf, int size)
 
   if (! crc32c_table[1])
     init_crc32c_table ();
-
+  /*
+   * Complement on entry and exit permits incremental hashing with the
+   * previous return value as the next seed. The Btrfs directory lookup also
+   * applies its name-key convention to the result.
+   */
   crc^= 0xffffffff;
 
   for (i = 0; i < size; i++)

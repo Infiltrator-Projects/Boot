@@ -121,8 +121,12 @@ int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
     for (min = 1; min < MAXBITS; min++)
         if (count[min] != 0) break;
     if (root < min) root = min;
-
-     
+    /*
+     * left counts unassigned prefixes at the current bit length. Doubling
+     * adds the next binary branch, and subtracting this length's symbols
+     * consumes its codes. A negative remainder means that two or more codes
+     * would need the same prefix.
+     */
     left = 1;
     for (len = 1; len <= MAXBITS; len++) {
         left <<= 1;

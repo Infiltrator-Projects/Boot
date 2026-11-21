@@ -1,7 +1,8 @@
 /*
- * EFI UGA legacy graphics protocol definitions retained for older firmware.
- * UGA and GOP have different capability queries; neither interface is
- * unconditionally present on all UEFI implementations.
+ * The UGA drawing interface complements GOP on older firmware. Its Blt call
+ * takes separate source and destination origins and a byte stride for a
+ * memory surface. libeg uses that stride when transferring a subrectangle of
+ * a larger image.
  */
  
 

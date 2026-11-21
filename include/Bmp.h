@@ -19,7 +19,11 @@
 
 #ifndef _BMP_H__
 #define _BMP_H__
-
+/*
+ * BMP offsets start at the first file byte. Packing keeps the 14-byte file
+ * header and following bitmap information at their serialized offsets when
+ * this layout is overlaid on an input buffer.
+ */
 #pragma pack(1)
 
 typedef struct {

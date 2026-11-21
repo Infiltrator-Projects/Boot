@@ -97,13 +97,9 @@ static UINT32 crc32_tab[] = {
 };
 
 /*
- * Computes CRC-32 across the caller-specified buffer and length.
- * Validation code must compare the result with the expected on-disk checksum.
- */
-/*
- * Computes the table-driven reflected CRC-32 checksum over a caller buffer.
- * The seed permits streaming updates; callers must apply the same seed and
- * finalisation convention when comparing stored format checksums.
+ * GPT calls this reflected CRC-32 with seed zero. Complementing at both
+ * boundaries lets the result of one call seed the next chunk. Header
+ * validation also clears the stored CRC field while hashing the header.
  */
 UINT32 crc32(UINT32 crc, const VOID *buf, UINTN size)
 {

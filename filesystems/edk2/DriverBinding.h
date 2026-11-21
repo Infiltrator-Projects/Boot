@@ -89,10 +89,11 @@ typedef struct {
 } REFIND_EFI_DEVICE_PATH_PROTOCOL;
 
 #pragma pack()
-
-
- 
-
+/*
+ * Supported is the probe stage. Start establishes the controller binding and
+ * publishes the per-volume filesystem protocol. Stop withdraws that interface
+ * before freeing the state embedded around it.
+ */
 typedef
 EFI_STATUS
 (EFI_FUNCTION EFIAPI *EFI_DRIVER_BINDING_SUPPORTED) (

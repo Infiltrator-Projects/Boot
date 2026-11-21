@@ -46,6 +46,9 @@ qemu=(
  -device nvme,drive=disk,serial=boot-smoke
 )
 status=0
+# An interactive menu can legitimately outlive the timeout. The exit code
+# alone cannot distinguish that from a stalled boot. The test reads the
+# post-run disk image and requires the UTF-16 log marker from the menu loop.
 timeout 40 "${qemu[@]}" || status=$?
 if [[ "$status" != 0 && "$status" != 124 ]]; then
  echo "QEMU exited with unexpected status $status" >&2

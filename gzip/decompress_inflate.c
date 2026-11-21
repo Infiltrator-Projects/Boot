@@ -126,7 +126,11 @@ int gunzip(unsigned char *buf, long len,
 
     strm->next_out = out_buf;
     strm->avail_out = out_len;
-
+    /*
+     * The wrapper consumed the gzip header itself. Negative window bits
+     * select raw DEFLATE, so inflate starts at the first compressed block and
+     * stops before the gzip trailer.
+     */
     rc = zlib_inflateInit2(strm, -MAX_WBITS);
 
 #ifdef CONFIG_ZLIB_DFLTCC
@@ -175,6 +179,12 @@ int gunzip(unsigned char *buf, long len,
     }
 
     zlib_inflateEnd(strm);
+    /*
+     * For a single input buffer this is the position just after the
+     * compressed member, allowing eight bytes for its trailer. It comes from
+     * next_in. The number of decoded bytes would have to come from the output
+     * side of the stream.
+     */
     if (pos)
          
         *pos = strm->next_in - zbuf+8;

@@ -464,15 +464,10 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
 
 
 /*
- * Finds Disk I/O handles without Simple File System and may disconnect an
- * existing driver agent before reconnecting through the supplied driver.
- * This has a firmware-visible side effect and requires real hardware evidence.
- */
-/*
- * Attempts to bind a newly launched EFI filesystem driver to block-backed
- * controller handles and their parent/child driver relationships. A driver
- * is represented by UEFI DriverBinding and SimpleFileSystem protocols here,
- * not by a Common V2 shared-library filesystem interface.
+ * Consider Disk I/O handles for logical partitions lacking Simple File
+ * System. For each opener marked BY_DRIVER, disconnect that agent and, if
+ * disconnection succeeds, ask firmware to connect the specified driver.
+ * Already-readable partitions are skipped.
  */
 VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     EFI_STATUS                            Status;
@@ -563,14 +558,10 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
  
  
 /*
- * Searches a configured directory for EFI driver images and launches them
- * through the EFI image path. Filename matching alone does not authenticate.
- */
-/*
- * Enumerates firmware-visible driver candidates in one directory and passes
- * each candidate to StartEFIImage as a driver. NumFound counts matching
- * entries encountered, not necessarily successfully authenticated or started
- * drivers; those outcomes belong to StartEFIImage's EFI_STATUS result.
+ * Return the number of visible matching filenames considered. NumFound
+ * advances before StartEFIImage and its return status does not affect the
+ * count. A positive result asks the caller to try reconnecting controllers
+ * even if every image failed to start.
  */
 static UINTN ScanDriverDir(IN CHAR16 *Path)
 {
@@ -609,14 +600,10 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
  
  
 /*
- * Loads on-disk EFI filesystem drivers before filesystem-based OS scanning;
- * no Common V2 binary compatibility can be inferred from this operation.
- */
-/*
- * Searches architecture-specific built-in directories followed by configured
- * paths. Binding these drivers can expose additional firmware file handles;
- * subsequent volume enumeration must account for changed topology.
- * The Boolean return is not proof that every candidate driver was loaded.
+ * Resolve built-in driver directories relative to BOOT's own directory, then
+ * scan the additional paths supplied by configuration. A positive aggregate
+ * count triggers controller connection and tells the entry point to rescan
+ * volumes.
  */
 BOOLEAN LoadDrivers(VOID) {
     CHAR16        *Directory, *SelfDirectory;

@@ -10,6 +10,12 @@
 #define SHIM_LOCK_GUID \
    { 0x605dab50, 0xe046, 0x4300, {0xab, 0xb6, 0x3d, 0xd8, 0x10, 0xdd, 0x8b, 0x23} }
 
+/*
+ * On x86-64 the shim function pointers here use the System V calling
+ * convention. Calling them through a firmware Boot Services wrapper would
+ * apply a different argument convention. Preserve the callback types at the
+ * protocol boundary.
+ */
 #if defined (EFIX64)
 typedef struct _SHIM_LOCK
 {

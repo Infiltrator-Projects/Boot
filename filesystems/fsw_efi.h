@@ -61,10 +61,12 @@
     0x964e5b21, 0x6459, 0x11d2, {0x8e, 0x39, 0x0, 0xa0, 0xc9, 0x69, 0x72, 0x3b } \
   }
 
- 
-
-
-
+/*
+ * FileSystem is embedded in the per-controller state installed on the
+ * firmware handle. The container macro recovers that state from a protocol
+ * callback. MediaId and LastIOStatus keep Disk I/O tied to the mounted
+ * medium.
+ */
 typedef struct {
     UINT64                      Signature;       
 
@@ -83,11 +85,11 @@ typedef struct {
 #define FSW_VOLUME_DATA_SIGNATURE  EFI_SIGNATURE_32 ('f', 's', 'w', 'V')
  
 #define FSW_VOLUME_FROM_FILE_SYSTEM(a)  CR (a, FSW_VOLUME_DATA, FileSystem, FSW_VOLUME_DATA_SIGNATURE)
-
- 
-
-
-
+/*
+ * Each published file protocol encloses its own FSW stream handle. Two opens
+ * of the same dnode therefore share metadata while keeping independent
+ * positions and cached extents.
+ */
 typedef struct {
     UINT64                      Signature;       
 

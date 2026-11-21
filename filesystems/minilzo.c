@@ -4046,6 +4046,12 @@ lookbehind_overrun:
 
 #define LZO_TEST_OVERRUN 1
 #undef DO_DECOMPRESS
+/*
+ * This second instantiation enables bounds checks for the LZO1X decoder. Its
+ * destination length is an input capacity and is overwritten with bytes
+ * produced on exit, including the distinct input, output and look-behind
+ * error paths.
+ */
 #define DO_DECOMPRESS       lzo1x_decompress_safe
 
 #if !defined(MINILZO_CFG_SKIP_LZO1X_DECOMPRESS_SAFE)

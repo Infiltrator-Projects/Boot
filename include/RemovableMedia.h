@@ -194,6 +194,11 @@ EFI_STATUS
 struct _APPLE_REMOVABLE_MEDIA_PROTOCOL {
   UINT32										Revision;
   BOOLEAN										RemovalAllowed;
+  /*
+   * The protocol exposes operations as firmware callbacks on a particular
+   * media handle. RemovalAllowed is reported state. Eject must still return
+   * an EFI status for the actual request.
+   */
   APPLE_REMOVABLE_MEDIA_EJECT					Eject;
   APPLE_REMOVABLE_MEDIA_INJECT					Inject;
   APPLE_REMOVABLE_MEDIA_ALLOW_REMOVAL			AllowRemoval;

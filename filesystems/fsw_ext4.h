@@ -51,6 +51,11 @@ struct fsw_ext4_volume {
     struct fsw_volume g;             
     
     struct ext4_super_block *sb;     
+    /*
+     * Store the descriptor's combined high and low inode-table block address
+     * for each group. The width of this metadata address is independent of
+     * the file size advertised by an individual dnode.
+     */
     fsw_u64     *inotab_bno;         
     fsw_u32     ind_bcnt;            
     fsw_u32     dind_bcnt;           

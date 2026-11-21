@@ -75,8 +75,11 @@
 #ifndef EFI_OS_INDICATIONS_BOOT_TO_FW_UI
 #define EFI_OS_INDICATIONS_BOOT_TO_FW_UI 0x0000000000000001ULL
 #endif
-
- 
+/*
+ * IsValidLoader uses these values to select disk-backed LoadImage or the
+ * in-memory gzip path. Image classification happens before firmware
+ * authentication and before any entry point can execute.
+ */
 #define LOADER_TYPE_INVALID 0
 #define LOADER_TYPE_EFI     1
 #define LOADER_TYPE_GZIP    2

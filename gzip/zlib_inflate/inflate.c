@@ -127,11 +127,11 @@ static void zlib_fixedtables(struct inflate_state *state)
 
 
 
-
-
-
-
-
+/*
+ * On return to a streaming caller, future match distances can still name
+ * bytes produced in this call. Preserve the most recent window of output. If
+ * it wrapped, write points to the oldest byte for the next refill.
+ */
 static void zlib_updatewindow(z_streamp strm, unsigned out)
 {
     struct inflate_state *state;
@@ -596,6 +596,12 @@ int zlib_inflate(z_streamp strm, int flush)
             }
             state->mode = LEN;
             fallthrough;
+        /*
+         * The fast loop needs at least six bytes of input and 258 bytes of
+         * output, the longest DEFLATE match. Near either boundary the
+         * resumable state machine decodes the same symbols with individual
+         * availability checks.
+         */
         case LEN:
             if (have >= 6 && left >= 258) {
                 RESTORE();
@@ -690,6 +696,12 @@ int zlib_inflate(z_streamp strm, int flush)
             }
             state->mode = MATCH;
             fallthrough;
+        /*
+         * A distance may reach behind this call's output buffer into saved
+         * history. Copy the prefix from the circular window first, then the
+         * rest from newly produced bytes. Forward copying allows a short
+         * pattern to repeat within one match.
+         */
         case MATCH:
             if (left == 0) goto inf_leave;
             copy = out - left;

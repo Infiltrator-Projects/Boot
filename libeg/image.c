@@ -199,6 +199,11 @@ EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeigh
       return NULL;
    }
 
+   /*
+    * Use fixed-point coordinates to interpolate the four source neighbours.
+    * x_diff and y_diff are fractions in units of FP_MULTIPLIER, so the
+    * combined channel weights are normalised by its square.
+    */
    x_ratio = ((Image->Width - 1) * FP_MULTIPLIER) / NewWidth;
    y_ratio = ((Image->Height - 1) * FP_MULTIPLIER) / NewHeight;
 
@@ -670,6 +675,12 @@ VOID egRawCompose(IN OUT EG_PIXEL *CompBasePtr, IN EG_PIXEL *TopBasePtr,
             TopPtr = TopBasePtr;
             CompPtr = CompBasePtr;
             for (x = 0; x < Width; x++) {
+                /*
+                 * Only the foreground alpha weights this RGB blend. The
+                 * destination alpha is left as stored. This routine is used
+                 * to composite a layer onto a prepared background, so it does
+                 * not compute the alpha of a new translucent surface.
+                 */
                 Alpha = TopPtr->a;
                 RevAlpha = 255 - Alpha;
                 Temp = (UINTN)CompPtr->b * RevAlpha + (UINTN)TopPtr->b * Alpha + 0x80;

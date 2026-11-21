@@ -11,6 +11,9 @@ FSW_NAMES       = ../fsw_core ../fsw_lib
 FSW_OBJS	= $(FSW_NAMES:=.o)
 LSLR_OBJS	= $(FSW_OBJS) ../fsw_$(DRIVERNAME).o fsw_posix.o lslr.o
 LSLR_BIN	= lslr
+# lslr substitutes DRIVERNAME into its backend object. The separate lsroot
+# list below hard-codes XFS and a dot-prefixed POSIX object, so changing
+# DRIVERNAME alone does not retarget lsroot.
 LSROOT_OBJS	= $(FSW_OBJS) ../fsw_xfs.o .fsw_posix.o lsroot.o
 LSROOT_BIN	= lsroot
 

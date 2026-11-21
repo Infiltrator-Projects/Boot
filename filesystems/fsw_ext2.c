@@ -309,8 +309,12 @@ static fsw_status_t fsw_ext2_get_extent(struct fsw_ext2_volume *vol, struct fsw_
     extent->type = FSW_EXTENT_TYPE_PHYSBLOCK;
     extent->log_count = 1;
     bno = extent->log_start;
-
-     
+    /*
+     * After subtracting the direct region, a pointer block contributes
+     * ind_bcnt entries. Quotient and remainder select successive levels of
+     * indirection. The negative terminator tells the walker when the current
+     * pointer names data.
+     */
     if (bno < EXT2_NDIR_BLOCKS) {
         path[0] = bno;
         path[1] = -1;
@@ -344,7 +348,11 @@ static fsw_status_t fsw_ext2_get_extent(struct fsw_ext2_volume *vol, struct fsw_
         }
     }
 
-     
+    /*
+     * The inode owns the first pointer array. Subsequent arrays are pinned
+     * cache blocks with a release_bno. A zero pointer at any level maps the
+     * requested block to a hole without reading block zero.
+     */
     buffer = dno->raw->i_block;
     buf_bcnt = EXT2_NDIR_BLOCKS;
     release_bno = 0;
@@ -520,7 +528,11 @@ static fsw_status_t fsw_ext2_read_dentry(struct fsw_shandle *shand, struct ext2_
             break;
         }
 
-         
+        /*
+         * The eight-byte header has already moved the stream cursor. A
+         * deleted entry still occupies its full record on disk, so advancing
+         * by its name length would land the next read inside that record.
+         */
         shand->pos += entry->rec_len - 8;
     }
 
@@ -564,7 +576,11 @@ static fsw_status_t fsw_ext2_readlink(struct fsw_ext2_volume *vol, struct fsw_ex
         return FSW_VOLUME_CORRUPTED;
 
     ea_blocks = dno->raw->i_file_acl ? (vol->g.log_blocksize >> 9) : 0;
-
+    /*
+     * An external attribute block can account for allocated sectors even when
+     * the link text lives inside i_block. Discount those sectors before
+     * choosing between the inline bytes and the file-data path.
+     */
     if (dno->raw->i_blocks - ea_blocks == 0) {
          
         s.type = FSW_STRING_TYPE_ISO88591;

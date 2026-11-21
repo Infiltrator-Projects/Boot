@@ -64,11 +64,11 @@
 #include "libeg.h"
 
  
- 
- 
-
- 
-
+/*
+ * The iterator can borrow its caller's directory or open a child directory
+ * itself. CloseDirHandle records that distinction. LastFileInfo is managed by
+ * the iterator and can be replaced by the next read.
+ */
 typedef struct {
     EFI_STATUS          LastStatus;
     EFI_FILE_HANDLE     DirHandle;

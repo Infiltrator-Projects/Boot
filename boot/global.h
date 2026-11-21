@@ -266,7 +266,12 @@ typedef struct {
    UINT32 StartLBA;
    UINT32 Size;
 } MBR_PARTITION_INFO;
-
+/*
+ * A volume can have a Block I/O handle even when the firmware has no
+ * filesystem protocol for it. RootDir is needed for file discovery.
+ * WholeDiskBlockIO and BlockIOOffset identify the backing disk used for
+ * partition-level work.
+ */
 typedef struct {
    EFI_DEVICE_PATH     *DevicePath;
    EFI_HANDLE          DeviceHandle;
@@ -318,7 +323,11 @@ typedef struct _refit_menu_screen {
    CHAR16      *Hint1;
    CHAR16      *Hint2;
 } REFIT_MENU_SCREEN;
-
+/*
+ * Place the generic menu entry first in a loader or legacy record. Menu code
+ * stores a REFIT_MENU_ENTRY pointer. The tag tells dispatch which enclosing
+ * record it may recover at that address.
+ */
 typedef struct {
    REFIT_MENU_ENTRY me;
    CHAR16           *Title;  
@@ -434,7 +443,11 @@ EG_IMAGE * GetDiskBadge(IN UINTN DiskType);
 LOADER_ENTRY * MakeGenericLoaderEntry(VOID);
 VOID StoreLoaderName(IN CHAR16 *Name);
 VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect);
-
+/*
+ * gunzip writes decoded bytes to out_buf or a flush callback. In the
+ * in-memory input case, pos follows the compressed input cursor plus eight
+ * trailer bytes. It cannot be used to size the expanded image.
+ */
 int gunzip(unsigned char *buf, long len,
            long (*fill)(void*, unsigned long),
            long (*flush)(void*, unsigned long),

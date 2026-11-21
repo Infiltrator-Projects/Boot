@@ -33,10 +33,11 @@
 
 
 #define PREFIX(name) ZSTD_error_##name
-
- 
-
-
+/*
+ * A size_t return can represent a byte count or an error encoded near the
+ * unsigned maximum. Classify it with ZSTD_isError before using it for pointer
+ * advancement or an output length.
+ */
 #define ERROR(name) ((size_t)-PREFIX(name))
 
 #define ERR_isError ZSTD_isError  

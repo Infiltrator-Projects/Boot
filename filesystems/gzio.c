@@ -1049,8 +1049,11 @@ grub_gzio_read_real (grub_gzio_t gzio, grub_off_t offset,
                      char *buf, grub_size_t len)
 {
   grub_ssize_t ret = 0;
-
-   
+  /*
+   * The sliding window retains only the most recent WSIZE decoded bytes. A
+   * request older than that must restart decoding. For a request ahead of the
+   * window, advance the decoder until the requested offset is resident.
+   */
   if (gzio->saved_offset > offset + WSIZE)
     initialize_tables (gzio);
 

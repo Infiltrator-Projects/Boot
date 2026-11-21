@@ -63,11 +63,11 @@ typedef struct _REFIND_EFI_COMPONENT_NAME_PROTOCOL  REFIND_EFI_COMPONENT_NAME_PR
 
 
 
-
-
-
-
-
+/*
+ * DriverName receives a pointer to text owned by the driver. The FSW
+ * implementation selects its compiled-in name for the three-letter language
+ * code eng and returns EFI_UNSUPPORTED for other requests.
+ */
 typedef
 EFI_STATUS
 (EFI_FUNCTION EFIAPI *REFIND_EFI_COMPONENT_NAME_GET_DRIVER_NAME)(

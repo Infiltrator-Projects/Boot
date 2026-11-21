@@ -82,14 +82,10 @@ VOID ClearGptData(GPT_DATA *Data) {
  
  
 /*
- * Requires a protective MBR and recognised GPT header fields, then checks
- * the header CRC with its checksum field set to zero for the calculation.
- * A valid header does not alone establish valid partition entries.
- */
-/*
- * Checks the partition-table header before its offsets or lengths influence
- * later block reads. A CRC is an accidental-corruption check, not an origin
- * authentication mechanism; the partition array requires separate checking.
+ * Require a protective MBR, the supported GPT revision and 128-byte entries.
+ * Hash the smaller of the claimed header length and the local structure size
+ * with the CRC field cleared, then restore that field even on mismatch. The
+ * partition array has its own CRC.
  */
 static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
     BOOLEAN IsValid;
@@ -136,13 +132,10 @@ static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
  
  
 /*
- * Reads via EFI Block I/O, checks header metadata and separately verifies
- * the partition-entry CRC. Size arithmetic is part of the trust boundary.
- */
-/*
- * Reads partition metadata from the selected disk through EFI Block I/O.
- * All on-disk sector counts, byte offsets and array dimensions are untrusted
- * until validated against the medium and expected GPT structure layout.
+ * Read the protective MBR, primary header and partition array from a
+ * whole-media Block I/O handle. The header supplies the array's starting LBA.
+ * Publish the new GPT_DATA only after both checksums pass, keeping the
+ * caller's previous result until then.
  */
 EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     EFI_STATUS Status = EFI_SUCCESS;
@@ -192,7 +185,12 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
      
     if (Status == EFI_SUCCESS) {
         if (GptHeaderValid(GptData)) {
-             
+            /*
+             * entry_count is a UINT32. With the literal 128 the product is
+             * evaluated at that width before assignment to the wider
+             * BufferSize. The allocation, read and CRC all use the product,
+             * while the name-termination loop uses the original count.
+             */
             BufferSize = GptData->Header->entry_count * 128;
             GptData->Entries = AllocatePool(BufferSize);
             if (GptData->Entries == NULL)

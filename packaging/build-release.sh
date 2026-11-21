@@ -74,9 +74,9 @@ Description: BOOT UEFI boot manager preview (staged assets only)
 EOF
 deb="$out/infiltrator-boot_${version}_amd64.deb"
 dpkg-deb --root-owner-group --build "$package" "$deb"
-
-
-
+# Substitute the checkout commit into the native installer before hashing it.
+# That SHA names the sources the installer will fetch. SHA256SUMS below
+# describes the bytes of the two finished downloads.
 source_sha=$(git rev-parse --verify HEAD)
 [[ "$source_sha" =~ ^[a-f0-9]{40}$ ]] || { echo "Cannot pin BOOT source commit" >&2; exit 1; }
 test -s boot-native-installer.run || { echo "Missing native RUN source" >&2; exit 1; }

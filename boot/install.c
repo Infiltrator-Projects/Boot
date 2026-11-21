@@ -109,6 +109,11 @@ static EFI_STATUS SetBootDefault(UINTN BootNum) {
         MyFreePool(BootOrder);
         return EFI_OUT_OF_RESOURCES;
     }
+    /*
+     * Prepending the selected number and copying all other numbers in order
+     * preserves the relative priority of other entries. Use j for the output
+     * length because existing occurrences of BootNum are omitted.
+     */
     NewBootOrder[0] = (UINT16)BootNum;
     j = 1;
     for (i = 0; i < ListSize; ++i) {
@@ -188,6 +193,12 @@ BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
             MyFreePool(Contents);
             continue;
         }
+        /*
+         * The fixed prefix ends at byte six. FilePathListLength counts just
+         * the device-path bytes following the terminated UTF-16 description.
+         * Vendor-specific optional data can follow that list and is outside
+         * the path validator's bounds.
+         */
         pathOffset = 6 + (charCount + 1) * sizeof(CHAR16);
         if (pathBytes < sizeof(EFI_DEVICE_PATH) ||
             pathOffset > VarSize || pathBytes > VarSize - pathOffset ||

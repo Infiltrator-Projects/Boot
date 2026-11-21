@@ -753,13 +753,10 @@ static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
  
  
 /*
- * Applies exclusion policy before enumerating a directory. These rules
- * control scanning only; they never justify modifying Windows/GRUB/fallback.
- */
-/*
- * Applies configured discovery exclusions to a volume/path candidate.
- * Filtering is a visibility policy, not evidence that the underlying
- * filesystem or executable is invalid.
+ * Directory eligibility depends on both the volume and the path. Match volume
+ * exclusions by identifiers available at runtime, and exclude BOOT's own
+ * directory on its own device. The same path on another volume may
+ * legitimately contain a loader.
  */
 static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
     CHAR16   *VolName = NULL, *DontScanDir, *PathCopy = NULL, *VolGuid = NULL;
@@ -855,7 +852,12 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
         return FALSE;
     }
     MyFreePool(FallbackInfo);
-
+    /*
+     * The size test is a cheap filter before reading both candidate files
+     * from this volume. The final comparison uses the first read's returned
+     * byte count. The code does not separately compare the counts returned by
+     * the two reads.
+     */
     if (FallbackSize == FileSize) {  
         FileContents = AllocatePool(FileSize);
         FallbackContents = AllocatePool(FallbackSize);
@@ -883,11 +885,11 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
  
  
  
- 
- 
- 
- 
- 
+/*
+ * The EFI directory listing and an open handle can report different lengths
+ * for a link and its target. This scan uses that difference as a heuristic. A
+ * link and target with equal reported sizes are indistinguishable here.
+ */
 static BOOLEAN IsSymbolicLink(REFIT_VOLUME *Volume, CHAR16 *FullName, EFI_FILE_INFO *DirEntry) {
     EFI_FILE_HANDLE FileHandle;
     EFI_FILE_INFO   *FileInfo = NULL;
@@ -928,14 +930,10 @@ static VOID LogMenuEntries(UINTN LogLevel) {
  
  
 /*
- * Enumerates EFI candidates and direct kernels, excluding duplicates,
- * symlink paths when disabled, images and rejected loaders before menu creation.
- * Kernel folding is a UI grouping policy, not an OS-count limit.
- */
-/*
- * Walks one firmware-visible directory for matching loader candidates.
- * Matching a filename and creating a menu entry do not establish that the
- * image can later pass firmware LoadImage or Secure Boot authentication.
+ * Collect eligible filenames into a sorted list before creating menu entries.
+ * With kernel folding enabled, the first qualifying Linux entry in that order
+ * anchors the later kernels' submenu. The return value reports a duplicate of
+ * the fallback loader found during this scan.
  */
 static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16 *Pattern)
 {
@@ -1363,14 +1361,10 @@ static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, I
 
  
 /*
- * Merges stored hidden tags temporarily with normal scan exclusions and
- * restores the original exclusions afterwards. Scan classes come from the
- * configuration, not from a hard-coded Windows/Linux menu.
- */
-/*
- * Coordinates platform and volume-specific discovery into a single menu.
- * The resulting entries are a snapshot of currently exposed firmware file
- * protocols and boot variables, subject to later hotplug and driver binding.
+ * Temporarily merge persisted hidden entries with the configured exclusions
+ * for this scan. Dispatch the requested scan classes, then restore the
+ * caller's original exclusion lists so rescanning cannot accumulate the same
+ * hidden entries.
  */
 VOID ScanForBootloaders(BOOLEAN ShowMessage) {
     UINTN    i;

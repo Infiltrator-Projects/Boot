@@ -1,8 +1,7 @@
 /*
- * Linux EFI-stub metadata, initrd matching and kernel submenu contracts.
- * Autodiscovered initrd names and distributions are heuristics; an appropriate
- * root= and initrd= combination depends on each selected installation.
- * Returned option strings require explicit ownership handling.
+ * FindInitrd searches the kernel's directory on the supplied volume.
+ * AddInitrdToOptions and GetMainLinuxOptions return allocated command-line
+ * strings. HasSignedCounterpart is a filename lookup used during discovery.
  */
  
 

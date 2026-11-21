@@ -32,7 +32,11 @@
 #include "../include/tiano_includes.h"
 #endif
 #include "global.h"
-
+/*
+ * These flags describe observed protocol relationships. Image, driver and
+ * controller roles can coexist on a single handle, so classification combines
+ * the flags before the connection pass examines them.
+ */
 #define EFI_HANDLE_TYPE_UNKNOWN                     0x000
 #define EFI_HANDLE_TYPE_IMAGE_HANDLE                0x001
 #define EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE       0x002

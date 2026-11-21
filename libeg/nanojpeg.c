@@ -678,6 +678,11 @@ NJ_INLINE void njDecodeBlock(nj_component_t* c, unsigned char* out) {
     unsigned char code = 0;
     int value, coef = 0;
     njFillMem(nj.block, 0, sizeof(nj.block));
+    /*
+     * DC values are differences relative to the previous block of the same
+     * component. Accumulate that predictor before applying the DC quantiser.
+     * AC coefficients instead use run lengths in zigzag order.
+     */
     c->dcpred += njGetVLC(&nj.vlctab[c->dctabsel][0], NULL);
     nj.block[0] = (c->dcpred) * nj.qtab[c->qtsel][0];
     do {
@@ -727,6 +732,11 @@ NJ_INLINE void njDecodeScan(void) {
             mbx = 0;
             if (++mby >= nj.mbheight) break;
         }
+        /*
+         * Restart markers divide the entropy-coded scan into independently
+         * predicted intervals. Byte-align, check the expected marker in the
+         * eight-value cycle, and reset each component's DC predictor.
+         */
         if (nj.rstinterval && !(--rstcount)) {
             njByteAlign();
             i = njGetBits(16);

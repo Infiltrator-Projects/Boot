@@ -38,8 +38,11 @@ extern CHAR16           *gLogTemp;
 
 #define LOGFILE L"boot.log"
 #define LOGFILE_OLD L"boot.log-old"
-
- 
+/*
+ * Formatting happens inside the level check. Arguments with side effects
+ * would therefore execute only when that logging level is enabled. WriteToLog
+ * receives the address of the shared temporary string.
+ */
 #define LOG(level, type, ...) \
     if (level <= GlobalConfig.LogLevel) { \
         gLogTemp = PoolPrint(__VA_ARGS__); \

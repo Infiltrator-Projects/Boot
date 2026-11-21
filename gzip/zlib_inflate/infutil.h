@@ -18,11 +18,11 @@
 #include "zlib.h"
  
  
- 
- 
-
- 
-
+/*
+ * Keep inflate_state first so the caller can supply just that prefix in the
+ * contiguous-output profile. Streaming callers also need working_window to
+ * retain history after an output buffer is flushed.
+ */
 struct inflate_workspace {
     struct inflate_state inflate_state;
 #ifdef CONFIG_ZLIB_DFLTCC

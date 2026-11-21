@@ -136,7 +136,11 @@ struct iso9660_primary_volume_descriptor {
  
 
 #pragma pack()
-
+/*
+ * The parsed record and name travel together. A base ISO name can refer into
+ * the record itself, whereas Rock Ridge NM decoding can allocate a separately
+ * assembled name that survives continuation records.
+ */
 struct iso9660_dirrec_buffer {
     fsw_u32     ino;
     struct fsw_string name;

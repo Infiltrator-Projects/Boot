@@ -64,7 +64,11 @@
 #include "../EfiLib/GenericBdsLib.h"
 
 #include "../boot/global.h"
-
+/*
+ * OpenProtocolInformation supplies the relationships behind these masks. For
+ * example a BY_CHILD_CONTROLLER open identifies bus-driver and parent roles
+ * that the installed protocol GUIDs alone cannot establish.
+ */
 #define EFI_HANDLE_TYPE_UNKNOWN                     0x000
 #define EFI_HANDLE_TYPE_IMAGE_HANDLE                0x001
 #define EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE       0x002

@@ -1,7 +1,8 @@
 /*
- * Compiler/architecture-specific wrappers for calling UEFI Boot Services
- * and Runtime Services. EFIAPI and platform ABI argument marshalling are
- * safety-critical; these macros must not be replaced by ordinary host calls.
+ * Bind each EFI service call to the calling convention selected at build
+ * time. The GNU-EFI path supplies the argument count to uefi_call_wrapper and
+ * widens arguments on the specified 64-bit targets. The other path calls the
+ * typed function pointer directly.
  */
 #ifndef __REFIT_CALL_WRAPPER_H__
 #define __REFIT_CALL_WRAPPER_H__
