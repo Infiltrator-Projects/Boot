@@ -46,6 +46,11 @@ EFI_GUID EfiDevicePathProtocolGuid = { 0x09576E91, 0x6D3F, 0x11D2, { 0x8E, 0x39,
 
 
 EFI_STATUS
+/*
+ * Walks a firmware device path, connecting controller instances where
+ * possible. A structurally sound path need not refer to a present device;
+ * returned EFI_STATUS governs whether the attempted connection succeeded.
+ */
 BdsLibConnectDevicePath (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevicePathToConnect
   )
