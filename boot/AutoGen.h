@@ -1,3 +1,8 @@
+/*
+ * Generated EDK application/library linkage declarations. These symbols
+ * serve the alternative EDK build model; the maintained AMD64 release
+ * qualification currently uses the GNU-EFI path.
+ */
  
 
 

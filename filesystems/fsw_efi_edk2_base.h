@@ -1,3 +1,8 @@
+/*
+ * EDK/Tiano EFI ABI adaptation for filesystem wrappers, distinct from the
+ * GNU-EFI profile used by the current published AMD64 build. ABI types
+ * and calling conventions must match the target firmware environment.
+ */
  
 
 

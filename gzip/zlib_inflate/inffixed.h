@@ -1,3 +1,8 @@
+/*
+ * Precomputed canonical fixed-Huffman tables for DEFLATE fixed blocks.
+ * These are decoding constants, not a parser for attacker-provided tables;
+ * re-generation must preserve code assignments and memory layout.
+ */
      
 
 

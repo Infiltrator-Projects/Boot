@@ -1,3 +1,8 @@
+/*
+ * Embedded BOOT banner artwork and image metadata. The byte table is a
+ * compiled graphical resource; its availability must not become a required
+ * precondition for disk discovery or keyboard operation.
+ */
  
 
 

@@ -1,3 +1,9 @@
+/*
+ * EXT4 on-disk inode, group, superblock and extent-tree structures. Endianness,
+ * field widths, 64-bit descriptor extensions and feature flags control all
+ * later physical reads. Recognising EXT4 does not establish support for every
+ * incompatible feature or journal recovery requirement.
+ */
  
 
 

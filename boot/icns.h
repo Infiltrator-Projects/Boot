@@ -1,3 +1,8 @@
+/*
+ * Embedded image and OS icon resource contract. Icon lookup may return a
+ * fallback/dummy image and must not imply that its corresponding EFI image
+ * was validated, authenticated or executed successfully.
+ */
  
 
 

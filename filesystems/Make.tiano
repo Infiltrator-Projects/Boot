@@ -1,3 +1,6 @@
+# Alternative EDK/Tiano filesystem-driver build profile. Its toolchain,
+# libraries and calling conventions differ from the GNU-EFI AMD64 release;
+# source presence is not a guarantee this profile was qualified in CI.
 
 
 

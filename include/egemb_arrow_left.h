@@ -1,3 +1,8 @@
+/*
+ * Embedded graphical arrow asset encoded as a static byte table. This
+ * resource is display-only and must not affect scanner or EFI loader state.
+ * Keep encoded data intact when regenerating official BOOT artwork.
+ */
  
 
 

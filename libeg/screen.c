@@ -1,3 +1,9 @@
+/*
+ * UEFI graphical console/GOP mode selection and framebuffer drawing.
+ * Firmware modes may be absent, constrained or behave differently across
+ * platforms. Screen resolution and saved pixel areas must be bounds checked;
+ * text-mode fallback is required for a usable boot menu.
+ */
  
 
 
@@ -248,6 +254,10 @@ BOOLEAN egGetResFromMode(UINTN *ModeWidth, UINTN *Height) {
  
  
  
+/*
+ * Selects a supported firmware graphics mode. A requested resolution is a
+ * preference, not proof that the firmware exposes an identical mode.
+ */
 BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
     EFI_STATUS                            Status = EFI_SUCCESS;
     EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  *Info;
@@ -474,6 +484,10 @@ VOID egClearScreen(IN EG_PIXEL *Color)
     }
 }
 
+/*
+ * Blits an image to the graphics output. Destination coordinates and visible
+ * region must stay within the active GOP framebuffer geometry.
+ */
 VOID egDrawImage(IN EG_IMAGE *Image, IN UINTN ScreenPosX, IN UINTN ScreenPosY)
 {
     EG_IMAGE *CompImage = NULL;
@@ -595,6 +609,10 @@ EG_IMAGE * egCopyScreen(VOID) {
 
  
  
+/*
+ * Copies a rectangular framebuffer region for later restoration; size and
+ * origin are coupled to current screen mode and image allocations.
+ */
 EG_IMAGE * egCopyScreenArea(UINTN XPos, UINTN YPos, UINTN Width, UINTN Height) {
     EG_IMAGE *Image = NULL;
 

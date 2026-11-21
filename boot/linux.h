@@ -1,3 +1,9 @@
+/*
+ * Linux EFI-stub metadata, initrd matching and kernel submenu contracts.
+ * Autodiscovered initrd names and distributions are heuristics; an appropriate
+ * root= and initrd= combination depends on each selected installation.
+ * Returned option strings require explicit ownership handling.
+ */
  
 
 

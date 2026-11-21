@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Uses mocked efibootmgr, filesystem and firmware reports, not live NVRAM.
+# Tests BOOT entry priority, idempotent registration and rejection of
+# ambiguous/stale records. Passing cannot establish behaviour on every OEM.
 
 
 set -euo pipefail

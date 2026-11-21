@@ -1,3 +1,6 @@
+# Builds a filesystem-specific UEFI driver from FSW plus FSTYPE-selected
+# backend code. The intermediate .so is a link artifact converted into an
+# EFI driver image, not a freestanding Common V2 filesystem module.
 
 
 

@@ -1,3 +1,9 @@
+/*
+ * Icon acquisition and fallback for firmware-visible operating-system entries.
+ * Images come from BOOT resources or embedded artwork, not from a proof that
+ * a loader is executable. A missing icon must not suppress an otherwise valid
+ * candidate: dummy imagery is an explicit graphics fallback.
+ */
  
 
 
@@ -79,6 +85,10 @@ BUILTIN_ICON BuiltinIconTable[BUILTIN_ICON_COUNT] = {
    { NULL, L"mouse", ICON_SIZE_MOUSE }
 };
 
+/*
+ * Caches an embedded icon after its first decode. Returned images belong to
+ * the icon cache; consumers must not assume exclusive ownership.
+ */
 EG_IMAGE * BuiltinIcon(IN UINTN Id)
 {
     if (Id >= BUILTIN_ICON_COUNT)
@@ -101,6 +111,10 @@ EG_IMAGE * BuiltinIcon(IN UINTN Id)
  
  
  
+/*
+ * Tries configured OS-name candidates, a fallback icon and a boot-logo
+ * alternative before returning a dummy. The order is presentation policy.
+ */
 EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconName, BOOLEAN BootLogo)
 {
     EG_IMAGE        *Image = NULL;
@@ -149,6 +163,10 @@ EG_IMAGE * LoadOSIcon(IN CHAR16 *OSIconName OPTIONAL, IN CHAR16 *FallbackIconNam
 static EG_PIXEL BlackPixel  = { 0x00, 0x00, 0x00, 0 };
  
 
+/*
+ * Constructs placeholder graphics when requested imagery is unavailable;
+ * using this result must not change the selected loader path.
+ */
 EG_IMAGE * DummyImage(IN UINTN PixelSize)
 {
     EG_IMAGE        *Image;

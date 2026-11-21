@@ -1,3 +1,8 @@
+/*
+ * Private Zstandard decompressor error-code representation. Success,
+ * truncated input, corruption and resource failure must remain distinct
+ * through internal helpers and the public filesystem read response.
+ */
  
 
 

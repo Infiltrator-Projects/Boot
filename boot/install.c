@@ -1,3 +1,9 @@
+/*
+ * Firmware-side EFI boot-option inspection and menu management.
+ * Global BootOrder and Boot#### records are external binary input with explicit
+ * length and device-path encoding constraints. This code is distinct from
+ * the host's boot-native-installer.run installation and ESP write logic.
+ */
  
 
 
@@ -67,6 +73,10 @@ finished:
 
 
 
+/*
+ * Changes the firmware's preferred boot option persistently; this is not
+ * the same operation as highlighting a default entry in the BOOT menu.
+ */
 static EFI_STATUS SetBootDefault(UINTN BootNum) {
     UINTN Status, VarSize = 0, ListSize, i, j;
     UINT16 *BootOrder = NULL, *NewBootOrder = NULL;
@@ -107,6 +117,10 @@ static EFI_STATUS SetBootDefault(UINTN BootNum) {
 }  
 
  
+/*
+ * Walks device-path nodes with explicit length bounds and requires the
+ * terminal end node. A malformed node must never advance into another record.
+ */
 static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
     UINTN Offset = 0;
     UINTN Length;
@@ -130,6 +144,10 @@ static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
 }
 
  
+/*
+ * Parses firmware Boot#### load options and checks the UTF-16 label and
+ * path bounds before constructing entries. Corrupt records are skipped.
+ */
 BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
     UINTN Status, VarSize, OrderBytes = 0, i, charCount, pathOffset;
     UINT16 *BootOrder = NULL, pathBytes;

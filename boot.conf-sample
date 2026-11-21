@@ -1,3 +1,12 @@
+# BOOT runtime menu defaults and disabled example manual boot entries.
+# timeout is a UI delay. use_nvram false applies to BOOT-managed runtime
+# variables; it does NOT prohibit the native installer modifying BootOrder.
+# dont_scan_files hides matching menu candidates; it does not remove the
+# GRUB or fallback EFI executable or their independently selectable boot paths.
+# default_selection vmlinuz prefers a discovered direct Linux kernel; it
+# must not restrict how many supported operating systems are discovered.
+# Manual menuentry examples below are deliberately disabled, not boot probes.
+# An active display entry is not proof of EFI-image authentication or OS boot.
 
 
 

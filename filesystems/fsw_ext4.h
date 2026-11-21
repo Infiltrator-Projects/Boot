@@ -1,3 +1,8 @@
+/*
+ * EXT4 FSW backend state and extent operations. Inode extent flags determine
+ * which block-addressing scheme is active; unsupported superblock feature
+ * combinations must fail explicitly before walking filesystem metadata.
+ */
  
 
 

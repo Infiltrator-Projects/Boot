@@ -1,3 +1,8 @@
+/*
+ * BOOT's diagnostic log output and rotation within the EFI file protocol.
+ * Logging is a side effect on the writable volume; it is not a substitute
+ * for propagation of EFI_STATUS and is not proof of successful OS startup.
+ */
  
 
 
@@ -46,6 +51,10 @@ EFI_STATUS DeleteFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
  
  
  
+/*
+ * Handles the previous log during a new session. A missing or unwritable
+ * log file must remain distinguishable from a firmware boot failure.
+ */
 EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
     EFI_STATUS Status = EFI_SUCCESS;
 
@@ -66,6 +75,9 @@ EFI_STATUS RotateLogFile(EFI_FILE_HANDLE Location) {
  
  
  
+/*
+ * Opens the current log destination after required firmware/file state exists.
+ */
 EFI_STATUS StartLogging(BOOLEAN Restart) {
     EFI_STATUS      Status = EFI_SUCCESS;
     UINT64          FileMode;
@@ -151,6 +163,10 @@ VOID StopLogging(VOID) {
  
  
  
+/*
+ * Serialises a diagnostic record through the EFI file handle. A diagnostic
+ * string may contain firmware/device state and should be handled deliberately.
+ */
 VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
     CHAR16   *TimeStr;
     CHAR16   *FinalMessage = NULL;

@@ -1,3 +1,9 @@
+/*
+ * Firmware graphics images, file I/O and icon composition. Dimensions,
+ * stride and alpha representation control all pixel-buffer accesses; resource
+ * files are not trusted merely because they are installed with BOOT.
+ * Allocation and free routines own image lifetimes independently of UEFI paths.
+ */
  
 
 
@@ -86,6 +92,10 @@
  
  
 
+/*
+ * Allocates an image surface from width, height and channel requirements.
+ * Pixel-count arithmetic and allocation size must agree before any drawing.
+ */
 EG_IMAGE * egCreateImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha)
 {
     EG_IMAGE        *NewImage;
@@ -245,6 +255,10 @@ VOID egFreeImage(IN EG_IMAGE *Image)
  
  
 
+/*
+ * Reads an EFI-visible file into allocated memory; the returned byte count
+ * must bound all subsequent image decoders or compressed-image consumers.
+ */
 EFI_STATUS egLoadFile(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, OUT UINT8 **FileData, OUT UINTN *FileDataLength)
 {
     EFI_STATUS          Status;
@@ -345,6 +359,10 @@ EFI_STATUS egSaveFile(IN EFI_FILE_PROTOCOL *BaseDir OPTIONAL, IN CHAR16 *FileNam
  
  
  
+/*
+ * Selects a supported graphic decoder based on supplied bytes, not on
+ * whether a loader icon or banner is required for boot discovery.
+ */
 static EG_IMAGE * egDecodeAny(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha)
 {
    EG_IMAGE        *NewImage = NULL;
@@ -668,6 +686,10 @@ VOID egRawCompose(IN OUT EG_PIXEL *CompBasePtr, IN EG_PIXEL *TopBasePtr,
     }
 }
 
+/*
+ * Composites source pixels into an existing destination surface; coordinates
+ * and alpha must be clipped to the destination dimensions.
+ */
 VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN PosX, IN UINTN PosY)
 {
     UINTN       CompWidth, CompHeight;

@@ -1,3 +1,8 @@
+/*
+ * NanoJPEG-to-EG_IMAGE adaptor for BOOT graphics. JPEG data is optional
+ * resource content, never a prerequisite for scanning or launching an EFI
+ * image. Adapter allocations are independent of loader and firmware handles.
+ */
  
 
 
@@ -40,6 +45,10 @@ typedef struct _jpeg_color {
 
  
  
+/*
+ * Runs the JPEG decoder and converts output into a graphics surface;
+ * errors must not be mistaken for failure to discover the associated OS.
+ */
 EG_IMAGE * egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha) {
     EG_IMAGE *NewImage = NULL;
     unsigned Width, Height;

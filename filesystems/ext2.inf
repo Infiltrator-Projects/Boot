@@ -1,3 +1,6 @@
+# EDK/Tiano UEFI driver descriptor for the FSW EXT2 reader.
+# Mounting depends on validated superblock geometry and incompatible flags.
+# A named driver is not proof that every formatted EXT2 volume can be read.
 
 
 

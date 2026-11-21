@@ -1,3 +1,9 @@
+/*
+ * EFI Disk I/O enumeration helper used by filesystem backend discovery.
+ * Temporary dummy FSW volumes carry controller Disk I/O and media identity
+ * for a callback; they are not automatically mounted filesystems.
+ * The callback's result must remain separate from handle enumeration success.
+ */
  
 
 
@@ -51,6 +57,10 @@ static struct fsw_fstype_table   dummy_fstype = {
     NULL,  
 };
 
+/*
+ * Creates a short-lived FSW host binding for one EFI Disk I/O interface.
+ * The associated host data and volume allocations must be freed together.
+ */
 static struct fsw_volume *create_dummy_volume(EFI_DISK_IO *diskio, UINT32 mediaid)
 {
     fsw_status_t err;
@@ -88,6 +98,10 @@ static void free_dummy_volume(struct fsw_volume *vol)
     fsw_unmount(vol);
 }
 
+/*
+ * Enumerates EFI Disk I/O handles and invokes a supplied hook on temporary
+ * volume wrappers. Missing handles do not prove there are no disks elsewhere.
+ */
 static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), struct fsw_volume *master)
 {
     EFI_STATUS  Status;

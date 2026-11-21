@@ -1,3 +1,8 @@
+/*
+ * Host-platform typedefs and callbacks for the FSW POSIX test harness.
+ * Types must preserve on-disk field widths and endian interpretation while
+ * separating host file-descriptor lifetime from FSW volume ownership.
+ */
  
 
 

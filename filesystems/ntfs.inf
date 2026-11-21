@@ -1,3 +1,6 @@
+# Additional EDK/Tiano NTFS driver descriptor present in source.
+# NTFS is not among the six mandatory EFI drivers in the published .run.
+# The descriptor alone does not confer tested NTFS firmware boot support.
 
 
 

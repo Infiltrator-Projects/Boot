@@ -1,3 +1,8 @@
+/*
+ * BMP reader/writer for firmware resource images. Packed headers, pixel
+ * format and row padding come from external bytes; offset and stride checks
+ * must precede any pointer arithmetic. Decoded graphics are display-only.
+ */
  
 
 
@@ -74,6 +79,10 @@ typedef struct {
  
  
 
+/*
+ * Validates BMP layout and converts packed pixel data to an EG_IMAGE.
+ * A malformed row stride or short image must not access beyond file bytes.
+ */
 EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha)
 {
     EG_IMAGE            *NewImage;

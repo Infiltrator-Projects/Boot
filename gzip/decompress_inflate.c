@@ -1,3 +1,9 @@
+/*
+ * Firmware-facing gzip decompression adaptor for in-memory EFI images.
+ * Inflate uses bounded input/output lengths; an apparent gzip header does
+ * not validate an EFI executable. Output size must be verified before passing
+ * the buffer to LoadImage, and allocation belongs to EFI pool services.
+ */
  
 
  
@@ -27,6 +33,10 @@ static long nofill(void *buffer, unsigned long len)
 }
 
  
+/*
+ * Expands a bounded compressed buffer into caller-allocated storage.
+ * A decoder error or an invalid resulting byte count must abort EFI loading.
+ */
 int gunzip(unsigned char *buf, long len,
                long (*fill)(void*, unsigned long),
                long (*flush)(void*, unsigned long),

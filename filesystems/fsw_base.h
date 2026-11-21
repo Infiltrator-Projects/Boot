@@ -1,3 +1,8 @@
+/*
+ * Portability foundation for the filesystem wrapper. Integer widths,
+ * endianness and allocation/platform hooks must match the actual firmware
+ * build profile; no hosted libc or Linux VFS semantics may be presumed.
+ */
  
 
 

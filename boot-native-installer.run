@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# BOOT's sole published native .run build-and-install program. No user arguments
+# are accepted: successful execution elevates privileges, fetches the pinned
+# source commit, builds x86-64 EFI images, writes the ESP and updates firmware
+# NVRAM. /EFI/InfiltratorOS/BOOT is the only permitted installation target.
+# The generic .deb has a separate staging-only contract.
 
 
 
@@ -219,6 +224,9 @@ EspGuid="C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
 
 
 
+# Historical parameter parser is used internally after the script sets
+# --alldrivers. The public entry point rejects external arguments; do not
+# interpret dormant parser options as supported user install destinations.
 GetParams() {
    InstallToEspOnMac=1
    InstallDrivers="boot"
@@ -380,6 +388,9 @@ DeterminePlatform() {
 
 
 
+# Determines the source executable, driver and resource paths used in this
+# installation. Missing binary or configuration files must terminate rather
+# than leave an apparently valid but incomplete firmware installation.
 CheckForFiles() {
 
 
@@ -512,6 +523,8 @@ DetermineTargetDir() {
 
 
 
+# Records the boot-volume filesystem identity used when selecting drivers;
+# filesystem detection is not itself proof of usable driver support.
 SetBootFS() {
    BootFS=""
    case "$OSTYPE" in
@@ -609,6 +622,11 @@ BootFileHash() {
 }
 
 
+# Protects the dedicated installation path against alternate roots, links
+# and unexpected replacement using BOOT's SHA-256 ownership marker.
+# AUDIT: the Linux reinstall path removes its old directory before reaching
+# this guard through CopyBootFiles, so this guard cannot inspect those old
+# files at that later point. This ordering requires separate review.
 GuardDefaultBootLocation() {
    if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
       echo "Refusing BOOT installation outside /EFI/InfiltratorOS/BOOT." >&2
@@ -646,6 +664,9 @@ GuardDefaultBootLocation() {
    fi
 }
 
+# Installs the EFI executable, drivers, graphics, keys and boot.conf under
+# BOOT's selected directory. This copies resources; it does not establish
+# that a detected OS or compressed loader will later boot successfully.
 CopyBootFiles() {
    GuardDefaultBootLocation || exit 1
    mkdir -p "$InstallDir/$TargetDir"
@@ -911,6 +932,8 @@ InstallOnOSX() {
 
 
 
+# Queries Secure Boot firmware state and interactive signing/shim choices.
+# Observed state and user prompts cannot substitute for firmware validation.
 CheckSecureBoot() {
    IsSecureBoot="0"
    if [[ -f /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c ]] ; then
@@ -1081,6 +1104,9 @@ ReSignBinaries() {
 
 
 
+# Determines an EFI System Partition from native block/mount information.
+# Choosing the wrong partition is a critical side effect because later
+# operations write the resolved path and EFI firmware variables.
 FindLinuxESP() {
    local Dmraid
    local DmStatus
@@ -1148,6 +1174,8 @@ FindLinuxESP() {
 
 
 
+# Resolves a mounted ESP and expected filesystem state. A mount path is
+# not sufficient proof of BOOT ownership; destination constraints still apply.
 FindMountedESP() {
    mount /boot &> /dev/null
    mount /boot/efi &> /dev/null
@@ -1184,6 +1212,9 @@ FindMountedESP() {
 
 
 
+# Creates or reorders a firmware Boot#### entry for BOOT. The operation
+# must preserve independent Windows, GRUB and fallback boot paths and reject
+# ambiguous or duplicate BOOT records without creating another entry.
 AddBootEntry() {
    local InstallPart InstallDisk="" PartNum="" Name InstallPartGuid
    local EntryFilename EfiEntryFilename ExistingEntry BootNum BootOrder NewOrder Candidate
@@ -1367,6 +1398,10 @@ InstallSBKey() {
 
 
 
+# Performs the Linux-host ESP/NVRAM mutation. It explicitly clears the prior
+# /EFI/InfiltratorOS/BOOT directory before CopyBootFiles, including any old
+# boot.conf and icons; no files in other vendor EFI paths are intended to be
+# deleted. AUDIT: existing-loader ownership checks occur after this removal.
 InstallOnLinux() {
    if [[ "$TargetDir" != "/EFI/InfiltratorOS/BOOT" ]] ; then
       echo "Refusing installation outside /EFI/InfiltratorOS/BOOT." >&2

@@ -1,3 +1,8 @@
+/*
+ * Compiler/architecture-specific wrappers for calling UEFI Boot Services
+ * and Runtime Services. EFIAPI and platform ABI argument marshalling are
+ * safety-critical; these macros must not be replaced by ordinary host calls.
+ */
 #ifndef __REFIT_CALL_WRAPPER_H__
 #define __REFIT_CALL_WRAPPER_H__
 

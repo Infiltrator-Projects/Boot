@@ -1,3 +1,9 @@
+/*
+ * EFI security and Security2 authentication policy interception.
+ * Installing or removing these hooks modifies the security protocol path
+ * used by child EFI execution, so status and restoration matter. This is
+ * not an ordinary display setting or proof of global Secure Boot support.
+ */
  
 
 
@@ -63,6 +69,10 @@ static EFI_SECURITY2_FILE_AUTHENTICATION es2fa = NULL;
  
  
 static MSABI EFI_STATUS
+/*
+ * Routes a Security2 file authentication request through the installed
+ * policy. Successful status must reflect accepted validation, not UI intent.
+ */
 security2_policy_authentication (
    const EFI_SECURITY2_PROTOCOL *This,
    const EFI_DEVICE_PATH_PROTOCOL *DevicePath,
@@ -145,6 +155,10 @@ security_policy_authentication (
 }  
 
 EFI_STATUS
+/*
+ * Installs security policy callbacks into firmware-visible interfaces.
+ * Failure must not leave callers believing an authentication hook is active.
+ */
 security_policy_install(void)
 {
    EFI_SECURITY_PROTOCOL *security_protocol;
@@ -177,6 +191,10 @@ security_policy_install(void)
 }
 
 EFI_STATUS
+/*
+ * Restores the prior policy context; protocol changes must not be retained
+ * unintentionally after a temporary loader handoff.
+ */
 security_policy_uninstall(void)
 {
    EFI_STATUS status;

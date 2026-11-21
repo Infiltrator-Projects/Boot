@@ -1,3 +1,8 @@
+/*
+ * DEFLATE decoder states, sliding window and associated table pointers.
+ * State transitions preserve bit-buffer and output history invariants across
+ * incremental calls; callers must check stream termination explicitly.
+ */
 #ifndef INFLATE_H
 #define INFLATE_H
 

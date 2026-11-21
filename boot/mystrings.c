@@ -1,3 +1,9 @@
+/*
+ * UTF-16 string, GUID and comma-delimited-list helpers used throughout
+ * firmware scanning and configuration. Several case-insensitive comparisons
+ * are ASCII-oriented bit manipulations, not Unicode collation. Caller memory
+ * ownership and NULL handling differ between the individual utilities.
+ */
  
 
 
@@ -59,6 +65,10 @@ BOOLEAN StriSubCmp(IN CHAR16 *SmallStr, IN CHAR16 *BigStr) {
  
  
  
+/*
+ * Compares CHAR16 strings using an ASCII-like case fold. Do not interpret
+ * this as a locale-aware Unicode filename identity comparison.
+ */
 BOOLEAN MyStriCmp(IN CONST CHAR16 *FirstString, IN CONST CHAR16 *SecondString) {
     if (FirstString && SecondString) {
         while ((*FirstString != L'\0') && ((*FirstString & ~0x20) == (*SecondString & ~0x20))) {
@@ -134,6 +144,10 @@ VOID ToLower(CHAR16 * MyString) {
  
  
  
+/*
+ * Reallocates and replaces the destination string; callers must treat the
+ * previous destination allocation as consumed by this operation.
+ */
 VOID MergeStrings(IN OUT CHAR16 **First, IN CHAR16 *Second, CHAR16 AddChar) {
     UINTN Length1 = 0, Length2 = 0;
     CHAR16* NewString;

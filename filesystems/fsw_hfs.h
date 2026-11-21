@@ -1,3 +1,9 @@
+/*
+ * HFS+ backend state, catalog/extents B-tree and endian conversion helpers.
+ * The reader's key comparison and traversal semantics depend on HFS-family
+ * volume properties; recognising a plain HFS wrapper does not create support
+ * for reading plain HFS contents.
+ */
  
  
 

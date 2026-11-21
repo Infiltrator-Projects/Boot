@@ -1,3 +1,7 @@
+/*
+ * Bounded interactive editor for EFI loader options; edits affect the next
+ * launch command line, not the on-disk executable or a persistent Boot#### path.
+ */
  
 
 

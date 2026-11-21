@@ -1,4 +1,8 @@
 #!/bin/bash
+# macOS EFI System Partition lookup/mount helper retained for BOOT
+# compatibility. diskutil output, partition choice and mountpoint state are
+# platform-specific; this helper must not be invoked as a generic Linux
+# ESP discovery routine or to write other vendors' EFI directories.
 
 
 
@@ -20,6 +24,8 @@
 
 
 
+# Locates or mounts an ESP using macOS disk utilities. When multiple ESPs
+# exist, selecting the correct disk is a prerequisite to any safe install.
 MountOSXESP() {
 
 

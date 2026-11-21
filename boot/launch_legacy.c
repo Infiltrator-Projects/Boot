@@ -1,3 +1,9 @@
+/*
+ * Legacy BIOS/CSM and firmware-mediated legacy boot interoperability.
+ * Legacy paths are platform-specific and distinct from UEFI image loading.
+ * Partition activation and firmware disk hints can affect persistent boot
+ * state; this module must not be used to overwrite other EFI loaders.
+ */
  
 
 
@@ -87,6 +93,10 @@ extern REFIT_MENU_SCREEN MainMenu;
 EFI_GUID EfiGlobalVariableGuid = { 0x8BE4DF61, 0x93CA, 0x11D2, { 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C }};
 
 #if defined(EFI32) || defined(EFIX64)
+/*
+ * Modifies MBR active-partition state for a legacy chainload path. This
+ * operation is not read-only discovery and must be confined to its intended disk.
+ */
 static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN PartitionIndex)
 {
     EFI_STATUS          Status;
@@ -186,6 +196,10 @@ static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN Partit
 
 static EFI_GUID AppleVariableVendorID = { 0x7C436110, 0xAB2A, 0x4BBB, { 0xA8, 0x80, 0xFE, 0x41, 0x99, 0x5C, 0x9F, 0x82 } };
 
+/*
+ * Communicates a legacy boot disk choice via firmware-specific state.
+ * The data must match the selected device path, not merely a displayed label.
+ */
 static EFI_STATUS WriteBootDiskHint(IN EFI_DEVICE_PATH *WholeDiskDevicePath)
 {
     EFI_STATUS          Status;
@@ -404,6 +418,10 @@ bailout:
 }  
 #endif
 
+/*
+ * Requests a legacy handoff; success depends on firmware CSM and platform
+ * support and must not be extrapolated from UEFI-native boot tests.
+ */
 VOID StartLegacy(IN LEGACY_ENTRY *Entry, IN CHAR16 *SelectionName)
 {
 #if defined(EFI32) || defined(EFIX64)
@@ -671,6 +689,10 @@ static VOID ScanLegacyUEFI(IN UINTN DiskType)
     }  
 }  
 
+/*
+ * Classifies a volume for possible BIOS boot, which is not the same as
+ * proving a boot sector or operating system can execute.
+ */
 static VOID ScanLegacyVolume(REFIT_VOLUME *Volume, UINTN VolumeIndex) {
     UINTN VolumeIndex2;
     BOOLEAN ShowVolume, HideIfOthersFound;

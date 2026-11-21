@@ -1,3 +1,6 @@
+# EDK/Tiano UEFI driver descriptor for the FSW ReiserFS backend.
+# Filesystem tree keys, item bounds and on-disk layout control readability.
+# The source and descriptor do not establish universal firmware support.
 
 
 

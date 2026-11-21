@@ -1,3 +1,8 @@
+/*
+ * External firmware security and signature-format GUID declarations.
+ * Binary GUID field values are interoperability identifiers, not mutable
+ * application preferences.
+ */
  
 
  

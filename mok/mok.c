@@ -1,3 +1,8 @@
+/*
+ * Secure Boot and shim-mediated validation helpers. Firmware Secure Boot
+ * state, shim presence and trust-path validation are distinct conditions.
+ * A successful menu selection is insufficient to establish executable trust.
+ */
  
 
 
@@ -54,6 +59,10 @@
  
 
 
+/*
+ * Observes security-related firmware state; an unavailable variable must
+ * not be interpreted as approval to bypass image authentication.
+ */
 BOOLEAN secure_mode (VOID)
 {
    EFI_STATUS status;
@@ -77,6 +86,10 @@ BOOLEAN secure_mode (VOID)
 
  
  
+/*
+ * Checks whether a compatible shim validation interface is available.
+ * This is not equivalent to verifying a specific child EFI image.
+ */
 BOOLEAN ShimLoaded(void) {
    SHIM_LOCK   *shim_lock;
    EFI_GUID    ShimLockGuid = SHIM_LOCK_GUID;
@@ -87,6 +100,10 @@ BOOLEAN ShimLoaded(void) {
  
  
  
+/*
+ * Requests signature validation through the shim interface for supplied
+ * bytes. Caller must respect status, actual buffer size and trust policy.
+ */
 BOOLEAN ShimValidate (VOID *data, UINT32 size)
 {
    SHIM_LOCK   *shim_lock;

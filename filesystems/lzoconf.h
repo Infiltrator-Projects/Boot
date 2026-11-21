@@ -1,3 +1,8 @@
+/*
+ * Bundled LZO configuration and compile-time ABI definitions used by the
+ * filesystem decompression path. Word width, alignment and CPU endianness
+ * must agree with the firmware build, not the development host alone.
+ */
  
 
 

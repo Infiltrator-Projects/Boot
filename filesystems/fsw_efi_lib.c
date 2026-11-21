@@ -1,3 +1,8 @@
+/*
+ * String and timestamp conversion helpers for EFI filesystem protocol
+ * metadata. EFI_TIME and CHAR16 fields have fixed public layout and cannot
+ * be populated by treating POSIX time or on-disk string encodings as native.
+ */
  
 
 
@@ -68,6 +73,10 @@ static const int year_lengths[2] = {
     DAYSPERNYEAR, DAYSPERLYEAR
 };
 
+/*
+ * Maps integer time data to EFI_TIME fields. Calendar range and epoch
+ * assumptions must not be confused with the source filesystem's timestamps.
+ */
 VOID fsw_efi_decode_time(OUT EFI_TIME *EfiTime, IN UINT32 UnixTime)
 {
     long        days, rem;
@@ -113,6 +122,10 @@ UINTN fsw_efi_strsize(struct fsw_string *s)
     return (s->len + 1) * sizeof(CHAR16);
 }
 
+/*
+ * Converts the filesystem library's string representation into EFI CHAR16.
+ * The caller must provide enough destination storage for the result.
+ */
 VOID fsw_efi_strcpy(CHAR16 *Dest, struct fsw_string *src)
 {
     if ((src->type == FSW_STRING_TYPE_EMPTY) | (src->size == 0)) {

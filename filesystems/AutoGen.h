@@ -1,3 +1,8 @@
+/*
+ * Generated EFI library constructor and GUID declarations retained for the
+ * EDK-oriented build profile. They are not the runtime filesystem ABI and
+ * are not evidence of freestanding Common V2 module compatibility.
+ */
  
 
 

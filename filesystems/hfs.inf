@@ -1,3 +1,6 @@
+# EDK/Tiano driver descriptor for the HFS-family FSW implementation.
+# HFS+ variants are distinct from legacy plain HFS, which may be detected
+# without being mountable by the current reader.
 
 
 

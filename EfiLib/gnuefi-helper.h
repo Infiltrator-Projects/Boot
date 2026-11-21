@@ -1,3 +1,8 @@
+/*
+ * GNU-EFI implementations of EFI protocol and device-path helper functions.
+ * Lengths and EFI_STATUS results are part of the public contract; returned
+ * pointers may use firmware pool allocation rather than host malloc.
+ */
  
 
 

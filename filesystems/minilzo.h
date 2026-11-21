@@ -1,3 +1,8 @@
+/*
+ * Public entry points and types for the bundled minimal LZO decoder.
+ * Compressed blocks originate from untrusted filesystem extents; callers
+ * must supply actual source/destination lengths and propagate failures.
+ */
  
 
 

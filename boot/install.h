@@ -1,3 +1,9 @@
+/*
+ * Firmware BootOrder entry parsing and boot-entry management interface.
+ * Never trust Boot#### payload lengths or device-path nodes without checks.
+ * This firmware menu code is separate from the native host installation path
+ * that writes /EFI/InfiltratorOS/BOOT and registers BOOT.
+ */
  
 
 

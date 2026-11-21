@@ -1,3 +1,9 @@
+/*
+ * ISO 9660 read-only optical filesystem implementation. Volume descriptors,
+ * logical blocks and directory records come from media, not from an EFI file
+ * namespace. Directory record lengths and filename encodings are explicit
+ * validation boundaries; device block size may differ from file block size.
+ */
  
  
 
@@ -269,6 +275,10 @@ static fsw_status_t rr_read_ce(struct fsw_iso9660_volume *vol, union fsw_rock_ri
 
 
 
+/*
+ * Finds and interprets ISO 9660 volume descriptors before establishing the
+ * root directory. An optical block device is not necessarily valid ISO media.
+ */
 static fsw_status_t fsw_iso9660_volume_mount(struct fsw_iso9660_volume *vol)
 {
     fsw_status_t    status;
@@ -469,6 +479,10 @@ static fsw_status_t fsw_iso9660_dnode_stat(struct fsw_iso9660_volume *vol, struc
 
 
 
+/*
+ * Maps a logical file extent to optical data blocks; this does not imply
+ * that the containing EFI loader is valid on the executing CPU architecture.
+ */
 static fsw_status_t fsw_iso9660_get_extent(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno,
                                            struct fsw_extent *extent)
 {
@@ -490,6 +504,10 @@ static fsw_status_t fsw_iso9660_get_extent(struct fsw_iso9660_volume *vol, struc
 
 
 
+/*
+ * Resolves directory names from ISO naming conventions; matching rules
+ * differ from UEFI FAT and ordinary host-filesystem path comparisons.
+ */
 static fsw_status_t fsw_iso9660_dir_lookup(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno,
                                            struct fsw_string *lookup_name, struct fsw_iso9660_dnode **child_dno_out)
 {
@@ -594,6 +612,10 @@ static fsw_status_t fsw_iso9660_dir_read(struct fsw_iso9660_volume *vol, struct 
 
 
 
+/*
+ * Consumes length-delimited directory records from optical media. The
+ * record's own length must bound fields, names and subsequent iteration.
+ */
 static fsw_status_t fsw_iso9660_read_dirrec(struct fsw_iso9660_volume *vol, struct fsw_shandle *shand, struct iso9660_dirrec_buffer *dirrec_buffer)
 {
     fsw_status_t    status;

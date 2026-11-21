@@ -1,3 +1,8 @@
+/*
+ * Zstandard Huffman decoding table layouts and entry points. Decode table
+ * selection affects output byte stride and workspace size; all inputs are
+ * untrusted until their entropy headers and bounds are validated.
+ */
  
 
 

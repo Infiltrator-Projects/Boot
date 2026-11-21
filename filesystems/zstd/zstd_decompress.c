@@ -1,3 +1,9 @@
+/*
+ * Bundled Zstandard frame and block decoder used by compressed filesystem
+ * data. Frame headers, window sizes, literal/sequence tables and match offsets
+ * are untrusted. A matching magic number does not establish available output
+ * capacity or a supported dictionary; decoder errors must reach the caller.
+ */
  
 
 
@@ -147,6 +153,10 @@ static size_t ZSTD_frameHeaderSize(const void *src, size_t srcSize)
 
 
 
+/*
+ * Parses frame metadata before allocation and decode. Declared window and
+ * content sizes must be checked against caller/environment memory limits.
+ */
 size_t ZSTD_getFrameParams(ZSTD_frameParams *fparamsPtr, const void *src, size_t srcSize)
 {
 	const BYTE *ip = (const BYTE *)src;
@@ -295,6 +305,10 @@ static size_t ZSTD_setRleBlock(void *dst, size_t dstCapacity, const void *src, s
 
  
 
+/*
+ * Decodes the literal section subject to source bytes and destination bounds;
+ * corrupt entropy metadata must not become uninitialised output.
+ */
 size_t ZSTD_decodeLiteralsBlock(ZSTD_DCtx *dctx, const void *src, size_t srcSize)  
 {
 	if (srcSize < MIN_CBLOCK_SIZE)
@@ -1420,6 +1434,10 @@ size_t ZSTD_findFrameCompressedSize(const void *src, size_t srcSize)
 
  
 
+/*
+ * Consumes a frame block by block and enforces output capacity.
+ * Successfully decoding a frame does not authenticate its filesystem origin.
+ */
 static size_t ZSTD_decompressFrame(ZSTD_DCtx *dctx, void *dst, size_t dstCapacity, const void **srcPtr, size_t *srcSizePtr)
 {
 	const BYTE *ip = (const BYTE *)(*srcPtr);
@@ -1568,6 +1586,10 @@ int ZSTD_isSkipFrame(ZSTD_DCtx *dctx) { return dctx->stage == ZSTDds_skipFrame; 
  
 
 
+/*
+ * Advances a streaming decoder state machine. The caller must pass the
+ * requested number of input bytes for that state and honour return status.
+ */
 size_t ZSTD_decompressContinue(ZSTD_DCtx *dctx, void *dst, size_t dstCapacity, const void *src, size_t srcSize)
 {
 	 

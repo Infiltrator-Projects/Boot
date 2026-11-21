@@ -1,3 +1,8 @@
+/*
+ * EFI Console Control protocol GUID, text/graphics mode and method
+ * signatures. Firmware-specific mode transitions must respect EFIAPI and
+ * may fail even when a text console is present.
+ */
  
 
 

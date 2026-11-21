@@ -1,3 +1,8 @@
+/*
+ * Interactive firmware console editing of a boot-option line.
+ * The input is a mutable UTF-16 string; cursor offset, viewport origin and
+ * allocated output size must remain consistent under every keystroke.
+ */
  
  
 
@@ -48,6 +53,10 @@ static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
         (*first)++;
 }
 
+/*
+ * Edits loader options in a bounded visible field. A changed command line
+ * may affect kernel launch semantics; it must not mutate on-disk loader files.
+ */
 BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
     CHAR16 *line;
     UINTN size;

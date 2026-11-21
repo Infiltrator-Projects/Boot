@@ -1,3 +1,9 @@
+/*
+ * EFI/legacy loader scanning and submenu population interface.
+ * Entries represent discovered candidates across available firmware volumes,
+ * not a hardcoded number of OSs. Hidden entries are UI filtering, not writes
+ * to the loader files or firmware's one-time boot alternatives.
+ */
  
 
 

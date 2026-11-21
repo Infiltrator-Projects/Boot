@@ -1,3 +1,8 @@
+/*
+ * GNU-EFI compatibility functions for UEFI text, protocol and device-path
+ * operations. Device paths are variable-length firmware records; all offset
+ * and instance walks must terminate at a validated end node.
+ */
  
 
 
@@ -147,6 +152,10 @@ AsciiStrLen (
 
 BOOLEAN
 EFIAPI
+/*
+ * Checks device-path boundaries before callers traverse node sequences.
+ * A valid encoding does not prove the referenced device is present.
+ */
 IsDevicePathValid (
   IN CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath,
   IN       UINTN                    MaxSize
@@ -258,6 +267,10 @@ GetDevicePathSize (
 
 EFI_DEVICE_PATH_PROTOCOL *
 EFIAPI
+/*
+ * Finds the next instance boundary in a possibly multi-instance EFI path.
+ * Readers must respect total bytes and terminated instances.
+ */
 GetNextDevicePathInstance (
   IN OUT EFI_DEVICE_PATH_PROTOCOL    **DevicePath,
   OUT UINTN                          *Size

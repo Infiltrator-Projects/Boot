@@ -1,3 +1,9 @@
+/*
+ * DEFLATE inflate state machine used by BOOT's gzip path. Block types,
+ * Huffman tables and history windows originate from untrusted bytes.
+ * Streaming return codes and available-output counts are required to
+ * prevent malformed compressed images from becoming executable input.
+ */
  
 
 
@@ -35,6 +41,10 @@ int zlib_inflate_workspacesize(void)
     return sizeof(struct inflate_workspace);
 }
 
+/*
+ * Resets decoder state for a new stream; previous window/history content
+ * must not be treated as part of the next compressed image.
+ */
 int zlib_inflateReset(z_streamp strm)
 {
     struct inflate_state *state;
@@ -333,6 +343,11 @@ static int zlib_inflateSyncPacket(z_streamp strm)
 
 
 
+/*
+ * Runs the DEFLATE state machine until output, input or a stream boundary
+ * requires a return. Callers must distinguish a completed stream from
+ * needing more input/output space or encountering corrupt data.
+ */
 int zlib_inflate(z_streamp strm, int flush)
 {
     struct inflate_state *state;

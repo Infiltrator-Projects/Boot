@@ -1,3 +1,9 @@
+/*
+ * Shim lock protocol structures and EFI security interfaces.
+ * Function pointer ABI attributes and packed certificate structures must
+ * match the implementation exposed by firmware/shim; pointer existence
+ * alone does not validate an EFI image.
+ */
 #include "../include/PeImage.h"
 #include "../include/PeImage2.h"
 

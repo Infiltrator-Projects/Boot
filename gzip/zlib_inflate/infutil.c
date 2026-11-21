@@ -1,9 +1,18 @@
+/*
+ * Small convenience wrapper for decompressing a supplied DEFLATE/gzip
+ * memory blob into a caller-owned output buffer. Caller capacity and actual
+ * output byte count are independent of the compressed input length.
+ */
 #include "zutil.h"
 #include "zlib.h"
 
  
 
 
+/*
+ * Delegates to the streaming decoder using provided input/output bounds;
+ * its status must not be ignored when the output represents an EFI image.
+ */
 int zlib_inflate_blob(void *gunzip_buf, unsigned int sz,
               const void *buf, unsigned int len)
 {

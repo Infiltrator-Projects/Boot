@@ -1,3 +1,9 @@
+/*
+ * Apple HFS Plus/HFSX firmware reader backed by allocation and catalog
+ * B-trees. Native plain HFS is not implemented as a general readable path:
+ * recognising an HFS wrapper/signature is separate from mounting HFS+ data.
+ * B-tree key ordering, node offsets and extent chains are untrusted bytes.
+ */
  
  
 
@@ -242,6 +248,10 @@ fsw_hfs_compute_shift(fsw_u32 size)
 
 
 
+/*
+ * Detects HFS volume layout and initialises HFS+ volume/B-tree metadata.
+ * Recognised-but-unsupported plain HFS must return an explicit non-success.
+ */
 static fsw_status_t fsw_hfs_volume_mount(struct fsw_hfs_volume *vol)
 {
     fsw_status_t              status, rv;
@@ -592,6 +602,10 @@ fsw_hfs_btree_rec (struct fsw_hfs_btree   * btree,
 
 
 static fsw_status_t
+/*
+ * Searches variable-length catalog/extent records using on-disk node links.
+ * Node and key offsets require bounds; malformed trees must not be accepted.
+ */
 fsw_hfs_btree_search (struct fsw_hfs_btree * btree,
                       BTreeKey             * key,
                       int (*compare_keys) (BTreeKey* key1, BTreeKey* key2),
@@ -1042,6 +1056,10 @@ fsw_hfs_cmpi_catkey (BTreeKey *key1, BTreeKey *key2)
 
 
 
+/*
+ * Maps logical file regions through primary and overflow extents;
+ * overflow-tree lookup depends on valid B-tree metadata and extent counts.
+ */
 static fsw_status_t fsw_hfs_get_extent(struct fsw_hfs_volume * vol,
                                        struct fsw_hfs_dnode  * dno,
                                        struct fsw_extent     * extent)
@@ -1166,6 +1184,10 @@ create_hfs_dnode(struct fsw_hfs_dnode  * dno,
 
 
 
+/*
+ * Resolves a directory member by catalog key; Unicode name ordering and
+ * case sensitivity depend on the HFS-family volume's own semantics.
+ */
 static fsw_status_t fsw_hfs_dir_lookup(struct fsw_hfs_volume * vol,
                                        struct fsw_hfs_dnode  * dno,
                                        struct fsw_string     * lookup_name,

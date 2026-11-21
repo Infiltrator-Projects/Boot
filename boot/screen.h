@@ -1,3 +1,9 @@
+/*
+ * Firmware console dimensions, graphics state and screen rendering API.
+ * The display may use text or UEFI graphics; loss of a preferred mode
+ * must not remove discovered boot options. Images and surfaces have distinct
+ * allocation/ownership boundaries from loader device handles.
+ */
  
 
 

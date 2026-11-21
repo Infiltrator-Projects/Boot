@@ -1,3 +1,8 @@
+/*
+ * Private zlib decoder utilities, symbol definitions and allocation hooks.
+ * The firmware allocator and byte-order handling are environment-specific;
+ * internal macros must not silently assume a hosted libc.
+ */
  
 
 

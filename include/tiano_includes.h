@@ -1,3 +1,8 @@
+/*
+ * EDK/Tiano firmware ABI aliases and library declarations. These mappings
+ * exist for an alternative build environment; the published GNU-EFI binary
+ * has separately established calling-convention and toolchain requirements.
+ */
  
  
 

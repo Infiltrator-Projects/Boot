@@ -1,3 +1,9 @@
+/*
+ * Read-only GPT metadata acquisition for identifying partitions.
+ * The protective MBR, primary GPT header and entry array originate from
+ * untrusted blocks. Header CRC and entries CRC must both be valid before
+ * a partition table is treated as coherent; this code does not repair disks.
+ */
  
 
 
@@ -71,6 +77,11 @@ VOID ClearGptData(GPT_DATA *Data) {
  
  
  
+/*
+ * Requires a protective MBR and recognised GPT header fields, then checks
+ * the header CRC with its checksum field set to zero for the calculation.
+ * A valid header does not alone establish valid partition entries.
+ */
 static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
     BOOLEAN IsValid;
     UINT32 CrcValue, StoredCrcValue;
@@ -115,6 +126,10 @@ static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
  
  
  
+/*
+ * Reads via EFI Block I/O, checks header metadata and separately verifies
+ * the partition-entry CRC. Size arithmetic is part of the trust boundary.
+ */
 EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     EFI_STATUS Status = EFI_SUCCESS;
     UINT64     BufferSize;
@@ -204,6 +219,10 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
  
  
  
+/*
+ * Looks up identity within parsed partition metadata; a matching GUID is
+ * not proof of a mounted volume or a supported filesystem.
+ */
 GPT_ENTRY * FindPartWithGuid(EFI_GUID *Guid) {
     UINTN     i;
     GPT_ENTRY *Found = NULL;

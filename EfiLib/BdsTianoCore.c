@@ -1,3 +1,9 @@
+/*
+ * EDK/Tiano BDS compatibility bridge for device paths and firmware variables.
+ * The module maps the library interfaces required by BOOT's historical BDS
+ * code into the selected build environment. Firmware data lengths and EFI
+ * error results must remain authoritative.
+ */
  
 
 
@@ -165,6 +171,10 @@ BdsLibConnectDevicePath (
 
 
 BDS_COMMON_OPTION *
+/*
+ * Decodes a firmware load-option variable; the data is externally supplied
+ * and its device path and description cannot be treated as trusted pointers.
+ */
 BdsLibVariableToOption (
   IN OUT LIST_ENTRY                   *BdsCommonOptionList,
   IN  CHAR16                          *VariableName
@@ -296,6 +306,10 @@ BdsLibVariableToOption (
 
 
 VOID *
+/*
+ * Retrieves a variable from EFI Runtime Services with a caller-owned result.
+ * The returned size and status, not the variable name, determine validity.
+ */
 BdsLibGetVariableAndSize (
   IN  CHAR16              *Name,
   IN  EFI_GUID            *VendorGuid,

@@ -1,3 +1,9 @@
+/*
+ * Btrfs firmware reader, with logical-address mapping, B-tree traversal,
+ * subvolume/root selection and extent decoding. Logical addresses are not
+ * simple physical block addresses; chunk mappings and checksums/features
+ * are relevant to whether any given on-disk layout is supported.
+ */
  
 
 
@@ -874,6 +880,10 @@ static struct fsw_btrfs_recover_cache *get_recover_cache(struct fsw_btrfs_volume
     return rc;
 }
 
+/*
+ * Translates Btrfs logical addresses through filesystem mapping metadata.
+ * Readability depends on correct mapping and available backing devices.
+ */
 static fsw_status_t fsw_btrfs_read_logical (struct fsw_btrfs_volume *vol, uint64_t addr,
         void *buf, fsw_size_t size, int rdepth, int cache_level)
 {
@@ -1300,6 +1310,10 @@ io_error:
 }
 
 static fsw_status_t fsw_btrfs_get_default_root(struct fsw_btrfs_volume *vol, uint64_t root_dir_objectid);
+/*
+ * Identifies the Btrfs superblock and prepares tree/root state used by later
+ * lookups. Recognition does not imply support for every RAID or feature set.
+ */
 static fsw_status_t fsw_btrfs_volume_mount(struct fsw_volume *volg) {
     struct btrfs_superblock sblock;
     struct fsw_btrfs_volume *vol = (struct fsw_btrfs_volume *)volg;
@@ -1608,6 +1622,10 @@ static fsw_ssize_t btrfs_decompress(uint8_t comp,
 	return btrfs_decompressor_table[comp-1](ibuf, isize, off, obuf, osize);
 }
 
+/*
+ * Resolves inode file extents and their storage/compression representation;
+ * missing or unsupported transformations must return an explicit error.
+ */
 static fsw_status_t fsw_btrfs_get_extent(struct fsw_volume *volg, struct fsw_dnode *dnog,
         struct fsw_extent *extent)
 {
@@ -1981,6 +1999,10 @@ static fsw_status_t fsw_btrfs_get_sub_dnode(
     return fsw_dnode_create_with_tree(&dno->g, tree_id, child_id, child_type, name, child_dno_out);
 }
 
+/*
+ * Finds a directory item within a selected tree; tree IDs and object IDs
+ * are necessary parts of pathname identity.
+ */
 static fsw_status_t fsw_btrfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnode *dnog,
         struct fsw_string *lookup_name, struct fsw_dnode **child_dno_out)
 {
@@ -2022,6 +2044,10 @@ static fsw_status_t fsw_btrfs_dir_lookup(struct fsw_volume *volg, struct fsw_dno
     return err;
 }
 
+/*
+ * Selects the default filesystem root/subvolume from tree metadata. Boot
+ * scanning must not assume that a single top-level root exposes every OS.
+ */
 static fsw_status_t fsw_btrfs_get_default_root(struct fsw_btrfs_volume *vol, uint64_t root_dir_objectid)
 {
     fsw_status_t err;

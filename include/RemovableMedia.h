@@ -1,3 +1,8 @@
+/*
+ * Apple removable-media protocol GUID and function signatures. This is a
+ * vendor-specific firmware interface and must be treated as optional.
+ * Its EFIAPI calling convention is part of the firmware ABI.
+ */
  
 
 

@@ -1,3 +1,8 @@
+/*
+ * UTF-16 comparison, GUID conversion and delimited-list helpers. Case folding
+ * in several routines is ASCII-oriented rather than full Unicode collation;
+ * caller allocation and NULL handling are function-specific.
+ */
  
 
 

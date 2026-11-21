@@ -1,3 +1,8 @@
+/*
+ * ReiserFS FSW backend state and tree-item lookup declarations. Metadata
+ * keys and item offsets are on-disk values; tree traversal assumes validated
+ * node sizes and must report invalid or unsupported layouts as errors.
+ */
  
 
 

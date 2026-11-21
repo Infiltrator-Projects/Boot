@@ -1,3 +1,9 @@
+/*
+ * EXT2-family read-only filesystem backend for the firmware access layer.
+ * A superblock's magic/revision/feature bits determine whether this reader
+ * can interpret the volume. Inode group tables, direct/indirect addressing,
+ * directory records and symlink targets originate from untrusted disk bytes.
+ */
  
 
 
@@ -72,6 +78,12 @@ struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(ext2) = {
 
 
 
+/*
+ * Checks EXT2 superblock signature/revision and incompatible features,
+ * then obtains inode-group table locations and creates the root dnode.
+ * AUDIT: s_inodes_per_group is used as a divisor; malformed zero geometry
+ * needs an explicit validity guard before this calculation.
+ */
 static fsw_status_t fsw_ext2_volume_mount(struct fsw_ext2_volume *vol)
 {
     fsw_status_t    status;
@@ -278,6 +290,10 @@ static fsw_status_t fsw_ext2_dnode_stat(struct fsw_ext2_volume *vol, struct fsw_
 
 
 
+/*
+ * Maps an inode's logical file blocks through its direct and indirect
+ * addressing. A valid extent must stay within the underlying volume.
+ */
 static fsw_status_t fsw_ext2_get_extent(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno,
                                         struct fsw_extent *extent)
 {
@@ -431,6 +447,10 @@ errorexit:
 
 
 
+/*
+ * Reads filesystem directory records into dnodes. Record length and name
+ * bounds are disk-controlled and must be checked before iteration.
+ */
 static fsw_status_t fsw_ext2_dir_read(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno,
                                       struct fsw_shandle *shand, struct fsw_ext2_dnode **child_dno_out)
 {
@@ -529,6 +549,10 @@ static fsw_status_t fsw_ext2_read_dentry(struct fsw_shandle *shand, struct ext2_
 
 
 
+/*
+ * Extracts symlink content from inode or data blocks without confusing
+ * link targets with already resolved, trusted loader paths.
+ */
 static fsw_status_t fsw_ext2_readlink(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno,
                                       struct fsw_string *link_target)
 {

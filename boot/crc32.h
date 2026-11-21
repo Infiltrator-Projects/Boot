@@ -1,3 +1,8 @@
+/*
+ * CRC-32 calculation interface for metadata integrity checks, notably GPT.
+ * CRC detects accidental changes, not malicious replacement or code signing.
+ * Caller supplies the exact byte range and expected stored checksum.
+ */
  
 
 

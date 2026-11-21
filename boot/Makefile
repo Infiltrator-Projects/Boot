@@ -1,3 +1,6 @@
+# Compiles BOOT's firmware entry and menu/loader modules as an EFI image.
+# Its output is a build artifact; the native installer separately owns
+# source pinning, ESP placement, and firmware entry registration.
 
 
 

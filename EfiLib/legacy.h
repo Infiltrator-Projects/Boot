@@ -1,3 +1,8 @@
+/*
+ * Legacy BDS boot-entry parsing and creation interface. Compatibility code
+ * can read or mutate firmware boot variables; OS discovery should not call
+ * these mutation paths unless that scan class is explicitly selected.
+ */
  
 
 

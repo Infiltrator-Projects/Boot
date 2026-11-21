@@ -1,3 +1,6 @@
+# EDK/Tiano UEFI driver descriptor for the FSW ISO 9660 reader.
+# Descriptor, optical-block and directory-record limits govern readability;
+# a valid ISO image does not prove its EFI payload can execute.
 
 
 

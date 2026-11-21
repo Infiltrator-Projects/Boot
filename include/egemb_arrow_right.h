@@ -1,3 +1,8 @@
+/*
+ * Embedded right-arrow graphical resource. The byte array is generated
+ * image data; firmware decoding owns validation of dimensions and byte count.
+ * Do not hand-edit numerical asset contents during source commentary.
+ */
  
 
 

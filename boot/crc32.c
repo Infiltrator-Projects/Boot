@@ -1,3 +1,8 @@
+/*
+ * CRC-32 checksum helper used for integrity checks on firmware-visible
+ * metadata such as GPT structures. A CRC detects accidental data corruption;
+ * it is not a cryptographic signature or a trust decision.
+ */
  
 
 
@@ -91,6 +96,10 @@ static UINT32 crc32_tab[] = {
    0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
+/*
+ * Computes CRC-32 across the caller-specified buffer and length.
+ * Validation code must compare the result with the expected on-disk checksum.
+ */
 UINT32 crc32(UINT32 crc, const VOID *buf, UINTN size)
 {
    const UINT8 *p;

@@ -1,3 +1,8 @@
+/*
+ * Bundled PNG decoder API, colour conversion settings and error codes.
+ * Image dimensions, zlib output size and chunk boundaries are derived from
+ * untrusted resource bytes and must be checked before pixel-buffer use.
+ */
  
 
 

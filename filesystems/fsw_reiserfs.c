@@ -1,3 +1,9 @@
+/*
+ * ReiserFS firmware reader using tree keys, stat items and directory entries.
+ * On-disk B-tree node contents, item boundaries and key ordering are untrusted.
+ * The reader exposes file/dir operations to FSW; the mount must reject
+ * unrecognised superblocks rather than displaying invented file contents.
+ */
  
 
 
@@ -87,6 +93,10 @@ static fsw_u32  superblock_offsets[3] = {
 
 
 
+/*
+ * Recognises supported ReiserFS superblocks and constructs the root dnode.
+ * Feature-specific layout assumptions constrain volumes that can be read.
+ */
 static fsw_status_t fsw_reiserfs_volume_mount(struct fsw_reiserfs_volume *vol)
 {
     fsw_status_t    status;
@@ -327,6 +337,10 @@ static fsw_status_t fsw_reiserfs_dnode_stat(struct fsw_reiserfs_volume *vol, str
 
 
 
+/*
+ * Maps tree-item file data into the FSW extent representation, preserving
+ * holes and file size rather than assuming a contiguous physical region.
+ */
 static fsw_status_t fsw_reiserfs_get_extent(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno,
                                             struct fsw_extent *extent)
 {
@@ -632,6 +646,10 @@ static int fsw_reiserfs_compare_key(struct reiserfs_key *key,
 
 
 
+/*
+ * Traverses B-tree items by filesystem key; correct comparisons and node
+ * bounds are essential before interpreting directory or file data.
+ */
 static fsw_status_t fsw_reiserfs_item_search(struct fsw_reiserfs_volume *vol,
                                             fsw_u32 dir_id, fsw_u32 objectid, fsw_u64 offset,
                                             struct fsw_reiserfs_item *item)
@@ -746,6 +764,10 @@ static fsw_status_t fsw_reiserfs_item_search(struct fsw_reiserfs_volume *vol,
 
 
 
+/*
+ * Advances an item iterator; node transitions must preserve caller-visible
+ * state and release previous block references when moving between nodes.
+ */
 static fsw_status_t fsw_reiserfs_item_next(struct fsw_reiserfs_volume *vol,
                                           struct fsw_reiserfs_item *item)
 {

@@ -1,3 +1,7 @@
+/*
+ * Small blob-decompression API consuming caller-provided destination space.
+ * Return code and resulting size are required before treating output as data.
+ */
  
 
 

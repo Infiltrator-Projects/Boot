@@ -1,3 +1,9 @@
+/*
+ * Loads and binds firmware filesystem drivers through UEFI protocols.
+ * Drivers may expose previously unreadable partitions as Simple File System
+ * handles, and reconnection may affect pre-existing controller bindings.
+ * This is the current EFI-driver path, not a Common V2 hosted .so ABI.
+ */
  
 
 
@@ -451,6 +457,11 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
 
 
 
+/*
+ * Finds Disk I/O handles without Simple File System and may disconnect an
+ * existing driver agent before reconnecting through the supplied driver.
+ * This has a firmware-visible side effect and requires real hardware evidence.
+ */
 VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     EFI_STATUS                            Status;
     UINTN                                 HandleCount = 0;
@@ -539,6 +550,10 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
 
  
  
+/*
+ * Searches a configured directory for EFI driver images and launches them
+ * through the EFI image path. Filename matching alone does not authenticate.
+ */
 static UINTN ScanDriverDir(IN CHAR16 *Path)
 {
     EFI_STATUS              Status;
@@ -575,6 +590,10 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
  
  
  
+/*
+ * Loads on-disk EFI filesystem drivers before filesystem-based OS scanning;
+ * no Common V2 binary compatibility can be inferred from this operation.
+ */
 BOOLEAN LoadDrivers(VOID) {
     CHAR16        *Directory, *SelfDirectory;
     UINTN         i = 0, Length, NumFound = 0;

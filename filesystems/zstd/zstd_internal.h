@@ -1,3 +1,8 @@
+/*
+ * Internal Zstandard decode macros, copies and memory helpers. Optimised
+ * wild-copy operations may depend on spare buffer space; their call sites
+ * must prove any overread/write allowance rather than assume host padding.
+ */
  
 
 

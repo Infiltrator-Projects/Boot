@@ -1,3 +1,9 @@
+/*
+ * Firmware console/UI rendering, input and entry-selection state.
+ * Rows, selection highlights, hidden-tag records and the default match
+ * control menu presentation, not physical installation or EFI BootOrder.
+ * The graphics fallback must never compromise a viable boot choice.
+ */
  
 
 
@@ -383,6 +389,10 @@ static VOID SaveScreen(VOID) {
  
  
  
+/*
+ * Consumes key/pointer events, scroll state and timeouts to choose an action.
+ * An unselected or hidden entry must not become an implicit boot target.
+ */
 UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
                      IN MENU_STYLE_FUNC StyleFunc,
                      IN OUT INTN *DefaultEntryIndex,
@@ -1215,6 +1225,10 @@ static VOID PaintArrows(SCROLL_STATE *State, UINTN PosX, UINTN PosY, UINTN row0L
 }  
 
  
+/*
+ * Places menu entries and tool rows according to runtime screen geometry;
+ * rendering an icon is unrelated to the image's trust or bootability.
+ */
 VOID MainMenuStyle(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
                    IN UINTN Function, IN CHAR16 *ParamText)
 {
@@ -1512,6 +1526,10 @@ static BOOLEAN RemoveInvalidFilenames(CHAR16 *FilenameList, CHAR16 *VarName) {
 
  
  
+/*
+ * Saves the menu's hidden-entry list. This path changes BOOT UI state,
+ * not the underlying EFI executables or competing boot-manager installations.
+ */
 static VOID SaveHiddenList(IN CHAR16 *HiddenList, IN CHAR16 *VarName) {
     EFI_STATUS Status;
     UINTN i;
@@ -1627,6 +1645,10 @@ static VOID AddToHiddenTags(CHAR16 *VarName, CHAR16 *Pathname) {
  
  
  
+/*
+ * Persists a BOOT-level exclusion; the EFI executable and any independent
+ * firmware boot entry remain on disk and usable outside this UI.
+ */
 static BOOLEAN HideEfiTag(LOADER_ENTRY *Loader, REFIT_MENU_SCREEN *HideItemMenu, CHAR16 *VarName) {
     REFIT_VOLUME       *TestVolume = NULL;
     BOOLEAN            TagHidden = FALSE;
@@ -1793,6 +1815,10 @@ UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry)
     return RunGenericMenu(Screen, Style, &DefaultEntry, ChosenEntry);
 }
 
+/*
+ * Matches a configured default against the discovered entry set. No
+ * assumption about the number or operating systems represented is permitted.
+ */
 UINTN RunMainMenu(REFIT_MENU_SCREEN *Screen, CHAR16** DefaultSelection, REFIT_MENU_ENTRY **ChosenEntry)
 {
     MENU_STYLE_FUNC Style = TextMenuStyle;

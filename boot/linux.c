@@ -1,3 +1,9 @@
+/*
+ * Linux EFI-stub kernel discovery and boot option assembly.
+ * Kernel versions, initrd candidate names and distribution hints are
+ * heuristics rather than a guarantee of a bootable kernel/initramfs pair.
+ * The selected kernel, options and volume must remain consistent.
+ */
  
 
 
@@ -77,6 +83,11 @@
  
  
  
+/*
+ * Chooses an initrd by extracted version fragments and filename similarity.
+ * Where multiple names match, its tie-breaks are heuristic, not an authority
+ * on which initramfs actually corresponds to a particular installed kernel.
+ */
 CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     CHAR16              *InitrdName = NULL, *FileName, *KernelVersion, *InitrdVersion, *Path;
     CHAR16              *KernelPostNum, *InitrdPostNum;
@@ -157,6 +168,10 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
  
  
  
+/*
+ * Returns a newly prepared options string, substituting version tokens or
+ * appending initrd= only when applicable. The caller owns its allocation.
+ */
 CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
     CHAR16 *NewOptions = NULL;
 
@@ -180,6 +195,10 @@ CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
  
  
  
+/*
+ * Resolves main kernel load options from available configuration and defaults.
+ * A missing root parameter or inaccessible initrd can still make boot fail.
+ */
 CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume) {
     CHAR16 *Options = NULL, *InitrdName, *FullOptions = NULL, *KernelVersion;
 
@@ -237,6 +256,10 @@ VOID GuessLinuxDistribution(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *L
 }  
 
  
+/*
+ * Groups additional Linux kernels as alternate launch entries while retaining
+ * the volume context; folding entries must not erase independently bootable OSs.
+ */
 VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOLUME *Volume) {
     REFIT_FILE          *File;
     CHAR16              **TokenList = NULL, *InitrdName, *SubmenuName = NULL, *VolName = NULL;

@@ -1,3 +1,9 @@
+/*
+ * EFI Simple File System wrapper structures and signatures. The EFI-visible
+ * file handle embeds an FSW dnode/stream; its signature guards container
+ * recovery but is not a cryptographic authenticity check. Protocol callbacks
+ * must maintain EFI_STATUS, position and buffer-size semantics.
+ */
  
 
 

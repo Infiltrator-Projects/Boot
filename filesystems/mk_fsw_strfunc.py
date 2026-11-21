@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# Generator for FSW encoding-conversion/equality functions. The emitted
+# fsw_strfunc.h is derived source: changes to generated Unicode/byte-width
+# handling should be made here and regenerated coherently. This script uses
+# legacy Python syntax and is not the standard GNU-EFI release entry point.
 
  
  

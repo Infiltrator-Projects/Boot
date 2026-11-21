@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Creates two fundamentally different deliverables: a generic AMD64 .deb
+# that stages files without writing firmware, and a version-pinned .run that
+# performs native installation when executed. The released source SHA must
+# match this exact checkout; checksums protect the resulting artifact bytes.
 
 
 set -euo pipefail

@@ -1,3 +1,9 @@
+/*
+ * Bridge from filesystem-neutral read callbacks to EFI Block I/O, Disk I/O,
+ * Driver Binding and Simple File System protocol. The driver exposes a new
+ * firmware filesystem interface only after mount succeeds. Protocol installs,
+ * controller claims, caches and file handles have matching teardown duties.
+ */
  
 
 
@@ -315,6 +321,12 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_P
 
 
 
+/*
+ * Opens a controller's block/disk protocols and mounts a backend before
+ * installing Simple File System. An error must unwind the opened protocols.
+ * AUDIT: Volume is dereferenced immediately after AllocateZeroPool; review
+ * allocation-failure handling before calling this path resource-safe.
+ */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                               IN EFI_HANDLE                   ControllerHandle,
                                               IN REFIND_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath)
@@ -400,6 +412,10 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
 
 
 
+/*
+ * Uninstalls the filesystem protocol and releases the controller/volume
+ * resources; handles must not outlive this binding teardown.
+ */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                              IN  EFI_HANDLE                   ControllerHandle,
                                              IN  UINTN                        NumberOfChildren,
@@ -512,6 +528,11 @@ void EFIAPI fsw_efi_change_blocksize(struct fsw_volume *vol,
 
 
 
+/*
+ * Uses a small EFI Disk I/O read cache with direct-block fallback. Cache
+ * keys include volume identity and byte offset; stale media or failed reads
+ * must never be returned as valid sector data.
+ */
 fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno, void *buffer) {
    int              i, ReadCache = -1;
    FSW_VOLUME_DATA  *Volume = (FSW_VOLUME_DATA *)vol->host_data;
@@ -598,6 +619,10 @@ fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno,
 
 
 
+/*
+ * Maps filesystem-neutral errors into EFI_STATUS; translating unsupported
+ * or corrupt media into success would expose invalid root handles.
+ */
 EFI_STATUS fsw_efi_map_status(fsw_status_t fsw_status, FSW_VOLUME_DATA *Volume)
 {
     switch (fsw_status) {
@@ -702,6 +727,10 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_Delete(IN EFI_FILE_PROTOCOL *This)
 
 
 
+/*
+ * Translates EFI file-protocol Read semantics to filesystem-neutral handles;
+ * returned buffer sizes and end-of-file state must follow EFI conventions.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_Read(IN EFI_FILE_PROTOCOL *This,
                                           IN OUT UINTN *BufferSize,
                                           OUT VOID *Buffer)

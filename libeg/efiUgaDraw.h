@@ -1,3 +1,8 @@
+/*
+ * EFI UGA legacy graphics protocol definitions retained for older firmware.
+ * UGA and GOP have different capability queries; neither interface is
+ * unconditionally present on all UEFI implementations.
+ */
  
 
 

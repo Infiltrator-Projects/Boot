@@ -1,3 +1,9 @@
+/*
+ * NTFS-format reader code present as an additional filesystem target.
+ * Current release builds require only six EFI drivers and do not install an
+ * NTFS driver by default. MFT attribute decoding, runlists, sparse/compressed
+ * file extents and directory index records are untrusted on-disk data.
+ */
  
 
 
@@ -642,6 +648,10 @@ static int tobits(fsw_u32 val)
     return 31 - __builtin_clz(val);
 }
 
+/*
+ * Interprets the boot sector and metadata needed to access NTFS records.
+ * Code presence alone does not establish qualification of the NTFS EFI driver.
+ */
 static fsw_status_t fsw_ntfs_volume_mount(struct fsw_volume *volg)
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
@@ -937,6 +947,10 @@ static fsw_status_t fsw_ntfs_dnode_stat(struct fsw_volume *volg, struct fsw_dnod
     return FSW_SUCCESS;
 }
 
+/*
+ * Translates a virtual cluster number through an NTFS runlist; sparse or
+ * compressed runs must not be treated as ordinary contiguous disk blocks.
+ */
 static fsw_status_t fsw_ntfs_dnode_get_lcn(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dnode *dno, fsw_u64 vcn, fsw_u64 *lcnp)
 {
     fsw_status_t err;
@@ -1135,6 +1149,10 @@ static int ntfs_decomp(fsw_u8 *src, int slen, fsw_u8 *dst, int npage) {
     return 0;
 }
 
+/*
+ * Handles compressed extent representation, which differs from resident,
+ * sparse and uncompressed data. Untrusted sizes constrain decompression.
+ */
 static fsw_status_t fsw_ntfs_get_extent_compressed(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dnode *dno, struct fsw_extent *extent)
 {
     if(vol->clbits > 16)
@@ -1367,6 +1385,10 @@ static fsw_u8 *fsw_ntfs_read_index_block(struct fsw_ntfs_volume *vol, struct fsw
     return dno->cbuf;
 }
 
+/*
+ * Searches NTFS directory index structures. Index record length and
+ * filename collation are not guaranteed by the surrounding EFI protocol.
+ */
 static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnode *dnog, struct fsw_string *lookup_name, struct fsw_dnode **child_dno)
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;

@@ -1,3 +1,8 @@
+/*
+ * LZO portability primitives, type aliases and platform-specific feature
+ * selection. Alignment assumptions and compile-time optimisation paths can
+ * change decoder behaviour; preserve binary-compatible widths and bounds.
+ */
  
 
 

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Runs extracted native-installer functions against a disposable fake ESP.
+# Fixtures include independent Windows, GRUB and EFI fallback files that must
+# remain intact when BOOT reinstalls its own dedicated directory. Also
+# exercises path/symlink guards and verifies the loader SHA-256 marker.
 
 
 set -euo pipefail

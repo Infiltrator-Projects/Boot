@@ -1,3 +1,5 @@
+# Builds firmware graphics, font and image-format support. UI resources
+# are optional for EFI loader detection and must not become hard boot gates.
 
 
 

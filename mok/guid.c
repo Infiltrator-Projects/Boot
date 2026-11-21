@@ -1,3 +1,8 @@
+/*
+ * EFI signature database, certificate and loaded-image protocol GUID values.
+ * These constants select firmware authentication interfaces; a GUID match
+ * is not proof that a certificate or executable has been validated.
+ */
  
 
 

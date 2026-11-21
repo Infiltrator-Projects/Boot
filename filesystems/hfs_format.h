@@ -1,3 +1,8 @@
+/*
+ * HFS-family volume, catalog and extents on-disk definitions. B-tree and
+ * Unicode name layouts are external binary formats. These structures
+ * must not be confused with an installed OS's bootability or full HFS support.
+ */
  
  
 

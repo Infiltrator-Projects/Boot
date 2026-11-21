@@ -1,3 +1,9 @@
+/*
+ * Untrusted, volume-resident configuration is parsed into runtime scanning
+ * and presentation state. Tokens must be handled as settings, not as verified
+ * filesystem paths or authorisation to launch a payload.
+ * BOOT-owned variable storage is separate from firmware global BootOrder.
+ */
  
 
 
@@ -272,6 +278,10 @@ static BOOLEAN KeepReading(IN OUT CHAR16 *p, IN OUT BOOLEAN *IsQuoted) {
  
  
  
+/*
+ * Returns a tokenised line according to the parser's quoting rules.
+ * Consumers must respect token counts and release the allocated token list.
+ */
 UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
 {
     BOOLEAN         LineFinished, IsQuoted = FALSE;
@@ -510,6 +520,11 @@ static VOID SetLinuxMatchPatterns(CHAR16 *Prefixes) {
 }  
 
  
+/*
+ * Maps text options into GlobalConfig. dont_scan_files changes visibility;
+ * default_selection changes preference, not firmware boot order.
+ * use_nvram=false concerns BOOT's variable namespace, not installer NVRAM.
+ */
 VOID ReadConfig(CHAR16 *FileName)
 {
     EFI_STATUS      Status;
@@ -1057,6 +1072,10 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
 
  
  
+/*
+ * Manual menu stanzas supplement automatic discovery. The presence of a
+ * configured path is not evidence that the EFI image will load successfully.
+ */
 VOID ScanUserConfigured(CHAR16 *FileName)
 {
     EFI_STATUS        Status;
@@ -1216,6 +1235,10 @@ static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
  
  
  
+/*
+ * Reads kernel-specific command-line hints from a particular volume.
+ * An initrd or root option is not necessarily transferable to another kernel.
+ */
 REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     CHAR16       *OptionsFilename, *FullFilename;
     BOOLEAN      GoOn = TRUE, FileFound = FALSE;

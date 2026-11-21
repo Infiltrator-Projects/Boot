@@ -1,3 +1,7 @@
+/*
+ * Legacy BDS bridge declarations. Firmware option and BBS table ownership
+ * must remain consistent when dispatching a BIOS/CSM boot attempt.
+ */
  
 
 

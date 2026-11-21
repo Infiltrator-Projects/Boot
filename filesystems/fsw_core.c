@@ -1,3 +1,9 @@
+/*
+ * Filesystem-neutral block cache, dnode tree and file-handle read engine.
+ * Backend fstype tables supply mount, extent and directory operations while
+ * the host table supplies block I/O and allocation. Cached block references
+ * and dnode refcounts are explicit lifetime contracts across both layers.
+ */
  
  
 
@@ -61,6 +67,10 @@ static void fsw_blockcache_free(struct fsw_volume *vol);
 
 
 
+/*
+ * Creates a filesystem volume by invoking the selected backend's mount
+ * callback. Unsupported on-disk features must not be treated as an empty disk.
+ */
 fsw_status_t fsw_mount(void *host_data,
                        struct fsw_host_table *host_table,
                        struct fsw_fstype_table *fstype_table,
@@ -178,6 +188,11 @@ void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 l
 
 
 
+/*
+ * Caches physical blocks using cache levels and reference counts. An in-use
+ * entry is not evictable; a failed read must not publish the block number as
+ * valid cached data. Caller must eventually release a successful acquisition.
+ */
 fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 cache_level, void **buffer_out)
 {
     fsw_status_t    status;
@@ -266,6 +281,10 @@ fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 
 
 
 
+/*
+ * Decrements a matching cache entry reference; call only for a successfully
+ * obtained block and do not retain its data after it becomes evictable.
+ */
 void fsw_block_release(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, void *buffer)
 {
     fsw_u32 i;
@@ -546,6 +565,10 @@ fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
 
 
 
+/*
+ * Walks a filesystem path across backend dnodes and potentially links.
+ * Each intermediate dnode's lifetime and link resolution status matter.
+ */
 fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
                                    struct fsw_string *lookup_path, char separator,
                                    struct fsw_dnode **child_dno_out)
@@ -858,6 +881,11 @@ void fsw_shandle_close(struct fsw_shandle *shand)
 
 
 
+/*
+ * Maps the file position through a backend extent into physical, buffer or
+ * sparse-zero data; partial reads update position and returned byte count.
+ * AUDIT: the local position is narrowed to fsw_u32; review files > 4 GiB.
+ */
 fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_inout, void *buffer_in)
 {
     fsw_status_t    status;

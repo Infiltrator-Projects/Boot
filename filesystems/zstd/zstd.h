@@ -1,3 +1,8 @@
+/*
+ * Decoder API and decompression context contracts. Destination capacity,
+ * dictionary metadata and declared frame length constrain decoding; a
+ * filesystem extent must never be trusted solely on successful frame parsing.
+ */
  
 
 

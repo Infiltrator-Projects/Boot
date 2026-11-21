@@ -1,3 +1,8 @@
+/*
+ * GNU-EFI image loader context describing loaded PE/COFF sections and
+ * relocations. Image size, entry point and relocation regions require bounds
+ * and address-width validation before firmware execution.
+ */
  
 
 

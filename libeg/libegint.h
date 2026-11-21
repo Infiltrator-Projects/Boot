@@ -1,3 +1,8 @@
+/*
+ * Private graphical image/decoder implementation contract. Pixel sizes,
+ * alpha channels, palette conversions and pooled allocation must preserve
+ * bounds across PNG, BMP, ICNS and JPEG readers.
+ */
  
 
 

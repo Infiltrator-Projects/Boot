@@ -1,3 +1,9 @@
+/*
+ * Firmware-wide services: volumes, device paths, files and EFI variables.
+ * Protocol handles, allocation ownership, disk identity and error statuses
+ * cross security and lifetime boundaries here. A recognised volume is not
+ * necessarily readable, and an EFI file is not automatically executable.
+ */
  
 
 
@@ -426,6 +432,11 @@ EFI_STATUS CreateVarsDir(VOID) {
  
  
  
+/*
+ * BOOT's own variables can be stored on disk when use_nvram=false;
+ * firmware-owned variables are accessed through Runtime Services.
+ * Callers must pass valid output pointers and check returned data length.
+ */
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL) {
     UINT8 *buf = NULL;
     UINTN l;
@@ -479,6 +490,10 @@ EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer
  
  
  
+/*
+ * Avoids writing a variable when its value is unchanged. The optional
+ * disk-storage preference does not disable firmware Boot#### writes elsewhere.
+ */
 EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, BOOLEAN persistent) {
     UINT32      flags;
     EFI_STATUS  Status = EFI_SUCCESS, OldStatus;
@@ -1083,6 +1098,11 @@ static BOOLEAN HasWindowsBiosBootFiles(REFIT_VOLUME *Volume) {
 
  
  
+/*
+ * Derives partition/device information from EFI handles and Block I/O.
+ * A missing protocol or a recognised-but-unreadable filesystem is not evidence
+ * of a valid OS loader; downstream scanning must require readable RootDir.
+ */
 VOID ScanVolume(REFIT_VOLUME *Volume)
 {
     EFI_STATUS              Status;
@@ -1273,6 +1293,10 @@ static VOID ScanExtendedPartition(REFIT_VOLUME *WholeDiskVolume, MBR_PARTITION_I
  
  
  
+/*
+ * Builds a runtime inventory of volumes exposed by firmware and loaded
+ * drivers. Later controller changes may invalidate those discovery assumptions.
+ */
 VOID ScanVolumes(VOID)
 {
     EFI_STATUS              Status;
@@ -1430,6 +1454,10 @@ VOID SetVolumeIcons(VOID) {
  
  
 
+/*
+ * A successful existence test is only filesystem evidence; it does not
+ * validate an EFI header, signature, kernel command line or boot outcome.
+ */
 BOOLEAN FileExists(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath)
 {
     EFI_STATUS         Status;

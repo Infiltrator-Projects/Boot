@@ -1,3 +1,6 @@
+# Builds BOOT's Secure Boot/shim compatibility support. The presence of
+# these objects does not itself establish image authenticity or a fully
+# validated platform trust-chain.
 
 
 

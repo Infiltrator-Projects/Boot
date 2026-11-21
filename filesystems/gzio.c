@@ -1,3 +1,9 @@
+/*
+ * Firmware-compatible gzip/DEFLATE decoder utilities retained from an
+ * existing compact implementation. Bit buffers, Huffman table allocation and
+ * sliding-window offsets depend on bounded compressed input; malformed data
+ * must not be treated as a valid EFI image or filesystem extent.
+ */
  
 
 

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Boots the compiled EFI application in QEMU/OVMF using a disposable FAT32
+# GPT disk and isolated firmware variable image. The explicit success marker
+# is reaching the BOOT main menu; no installed OS is launched by this smoke
+# test and no real host ESP or BootOrder is modified.
 
 
 set -euo pipefail

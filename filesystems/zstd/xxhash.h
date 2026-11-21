@@ -1,3 +1,7 @@
+/*
+ * XXH64 streaming hash state and function interface. Its checksums are for
+ * format consistency, not cryptographic authentication of EFI boot media.
+ */
  
 
 

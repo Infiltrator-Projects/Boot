@@ -1,3 +1,6 @@
+# EDK/Tiano UEFI driver descriptor for the FSW EXT4 reader.
+# Incompatible features, inode extents and block addressing constrain support.
+# No journal recovery or Common V2 module compatibility is implied by this INF.
 
 
 

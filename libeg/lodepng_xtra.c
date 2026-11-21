@@ -1,3 +1,8 @@
+/*
+ * Firmware allocation wrappers and PNG-to-EG_IMAGE adapter. Standard PNG
+ * library memory callbacks are replaced with EFI-compatible allocation.
+ * A valid decode must still satisfy requested image size and alpha semantics.
+ */
  
 
 
@@ -103,6 +108,10 @@ typedef struct _lode_color {
    UINT8 alpha;
 } lode_color;
 
+/*
+ * Converts compressed PNG image bytes into the firmware image surface;
+ * invalid image dimensions or decoder error must produce no usable icon.
+ */
 EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha) {
    EG_IMAGE *NewImage = NULL;
    unsigned Error, Width, Height;

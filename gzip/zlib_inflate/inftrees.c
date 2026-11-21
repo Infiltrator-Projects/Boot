@@ -1,3 +1,8 @@
+/*
+ * Canonical Huffman decode-table construction for DEFLATE literal,
+ * length and distance symbols. Declared code lengths and counts may be
+ * malformed, so oversubscribed/incomplete trees must be rejected.
+ */
  
 
 
@@ -20,6 +25,10 @@
 
 
 
+/*
+ * Builds decoding tables from source code lengths. Table log and capacity
+ * must remain consistent with the stream's validated DEFLATE parameters.
+ */
 int zlib_inflate_table(codetype type, unsigned short *lens, unsigned codes,
                         code **table, unsigned *bits, unsigned short *work)
 {

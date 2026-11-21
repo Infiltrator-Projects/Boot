@@ -1,3 +1,8 @@
+/*
+ * Public EFI graphics and resource API. Image allocation, decoding, display
+ * and firmware console state have separate lifetimes from filesystem handles.
+ * A missing icon or banner must not suppress a legitimate boot choice.
+ */
  
 
 

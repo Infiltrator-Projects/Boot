@@ -1,3 +1,8 @@
+/*
+ * Legacy boot-option discovery and EFI BDS variable management. BIOS/CSM
+ * support is firmware-specific; legacy entries and device ordering can alter
+ * boot variables and must not be confused with non-destructive UEFI scanning.
+ */
  
 
 
@@ -200,6 +205,10 @@ BdsBuildLegacyDevNameString (
 
 
 BOOLEAN
+/*
+ * Inspects an EFI load option to classify legacy boot encoding.
+ * Classification alone does not prove CSM execution support.
+ */
 BdsIsLegacyBootOption (
   IN UINT8                 *BootOptionVar,
   OUT BBS_TABLE            **BbsEntry,
@@ -697,6 +706,10 @@ EfiLibDeleteVariable (
 
 
 EFI_STATUS
+/*
+ * May synthesise firmware legacy entries from available BBS devices; avoiding
+ * unintended duplicates requires exact device identity, not only labels.
+ */
 BdsAddNonExistingLegacyBootOptions (
   VOID
   )
@@ -887,6 +900,10 @@ BdsDeleteBootOption (
 
 
 EFI_STATUS
+/*
+ * Removes firmware legacy options deemed invalid by this implementation;
+ * this is a persistent firmware mutation and is not equivalent to UI hiding.
+ */
 BdsDeleteAllInvalidLegacyBootOptions (
   VOID
   )

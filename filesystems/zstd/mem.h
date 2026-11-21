@@ -1,3 +1,8 @@
+/*
+ * Endian-aware unaligned memory load/store helpers for compressed metadata.
+ * Reads are valid only when the caller has already established that the
+ * specified byte width lies within the input buffer.
+ */
  
 
 

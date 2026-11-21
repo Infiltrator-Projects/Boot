@@ -1,3 +1,8 @@
+/*
+ * Huffman entropy table parsing and decoding for Zstandard literals.
+ * Compressed weights and symbol streams are untrusted; table size, decode
+ * mode and destination capacity define the allowed read/write region.
+ */
  
 
 
@@ -461,6 +466,10 @@ static void HUF_fillDTableX4(HUF_DEltX4 *DTable, const U32 targetLog, const sort
 	}
 }
 
+/*
+ * Builds a multi-symbol decode table from a compressed Huffman header.
+ * Invalid weight or table-log information must be rejected before decoding.
+ */
 size_t HUF_readDTableX4_wksp(HUF_DTable *DTable, const void *src, size_t srcSize, void *workspace, size_t workspaceSize)
 {
 	U32 tableLog, maxW, sizeOfSort, nbSymbols;
@@ -869,6 +878,10 @@ size_t HUF_decompress4X_hufOnly_wksp(HUF_DTable *dctx, void *dst, size_t dstSize
 
 
 
+/*
+ * Parses Huffman symbol statistics and supplies table construction inputs;
+ * no stream byte is trusted merely because a length was declared.
+ */
 size_t HUF_readStats_wksp(BYTE *huffWeight, size_t hwSize, U32 *rankStats, U32 *nbSymbolsPtr, U32 *tableLogPtr, const void *src, size_t srcSize, void *workspace, size_t workspaceSize)
 {
 	U32 weightTotal;

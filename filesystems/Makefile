@@ -1,3 +1,7 @@
+# Selects filesystem driver build targets. The normal GNU-EFI release
+# build requires ext2, ext4, reiserfs, iso9660, hfs and btrfs.
+# AUDIT: the standalone 'install' recipe still names an old refind path;
+# that recipe is not the constrained /EFI/InfiltratorOS/BOOT .run install.
 
 
 

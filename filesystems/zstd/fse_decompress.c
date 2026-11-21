@@ -1,3 +1,9 @@
+/*
+ * Finite State Entropy table construction and bitstream decompression.
+ * Normalised symbol counts, table logarithms and source stream lengths are
+ * external metadata; workspace capacity and table indices constrain safe
+ * execution in the freestanding filesystem decoder.
+ */
  
 
 
@@ -81,6 +87,10 @@
 
  
 
+/*
+ * Constructs an entropy decoding table from normalised symbol frequencies.
+ * Frequency sums and symbol maxima must be consistent with its table log.
+ */
 size_t FSE_buildDTable_wksp(FSE_DTable *dt, const short *normalizedCounter, unsigned maxSymbolValue, unsigned tableLog, void *workspace, size_t workspaceSize)
 {
 	void *const tdPtr = dt + 1;  
@@ -253,6 +263,10 @@ size_t FSE_decompress_usingDTable(void *dst, size_t originalSize, const void *cS
 	return FSE_decompress_usingDTable_generic(dst, originalSize, cSrc, cSrcSize, dt, 0);
 }
 
+/*
+ * Uses a caller-supplied workspace and bounded output buffer. A malformed
+ * bitstream must report failure rather than exceed the destination.
+ */
 size_t FSE_decompress_wksp(void *dst, size_t dstCapacity, const void *cSrc, size_t cSrcSize, unsigned maxLog, void *workspace, size_t workspaceSize)
 {
 	const BYTE *const istart = (const BYTE *)cSrc;

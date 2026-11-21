@@ -1,3 +1,5 @@
+# Compiles the bundled DEFLATE decoder used by BOOT compressed-load paths.
+# Linker, allocation and ABI settings must match EFI code, not a hosted zlib.
 
 
 

@@ -1,3 +1,8 @@
+/*
+ * Legacy BDS interoperability helpers connecting firmware option data with
+ * BIOS boot-services tables. Hardware/firmware capability is a prerequisite;
+ * legacy mappings cannot be inferred from native UEFI image discovery.
+ */
  
 
 
@@ -41,6 +46,10 @@ EFI_GUID gEfiLegacyBootProtocolGuid     = { 0xdb9a1e3d, 0x45cb, 0x4abb, { 0x85, 
 
 
 
+/*
+ * Adjusts BBS table information for a requested legacy boot option.
+ * Firmware and device-order semantics must agree with the selected entry.
+ */
 VOID UpdateBbsTable (BDS_COMMON_OPTION *Option) {
    UINT16  Idx;
    EFI_LEGACY_BIOS_PROTOCOL  *LegacyBios;

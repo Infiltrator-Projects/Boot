@@ -1,3 +1,9 @@
+/*
+ * POSIX-hosted FSW test adapter for reading filesystem images outside EFI.
+ * It supplies a file-backed host callback table, dnode paths and directory
+ * operations. Success here tests the filesystem parser but does not exercise
+ * EFI Driver Binding, Secure Boot or physical firmware behaviour.
+ */
  
 
 
@@ -72,6 +78,10 @@ extern struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(FSTYPE);
 
 
 
+/*
+ * Opens the host disk/image input and attaches the requested FSW backend.
+ * Host file descriptors and FSW allocations have separate cleanup paths.
+ */
 struct fsw_posix_volume * fsw_posix_mount(const char *path, struct fsw_fstype_table *fstype_table)
 {
     fsw_status_t        status;
@@ -362,6 +372,10 @@ void fsw_posix_change_blocksize(struct fsw_volume *vol,
 
 
 
+/*
+ * Reads a physical block from the host image; an out-of-range or short host
+ * read must not become a successful filesystem metadata block.
+ */
 fsw_status_t fsw_posix_read_block(struct fsw_volume *vol, fsw_u32 phys_bno, void *buffer)
 {
     struct fsw_posix_volume *pvol = (struct fsw_posix_volume *)vol->host_data;

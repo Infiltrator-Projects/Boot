@@ -1,3 +1,10 @@
+/*
+ * Shared EFI application model: firmware service pointers, global config,
+ * menu tags and operating-system/volume descriptors. Tags distinguish loader,
+ * firmware, legacy and utility actions; code must not treat these as one class.
+ * Fields referring to EFI handles and allocated Unicode strings have firmware
+ * or BOOT lifetime requirements, not process-independent ownership.
+ */
  
 
 

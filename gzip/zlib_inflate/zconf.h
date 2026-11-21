@@ -1,3 +1,8 @@
+/*
+ * Bundled zlib configuration and integer/calling-convention aliases.
+ * Freestanding firmware compilers may differ from hosted targets;
+ * keep exact-width and allocation semantics compatible with the build.
+ */
  
 
 

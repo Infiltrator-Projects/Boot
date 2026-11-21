@@ -1,3 +1,8 @@
+/*
+ * Firmware graphical font loading, glyph measurement and image text draw.
+ * Embedded font atlases are resource data; glyph metrics and alpha blending
+ * must remain compatible with framebuffer dimensions and configured scale.
+ */
  
 
 
@@ -92,6 +97,10 @@ VOID egMeasureText(IN CHAR16 *Text, OUT UINTN *Width, OUT UINTN *Height) {
         *Height = BaseFontImage->Height;
 }
 
+/*
+ * Draws a UTF-16 menu string into the destination image with calculated
+ * cell metrics. Glyph fallback is visual and never a loader-validity test.
+ */
 VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN UINTN PosY, IN UINT8 BGBrightness)
 {
     EG_IMAGE        *FontImage;
@@ -152,6 +161,10 @@ VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN
 }
 
  
+/*
+ * Reads configured font resource data into graphical rendering state.
+ * Missing fonts must not make the firmware boot menu unusable.
+ */
 VOID egLoadFont(IN CHAR16 *Filename) {
    if (BaseFontImage)
       egFreeImage(BaseFontImage);

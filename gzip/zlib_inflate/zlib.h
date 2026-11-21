@@ -1,3 +1,8 @@
+/*
+ * Bundled zlib-style stream and inflate API declarations. avail_in,
+ * avail_out and total_out encode safety-critical bounds; stream return
+ * codes must distinguish incomplete input, malformed data and success.
+ */
  
 
 

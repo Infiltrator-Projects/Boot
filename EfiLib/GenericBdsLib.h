@@ -1,3 +1,9 @@
+/*
+ * Compatibility declarations for UEFI BDS, boot variables and device-path
+ * operations. A Boot#### record is externally supplied binary data; a named
+ * entry, connected controller and executable boot option are distinct states.
+ * Functions that alter firmware BootOrder require explicit call-site review.
+ */
  
 
 

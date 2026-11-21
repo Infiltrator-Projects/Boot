@@ -1,3 +1,8 @@
+/*
+ * Table-based CRC-32C/Castagnoli checksum calculation. This polynomial is
+ * distinct from ordinary GPT CRC-32 and must not be substituted for it.
+ * An on-disk checksum detects data inconsistency, not authenticated origin.
+ */
  
 
 
@@ -60,6 +65,10 @@ init_crc32c_table (void)
 }
 
 uint32_t
+/*
+ * Calculates CRC-32C over an exact caller-provided buffer and length.
+ * The caller must compare against the appropriate filesystem field.
+ */
 grub_getcrc32c (uint32_t crc, const void *buf, int size)
 {
   int i;

@@ -1,3 +1,8 @@
+/*
+ * Small EFI Simple File System helpers used during security inspection.
+ * Device paths, file handles and read buffers originate from UEFI services;
+ * caller ownership and byte-count checks are prerequisites for image parsing.
+ */
  
 
 
@@ -16,6 +21,10 @@ static EFI_GUID SIMPLE_FS_PROTOCOL = SIMPLE_FILE_SYSTEM_PROTOCOL;
 static EFI_GUID FILE_INFO = EFI_FILE_INFO_ID;
 
 EFI_STATUS
+/*
+ * Opens a named EFI file on a supplied device handle. Returning success
+ * requires a usable file protocol, not merely a syntactically valid path.
+ */
 simple_file_open_by_handle(EFI_HANDLE device, CHAR16 *name, EFI_FILE_PROTOCOL **file, UINT64 mode)
 {
    EFI_STATUS efi_status;
@@ -128,6 +137,10 @@ simple_file_open(EFI_HANDLE image, CHAR16 *name, EFI_FILE_PROTOCOL **file, UINT6
 }
 
 EFI_STATUS
+/*
+ * Allocates and reads the entire EFI file; returned length is the only safe
+ * bound for subsequent certificate or image parsing.
+ */
 simple_file_read_all(EFI_FILE_PROTOCOL *file, UINTN *size, void **buffer)
 {
    EFI_STATUS efi_status;
@@ -158,6 +171,9 @@ simple_file_read_all(EFI_FILE_PROTOCOL *file, UINTN *size, void **buffer)
 }
 
 void
+/*
+ * Releases the EFI file protocol handle; callers may not reuse it afterwards.
+ */
 simple_file_close(EFI_FILE_PROTOCOL *file)
 {
    uefi_call_wrapper(file->Close, 1, file);

@@ -1,3 +1,9 @@
+/*
+ * UEFI absolute/simple-pointer protocol enumeration and cursor state.
+ * Pointer hardware is optional; keyboard navigation must remain usable.
+ * Opened firmware protocols and cached background images have explicit
+ * lifetime requirements when graphics modes or pointer handles change.
+ */
  
 
 
@@ -47,6 +53,10 @@ POINTER_STATE State;
  
  
  
+/*
+ * Discovers and opens available pointer protocols. Failure or zero handles
+ * must leave the rest of the firmware menu usable without pointer input.
+ */
 VOID pdInitialize() {
     pdCleanup();  
 
@@ -103,6 +113,10 @@ VOID pdInitialize() {
  
  
  
+/*
+ * Closes opened firmware protocols and releases cursor-related state;
+ * subsequent pointer reads require fresh initialisation.
+ */
 VOID pdCleanup() {
     PointerAvailable = FALSE;
     pdClear();
@@ -179,6 +193,10 @@ EFI_EVENT pdWaitEvent(UINTN Index) {
  
  
  
+/*
+ * Aggregates pointer device reports into screen coordinates; devices have
+ * different motion conventions and may fail independently.
+ */
 EFI_STATUS pdUpdateState() {
 #if defined(EFI32) && defined(__MAKEWITH_GNUEFI)
     return EFI_NOT_READY;
@@ -262,6 +280,10 @@ POINTER_STATE pdGetState() {
  
  
  
+/*
+ * Preserves the under-cursor background for later restoration. This is a
+ * visual operation and must not influence boot entry selection.
+ */
 VOID pdDraw() {
     if(Background) {
         egFreeImage(Background);

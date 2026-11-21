@@ -1,3 +1,6 @@
+# EDK/Tiano UEFI driver descriptor for the FSW Btrfs backend.
+# Chunk mapping, subvolumes and tree feature support depend on this reader.
+# This is metadata for an alternative build, not a Common V2 .so ABI.
 
 
 

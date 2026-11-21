@@ -1,3 +1,8 @@
+/*
+ * Legacy BIOS/CSM boot entry and handoff interfaces. These routines depend
+ * on firmware-specific legacy capability, independent of UEFI native loaders.
+ * Legacy partition-state writes are not merely a menu-presentation operation.
+ */
  
 
 

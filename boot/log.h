@@ -1,3 +1,8 @@
+/*
+ * Diagnostic recording interface for BOOT's EFI-volume log. Log write errors
+ * must not be interpreted as the status of a loader transfer, and logging
+ * should not require destructive operations on other EFI vendors' directories.
+ */
  
 
 

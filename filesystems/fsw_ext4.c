@@ -1,3 +1,9 @@
+/*
+ * EXT4-format firmware reader using FSW volume, dnode and extent APIs.
+ * Superblock feature negotiation is mandatory: an EXT4 signature is not enough
+ * for a reader to understand every on-disk feature. Inodes may use either
+ * extent trees or direct/indirect block addressing, with distinct risks.
+ */
  
 
 
@@ -105,6 +111,11 @@ fsw_ext4_group_first_block_no(struct ext4_super_block *sb, fsw_u32 group_no)
 
 
 
+/*
+ * Reads and checks superblock revision, incompatible feature flags and
+ * block size before accessing group descriptors and creating the root inode.
+ * The recovery-needed flag is observed but this code does not replay a journal.
+ */
 static fsw_status_t fsw_ext4_volume_mount(struct fsw_ext4_volume *vol)
 {
     fsw_status_t    status;
@@ -369,6 +380,10 @@ static fsw_status_t fsw_ext4_dnode_stat(struct fsw_ext4_volume *vol, struct fsw_
 
 
 
+/*
+ * Dispatches block lookup according to the inode's EXTENTS flag; callers
+ * must not interpret extent-tree data as legacy block pointers or vice versa.
+ */
 static fsw_status_t fsw_ext4_get_extent(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                         struct fsw_extent *extent)
 {
@@ -395,6 +410,11 @@ static fsw_status_t fsw_ext4_get_extent(struct fsw_ext4_volume *vol, struct fsw_
  
 
 
+/*
+ * Walks extent headers/index nodes from untrusted disk data. Magic is checked.
+ * AUDIT: traversal uses an unbounded while loop and requires additional
+ * structural/depth checks to rule out malformed-tree nontermination.
+ */
 static fsw_status_t fsw_ext4_get_by_extent(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                         struct fsw_extent *extent)
 {
@@ -471,6 +491,10 @@ static fsw_status_t fsw_ext4_get_by_extent(struct fsw_ext4_volume *vol, struct f
 
 
 
+/*
+ * Resolves direct and multi-level indirect block pointers. A computed block
+ * address must remain meaningful under the mounted volume's block geometry.
+ */
 static fsw_status_t fsw_ext4_get_by_blkaddr(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                         struct fsw_extent *extent)
 {
@@ -661,6 +685,10 @@ static fsw_status_t fsw_ext4_dir_read(struct fsw_ext4_volume *vol, struct fsw_ex
 
 
 
+/*
+ * Converts variable-length EXT4 directory records into filesystem dnodes.
+ * Record boundaries and name lengths must constrain every advance.
+ */
 static fsw_status_t fsw_ext4_read_dentry(struct fsw_shandle *shand, struct ext4_dir_entry *entry)
 {
     fsw_status_t    status;

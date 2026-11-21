@@ -1,3 +1,9 @@
+/*
+ * Btrfs-to-Zstandard decompressor adaptation: unaligned little-endian values,
+ * fixed-width aliases and page-size assumptions bridge on-disk compressed
+ * extents into this private decoder. Input/output sizes are untrusted.
+ * This is not a general host-level compression service.
+ */
  
  
 

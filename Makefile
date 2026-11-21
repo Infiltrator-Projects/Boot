@@ -1,3 +1,6 @@
+# Top-level GNU-EFI build graph. The standard gnuefi target delegates
+# library and EFI-driver builds to subdirectories; it does not install to
+# an ESP or modify NVRAM. Native installation is owned by the .run script.
 
 
 

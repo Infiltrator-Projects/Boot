@@ -1,3 +1,6 @@
+# Builds POSIX-hosted filesystem exercisers. These tests exercise FSW
+# parsing against host-backed images but do not install EFI protocols or
+# qualify BOOT execution on real firmware.
 
 DRIVERNAME = xfs
 

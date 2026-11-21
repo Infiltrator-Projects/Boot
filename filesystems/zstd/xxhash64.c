@@ -1,3 +1,8 @@
+/*
+ * Streaming XXH64 checksum implementation used by compressed-format
+ * metadata checks. This is a fast noncryptographic hash, not a code signature
+ * or an authenticity check on filesystem contents.
+ */
  
 
 
@@ -97,6 +102,10 @@ void xxh64_reset(struct xxh64_state *statePtr, const uint64_t seed)
 	memcpy(statePtr, &state, sizeof(state));
 }
 
+/*
+ * Accumulates input bytes into the streaming hash state. State lifetime
+ * and input length belong to the caller, including zero-length updates.
+ */
 int xxh64_update(struct xxh64_state *state, const void *input, const size_t len)
 {
 	const uint8_t *p = (const uint8_t *)input;
@@ -163,6 +172,10 @@ int xxh64_update(struct xxh64_state *state, const void *input, const size_t len)
 	return 0;
 }
 
+/*
+ * Finalises a read-only digest from the accumulated state. A checksum match
+ * alone provides no security trust or physical boot success guarantee.
+ */
 uint64_t xxh64_digest(const struct xxh64_state *state)
 {
 	const uint8_t *p = (const uint8_t *)state->mem64;

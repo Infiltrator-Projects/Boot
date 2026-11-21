@@ -1,3 +1,9 @@
+/*
+ * Bundled PNG chunk, zlib, filtering and pixel conversion implementation.
+ * Chunk lengths, IHDR dimensions, palettes and compressed scanlines are
+ * untrusted resource data. Decode errors and overflow checks must be preserved
+ * when replacing artwork; display assets are not part of boot trust.
+ */
  
 
 
@@ -1404,6 +1410,10 @@ static unsigned lodepng_inflatev(ucvector* out,
   return error;
 }
 
+/*
+ * Inflates DEFLATE content under explicit input size and output allocation
+ * contracts. Success alone does not establish a valid PNG chunk structure.
+ */
 unsigned lodepng_inflate(unsigned char** out, size_t* outsize,
                          const unsigned char* in, size_t insize,
                          const LodePNGDecompressSettings* settings) {
@@ -2655,6 +2665,10 @@ static const unsigned lodepng_crc32_table7[256] = {
 };
 
  
+/*
+ * Computes the PNG chunk CRC checksum; this is integrity checking, not
+ * cryptographic authentication of the image resource.
+ */
 unsigned lodepng_crc32(const unsigned char* data, size_t length) {
    
   unsigned r = 0xffffffffu;
@@ -4304,6 +4318,10 @@ static void Adam7_getpassvalues(unsigned passw[7], unsigned passh[7], size_t fil
  
 
  
+/*
+ * Parses PNG header metadata before full decoding. Dimensions and colour
+ * mode must be validated before allocating a destination bitmap.
+ */
 unsigned lodepng_inspect(unsigned* w, unsigned* h, LodePNGState* state,
                          const unsigned char* in, size_t insize) {
   unsigned width, height;
@@ -5359,6 +5377,10 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
   lodepng_free(scanlines);
 }
 
+/*
+ * Combines chunk parsing, decompression and pixel conversion. Caller must
+ * check the returned error before using width, height or output bytes.
+ */
 unsigned lodepng_decode(unsigned char** out, unsigned* w, unsigned* h,
                         LodePNGState* state,
                         const unsigned char* in, size_t insize) {

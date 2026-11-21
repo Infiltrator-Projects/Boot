@@ -1,3 +1,9 @@
+/*
+ * Firmware image loading boundary for EFI applications, EFI drivers and
+ * EFI-stub kernels. A displayed file can still fail header validation,
+ * firmware LoadImage, image authentication or StartImage.
+ * Compressed images require explicit allocation and decompression limits.
+ */
  
 
 
@@ -92,6 +98,10 @@ UINT64 PESig = EFI_STUB_ARCH;
  
 #define EFI_HEADER_SIZE 4096
 
+/*
+ * Explains a firmware security rejection without weakening the platform's
+ * trust requirements or silently enrolling an executable.
+ */
 static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
     if (Name == NULL)
         Name = L"the loader";
@@ -120,6 +130,10 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
  
  
  
+/*
+ * A preliminary header/type classification, not a Secure Boot trust verdict
+ * and not evidence that firmware execution will succeed.
+ */
 UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     UINTN           LoaderType = LOADER_TYPE_EFI;
 #if defined (EFIX64) | defined (EFI32) | defined (EFIAARCH64)
@@ -183,6 +197,11 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
 }  
 
  
+/*
+ * Handles EFI LoadImage/StartImage and compressed-image memory input. The
+ * gzip branch caps input and checks actual expanded size before LoadImage.
+ * Returned EFI_STATUS is material; driver execution can change device binding.
+ */
 EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR16 *Filename,
                          IN CHAR16 *LoadOptions,
@@ -449,6 +468,10 @@ static VOID DoEnableAndLockVMX(VOID) {
 }  
 
  
+/*
+ * Transfers control to the selected EFI loader. Successful image dispatch
+ * and successful operating-system startup are different observations.
+ */
 VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName) {
     CHAR16 *LoaderPath;
 

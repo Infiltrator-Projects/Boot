@@ -1,3 +1,9 @@
+/*
+ * Shared read-only filesystem object model: host callbacks, backend table,
+ * volumes, dnodes, extents, strings and stream handles. Extent units distinguish
+ * physical device blocks from logical filesystem blocks; refcounts govern
+ * cache and dnode lifetime. This interface is FSW, not Common V2.
+ */
  
 
 

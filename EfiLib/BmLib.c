@@ -1,3 +1,8 @@
+/*
+ * EFI library convenience routines for protocol lookup, file metadata and
+ * pool reallocation. Callers must respect differences between an EFI handle,
+ * a protocol instance and an allocated copy of firmware-managed structures.
+ */
  
 
 
@@ -34,6 +39,10 @@
 
 
 EFI_STATUS
+/*
+ * Locates a firmware protocol by GUID; absence is a supported runtime
+ * condition and must not be converted into an assumed usable interface.
+ */
 EfiLibLocateProtocol (
   IN  EFI_GUID    *ProtocolGuid,
   OUT VOID        **Interface
@@ -178,6 +187,10 @@ EfiLibFileSystemInfo (
 
 
 VOID *
+/*
+ * Replaces a pool-backed buffer while preserving intended bytes; callers
+ * must not keep using the old pointer after successful reallocation.
+ */
 EfiReallocatePool (
   IN VOID                 *OldPool,
   IN UINTN                OldSize,

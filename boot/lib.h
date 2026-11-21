@@ -1,3 +1,9 @@
+/*
+ * Volume, EFI variable, filesystem iteration and device-path contracts.
+ * RootDir implies a usable firmware filesystem protocol; detected filesystem
+ * type alone does not. Methods returning allocated CHAR16 or device paths
+ * must be paired with their stated release mechanism in the implementation.
+ */
  
 
 

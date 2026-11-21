@@ -1,3 +1,8 @@
+/*
+ * Apple firmware interoperability, including CSR/SIP-related state and OS
+ * information protocols. These interfaces are vendor-specific and must not
+ * be assumed present on non-Apple UEFI platforms.
+ */
  
 
 
@@ -34,6 +39,10 @@ CHAR16 gCsrStatus[512];
  
  
  
+/*
+ * Reads the firmware-side CSR state when the relevant Apple interface
+ * exists. An unavailable variable is not proof that security is disabled.
+ */
 EFI_STATUS GetCsrStatus(UINT32 *CsrStatus) {
     UINT32     *ReturnValue = NULL;
     UINTN      CsrLength;
@@ -87,6 +96,10 @@ VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage) {
  
  
  
+/*
+ * Changes the CSR menu selection through the supported Apple path.
+ * This operation is separate from general-purpose EFI loader discovery.
+ */
 VOID RotateCsrValue(VOID) {
     UINT32       CurrentValue, TargetCsr;
     UINT32_LIST  *ListItem;
@@ -140,6 +153,10 @@ typedef struct EfiAppleSetOsInterface {
  
  
  
+/*
+ * Exposes Apple-specific OS identification to the booted environment;
+ * firmware protocol availability constrains the result.
+ */
 EFI_STATUS SetAppleOSInfo() {
     CHAR16 *AppleOSVersion = NULL;
     CHAR8 *AppleOSVersion8 = NULL;

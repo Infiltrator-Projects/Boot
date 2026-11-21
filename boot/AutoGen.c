@@ -1,3 +1,9 @@
+/*
+ * EDK-style generated GUID and library-constructor declarations retained
+ * for alternate build integration. These data declarations are consumed by
+ * firmware linkage; regenerated copies may replace manual edits. The release
+ * build's GNU-EFI path is qualified separately from these generated tables.
+ */
  
 
 

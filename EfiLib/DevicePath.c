@@ -1,3 +1,9 @@
+/*
+ * UEFI device-path node decoding and textual representation. Device paths
+ * can contain hardware, messaging, media and terminal nodes from firmware or
+ * Boot#### variables; each node has type, subtype and encoded length.
+ * Formatting a path is diagnostics, not validation of a boot target.
+ */
  
 
 
@@ -1021,6 +1027,10 @@ DevPathVlan (
 
 
 VOID
+/*
+ * Formats media partition-path metadata; identifiers are descriptive and
+ * do not guarantee filesystem accessibility or executable image validity.
+ */
 DevPathHardDrive (
   IN OUT POOL_PRINT       *Str,
   IN VOID                 *DevPath
@@ -1093,6 +1103,10 @@ DevPathCDROM (
 
 
 VOID
+/*
+ * Formats the FILEPATH_DEVICE_PATH node into text. The formatted Unicode
+ * path must not be treated as an authenticated EFI application.
+ */
 DevPathFilePath (
   IN OUT POOL_PRINT       *Str,
   IN VOID                 *DevPath

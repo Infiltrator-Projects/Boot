@@ -1,3 +1,8 @@
+/*
+ * UEFI Legacy BIOS protocol, BBS table and CSM data structures. Binary layout
+ * and calling convention match platform firmware interfaces; do not change
+ * field widths, packing or protocol signatures for cosmetic consistency.
+ */
  
 
 

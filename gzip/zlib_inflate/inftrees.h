@@ -1,3 +1,8 @@
+/*
+ * Huffman table construction types and error-reporting interface.
+ * Oversubscribed or incomplete length arrays must not create out-of-range
+ * decode tables for the compressed EFI image path.
+ */
 #ifndef INFTREES_H
 #define INFTREES_H
 

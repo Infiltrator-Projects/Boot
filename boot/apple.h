@@ -1,3 +1,8 @@
+/*
+ * Vendor-specific Apple EFI variables and OS information protocol declarations.
+ * These protocols and CSR fields are not universally present on UEFI systems;
+ * a failed lookup is not a general-purpose Secure Boot state determination.
+ */
  
 
 

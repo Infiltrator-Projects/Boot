@@ -1,3 +1,8 @@
+/*
+ * Finite State Entropy decoder types, public workspace and state-machine
+ * helpers. Normalised counts, table logs and bit widths originate from data
+ * being decompressed and must never exceed the declared table capacity.
+ */
  
 
 

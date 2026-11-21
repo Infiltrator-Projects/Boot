@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Release invariants for the staged .deb and source-pinned native .run.
+# Tests assert the required six EFI filesystem drivers, no package-level
+# firmware installer hooks, correct metadata and the single permitted ESP
+# destination. Text searches are structural checks, not live boot proof.
 
 
 set -euo pipefail

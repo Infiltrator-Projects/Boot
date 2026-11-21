@@ -1,3 +1,8 @@
+/*
+ * EDK-compatible EFI Driver Binding protocol interface used by filesystem
+ * drivers. The callbacks may install or uninstall controller protocols;
+ * these are firmware-visible changes with strict handle/lifetime semantics.
+ */
  
 
 

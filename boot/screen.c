@@ -1,3 +1,8 @@
+/*
+ * Firmware graphics/text mode, output device and screen lifetime management.
+ * UEFI GOP/console state must be restored or deliberately transitioned across
+ * child-image execution. A renderer failure must not be treated as disk failure.
+ */
  
 
 
@@ -103,6 +108,10 @@ static VOID PrepareBlankLine(VOID) {
  
  
 
+/*
+ * Captures initial firmware display capabilities before switching modes.
+ * Later graphics operations depend on usable console/graphics protocols.
+ */
 VOID InitScreen(VOID)
 {
     LOG(1, LOG_LINE_NORMAL, L"Entering InitScreen()");
@@ -240,6 +249,10 @@ VOID BeginTextScreen(IN CHAR16 *Title)
     SwitchToText(FALSE);
 }
 
+/*
+ * Prepares the visible console state before a child EFI image takes over;
+ * external loaders may expect firmware-provided text or graphics.
+ */
 VOID BeginExternalScreen(IN BOOLEAN UseGraphicsMode, IN CHAR16 *Title)
 {
     if (!AllowGraphicsMode)
@@ -255,6 +268,9 @@ VOID BeginExternalScreen(IN BOOLEAN UseGraphicsMode, IN CHAR16 *Title)
     }
 }
 
+/*
+ * Restores BOOT's display context when control returns from the child image.
+ */
 VOID FinishExternalScreen(VOID)
 {
      
@@ -374,6 +390,10 @@ VOID EndlessIdleLoop(VOID)
  
  
 
+/*
+ * Classifies EFI failure for presentation, not for overriding the original
+ * EFI_STATUS that determines whether the operation actually succeeded.
+ */
 BOOLEAN CheckFatalError(IN EFI_STATUS Status, IN CHAR16 *where)
 {
     CHAR16 *Temp = NULL;

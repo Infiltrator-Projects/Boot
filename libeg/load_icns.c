@@ -1,3 +1,8 @@
+/*
+ * Apple ICNS icon decoding and run-length expansion. Container element
+ * sizes and channel counts originate from image data and constrain decoding.
+ * Failure to find a suitable variant is cosmetic, not an OS detection fault.
+ */
  
 
 
@@ -42,6 +47,10 @@
  
  
 
+/*
+ * Expands ICNS run-length channel data within the caller's pixel count;
+ * compressed input size and output capacity are separate bounds.
+ */
 VOID egDecompressIcnsRLE(IN OUT UINT8 **CompData, IN OUT UINTN *CompLen, IN UINT8 *PixelData, IN UINTN PixelCount)
 {
     UINT8 *cp;
@@ -94,6 +103,10 @@ VOID egDecompressIcnsRLE(IN OUT UINT8 **CompData, IN OUT UINTN *CompLen, IN UINT
  
  
 
+/*
+ * Selects and decodes a compatible embedded icon representation. Parser
+ * errors must not propagate as a false EFI loader or filesystem failure.
+ */
 EG_IMAGE * egDecodeICNS(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha)
 {
     EG_IMAGE            *NewImage;

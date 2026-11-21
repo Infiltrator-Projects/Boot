@@ -1,3 +1,8 @@
+/*
+ * EDK driver component-name protocol interfaces used for filesystem driver
+ * identity. Strings describe the controller/driver; names are not evidence
+ * of successful mount or authenticated image loading.
+ */
  
 
 

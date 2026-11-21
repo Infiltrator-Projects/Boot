@@ -1,3 +1,9 @@
+/*
+ * Allocation and string conversion helpers for the FSW library. Strings
+ * carry explicit encoding, length and allocation ownership; a byte length is
+ * not automatically a character count. Caller-provided destination capacity
+ * and invalid-encoding behaviour are critical when reading filesystem names.
+ */
  
 
 
@@ -45,6 +51,10 @@
 
 
 
+/*
+ * Allocates and zero-initialises an FSW-owned buffer. The result must not
+ * be accessed unless status reports allocation success.
+ */
 fsw_status_t fsw_alloc_zero(int len, void **ptr_out)
 {
     fsw_status_t status;
@@ -164,6 +174,10 @@ int fsw_streq_cstr(struct fsw_string *s1, const char *s2)
 
 
 
+/*
+ * Creates an owned string converted to the requested FSW encoding.
+ * The source and destination may have different byte/character lengths.
+ */
 fsw_status_t fsw_strdup_coerce(struct fsw_string *dest, int type, struct fsw_string *src)
 {
     fsw_status_t    status;
@@ -284,6 +298,10 @@ void fsw_strsplit(struct fsw_string *element, struct fsw_string *buffer, char se
 
 
 
+/*
+ * Releases the allocation associated with an FSW string; callers must not
+ * retain the data pointer after this function returns.
+ */
 void fsw_strfree(struct fsw_string *s)
 {
     if (s->type != FSW_STRING_TYPE_EMPTY && s->data)

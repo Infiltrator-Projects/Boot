@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Build-time font atlas generation helper for firmware graphical assets.
+# The generated images are display resources; they must have dimensions and
+# cell metrics consistent with libeg's font decoder and do not influence
+# loader discovery.
 
 
 

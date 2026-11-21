@@ -1,3 +1,9 @@
+/*
+ * ReiserFS disk-format structures and key/layout constants. Packed fields
+ * mirror filesystem data blocks, not aligned host structs; do not silently
+ * alter sizes, endian handling or key ordering. Directory/tree bounds are
+ * security-sensitive when parsing a boot volume.
+ */
  
 
 

@@ -1,3 +1,6 @@
+# Compiles EFI compatibility/driver-model helpers using the common
+# firmware ABI profile. Linking success alone is not proof that a particular
+# UEFI vendor exposes every expected controller protocol.
 
 
 

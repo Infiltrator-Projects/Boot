@@ -1,3 +1,9 @@
+/*
+ * Dynamic volume and EFI loader discovery. Readable firmware volumes,
+ * exclusions, loader header checks and fallback de-duplication determine
+ * which choices are displayed. Hidden menu entries are not deleted from disk.
+ * Every supported installation should remain discoverable, not a fixed pair.
+ */
  
 
 
@@ -741,6 +747,10 @@ static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
  
  
  
+/*
+ * Applies exclusion policy before enumerating a directory. These rules
+ * control scanning only; they never justify modifying Windows/GRUB/fallback.
+ */
 static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
     CHAR16   *VolName = NULL, *DontScanDir, *PathCopy = NULL, *VolGuid = NULL;
     UINTN    i = 0;
@@ -902,6 +912,11 @@ static VOID LogMenuEntries(UINTN LogLevel) {
  
  
  
+/*
+ * Enumerates EFI candidates and direct kernels, excluding duplicates,
+ * symlink paths when disabled, images and rejected loaders before menu creation.
+ * Kernel folding is a UI grouping policy, not an OS-count limit.
+ */
 static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16 *Pattern)
 {
     EFI_STATUS              Status;
@@ -1055,6 +1070,10 @@ static BOOLEAN ScanMacOsLoader(REFIT_VOLUME *Volume, CHAR16* FullFileName) {
     return ScanFallbackLoader;
 }  
 
+/*
+ * Searches EFI directories on each readable volume, with special handling
+ * for the standard fallback to avoid duplicate menu representations.
+ */
 static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
     EFI_STATUS       Status;
     REFIT_DIR_ITER   EfiDirIter;
@@ -1225,6 +1244,10 @@ static VOID ScanOptical(VOID) {
  
  
  
+/*
+ * Firmware Boot#### entries are a separate discovery source. A firmware
+ * entry and a filesystem-discovered image may refer to the same boot target.
+ */
 static VOID ScanFirmwareDefined(IN UINTN Row, IN CHAR16 *MatchThis, IN EG_IMAGE *Icon) {
     BOOT_ENTRY_LIST *BootEntries, *CurrentEntry;
     BOOLEAN ScanIt = TRUE;
@@ -1319,6 +1342,11 @@ static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, I
 }  
 
  
+/*
+ * Merges stored hidden tags temporarily with normal scan exclusions and
+ * restores the original exclusions afterwards. Scan classes come from the
+ * configuration, not from a hard-coded Windows/Linux menu.
+ */
 VOID ScanForBootloaders(BOOLEAN ShowMessage) {
     UINTN    i;
     CHAR8    s;

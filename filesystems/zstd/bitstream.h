@@ -1,3 +1,9 @@
+/*
+ * Inlined reverse-bitstream decoder shared by Zstandard entropy algorithms.
+ * Bit-container width, reload semantics and source boundary guards are part
+ * of the decoding contract; speculative or fast reads require documented
+ * padding and remaining-bit assumptions.
+ */
  
 
 

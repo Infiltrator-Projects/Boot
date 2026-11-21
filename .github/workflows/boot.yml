@@ -1,3 +1,10 @@
+# Release qualification for BOOT's x86-64 GNU-EFI build and separately packaged
+# native source installer. Compilation, disposable ESP/NVRAM tests and an OVMF
+# menu smoke test establish distinct contracts; none independently proves
+# bootability on every physical firmware or installed operating system.
+# Successful pushes to main publish a prerelease with .run, .deb and checksums.
+# The .run performs actual ESP/NVRAM installation when executed, while the
+# .deb stages files only. Keep these semantics and the six EFI drivers intact.
 name: BOOT native source installer and generic AMD64 package
 
 on:

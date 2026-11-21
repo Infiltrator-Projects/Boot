@@ -1,3 +1,8 @@
+/*
+ * Optimised DEFLATE Huffman decoding path. The fast loop assumes minimum
+ * available input/output space and a valid state/tables from the slower
+ * validator. Its guards are essential to avoid cross-buffer overreads.
+ */
  
 
 
@@ -64,6 +69,10 @@ get_unaligned16(const unsigned short *p)
 
 
 
+/*
+ * Decodes several symbols per iteration using a bounded input/output
+ * window; do not invoke it unless the caller established required headroom.
+ */
 void inflate_fast(z_streamp strm, unsigned start)
 {
     struct inflate_state *state;

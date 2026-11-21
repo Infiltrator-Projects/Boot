@@ -1,3 +1,9 @@
+/*
+ * Generated string coercion and equality routines for ISO-8859-1, UTF-8
+ * and UTF-16 endian variants. This file is produced by mk_fsw_strfunc.py;
+ * modify the generator rather than applying a nonrepeatable manual change.
+ * Invalid encodings and output capacity are relevant parser boundaries.
+ */
  
 
  

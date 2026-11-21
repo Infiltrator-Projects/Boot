@@ -1,3 +1,6 @@
+# Shared firmware compiler/linker settings and image-format rules.
+# Compiler ABI, architecture, entry point and PE/COFF linker script are
+# part of the executable firmware contract, not optional style preferences.
 
 
 

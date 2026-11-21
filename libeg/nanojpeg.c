@@ -1,3 +1,9 @@
+/*
+ * Compact JPEG parser and IDCT renderer for firmware graphical resources.
+ * Marker lengths, image dimensions, entropy tables and scan offsets are
+ * untrusted; its decoder context is shared within this implementation and
+ * must be initialised/cleared between independent decode attempts.
+ */
  
  
  
@@ -688,6 +694,10 @@ NJ_INLINE void njDecodeBlock(nj_component_t* c, unsigned char* out) {
         njColIDCT(&nj.block[coef], &out[coef], c->stride);
 }
 
+/*
+ * Consumes entropy-coded scan data; marker boundaries and Huffman state
+ * must be consistent before processing each image block.
+ */
 NJ_INLINE void njDecodeScan(void) {
     int i, mbx, mby, sbx, sby;
     int rstcount = nj.rstinterval, nextrst = 0;
@@ -910,6 +920,10 @@ int njInit(void) {
  
  
  
+/*
+ * Releases decoder-owned resources after a decode, whether it succeeded
+ * or failed. Holding references across sessions would leak or reuse state.
+ */
 void njDone(void) {
     int i;
     for (i = 0;  i < 3;  ++i)
@@ -922,6 +936,10 @@ void njDone(void) {
     njInit();
 }
 
+/*
+ * Parses one JPEG byte stream and reconstructs pixel data. Decoder status
+ * and buffer extent are required before exposing the result to BOOT graphics.
+ */
 nj_result_t njDecode(const void* jpeg, const int size) {
     njDone();
     nj.pos = (const unsigned char*) jpeg;

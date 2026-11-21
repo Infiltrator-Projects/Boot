@@ -1,3 +1,8 @@
+/*
+ * PE/COFF binary headers, signatures and relocation metadata used by EFI
+ * image inspection. Alignment and fixed field widths are external executable
+ * format contracts; parsing a header must not bypass firmware LoadImage trust.
+ */
  
 
 

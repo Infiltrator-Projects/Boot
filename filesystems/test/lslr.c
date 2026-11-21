@@ -1,3 +1,8 @@
+/*
+ * POSIX FSW integration exerciser for recursive directory listing and file
+ * contents on a test filesystem image. Path traversal and file reads share
+ * the same backend as EFI but not the same firmware host callbacks.
+ */
  
 
 

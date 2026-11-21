@@ -1,3 +1,10 @@
+/*
+ * Bundled minimal LZO compressor/decompressor implementation.
+ * The freestanding configuration and many compile-time branches select
+ * platform-dependent integer and alignment behavior. Firmware callers must
+ * never equate compressed length with safe output capacity; decoder errors
+ * and the destination size are part of the on-disk trust boundary.
+ */
  
 
 

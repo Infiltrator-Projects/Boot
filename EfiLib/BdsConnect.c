@@ -1,3 +1,9 @@
+/*
+ * UEFI Boot Device Selection connection helpers. Controller/child handles
+ * and open-protocol relationships come from firmware and may change as drivers
+ * attach. Whole-platform reconnection has more side effects than file scanning;
+ * callers must not confuse 'connected' with a bootable filesystem.
+ */
  
 
 
@@ -15,6 +21,10 @@
 #include "Platform.h"
 
 
+/*
+ * Classifies controller-related firmware handles and their protocol
+ * relationships; returned buffers are EFI allocations with explicit ownership.
+ */
 EFI_STATUS ScanDeviceHandles(EFI_HANDLE ControllerHandle,
                              UINTN *HandleCount,
                              EFI_HANDLE **HandleBuffer,
@@ -160,6 +170,10 @@ Error:
 
 
 
+/*
+ * Connects eligible EFI driver-controller relationships according to this
+ * compatibility policy, not as a guarantee of readable media.
+ */
 EFI_STATUS BdsLibConnectMostlyAllEfi()
 {
 	EFI_STATUS				Status;

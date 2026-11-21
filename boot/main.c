@@ -1,3 +1,9 @@
+/*
+ * BOOT's UEFI entry and lifetime coordinator. Firmware tables and protocol
+ * handles are initialised before any volume scan or menu operation.
+ * A visible menu entry describes a possible handoff, never a confirmed OS boot.
+ * The manager must not constrain OS discovery to an assumed installation count.
+ */
  
 
 
@@ -235,6 +241,10 @@ VOID StoreLoaderName(IN CHAR16 *Name) {
 }  
 
  
+/*
+ * Reconstructs firmware-derived volume and loader state; scanned entries
+ * must not be reused as though device topology were immutable.
+ */
 VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
     LOG(1, LOG_LINE_NORMAL, L"Re-scanning all boot loaders");
     FreeList((VOID ***) &(MainMenu.Entries), &MainMenu.EntryCount);
@@ -255,6 +265,10 @@ VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
 #ifdef __MAKEWITH_TIANO
 
  
+/*
+ * Establishes boot/runtime-service access and the self-image identity.
+ * All later EFI handle operations depend on this lifetime and service table.
+ */
 static VOID InitializeLib(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable) {
     EFI_STATUS Status;
 
@@ -275,6 +289,10 @@ static VOID InitializeLib(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *System
 
  
  
+/*
+ * Changes Secure Boot-related menu state via EFI-facing routines, not via
+ * the host installer. Firmware policy remains authoritative for image trust.
+ */
 static BOOLEAN SecureBootSetup(VOID) {
     EFI_STATUS Status;
     BOOLEAN    Success = FALSE;
@@ -346,6 +364,10 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
  
  
  
+/*
+ * A preferred graphical selection is not a persistent BootOrder update.
+ * An unmatched vmlinuz default must leave other discovered loaders available.
+ */
 static VOID AdjustDefaultSelection() {
     UINTN i = 0, j;
     CHAR16 *Element = NULL, *NewCommaDelimited = NULL, *PreviousBoot = NULL;
