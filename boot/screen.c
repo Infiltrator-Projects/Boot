@@ -31,15 +31,26 @@ EG_PIXEL DarkBackgroundPixel = { 0x0, 0x0, 0x0, 0 };
 
 static BOOLEAN GraphicsScreenDirty;
 
+/*
+ * The blank row is a cache sized in CHAR16 cells from a firmware-reported
+ * console width. Reallocation invalidates the previous row; a failed or
+ * oversized allocation leaves NULL and the header must skip row erasure.
+ */
 static VOID PrepareBlankLine(VOID) {
     UINTN i;
 
     MyFreePool(BlankLine);
+    BlankLine = NULL;
+
+    if (ConWidth >= ((UINTN)-1) / sizeof(CHAR16))
+        return;
 
     BlankLine = AllocatePool((ConWidth + 1) * sizeof(CHAR16));
+    if (BlankLine == NULL)
+        return;
     for (i = 0; i < ConWidth; i++)
-        BlankLine[i] = ' ';
-    BlankLine[i] = 0;
+        BlankLine[i] = L' ';
+    BlankLine[i] = L'\0';
 }
 
 /*
@@ -227,9 +238,11 @@ VOID DrawScreenHeader(IN CHAR16 *Title)
     refit_call1_wrapper(ST->ConOut->ClearScreen, ST->ConOut);  
 
     refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BANNER);
-    for (y = 0; y < 3; y++) {
-        refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, y);
-        Print(BlankLine);
+    if (BlankLine != NULL) {
+        for (y = 0; y < 3; y++) {
+            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, y);
+            Print(BlankLine);
+        }
     }
 
     refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, 1);

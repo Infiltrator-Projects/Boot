@@ -31,10 +31,12 @@ EG_IMAGE* Background = NULL;
 POINTER_STATE State;
 
 /*
- * Probe absolute and relative pointer protocols independently. Each
- * successful OpenProtocol contributes an interface to a compact array. The
- * event list uses the counts of opened interfaces, which can be smaller than
- * the counts returned by LocateHandleBuffer.
+ * Probe absolute and relative pointer protocols independently. A firmware
+ * handle enumeration may include devices whose OpenProtocol fails. Compact
+ * both the handle and protocol arrays at the same successful-open index: the
+ * event loop and CloseProtocol must later refer to the same exact handle.
+ * A failed pool allocation must leave that input category unavailable rather
+ * than passing a NULL output slot to Boot Services.
  */
 VOID pdInitialize() {
     pdCleanup();  
@@ -46,15 +48,18 @@ VOID pdInitialize() {
                                                   &NumPointerHandles, &APointerHandles);
 
     if (!EFI_ERROR(handlestatus)) {
-        APointerProtocol = AllocatePool(sizeof(EFI_ABSOLUTE_POINTER_PROTOCOL*) * NumPointerHandles);
-        UINTN Index;
-        for(Index = 0; Index < NumPointerHandles; Index++) {
-
-            EFI_STATUS status = refit_call6_wrapper(BS->OpenProtocol, APointerHandles[Index], &APointerGuid,
-                                                    (VOID **) &APointerProtocol[NumAPointerDevices],
-                                                    SelfImageHandle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
-            if (status == EFI_SUCCESS) {
-                NumAPointerDevices++; 
+        if (NumPointerHandles > 0)
+            APointerProtocol = AllocatePool(sizeof(EFI_ABSOLUTE_POINTER_PROTOCOL*) * NumPointerHandles);
+        if (APointerProtocol != NULL) {
+            UINTN Index;
+            for(Index = 0; Index < NumPointerHandles; Index++) {
+                EFI_STATUS status = refit_call6_wrapper(BS->OpenProtocol, APointerHandles[Index], &APointerGuid,
+                                                        (VOID **) &APointerProtocol[NumAPointerDevices],
+                                                        SelfImageHandle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+                if (status == EFI_SUCCESS) {
+                    APointerHandles[NumAPointerDevices] = APointerHandles[Index];
+                    NumAPointerDevices++;
+                }
             }
         }
     } else {
@@ -66,13 +71,18 @@ VOID pdInitialize() {
                                        &NumPointerHandles, &SPointerHandles);
 
     if(!EFI_ERROR(handlestatus)) {
-        SPointerProtocol = AllocatePool(sizeof(EFI_SIMPLE_POINTER_PROTOCOL*) * NumPointerHandles);
-        UINTN Index;
-        for(Index = 0; Index < NumPointerHandles; Index++) {
-
-            EFI_STATUS status = refit_call6_wrapper(BS->OpenProtocol, SPointerHandles[Index], &SPointerGuid, (VOID **) &SPointerProtocol[NumSPointerDevices], SelfImageHandle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
-            if (status == EFI_SUCCESS) {
-                NumSPointerDevices++; 
+        if (NumPointerHandles > 0)
+            SPointerProtocol = AllocatePool(sizeof(EFI_SIMPLE_POINTER_PROTOCOL*) * NumPointerHandles);
+        if (SPointerProtocol != NULL) {
+            UINTN Index;
+            for(Index = 0; Index < NumPointerHandles; Index++) {
+                EFI_STATUS status = refit_call6_wrapper(BS->OpenProtocol, SPointerHandles[Index], &SPointerGuid,
+                                                        (VOID **) &SPointerProtocol[NumSPointerDevices],
+                                                        SelfImageHandle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+                if (status == EFI_SUCCESS) {
+                    SPointerHandles[NumSPointerDevices] = SPointerHandles[Index];
+                    NumSPointerDevices++;
+                }
             }
         }
     } else {
@@ -87,10 +97,11 @@ VOID pdInitialize() {
 }
 
 /*
- * Close protocol opens and release enumeration buffers before resetting the
- * coordinate and button history. Open interfaces are compacted during
- * initialisation, while this loop indexes the original handle arrays. Its
- * handle pairing assumes no earlier open was skipped.
+ * Close each protocol on the same handle that opened it. Both lists were
+ * compacted together at successful OpenProtocol indices; skipped devices
+ * therefore cannot cause a CloseProtocol call on the wrong handle.
+ * Reset all image pointers after freeing so another initialization cannot
+ * attempt to destroy a previously released cursor image.
  */
 VOID pdCleanup() {
     PointerAvailable = FALSE;
@@ -122,7 +133,7 @@ VOID pdCleanup() {
     }
     if(MouseImage) {
         egFreeImage(MouseImage);
-        Background = NULL;
+        MouseImage = NULL;
     }
     NumAPointerDevices = 0;
     NumSPointerDevices = 0;

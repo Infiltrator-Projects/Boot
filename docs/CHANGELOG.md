@@ -2,6 +2,13 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Firmware input and display lifetime corrections
+
+- Kept pointer protocol interfaces paired with their successfully opened EFI handles, including skipped opens; a failed protocol-array allocation no longer leads to a NULL protocol slot.
+- Cleared freed cursor-image pointers to prevent repeated cleanup from using a stale image.
+- Added allocation and width-overflow checks to the firmware text-mode blank-row buffer and skipped row erasure when allocation fails.
+- Recorded the missing firmware-injection and repeated-cleanup regression evidence separately from the static fixes.
+
 ## 2026-11-22 — UTF-16 substitution and GUID parser correction
 
 - Replaced the unsafe `ReplaceSubstring` pointer-to-pointer pool free with one bounded, transactional UTF-16 allocation, preserving its escaped-token semantics and the original string on failure.
