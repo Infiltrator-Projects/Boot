@@ -40,7 +40,7 @@ jobs:
               exit 1
             fi
           done
-          for current in packaging/build-release.sh packaging/test-release.sh COPYING.txt; do
+          for current in packaging/build-release.sh packaging/test-release.sh; do
             test -s "$current" || exit 1
           done
 

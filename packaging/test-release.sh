@@ -23,7 +23,6 @@ grep -Fq 'usr/share/infiltrator-boot/boot/boot_x64.efi' "$work/package-files.txt
 for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     grep -Fq "usr/share/infiltrator-boot/boot/drivers_x64/${filesystem}_x64.efi" "$work/package-files.txt" || exit 1
 done
-grep -Fq 'usr/share/infiltrator-boot/docs/COPYING.txt' "$work/package-files.txt"
 if grep -Eq 'usr/share/infiltrator-boot/(mvboot|boot-mkdefault)( |$)' "$work/package-files.txt"; then
     echo "Obsolete or Python-dependent helper was included" >&2; exit 1
 fi

@@ -37,7 +37,6 @@ done
 install -m 0644 boot.conf-sample "$root/boot/boot.conf-sample"
 
 
-install -m 0644 COPYING.txt "$root/docs/COPYING.txt"
 for document in README.txt BUILDING.txt; do
     if [[ -f "$document" ]]; then
         install -m 0644 "$document" "$root/docs/$document"
