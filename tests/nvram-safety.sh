@@ -5,7 +5,7 @@ set -euo pipefail
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 mkdir -p "$work/bin" "$work/mock" "$work/esp"
-awk '/^GetParams "\$@"$/ {exit} {print}' boot-install > "$work/functions.sh"
+awk '/^RootDir=/ {inside=1} /^GetParams "\$@"$/ {exit} inside {print}' boot-native-installer.run > "$work/functions.sh"
 source "$work/functions.sh"
 InstallDir="$work/esp"
 TargetDir=/EFI/InfiltratorOS/BOOT

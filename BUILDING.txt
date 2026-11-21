@@ -32,10 +32,11 @@ revocation must be independently qualified.
   bash packaging/test-release.sh 0.1.123 dist
 
 The first command requires a compiled boot/boot_x64.efi and a Git HEAD.
-It generates a small native .run that includes the full original
-boot-install implementation but does not embed the rest of the repository.
-At execution time it fetches the exact pinned commit, compiles locally,
-and executes its embedded installer. The .run is not a build-only tool.
+It copies boot-native-installer.run directly, replacing only the source
+revision and release version placeholders. This one maintained script builds
+the pinned BOOT source and performs installation itself, preserving the
+existing installation logic. No separate boot-install or embedded function
+exists. The .run is not a build-only tool.
 
 The .deb is a generic non-deploying payload. It neither mounts an ESP nor
 alters firmware BootOrder. Only the native installer performs deployment.

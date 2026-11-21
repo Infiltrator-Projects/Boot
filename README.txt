@@ -12,10 +12,11 @@ The x86-64 BOOT EFI executable resides at:
 on the selected FAT EFI System Partition. It does not take ownership of
 /EFI/BOOT, /EFI/Microsoft/Boot, or GRUB directories.
 
-The native .run embeds the actual boot-install shell installation logic.
-It downloads the pinned BOOT source revision, compiles locally using GNU-EFI
-and CPU-native options, then deploys BOOT and registers an EFI firmware
-entry. The .run has no build-only mode. The generic .deb stages firmware
+The native .run is one maintained build-and-install program in
+boot-native-installer.run. It downloads the pinned BOOT source revision,
+compiles locally with GNU-EFI and CPU-native options, then installs BOOT
+and registers an EFI firmware entry. There is no separate boot-install script
+and no build-only mode. The generic .deb stages firmware
 assets in /usr/share/infiltrator-boot; it does not deploy them to the ESP.
 
 Filesystem architecture

@@ -1,4 +1,85 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# BOOT native installer. Downloads pinned build sources and compiles natively.
+# This file is BOOT's sole, complete native build and install program.
+set -euo pipefail
+
+SOURCE_SHA="__BOOT_SOURCE_COMMIT__"
+RELEASE_VERSION="__BOOT_RELEASE_VERSION__"
+SOURCE_URL='https://github.com/Infiltrator-Projects/Boot.git'
+
+if (($# != 0)); then
+    echo "BOOT native installer takes no arguments: running it builds and installs." >&2
+    exit 2
+fi
+[[ $(uname -m) == x86_64 ]] || { echo "BOOT native installer requires x86-64" >&2; exit 2; }
+
+# Elevate this same script before native compilation and EFI installation.
+if ((EUID != 0)); then
+    command -v sudo >/dev/null || { echo "sudo is required for EFI installation" >&2; exit 1; }
+    exec sudo bash "$0"
+fi
+
+required=(git make gcc ld objcopy tar mktemp efibootmgr findmnt lsblk blkid realpath sha256sum od)
+missing=()
+for program in "${required[@]}"; do
+    command -v "$program" >/dev/null 2>&1 || missing+=("$program")
+done
+if ((${#missing[@]})) || [[ ! -f /usr/include/efi/efi.h ]]; then
+    echo "Missing BOOT native build prerequisites: ${missing[*]} (and/or gnu-efi headers)" >&2
+    if ! command -v apt-get >/dev/null; then
+        echo "Install build-essential, binutils, git and gnu-efi before running BOOT." >&2
+        exit 1
+    fi
+    if ((EUID == 0)); then
+        apt-get -o DPkg::Lock::Timeout=300 update
+        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils
+    else
+        command -v sudo >/dev/null || { echo "sudo is required to install build dependencies" >&2; exit 1; }
+        sudo apt-get -o DPkg::Lock::Timeout=300 update
+        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils
+    fi
+fi
+for program in "${required[@]}"; do
+    command -v "$program" >/dev/null || { echo "Still missing $program" >&2; exit 1; }
+done
+[[ -f /usr/include/efi/efi.h ]] || { echo "GNU-EFI headers are still missing" >&2; exit 1; }
+
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT
+source_dir="$work/Boot"
+git -C "$work" init -q Boot
+git -C "$source_dir" remote add origin "$SOURCE_URL"
+# Fetch only needed source/graphics from the pinned commit, not the whole
+# repository history or a source bundle in this installer.
+git -C "$source_dir" sparse-checkout init --cone
+git -C "$source_dir" sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys
+git -C "$source_dir" -c protocol.version=2 fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"
+git -C "$source_dir" -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD
+[[ $(git -C "$source_dir" rev-parse HEAD) == "$SOURCE_SHA" ]] || {
+    echo "BOOT source commit does not match the published installer" >&2; exit 1;
+}
+cd "$source_dir"
+[[ -f Makefile && -f Make.common && -f boot/main.c ]] || {
+    echo "Downloaded BOOT build source is incomplete" >&2; exit 1;
+}
+echo "Building BOOT natively from source commit $SOURCE_SHA..."
+# Native CPU code generation, while preventing floating/vector operations in
+# UEFI contexts where they are not necessarily available.
+printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$RELEASE_VERSION" > boot-sbat-release.csv
+make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$RELEASE_VERSION\"'" gnuefi
+[[ -s boot/boot_x64.efi ]] || { echo "Native BOOT EFI build failed" >&2; exit 1; }
+echo "Running the native BOOT installation..."
+
+# Continue in this SAME script with the original, working installer logic.
+# These functions and the installation flow are retained without restructuring.
+export BOOT_INSTALL_SOURCE_DIR="$source_dir"
+# Keep the installation logic's historical error status and shell behaviour.
+set +e +u
+set +o pipefail
+# The RUN's only installation mode: no legacy filesystem driver deployment.
+set -- --nodrivers
+
 #
 # Linux/MacOS X script to install BOOT
 #

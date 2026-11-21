@@ -123,15 +123,15 @@ jobs:
           operational boot managers. Firmware boot behaviour and Common V2
           filesystem integration remain under development.
 
-          - Native .run: contains the complete original boot-install logic,
-            downloads only the pinned BOOT build source revision, compiles it
-            locally with GNU-EFI CPU-native settings, and executes its own
-            embedded installation code targeting /EFI/InfiltratorOS/BOOT.
-            It has no build-only mode and needs no separate installer file.
+          - Native .run: single source file boot-native-installer.run, containing
+            the complete build and existing native installation flow.
+            It downloads pinned BOOT sources, compiles with GNU-EFI CPU-native
+            settings, and installs under /EFI/InfiltratorOS/BOOT only.
+            It has no build-only mode and executes no second installer.
           - Generic AMD64 .deb: stages the generic BOOT firmware image only.
           - SHA256SUMS: verifies the two downloadable assets.
 
-          The native .run invokes boot-install, which can update the ESP and
+          The native .run performs the installation itself, updating the ESP and
           firmware entries. This is NOT yet validated for production UEFI
           use or Common V2 filesystem module compatibility.
           Do not execute it on a production boot environment until those
