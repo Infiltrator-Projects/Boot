@@ -257,7 +257,6 @@ GetParams() {
       echo "--encryptkeys requires --localkeys." >&2
       exit 1
    fi
-   RLConfFile="$RootDir/boot/boot_linux.conf"
    EtcKeysDir="$RootDir/etc/boot.d/keys"
 } # GetParams()
 
@@ -581,17 +580,14 @@ CopyDrivers() {
    fi
 } # CopyDrivers()
 
-# Copy tools (currently only gptsync, and that only on Macs) to the EFI/tools
-# directory on the ESP. Must be passed a suitable architecture code (ia32
-# or x64).
+# macOS installs the optional gptsync utility alongside BOOT itself.
+# The installer never creates or modifies the shared /EFI/tools directory.
 CopyTools() {
-   mkdir -p "$InstallDir/EFI/tools"
-   if [[ $OSTYPE == darwin* ]] ; then
-      cp -f "$BootDir/tools_$1/gptsync_$1.efi" "$InstallDir/EFI/tools/"
-      if [[ -f "$InstallDir/EFI/tools/gptsync.efi" ]] ; then
-         mv "$InstallDir/EFI/tools/gptsync.efi" "$InstallDir/EFI/tools/gptsync.efi-disabled"
-         echo "Found old gptsync.efi; disabling it by renaming it to gptsync.efi-disabled"
-      fi
+   if [[ $OSTYPE == darwin* && -f "$BootDir/tools_$1/gptsync_$1.efi" ]] ; then
+      cp -f "$BootDir/tools_$1/gptsync_$1.efi" "$InstallDir/$TargetDir/" || {
+         echo "Unable to install optional BOOT tool." >&2
+         Problems=1
+      }
    fi
 } # CopyTools()
 
@@ -1284,43 +1280,6 @@ AddBootEntry() {
    fi
 } # AddBootEntry()
 
-# Create a minimal/sample boot_linux.conf file in /boot.
-GenerateBootLinuxConf() {
-   if [[ -f "$RLConfFile" ]] ; then
-      echo "Existing $RLConfFile found; not overwriting."
-   else
-      echo "Creating $RLConfFile; edit it to adjust kernel options."
-      RootFS=$(df "$RootDir" | grep dev | cut -f 1 -d " ")
-      StartOfDevName=$(echo "$RootFS" | cut -b 1-7)
-      if [[ "$StartOfDevName" == "/dev/sd" || "$StartOfDevName" == "/dev/hd" || "$StartOfDevName" == "/dev/vd" ]] ; then
-         # Identify root filesystem by UUID rather than by device node, if possible
-         Uuid=$(blkid -o export -s UUID "$RootFS" 2> /dev/null | grep UUID=)
-         if [[ -n $Uuid ]] ; then
-            RootFS="$Uuid"
-         fi
-      fi
-      if [[ $RootDir == "/" ]] ; then
-         local FirstCmdlineOption
-         FirstCmdlineOption=$(cut -d ' ' -f 1 < /proc/cmdline)
-         if [[ "$FirstCmdlineOption" =~ (vmlinuz|bzImage|kernel) ]] ; then
-            DefaultOptions=$(cut -d ' ' -f 2- < /proc/cmdline | sed 's/\S*initrd=\S*//g' | sed 's/ *$//' | sed 's/^ *//')
-         else
-            DefaultOptions=$(sed 's/\S*initrd=\S*//g' < /proc/cmdline | sed 's/ *$//' | sed 's/^ *//')
-         fi
-      else
-         if [[ -f "$RootDir/etc/default/grub" ]] ; then
-            # We want the default options used by the distribution, stored here....
-            source "$RootDir/etc/default/grub"
-            echo "Setting default boot options based on $RootDir/etc/default/grub"
-         fi
-         DefaultOptions="ro root=$RootFS $GRUB_CMDLINE_LINUX $GRUB_CMDLINE_LINUX_DEFAULT"
-      fi
-      echo "\"Boot with standard options\"  \"$DefaultOptions\"" > "$RLConfFile"
-      echo "\"Boot to single-user mode\"    \"$DefaultOptions single\"" >> "$RLConfFile"
-      echo "\"Boot with minimal options\"   \"ro root=$RootFS\"" >> "$RLConfFile"
-   fi
-}
-
 # Install a Secure Boot key as a MOK
 InstallSBKey() {
     local UsedDerKey
@@ -1366,7 +1325,7 @@ InstallOnLinux() {
       echo "Refusing installation outside /EFI/InfiltratorOS/BOOT." >&2
       return 1
    fi
-   echo "Installing BOOT on Linux...."
+   echo "Installing BOOT from a Linux host into /EFI/InfiltratorOS/BOOT..."
    modprobe efivars &> /dev/null
    FindMountedESP
 
@@ -1398,7 +1357,6 @@ InstallOnLinux() {
    fi
    CopyBootFiles
    AddBootEntry
-   GenerateBootLinuxConf
    # Note that InstallSBKey may require the user to enter a password, so
    # it must NOT be called if --yes is passed to the script, since that
    # parameter is intended to eliminate user interaction. The user will

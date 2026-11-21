@@ -65,7 +65,11 @@ grep -Fq 'GuardDefaultBootLocation || exit 1' "$run"
 grep -Fq 'FindLinuxESP() {' "$run"
 grep -Fq 'FindMountedESP() {' "$run"
 grep -Fq 'AddBootEntry() {' "$run"
-grep -Fq 'GenerateBootLinuxConf() {' "$run"
+! grep -Fq 'GenerateBootLinuxConf() {' "$run"
+! grep -Fq 'GenerateBootLinuxConf' "$run"
+! grep -Fq 'RLConfFile=' "$run"
+! grep -Fq 'InstallDir/EFI/tools' "$run"
+grep -Fq 'Installing BOOT from a Linux host into /EFI/InfiltratorOS/BOOT' "$run"
 grep -Fxq 'exit "$InstallationFailed"' "$run"
 test "$(grep -Ec '^GetParams "\$@"$' "$run")" -eq 1
 test "$(grep -Ec '^InstallOnLinux\(\) \{' "$run")" -eq 1

@@ -58,7 +58,7 @@ modprobe() { :; }
 FindMountedESP() { EspFilesystem=vfat; }
 CheckSecureBoot() { IsSecureBoot=0; }
 AddBootEntry() { :; }
-GenerateBootLinuxConf() { :; }
+GenerateBootLinuxConf() { echo "Obsolete host Linux configuration generator was called." >&2; exit 93; }
 AlwaysYes=1
 ExplicitDefault=0
 Problems=""
@@ -71,11 +71,18 @@ if grep -Fq "preserving it" "$work/reinstall-output.txt"; then
 fi
 test -s "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt" || exit 1
+test ! -e "$InstallDir/EFI/tools" || { echo "Installer wrote outside BOOT directory" >&2; exit 1; }
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/icons/old.png" || exit 1
 test "$(cat "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf")" = 'showtools about' || exit 1
 test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
+# Optional macOS tools must also remain within BOOT's own EFI directory.
+mkdir -p "$BootDir/tools_x64"
+printf 'gptsync-fixture' > "$BootDir/tools_x64/gptsync_x64.efi"
+( OSTYPE=darwin21; CopyTools x64 ) || exit 1
+test "$(cat "$InstallDir/EFI/InfiltratorOS/BOOT/gptsync_x64.efi")" = gptsync-fixture || exit 1
+test ! -e "$InstallDir/EFI/tools" || exit 1
 echo "BOOT native reinstall removed old BOOT directory and preserved GRUB/Windows/fallback"
 # No parameter or direct function invocation may select any other EFI path.
 for arg in --usedefault --ownhfs --notesp --root; do
