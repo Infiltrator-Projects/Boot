@@ -88,6 +88,12 @@ EFI_GUID gMyEfiFileSystemVolumeLabelInfoIdGuid = EFI_FILE_SYSTEM_VOLUME_LABEL_IN
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                                   IN EFI_HANDLE                          ControllerHandle,
                                                   IN REFIND_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath);
+/*
+ * UEFI driver-binding start operation for a filesystem-backed controller.
+ * This is a firmware protocol integration layer: the mounted FSW volume
+ * becomes visible through EFI Simple File System only when registration
+ * completes, and teardown must reverse controller claims and allocations.
+ */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                               IN EFI_HANDLE                          ControllerHandle,
                                               IN REFIND_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath);
@@ -416,6 +422,11 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
  * Uninstalls the filesystem protocol and releases the controller/volume
  * resources; handles must not outlive this binding teardown.
  */
+/*
+ * Unbinds a filesystem instance from the controller, withdrawing firmware
+ * protocols and releasing volume-related state. Open file references and
+ * owned protocol instances must not survive their backing mount lifetime.
+ */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                              IN  EFI_HANDLE                   ControllerHandle,
                                              IN  UINTN                        NumberOfChildren,
@@ -532,6 +543,12 @@ void EFIAPI fsw_efi_change_blocksize(struct fsw_volume *vol,
  * Uses a small EFI Disk I/O read cache with direct-block fallback. Cache
  * keys include volume identity and byte offset; stale media or failed reads
  * must never be returned as valid sector data.
+ */
+/*
+ * Translates an FSW physical-block request to EFI disk access. StartRead is
+ * computed from the block index and the active physical block size, then
+ * checked against this bridge's read-cache windows before firmware I/O.
+ * A cache hit is only valid for the same mounted volume and byte interval.
  */
 fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno, void *buffer) {
    int              i, ReadCache = -1;
