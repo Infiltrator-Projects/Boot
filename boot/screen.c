@@ -253,6 +253,11 @@ VOID BeginTextScreen(IN CHAR16 *Title)
  * Prepares the visible console state before a child EFI image takes over;
  * external loaders may expect firmware-provided text or graphics.
  */
+/*
+ * Switches BOOT's presentation to a mode suitable for the chosen external
+ * EFI program. The display transition precedes but does not certify the
+ * separate image-load and StartImage operations.
+ */
 VOID BeginExternalScreen(IN BOOLEAN UseGraphicsMode, IN CHAR16 *Title)
 {
     if (!AllowGraphicsMode)
@@ -270,6 +275,11 @@ VOID BeginExternalScreen(IN BOOLEAN UseGraphicsMode, IN CHAR16 *Title)
 
 /*
  * Restores BOOT's display context when control returns from the child image.
+ */
+/*
+ * Restores BOOT's screen environment after an external EFI program returns.
+ * Firmware graphics and console protocols may need reconfiguration because
+ * child applications can alter video modes or output-device state.
  */
 VOID FinishExternalScreen(VOID)
 {
@@ -393,6 +403,11 @@ VOID EndlessIdleLoop(VOID)
 /*
  * Classifies EFI failure for presentation, not for overriding the original
  * EFI_STATUS that determines whether the operation actually succeeded.
+ */
+/*
+ * Reports a firmware operation classified as fatal to the present screen
+ * flow. EFI_STATUS remains the authoritative failure indicator; graphical
+ * reporting does not alter disk or image trust state.
  */
 BOOLEAN CheckFatalError(IN EFI_STATUS Status, IN CHAR16 *where)
 {
