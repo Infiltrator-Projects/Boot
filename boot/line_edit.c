@@ -37,6 +37,11 @@
 #include "lib.h"
 #include "../include/refit_call_wrapper.h"
 
+/*
+ * Moves the logical cursor or shifts the visible viewport when the cursor
+ * already occupies the left edge. Both indices refer to the same editable
+ * UTF-16 line and must be advanced consistently.
+ */
 static void cursor_left(UINTN *cursor, UINTN *first)
 {
     if ((*cursor) > 0)
@@ -45,6 +50,10 @@ static void cursor_left(UINTN *cursor, UINTN *first)
         (*first)--;
 }
 
+/*
+ * Advances within visible columns while preserving the text-line boundary;
+ * once the viewport is full, scrolling its origin replaces cursor movement.
+ */
 static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
 {
     if ((*cursor)+2 < x_max)
@@ -56,6 +65,11 @@ static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
 /*
  * Edits loader options in a bounded visible field. A changed command line
  * may affect kernel launch semantics; it must not mutate on-disk loader files.
+ */
+/*
+ * Interactive command-line editor for EFI boot options. The caller provides
+ * the initial UTF-16 text and receives replacement text through line_out;
+ * cursor, visible viewport and input-length checks are interdependent.
  */
 BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
     CHAR16 *line;
