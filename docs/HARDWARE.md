@@ -37,7 +37,7 @@ The intended universal discovery policy must therefore coexist with explicit per
 
 The native install target is the ESP directory `/EFI/InfiltratorOS/BOOT`. The install operation intentionally does not delete `EFI/Microsoft`, `EFI/ubuntu` or `EFI/BOOT`. These independent boot paths may provide firmware-level recovery if BOOT is not selectable or cannot start a particular operating system.
 
-Tests exercise protective checks for symbolic links, unexpected directory ownership, SHA-256 marker mismatches and ambiguous/duplicate firmware entries. They do not imply that all firmware vendors implement variable writes, Secure Boot or EFI handle binding identically.
+Disposable installer tests exercise fixed-path enforcement, symbolic-link rejection, repeated replacement of BOOT's reserved directory and preservation of unrelated EFI vendor paths. No previous-install ownership marker or SHA-256 marker check is required. Separately, mocked NVRAM tests exercise ambiguous and duplicate firmware entries. They do not imply that all firmware vendors implement variable writes, Secure Boot or EFI handle binding identically.
 
 ## Secure Boot and hardware-specific evidence
 

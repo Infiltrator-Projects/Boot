@@ -136,7 +136,7 @@ The list API `AddListElement` remains `VOID`: it now avoids dereferencing a fail
 
 The EXT4 reader currently admits the RECOVER feature bit and does not replay a journal. This is the existing read-only behaviour, not proof that an observed boot has failed; consistency behaviour on recovery-required volumes remains unqualified. Separately, a few older parsing functions have unresolved input-boundary review questions (NTFS attribute names, ISO SUSP metadata and legacy conversion), but those are **not certified defects** without additional validation.
 
-`filesystems/Makefile` retains an older, independent `EFI/refind/drivers` installation target, while the release's native `.run` is restricted to BOOT's fixed path. `filesystems/test/Makefile` also contains references to an XFS source not shipped in the current tree; neither target is the active BOOT release installation path.
+The obsolete standalone `filesystems/Makefile` installation target has been removed; only the installing native `.run` and generic `.deb` are supported deployment paths. The POSIX filesystem exerciser now defaults to its shipped EXT2 backend instead of referencing the absent XFS source. Hosted parser compilation does not qualify EFI driver binding, Secure Boot or actual volume reads.
 
 Evidence and remaining regressions are listed in [Validation](VALIDATION.md).
 

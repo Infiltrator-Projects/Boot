@@ -44,6 +44,10 @@ Reinstallation deliberately removes stale contents **inside** BOOT's directory, 
 
 The fixture places BOOT and a gzip-compressed copy of `btrfs_x64.efi` on a FAT32 ESP inside a disposable GPT disk. It records the original driver's byte size before compression and enables `support_gzipped_loaders`. After booting OVMF, the script reads the UTF-16LE startup log from the disk. It checks for a successful decode with that exact byte count, the Btrfs driver launch, a zero program return and entry into the menu loop. A timeout is allowed because the menu can wait for input. Reading the disk log distinguishes that state from firmware hanging earlier. [OVMF fixture and assertions](../tests/ovmf-smoke.sh)
 
+### Hosted FSW parser compilation
+
+The test-only `filesystems/test/Makefile` builds `lsroot` and `lslr` from the same selected FSW backend (`ext2` by default). Its former XFS default and invalid dot-prefixed object reference were unbuildable because that backend source is absent. Run `make -C filesystems/test clean all` to check hosted compilation. Use `make -C filesystems/test clean all DRIVERNAME=ext4` to rebuild against EXT4. These programs require explicit disk-image fixtures for functional read testing; neither compilation nor printing directory entries demonstrates EFI firmware or Common V2 compatibility. The POSIX adapter must also release each directory dnode and close the image descriptor on both success and failure paths.
+
 ## Configuration regression contract
 
 `boot.conf-sample` defines BOOT's current selection policy:
@@ -83,6 +87,7 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 | Fixed installation destination and preservation of other EFI vendors | `tests/install-safety.sh` uses a disposable ESP and checks three non-BOOT paths | Independent confirmation that the Linux reinstall removes only BOOT's dedicated directory and retains other vendors' files |
 | Reinstallation without an ownership marker | `tests/install-safety.sh`, `tests/deb-install-safety.sh` | Both installers replace BOOT's fixed directory and reject symlink traversal without requiring old-file proof |
 | Duplicate and ambiguous firmware entries | `tests/nvram-safety.sh`, workflow repeat-install checks | Physical firmware variable-write failure and partial-update recovery across different OEMs |
+| Hosted FSW adapter resources | The test-only POSIX adapter closes its image descriptor on unmount or mount failure, releases directory dnodes and checks host `dirent` name capacity | Fault-injected allocation, malformed directory names and repeated mount/iteration leak checks |
 | FSW mount on untrusted disk images | EXT2 geometry checks and EFI mount allocation checks are implemented | Fault-injected zero inode-group counts, allocation failures and truncated metadata to confirm the new rejection paths |
 | FSW large-file reads | `filesystems/fsw_core.c` now preserves its full 64-bit stream position | Read at offsets below and above 4 GiB against independently generated reference bytes |
 | EFI directory buffer negotiation | `filesystems/fsw_efi.c` now restores the cursor on conversion error | An `EFI_BUFFER_TOO_SMALL` retry must return the same entry rather than skipping one |

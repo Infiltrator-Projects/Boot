@@ -3,6 +3,6 @@ Filesystem Wrapper POSIX tests
 
 This directory contains hosted programs that adapt the FSW reader to file-backed disk images. They exercise core filesystem parsing and directory/file traversal without UEFI Boot Services or an EFI driver-binding environment.
 
-The present Makefile still defaults to XFS and names fsw_xfs.o although this BOOT revision contains no fsw_xfs.c. Consequently the existence of this test directory does not establish a buildable, passing test for the six shipped EFI drivers.
+`make -C filesystems/test all` builds both `lslr` and `lsroot` against EXT2 by default. `make -C filesystems/test DRIVERNAME=ext4 all` selects a different shipped backend; run `make -C filesystems/test clean` before switching backend so existing objects are rebuilt with consistent preprocessor definitions. Building these utilities verifies only hosted compilation, not filesystem correctness on an image or EFI firmware behaviour.
 
 Use docs/VALIDATION.md (at the repository root) for the tests that are actually included in the BOOT release workflow and their explicit scope.

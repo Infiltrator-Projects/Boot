@@ -1,9 +1,8 @@
 # Selects filesystem driver build targets. The normal GNU-EFI release
 # build requires ext2, ext4, reiserfs, iso9660, hfs and btrfs.
-# AUDIT: the standalone 'install' recipe still names an old refind path;
-# that recipe is not the constrained /EFI/InfiltratorOS/BOOT .run install.
-
-INSTALL_DIR = /boot/efi/EFI/refind/drivers
+# Installation is intentionally excluded from this driver build file.
+# BOOT's native .run and generic .deb alone own the fixed ESP destination
+# /EFI/InfiltratorOS/BOOT and associated firmware registration.
 
 FILESYSTEMS = ext2 ext4 reiserfs iso9660 hfs btrfs
 FILESYSTEMS_GNUEFI = ext2_gnuefi ext4_gnuefi reiserfs_gnuefi iso9660_gnuefi hfs_gnuefi btrfs_gnuefi
@@ -79,6 +78,3 @@ clean:
 	rm -f *~ *.bak *.o *.obj *.so *.efi *.dll err.txt $(TEXTFILES)
 	+make -C test clean
 
-install:
-	mkdir -p $(INSTALL_DIR)
-	cp *.efi $(INSTALL_DIR)

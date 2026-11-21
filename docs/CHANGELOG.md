@@ -2,6 +2,13 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Post-audit accuracy and hosted test maintenance
+
+- Updated installation and firmware-safety documentation to reflect replacement of BOOT's dedicated directory without prior ownership markers.
+- Removed the obsolete standalone filesystem-driver install target, leaving the native `.run` and generic `.deb` as the supported deployment routes.
+- Retargeted both hosted FSW test binaries to a selectable shipped backend (EXT2 by default), enabled large-file offsets and corrected POSIX test-adapter directory dnode and file-descriptor ownership handling.
+- Recorded the compile-only boundary of hosted FSW tests; actual disk-image reads and UEFI hardware qualification remain separate validation tasks.
+
 ## 2026-11-22 — Confirmed defensive runtime fixes
 
 - Preserved the full 64-bit FSW stream position for large-file reads.

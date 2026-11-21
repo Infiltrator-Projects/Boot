@@ -6,6 +6,7 @@
  */
 
 #include "fsw_posix.h"
+#include <unistd.h> /* POSIX file descriptor close for mounted test images. */
 
 #ifndef FSTYPE
 
@@ -55,6 +56,7 @@ struct fsw_posix_volume * fsw_posix_mount(const char *path, struct fsw_fstype_ta
     status = fsw_mount(pvol, &fsw_posix_host_table, fstype_table, &pvol->vol);
     if (status) {
         fprintf(stderr, "fsw_posix_mount: fsw_mount returned %d\n", status);
+        close(pvol->fd);
         fsw_free(pvol);
         return NULL;
     }
@@ -62,10 +64,13 @@ struct fsw_posix_volume * fsw_posix_mount(const char *path, struct fsw_fstype_ta
     return pvol;
 }
 
+/* The FSW volume does not own the image descriptor retained by this adapter. */
 int fsw_posix_unmount(struct fsw_posix_volume *pvol)
 {
     if (pvol->vol != NULL)
         fsw_unmount(pvol->vol);
+    if (pvol->fd >= 0)
+        close(pvol->fd);
     fsw_free(pvol);
     return 0;
 }
@@ -166,6 +171,18 @@ struct dirent * fsw_posix_readdir(struct fsw_posix_dir *dir)
         return NULL;
     }
 
+    /*
+     * FSW yields a retained dnode. A host dirent has bounded inline name
+     * storage, unlike a filesystem's untrusted on-disk name length. Refuse
+     * oversized entries before copying and release every acquired reference.
+     * The static dirent is valid only until the next readdir call.
+     */
+    if (dno->name.data == NULL || dno->name.size >= sizeof(dent.d_name)) {
+        fprintf(stderr, "fsw_posix_readdir: invalid or oversized directory name\n");
+        fsw_dnode_release(dno);
+        return NULL;
+    }
+
     dent.d_fileno = dno->dnode_id;
     dent.d_reclen = 8 + dno->name.size + 1;
     switch (dno->type) {
@@ -187,6 +204,7 @@ struct dirent * fsw_posix_readdir(struct fsw_posix_dir *dir)
 #endif
     memcpy(dent.d_name, dno->name.data, dno->name.size);
     dent.d_name[dno->name.size] = 0;
+    fsw_dnode_release(dno);
 
     return &dent;
 }

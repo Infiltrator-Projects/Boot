@@ -6,11 +6,8 @@
 
 #include "fsw_posix.h"
 
-extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(reiserfs);
-extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(iso9660);
-extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(hfs);
-extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(ext2);
-extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(ext4);
+/* Bind the root traversal to the backend selected by DRIVERNAME. */
+extern struct fsw_fstype_table FSW_FSTYPE_TABLE_NAME(FSTYPE);
 
 int main(int argc, char **argv)
 {
