@@ -80,6 +80,7 @@ set +o pipefail
 # The RUN's only installation mode: no legacy filesystem driver deployment.
 set -- --nodrivers
 
+#!/bin/bash
 #
 # Linux/MacOS X script to install BOOT
 #
