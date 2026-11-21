@@ -233,6 +233,11 @@ VOID AboutBOOT(VOID)
 
  
  
+/*
+ * Persists the last selected menu label under BOOT's own vendor GUID.
+ * The terminating UTF-16 code unit is included in the byte count; this
+ * variable is a menu preference, not firmware BootNext or boot evidence.
+ */
 VOID StoreLoaderName(IN CHAR16 *Name) {
 
     if (Name) {
@@ -336,6 +341,12 @@ static BOOLEAN SecureBootUninstall(VOID) {
  
  
  
+/*
+ * Examines the image's firmware-supplied load options for a -c override.
+ * A candidate configuration is selected only when visible in SelfDir;
+ * absence falls back to the compiled default. Load options cross the
+ * caller/firmware trust boundary and must not be treated as a path guarantee.
+ */
 static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
     EFI_LOADED_IMAGE *Info;
     CHAR16 *Options, *FileName, *SubString;
@@ -368,6 +379,11 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
  * A preferred graphical selection is not a persistent BootOrder update.
  * An unmatched vmlinuz default must leave other discovered loaders available.
  */
+/*
+ * Expands the '+' selection token using the persisted PreviousBoot label.
+ * Rebuilds the comma-delimited preference in owned pool memory; when the
+ * variable is unavailable, the token contributes no selection candidate.
+ */
 static VOID AdjustDefaultSelection() {
     UINTN i = 0, j;
     CHAR16 *Element = NULL, *NewCommaDelimited = NULL, *PreviousBoot = NULL;
@@ -394,6 +410,11 @@ static VOID AdjustDefaultSelection() {
 }  
 
  
+/*
+ * Records firmware revision, platform capabilities and boot-environment
+ * diagnostics after library initialization. Log output describes observed
+ * firmware state; it does not certify protocol compatibility or bootability.
+ */
 VOID LogBasicInfo(VOID) {
     EFI_STATUS Status;
     UINT64     MaximumVariableStorageSize;
@@ -489,6 +510,13 @@ VOID LogBasicInfo(VOID) {
  
  
 EFI_STATUS
+/*
+ * UEFI application entry point and lifetime owner. Initialisation precedes
+ * any controller scanning; configuration and discovery populate the menu;
+ * the dispatch loop may hand control to another EFI image or return here.
+ * EFI_STATUS represents this application's termination, not a report that
+ * a selected operating system completed its own startup.
+ */
 EFIAPI
 efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
