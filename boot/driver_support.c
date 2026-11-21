@@ -156,6 +156,12 @@ typedef struct _MY_EFI_BLOCK_IO_PROTOCOL {
 
 
 EFI_STATUS
+/*
+ * Classifies the firmware's handle database from installed protocols and
+ * OpenProtocolInformation relationships. The returned handle list and
+ * classification array are caller-owned allocations. Controller topology
+ * may change as drivers bind, so a snapshot must not be reused indefinitely.
+ */
 LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
                        UINT32      *DriverBindingHandleIndex, OPTIONAL
                        EFI_HANDLE  ControllerHandle, OPTIONAL
@@ -462,6 +468,12 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
  * existing driver agent before reconnecting through the supplied driver.
  * This has a firmware-visible side effect and requires real hardware evidence.
  */
+/*
+ * Attempts to bind a newly launched EFI filesystem driver to block-backed
+ * controller handles and their parent/child driver relationships. A driver
+ * is represented by UEFI DriverBinding and SimpleFileSystem protocols here,
+ * not by a Common V2 shared-library filesystem interface.
+ */
 VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     EFI_STATUS                            Status;
     UINTN                                 HandleCount = 0;
@@ -554,6 +566,12 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
  * Searches a configured directory for EFI driver images and launches them
  * through the EFI image path. Filename matching alone does not authenticate.
  */
+/*
+ * Enumerates firmware-visible driver candidates in one directory and passes
+ * each candidate to StartEFIImage as a driver. NumFound counts matching
+ * entries encountered, not necessarily successfully authenticated or started
+ * drivers; those outcomes belong to StartEFIImage's EFI_STATUS result.
+ */
 static UINTN ScanDriverDir(IN CHAR16 *Path)
 {
     EFI_STATUS              Status;
@@ -593,6 +611,12 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
 /*
  * Loads on-disk EFI filesystem drivers before filesystem-based OS scanning;
  * no Common V2 binary compatibility can be inferred from this operation.
+ */
+/*
+ * Searches architecture-specific built-in directories followed by configured
+ * paths. Binding these drivers can expose additional firmware file handles;
+ * subsequent volume enumeration must account for changed topology.
+ * The Boolean return is not proof that every candidate driver was loaded.
  */
 BOOLEAN LoadDrivers(VOID) {
     CHAR16        *Directory, *SelfDirectory;
