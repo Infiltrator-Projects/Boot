@@ -114,6 +114,7 @@ The following table records code-level relationships rather than a promise of co
 | Transition | Inputs and mutable state | Ownership / failure consequence | Primary implementation |
 | --- | --- | --- | --- |
 | Firmware entry → volume scan | EFI image handle, system table, controller protocol database | Volume records depend on firmware handles and successful protocol acquisition; an inaccessible filesystem is not an empty one | `boot/main.c`, `boot/lib.c` |
+| Network discovery → optional iPXE child | iPXE discovery EFI file and loader on BOOT's own volume | Unlike disk scanning, this can call firmware LoadImage/StartImage while constructing the menu; exit data and cloned volume ownership need separate scrutiny | `boot/scan.c` |
 | Configuration → menu inventory | Config bytes, volume identifiers, scan/exclusion flags | Parser state determines visibility. Hiding a candidate does not delete an EFI file or NVRAM record | `boot/config.c`, `boot/scan.c` |
 | Menu selection → action | Selected menu record, entry tag, current inventory | Menu entries and their submenus belong to the inventory that produced them; a rescan invalidates previous selection pointers | `boot/menu.c`, `boot/main.c`, `boot/global.h` |
 | EFI launch | Candidate path, volume handle, optional UTF-16 load options | EFI image classification precedes authentication/firmware launch. Option buffers must survive the firmware call and statuses must propagate | `boot/launch_efi.c` |

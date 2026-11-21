@@ -462,6 +462,13 @@ static fsw_status_t load_atlist(struct fsw_ntfs_volume *vol, struct ntfs_mft *mf
     return read_attribute_direct(vol, ptr, len, &mft->atlst, &mft->atlen);
 }
 
+/*
+ * Resolve a numbered MFT record through the MFT file's extent map rather
+ * than assuming record number equals physical location. Convert the record
+ * byte offset into virtual clusters, locate the containing run, and read
+ * from the mapped physical range. Record-size and cluster-size shifts must
+ * remain within representable bounds for malformed volume metadata.
+ */
 static fsw_status_t read_mft(struct fsw_ntfs_volume *vol, fsw_u8 *mft, fsw_u64 mftno)
 {
     int l = 0;

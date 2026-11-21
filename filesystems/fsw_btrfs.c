@@ -715,6 +715,13 @@ static int btrfs_add_multi_device(struct fsw_btrfs_volume *master, struct fsw_vo
     return FSW_SUCCESS;
 }
 
+/*
+ * Attempt to attach one candidate disk to a multidevice Btrfs mount.
+ * Capacity is bounded by n_devices_allocated, and a readable superblock
+ * must carry the same filesystem UUID before btrfs_add_multi_device
+ * accepts the member. A matching UUID is a grouping condition, not a
+ * guarantee of available stripes or consistent data.
+ */
 static int scan_disks_hook(struct fsw_volume *volg, struct fsw_volume *slave) {
     struct fsw_btrfs_volume *vol = (struct fsw_btrfs_volume *)volg;
     struct btrfs_superblock sb;

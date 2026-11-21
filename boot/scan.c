@@ -934,6 +934,14 @@ static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16
     return FoundFallbackDuplicate;
 }  
 
+/*
+ * Network discovery can execute an EFI child image during menu
+ * construction: this is not passive filename enumeration. The helper
+ * builds a device path for the iPXE discovery executable, calls LoadImage
+ * then StartImage, and returns the firmware-supplied exit data as
+ * candidate location text. Failure to load returns null; StartImage's
+ * status is not checked before returning the data pointer.
+ */
 static CHAR16* RuniPXEDiscover(EFI_HANDLE Volume)
 {
     EFI_STATUS       Status;
@@ -952,6 +960,14 @@ static CHAR16* RuniPXEDiscover(EFI_HANDLE Volume)
     return boot_info;
 }  
 
+/*
+ * Require both the iPXE discovery executable and the network loader on
+ * BOOT's own volume before presenting a network entry. Successful
+ * discovery executes the helper and creates a synthetic network volume
+ * copied from SelfVolume. KNOWN LIMIT: the AllocatePool result for that
+ * clone is dereferenced without an immediate allocation check; network
+ * choice construction is not guaranteed under pool exhaustion.
+ */
 static VOID ScanNetboot() {
     CHAR16        *iPXEFileName = IPXE_NAME;
     CHAR16        *Location;
@@ -1367,6 +1383,14 @@ static BOOLEAN IsValidTool(IN REFIT_VOLUME *BaseVolume, CHAR16 *PathName) {
     return retval;
 }  
 
+/*
+ * Search configured tool names across readable volumes, applying
+ * directory/name exclusions before adding a menu action. ScannedLocations
+ * is shared across the outer volume loop: once a directory is marked, the
+ * same textual directory can be skipped on later volumes. This
+ * deduplication is not equivalent to deduplicating a pathname plus its
+ * volume identity.
+ */
 VOID FindTool(CHAR16 *Locations, CHAR16 *Names, CHAR16 *Description, UINTN Icon) {
     UINTN j, k, VolumeIndex;
     CHAR16 *DirName, *FileName, *PathName, *FullDescription, *VolName = NULL;

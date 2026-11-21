@@ -1496,8 +1496,11 @@ static ZSTD_nextInputType_e ZSTD_nextInputType(ZSTD_DCtx *dctx)
 int ZSTD_isSkipFrame(ZSTD_DCtx *dctx) { return dctx->stage == ZSTDds_skipFrame; }  
 
 /*
- * Advances a streaming decoder state machine. The caller must pass the
- * requested number of input bytes for that state and honour return status.
+ * Advance the streaming frame/sequence state machine. srcSize must equal the
+ * state's requested expected byte count; a larger or smaller fragment is not
+ * consumed opportunistically. The decoder preserves header, dictionary and
+ * checksum state between calls, and the returned size may encode an error.
+ * A successful stage is not necessarily the end of a complete frame.
  */
 size_t ZSTD_decompressContinue(ZSTD_DCtx *dctx, void *dst, size_t dstCapacity, const void *src, size_t srcSize)
 {
@@ -1803,6 +1806,13 @@ ZSTD_STATIC size_t ZSTD_limitCopy(void *dst, size_t dstCapacity, const void *src
 	return length;
 }
 
+/*
+ * Drive the public pull/push streaming interface using the internal frame
+ * state. Input and output pos fields are mutable cursors, not total-size
+ * return values; the function may consume input or produce output without
+ * completing a frame. The caller must check the returned error/status and
+ * retain context across partial calls.
+ */
 size_t ZSTD_decompressStream(ZSTD_DStream *zds, ZSTD_outBuffer *output, ZSTD_inBuffer *input)
 {
 	const char *const istart = (const char *)(input->src) + input->pos;

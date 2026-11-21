@@ -4612,6 +4612,14 @@ unsigned lodepng_inspect_chunk(LodePNGState* state, size_t pos,
   return error;
 }
 
+/*
+ * Parse a full PNG after the 33-byte signature/IHDR probe, accumulating
+ * IDAT data and evaluating chunk structure. Width, height, palette, CRC
+ * handling, interlace layout and decompressed scanline size affect
+ * subsequent allocations. Error propagation is through state->error rather
+ * than this void function's return; initialised outputs are not evidence
+ * of decode success.
+ */
 static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
                           LodePNGState* state,
                           const unsigned char* in, size_t insize) {

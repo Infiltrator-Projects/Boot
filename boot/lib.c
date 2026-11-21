@@ -521,6 +521,12 @@ static CHAR16 *FSTypeName(IN UINT32 TypeCode) {
     return retval;
 }  
 
+/*
+ * Ask the firmware Simple File System protocol for a volume label when
+ * RootDir is present, replacing any earlier owned FsName only when a
+ * nonempty label is returned. This label is descriptive firmware metadata,
+ * not a trustworthy filesystem identity or proof of file readability.
+ */
 static VOID SetFilesystemName(REFIT_VOLUME *Volume) {
     EFI_FILE_SYSTEM_INFO    *FileSystemInfoPtr = NULL;
 
@@ -1588,6 +1594,14 @@ CHAR16 *FindPath(IN CHAR16* FullPath) {
     return (PathOnly);
 }
 
+/*
+ * Convert a firmware device path into a candidate volume and loader
+ * filename. The function first releases the caller's existing output
+ * pointers, then splits the printable path; callers must pass
+ * appropriately owned prior values and must not supply borrowed pointers
+ * to the global volume inventory. A textual device-path match is not
+ * firmware image authentication.
+ */
 VOID FindVolumeAndFilename(IN EFI_DEVICE_PATH *loadpath,
                            OUT REFIT_VOLUME **DeviceVolume,
                            OUT CHAR16 **loader) {
