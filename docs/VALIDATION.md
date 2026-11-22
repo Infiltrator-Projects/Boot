@@ -473,4 +473,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `gzip/zlib_inflate/inflate.c` | 9 | Bundled decoder |
 | `gzip/zlib_inflate/inflate.h` | 0 | Bundled decoder |
 | `gzip/zlib_inflate/inftrees.c` | 1 | Bundled decoder |
+| `gzip/zlib_inflate/inftrees.h` | 0 | Bundled decoder |
+| `gzip/zlib_inflate/infutil.c` | 1 | Bundled decoder |
+| `gzip/zlib_inflate/infutil.h` | 0 | Bundled decoder |
+| `gzip/zlib_inflate/zconf.h` | 0 | Bundled decoder |
+| `gzip/zlib_inflate/zlib.h` | 1 | Bundled decoder |
+| `gzip/zlib_inflate/zutil.h` | 1 | Bundled decoder |
+| `include/Bmp.h` | 0 | ABI/header |
+| `include/Handle.h` | 0 | ABI/header |
+| `include/PeImage.h` | 0 | ABI/header |
+| `include/PeImage2.h` | 0 | ABI/header |
+| `include/RemovableMedia.h` | 0 | ABI/header |
+| `include/egemb_arrow_left.h` | 0 | Generated/embedded |
+| `include/egemb_arrow_right.h` | 0 | Generated/embedded |
+| `include/egemb_back_selected_big.h` | 0 | Generated/embedded |
+| `include/egemb_back_selected_small.h` | 0 | Generated/embedded |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
