@@ -31,6 +31,12 @@
 #define EFI_IMAGE_OS2_SIGNATURE_LE  SIGNATURE_16('L', 'E')
 #define EFI_IMAGE_NT_SIGNATURE      SIGNATURE_32('P', 'E', '\0', '\0')
 
+/*
+ * The DOS stub begins with MZ and carries e_lfanew, an untrusted file offset
+ * to PE signature and COFF headers. Consumers must bound that offset against
+ * the image length before casting, regardless of the apparent DOS header
+ * size.
+ */
 typedef struct {
   UINT16  e_magic;     
   UINT16  e_cblp;      
@@ -103,6 +109,12 @@ typedef struct {
 
 #define EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC 0x10b
 
+/*
+ * PE32 optional fields carry image alignment, code/data RVA bases and
+ * directory lengths. File and section RVA mapping require overflow-safe
+ * bounds; subsystem constants alone cannot establish UEFI executable
+ * authenticity.
+ */
 typedef struct {
 
   UINT16                    Magic;
@@ -176,6 +188,12 @@ typedef struct {
   EFI_IMAGE_DATA_DIRECTORY  DataDirectory[EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES];
 } EFI_IMAGE_OPTIONAL_HEADER64;
 
+/*
+ * The NT header combines PE signature, COFF machine/class and PE32 optional
+ * header. NumberOfSections and SizeOfOptionalHeader govern where section
+ * headers begin: fixed-size casts without those checks are not complete
+ * format validation.
+ */
 typedef struct {
   UINT32                      Signature;
   EFI_IMAGE_FILE_HEADER       FileHeader;
@@ -201,6 +219,12 @@ typedef struct {
 
 #define EFI_IMAGE_SIZEOF_SHORT_NAME 8
 
+/*
+ * A section header describes a file-backed byte interval and its virtual
+ * mapped RVA. Both PointerToRawData + SizeOfRawData and VirtualAddress +
+ * VirtualSize require bounded arithmetic before a loader copies or relocates
+ * image bytes.
+ */
 typedef struct {
   UINT8 Name[EFI_IMAGE_SIZEOF_SHORT_NAME];
   union {

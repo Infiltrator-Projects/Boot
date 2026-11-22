@@ -22,11 +22,22 @@
 #define EFI_HANDLE_TYPE_CONTROLLER_HANDLE           0x200
 #define EFI_HANDLE_TYPE_CHILD_HANDLE                0x400
 
+/*
+ * EfiLibFileSystemInfo obtains a caller-owned pool allocation via EFI GetInfo
+ * size negotiation. Its returned metadata describes the currently opened
+ * handle, not a stable identity after controller reconnection.
+ */
 EFI_FILE_SYSTEM_INFO              *
 EfiLibFileSystemInfo (
   IN EFI_FILE_HANDLE                FHand
   );
 
+/*
+ * Handle enumeration functions return allocated handle vectors whose counts
+ * reflect a protocol-topology snapshot. They must not be retained across
+ * ConnectController, DisconnectController or driver dispatch without
+ * re-enumeration.
+ */
 EFI_STATUS
 LibGetManagedChildControllerHandles (
   EFI_HANDLE  DriverBindingHandle,
@@ -67,6 +78,11 @@ LibReinstallProtocolInterfaces (
   ...
   );
 
+/*
+ * Disk-signature lookup matches firmware device paths, not filesystem
+ * contents or installed operating systems. SignatureType determines the
+ * expected byte layout; multiple matches require explicit disambiguation.
+ */
 EFI_STATUS
 LibLocateHandleByDiskSignature (
   IN UINT8                          MBRType,

@@ -144,6 +144,12 @@ BdsLibGetVariableAndSize (
   OUT UINTN               *VariableSize
   );
 
+/*
+ * The returned option is an allocated in-memory interpretation of Boot####
+ * data, with separately allocated description/device path/load options. A
+ * successful read is not an authentic or bootable EFI executable; entry
+ * lifetime follows the owning list.
+ */
 BDS_COMMON_OPTION *
 BdsLibVariableToOption (
   IN OUT LIST_ENTRY                   *BdsCommonOptionList,
@@ -208,6 +214,12 @@ DevicePathToStr (
 
 #ifdef __MAKEWITH_TIANO
 
+/*
+ * POOL_PRINT tracks a caller-owned UTF-16 allocation, current code-unit
+ * length and a formatter size limit. DevicePathToStr may return a newly
+ * allocated string; truncation of diagnostic text cannot validate an
+ * untrusted binary path.
+ */
 typedef struct {
   CHAR16  *Str;
   UINTN   Len;
