@@ -95,6 +95,18 @@ Code comments document the branch-level contract **as implemented**; they do not
 
 These are **unverified regression requirements**, not new test results. The descriptions also expose areas where a public API cannot express partial failure (for example, the `VOID` controller reconnection function). Documentation must preserve this limitation rather than silently implying stronger success guarantees.
 
+### Additional source-level regression obligations
+
+| Routine | Failure or ambiguity visible in source | Missing proof |
+| --- | --- | --- |
+| `GenerateWaitList` | Unchecked allocation and replacement of an existing global wait-list pointer | Force allocation failure and repeated construction; check event-array lifetime |
+| `WaitForInput` | The zero-timeout path excludes the timer slot yet interprets the last included slot as a timeout | Simulate keyboard and last-pointer events with zero timeout; verify event classification and event creation/close behaviour |
+| `IsSymbolicLink` | Successful Open retains a file handle; failed metadata observation is treated as zero length | Instrument repeated directory scans and injected Open/LibFileInfo failures |
+| `GetFirstOptionsFromFile` | REFIT_FILE wrapper is freed without an explicit free of its data buffer | Trace each returned REFIT_FILE allocation and the release of all associated payload ownership |
+| `EfivarGetRaw` | Disk read failure after directory creation does not retry NVRAM | Mock local-variable read failures separately from directory-open failures |
+
+All entries are review observations and proposed regressions, not evidence that those tests exist or pass.
+
 ## Failure reporting and documentation changes
 
 Failed CI stops the current release pipeline and must be investigated from the failing step and log. Source-only comment removal previously required an update to a package-size assertion; removal of obsolete `COPYING.txt` later required deleting references from the workflow and release scripts. These are examples of repository-contract changes, not filesystem fixes.
