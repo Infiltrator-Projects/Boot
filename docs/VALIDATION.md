@@ -541,4 +541,18 @@ invoke external tools and mutate firmware or disks only when actually run.
 | `boot-sbat-local.csv` | 0 | Configuration/data |
 | `boot-sbat.csv` | 0 | Configuration/data |
 | `boot.conf-sample` | 0 | Configuration/data |
+| `boot/Makefile` | 0 | Build recipe |
+| `docs/ARCHITECTURE.md` | 0 | Engineering document |
+| `docs/CHANGELOG.md` | 0 | Engineering document |
+| `docs/HARDWARE.md` | 0 | Engineering document |
+| `docs/PHILOSOPHY.md` | 0 | Engineering document |
+| `docs/README.md` | 0 | Engineering document |
+| `docs/VALIDATION.md` | 0 | Engineering document |
+| `filesystems/Make.gnuefi` | 0 | Build recipe |
+| `filesystems/Make.tiano` | 0 | Build recipe |
+| `filesystems/Makefile` | 0 | Build recipe |
+| `filesystems/btrfs.inf` | 0 | EDK build descriptor |
+| `filesystems/design.dox` | 0 | Configuration/data |
+| `filesystems/ext2.inf` | 0 | EDK build descriptor |
+| `filesystems/ext4.inf` | 0 | EDK build descriptor |
 <!-- BOOT_TEXT_INDEX_NEXT -->
