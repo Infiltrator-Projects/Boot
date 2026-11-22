@@ -2,7 +2,7 @@
 # native source installer. Compilation, disposable ESP/NVRAM tests and an OVMF
 # menu smoke test establish distinct contracts; none independently proves
 # bootability on every physical firmware or installed operating system.
-# Successful pushes to main publish a prerelease with .run, .deb and checksums.
+# Successful pushes to main publish a stable release with .run, .deb and checksums.
 # The .run builds and installs natively; the generic .deb installs the prebuilt
 # image at package configuration. Both register BOOT and its six EFI drivers.
 name: BOOT native source installer and generic AMD64 package
@@ -140,7 +140,7 @@ jobs:
             dist/SHA256SUMS
           if-no-files-found: error
 
-      - name: Publish GitHub prerelease
+      - name: Publish GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -168,6 +168,5 @@ jobs:
           NOTES
           gh release create "v${VERSION}" dist/*.run dist/*.deb dist/SHA256SUMS \
             --target "$GITHUB_SHA" \
-            --title "BOOT ${VERSION} (native RUN, unverified firmware)" \
-            --notes-file release-notes.txt \
-            --prerelease
+            --title "BOOT ${VERSION} (native RUN)" \
+            --notes-file release-notes.txt
