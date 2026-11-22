@@ -286,9 +286,20 @@ static VOID mbPrepare(VOID) {
         ++mbLoadedCount;
     }
 }
+/* Exercise the actual firmware-built rasteriser on an off-screen image.
+ * A valid TTF header alone cannot establish working glyph rasterisation. */
 BOOLEAN egFontReady(VOID) {
+    EG_IMAGE *image;
+    EG_PIXEL dark = {0, 0, 0, 0};
+    BOOLEAN passed;
     mbPrepare();
-    return mbLoadedCount == MB_FONT_COUNT;
+    if (mbLoadedCount != MB_FONT_COUNT) return FALSE;
+    image = egCreateFilledImage(160, 64, FALSE, &dark);
+    if (!image) return FALSE;
+    egRenderTextRole(L"BOOT", image, 3, 3, 0, MB_FONT_BODY);
+    passed = mbRasterisedGlyph;
+    egFreeImage(image);
+    return passed;
 }
 UINTN egGetFontLoadedCount(VOID) {
     mbPrepare();
@@ -415,7 +426,7 @@ VOID egRenderTextRole(IN CHAR16 *text, IN OUT EG_IMAGE *image,
             for (k=0; k<g->w*g->h; ++k) {
                 if (g->mask[k]) {
                     mbRasterisedGlyph = TRUE;
-                    LOG(1, LOG_LINE_NORMAL, L"MB TrueType glyph rasterised in graphical menu");
+                    LOG(1, LOG_LINE_NORMAL, L"MB TrueType glyph rasterised by EFI renderer");
                     break;
                 }
             }
