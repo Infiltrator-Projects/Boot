@@ -98,7 +98,10 @@ typedef struct _lode_color {
  * Request eight-bit RGBA pixels from LodePNG and copy channels into the EFI pixel
  * structure by name. WantAlpha controls whether the destination alpha byte is
  * populated. Image dimensions come from the decoded PNG, and icon resizing occurs
- * later in the loading path.
+ * later in the loading path. The decoder owns PixelData until lodepng_free;
+ * the current early returns after successful decoding omit that release
+ * when EG_IMAGE creation or dimension validation fails. This can leak pool
+ * allocations on malformed-resource and allocation-failure paths.
  */
 EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha) {
    EG_IMAGE *NewImage = NULL;
