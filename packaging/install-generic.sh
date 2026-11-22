@@ -4,6 +4,10 @@
 # not rebuild BOOT or accept an alternate installation location.
 set -euo pipefail
 
+# Check the exact package payload before touching the ESP: a prebuilt EFI
+# loader, six filesystem drivers, configuration/icons and all 23 manifest-
+# pinned TrueType faces. This is file presence/font integrity verification,
+# not EFI executable signature or controller-binding qualification.
 boot_generic_payload_check() {
     local source="$1" filesystem
     [[ -s "$source/boot_x64.efi" && -s "$source/boot.conf-sample" && -d "$source/icons" ]] || {
@@ -33,6 +37,9 @@ boot_generic_payload_check() {
     done
 }
 
+# Resolve a mounted VFAT ESP with EFI partition type, parent disk, numeric
+# partition number and PARTUUID. These device identifiers must all describe
+# the same selected partition before firmware registration is attempted.
 boot_generic_esp() {
     local candidate source filesystem partition_type disk part uuid
     [[ -d /sys/firmware/efi ]] || {
@@ -63,6 +70,9 @@ boot_generic_esp() {
     return 1
 }
 
+# Replace only BOOT's fixed EFI directory after checking relevant parent
+# symlinks. This intentionally destroys old BOOT configuration and resources
+# while leaving independent EFI vendor directories outside this path.
 boot_generic_install_files() {
     local esp="$1" source="$2" destination="$1/EFI/InfiltratorOS/BOOT" filesystem asset
     boot_generic_payload_check "$source" || return 1
@@ -92,6 +102,10 @@ boot_generic_install_files() {
     [[ -s "$destination/BOOTX64.EFI" ]] || return 1
 }
 
+# Require exactly one firmware entry matching BOOT's pathname and the
+# selected ESP identity. Activation and BootOrder promotion are separate
+# firmware writes, so a failure between them can leave partial NVRAM state.
+# Re-reading BootOrder checks one effect but is not an atomic transaction.
 boot_generic_register() {
     local disk="$1" partition="$2" uuid="$3"
     local listing line lower number boot_number="" match_count total created=0
@@ -168,6 +182,9 @@ boot_generic_register() {
     echo "BOOT generic package installed and registered Boot$boot_number."
 }
 
+# Installing a generic package is an ESP/NVRAM mutation, never build-only.
+# Validate privilege, architecture, package, partition, file install and
+# firmware registration in order; failure must terminate the chain.
 boot_generic_main() {
     (($# == 0)) || { echo "BOOT generic installer accepts no arguments." >&2; return 2; }
     [[ $(id -u) == 0 ]] || { echo "BOOT generic installation requires root." >&2; return 1; }
