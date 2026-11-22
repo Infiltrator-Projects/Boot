@@ -290,6 +290,14 @@ static VOID mbUpdateScreenScale(VOID) {
     LOG(1,LOG_LINE_NORMAL,L"MB TrueType renderer scale: %d px at %dx%d",pixels,screenWidth,screenHeight);
 }
 
+/*
+ * One-time font-file discovery reads all registered faces from SelfDir.
+ * Successful parsing transfers each owned byte buffer to its MB_FACE, where
+ * stbtt_fontinfo retains pointers into it. Failed faces release their input.
+ * mbInitialized is set before probing; a later SelfDir becoming available
+ * does not automatically retry missing fonts. Scale changes invalidate only
+ * glyph bitmaps, not the resident outline/font tables.
+ */
 static VOID mbPrepare(VOID) {
     UINTN i;
     if (!mbInitialized) {
@@ -363,6 +371,12 @@ UINTN egGetFontCellWidth(VOID) {
     mbPrepare();
     return mbAverageAdvance;
 }
+/*
+ * Layout uses the same substitute glyph and kerning pairs as drawing, so
+ * measured advances reflect the selected face instead of fixed cell counts.
+ * A face absent at preparation time falls back to an estimated width;
+ * that fallback cannot establish which physical glyphs will be visible.
+ */
 UINTN egComputeTextWidthRole(IN CHAR16 *text, IN UINTN role) {
     MB_FACE *f;
     const CHAR16 *p=text;
@@ -392,6 +406,13 @@ VOID egMeasureText(IN CHAR16 *text, OUT UINTN *width, OUT UINTN *height) {
     if (width) *width=egComputeTextWidth(text);
     if (height) *height=egGetFontHeight();
 }
+/*
+ * Rasterise one codepoint into an owned 8-bit coverage mask. A missing glyph
+ * substitutes '?'; empty outlines are valid zero-area glyphs. Bitmap width
+ * and height have independent 256-pixel caps, and a failed allocation leaves
+ * the glyph unprepared. The caller owns the resulting mask unless it is
+ * retained in the face's ASCII cache.
+ */
 static BOOLEAN mbBuildGlyph(MB_FACE *f, UINT32 cp, MB_GLYPH *g) {
     int x0,y0,x1,y1;
     UINTN w,h;
