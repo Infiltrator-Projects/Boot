@@ -3,6 +3,13 @@
  * subvolume/root selection and extent decoding. Logical addresses are not
  * simple physical block addresses; chunk mappings and checksums/features
  * are relevant to whether any given on-disk layout is supported.
+ * Extent-cache identity includes tree/subvolume, inode and a half-open byte
+ * range: inode numbers alone are not globally unique across subvolumes.
+ * Logical-to-physical translation also depends on the selected chunk profile
+ * and devices; a successful metadata lookup is not evidence that every RAID
+ * layout or degraded topology can be read. Compressed extents separately own
+ * the stored byte buffer and decompressed output; unsupported compression,
+ * inconsistent lengths and allocation failure are distinct error cases.
  */
 
 #include "fsw_core.h"
