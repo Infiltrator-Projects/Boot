@@ -280,6 +280,8 @@ because they are derived/vendor-owned implementation data.
 | `gzip/decompress_inflate.c` | Gzip recognition/decompression/load distinction | Comment-only change; runtime regression not executed |
 | `EfiLib/BmLib.c` | Nontransactional realloc and lost allocation distinction | Comment-only change; runtime regression not executed |
 | `EfiLib/legacy.c` | BBS snapshot index and firmware variable mutation | Comment-only change; runtime regression not executed |
+| `filesystems/fsw_btrfs.c` | Inode body size, LZO page bounds and compression dispatch index assumptions | Comment-only change; malformed-image regression not executed |
+| `filesystems/fsw_ntfs.c` | Runlist offsets, MFT-map partial completion and child-name buffer bounds | Comment-only change; malformed-image regression not executed |
 
 The source changes above were individually compared with their fetched
 pre-edit text after removing C block comments and whitespace. That check
@@ -300,7 +302,14 @@ the identified safety assumptions; independent qualification of the
 currently shipped binary/asset inventory; and physical firmware results.
 Generated headers, bundled vendor decompression/parser bodies and certificate
 bytes must be assessed at their integration boundaries without adding
-decorative comments or modifying their provenance. This is a **partial**
+decorative comments or modifying their provenance.
+
+**Concurrent modification boundary.** Other commits landed on `main` during
+this review, including font renderer and OVMF font-test changes. The comment
+preservation comparisons apply only to the individual updates made during this
+review, not to the entire difference between the initial and final branch
+heads. A full repository binary/source equivalence claim would therefore be
+incorrect without separating those other commits. This is a **partial**
 file-by-file review, not a completed repository-wide certification.
 
 ## Commentary review: specific unresolved proof obligations
