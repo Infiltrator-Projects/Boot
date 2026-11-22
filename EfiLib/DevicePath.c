@@ -555,6 +555,11 @@ DevPathMacAddr (
  * messaging node. The address is a presentation of firmware-supplied bytes,
  * not proof of a reachable network route or a trusted boot endpoint.
  */
+/*
+ * Render firmware-reported IPv4 endpoint and transport fields only. These
+ * fields describe a path node; they do not prove address configuration,
+ * a reachable network route, or an established boot session.
+ */
 VOID
 DevPathIPv4 (
   IN OUT POOL_PRINT       *Str,
@@ -579,6 +584,11 @@ DevPathIPv4 (
  * IPv6 device-path printing preserves the encoded addresses and connection
  * metadata. This renderer assumes the node is the correct size; it must not
  * be used in place of node-length validation on an untrusted buffer.
+ */
+/*
+ * Render encoded IPv6 addresses and settings. A caller must supply a
+ * complete node: this diagnostic formatter has no independent buffer size
+ * with which to validate every field access.
  */
 VOID
 DevPathIPv6 (
@@ -765,6 +775,11 @@ DevPathVlan (
  * Formats media partition-path metadata; identifiers are descriptive and
  * do not guarantee filesystem accessibility or executable image validity.
  */
+/*
+ * Display a partition number and the embedded MBR signature or GPT GUID.
+ * This reads the fixed binary node fields without independently verifying
+ * backing length, current partition-table identity or media availability.
+ */
 VOID
 DevPathHardDrive (
   IN OUT POOL_PRINT       *Str,
@@ -857,6 +872,10 @@ DevPathFvFilePath (
   MyCatPrint (Str, L"%g", &FvFilePath->FvFileName);
 }
 
+/*
+ * Print the firmware-supplied starting and ending offsets. This routine
+ * does not establish the existence, ordering or accessibility of that range.
+ */
 VOID
 MyDevPathRelativeOffsetRange (
   IN OUT POOL_PRINT       *Str,
@@ -965,6 +984,11 @@ DevPathFvPath (
   MyCatPrint (Str, L"Fv(%g)", &FvPath->FvName);
 }
 
+/*
+ * Mapping from UEFI type/subtype pairs to textual renderers. This table
+ * defines formatting coverage, not an allow-list of supported boot sources:
+ * an unrecognised node is rendered by DevPathNodeUnknown instead.
+ */
 DEVICE_PATH_STRING_TABLE  DevPathTable[] = {
   {
     HARDWARE_DEVICE_PATH,

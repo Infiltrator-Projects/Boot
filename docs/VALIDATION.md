@@ -131,3 +131,18 @@ This establishes **non-comment source equivalence for the touched files**, not b
 ### Comment-quality audit acceptance
 
 A complete source-comment review checks each active, high-impact routine for verified preconditions, output and allocation ownership, integer/unit assumptions, error propagation and firmware side effects. Documentation must describe the current call order, including destructive steps, not the safer order intended by its authors. A remaining static hazard is a recorded limitation until its behaviour and regression tests are corrected. Comments must be dense in technical information, not blank-line padding or repetitive function-name paraphrases.
+
+## Commentary review: specific unresolved proof obligations
+
+This section records *review targets*, not newly executed tests or newly repaired runtime defects. Source comments now identify their assumptions so future assessments cannot mistake plausible prose for proven safety.
+
+| Source contract | Source-visible assumption or failure distinction | Evidence still required |
+| --- | --- | --- |
+| `filesystems/fsw_ntfs.c` field readers and MFT initialisation | GETU* helpers do not take buffer lengths; `init_mft` does not propagate its allocation status | Truncated record fixtures, misaligned metadata where supported, and allocation-failure injection |
+| `filesystems/fsw_ntfs.c` resident/nonresident reads | Short or zero return conflates EOF with selected failure paths; metadata-derived offset arithmetic needs independent bounds scrutiny | Sparse, resident, compressed, truncated and high-offset image fixtures with independently checked output |
+| `filesystems/fsw_ntfs.c` index allocation bitmap and reparse links | Bitmap last-byte comparison and reparse-field bounds require adversarial record coverage | Zero, first, last, and one-past-end index cases; malformed reparse tags and short name buffers |
+| `EfiLib/DevicePath.c` diagnostic renderers | Node renderers assume sufficient backing data; fallback walk lacks an external total byte length | Malformed node-length, missing terminator, display truncation and allocator-fault fixtures |
+| `boot/scan.c` inventory and submenu lifetime | Menu children can share volume pointers; network discovery may execute an EFI child while scanning | Repeated rescans, failed child launches, menu ownership assertions and multi-volume selection checks |
+| `boot/lib.c` device-path to volume resolution | Existing output pointers are released before replacement, although discovered volume pointers may be borrowed from the global inventory | Ownership-aware call-site review and fault injection; no claim of safety from comment-only work |
+
+**Source-only change check.** For an engineering-comments commit, compare the changed C and header files with comments removed and whitespace normalised; the remaining tokens must match the parent revision. Also review every added assertion against its implementing routine. This equivalence test excludes documentation itself and is not a substitute for firmware compilation, host unit tests, QEMU execution, or a physical-hardware boot test.

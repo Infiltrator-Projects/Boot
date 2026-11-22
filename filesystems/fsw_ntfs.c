@@ -9,6 +9,12 @@
 
 #define Print(x...)	 
 
+/*
+ * Low-level little-endian field readers operate on a caller-supplied buffer
+ * and offset without a length argument. Every caller must have established
+ * sufficient bytes; the multi-byte helpers also dereference typed pointers
+ * and make platform alignment assumptions. No validation occurs here.
+ */
 static inline fsw_u8 GETU8(fsw_u8 *buf, int pos)
 {
     return buf[pos];
@@ -324,6 +330,11 @@ static fsw_status_t get_extent(fsw_u8 **rlep, int *rlenp, fsw_u64 *lcnp, fsw_u64
     return FSW_SUCCESS;
 }
 
+/*
+ * Attribute-header accessors below are projections of resident/nonresident
+ * metadata, not length validators. Their len parameters do not bound GETU*
+ * reads; use only after a complete attribute header has been established.
+ */
 static inline int attribute_ondisk(fsw_u8 *ptr, int len)
 {
     return GETU8(ptr, 8);
@@ -461,6 +472,12 @@ static fsw_status_t read_attribute_direct(struct fsw_ntfs_volume *vol, fsw_u8 *p
     return FSW_SUCCESS;
 }
 
+/*
+ * Initialise an MFT working record and request a record-sized buffer.
+ * This routine currently discards fsw_alloc's status, so a non-NULL mft->buf
+ * is not guaranteed on allocation failure. Callers must not interpret this
+ * helper as establishing a usable record under memory pressure.
+ */
 static void init_mft(struct fsw_ntfs_volume *vol, struct ntfs_mft *mft, fsw_u64 mftno)
 {
     mft->mftno = mftno;
@@ -475,6 +492,11 @@ static void free_mft(struct ntfs_mft *mft)
     if(mft->atlst) fsw_free(mft->atlst);
 }
 
+/*
+ * Locate an attribute-list record in the loaded MFT record, then allocate
+ * and decode its contents into mft->atlst. The caller owns that allocation
+ * through free_mft; a missing list is a distinct result from a valid list.
+ */
 static fsw_status_t load_atlist(struct fsw_ntfs_volume *vol, struct ntfs_mft *mft)
 {
     fsw_u8 *ptr;
@@ -574,6 +596,11 @@ static void free_attr(struct ntfs_attr *attr)
     if(attr->emft) fsw_free(attr->emft);
 }
 
+/*
+ * Resolve an attribute at a virtual cluster against the base record or an
+ * extension MFT record named by the attribute list. Reuse attr->emft only for
+ * the matching MFT number; later lookups can replace cached record contents.
+ */
 static fsw_status_t find_attribute(struct fsw_ntfs_volume *vol, struct ntfs_mft *mft, struct ntfs_attr *attr, fsw_u64 vcn)
 {
     fsw_u8 *buf = mft->buf;
@@ -681,6 +708,11 @@ static void add_mft_map(struct fsw_ntfs_volume *vol, struct ntfs_mft *mft)
     fsw_free(emft);
 }
 
+/*
+ * Return floor(log2(val)) using count-leading-zeros. This helper requires
+ * nonzero input; calling __builtin_clz(0) is undefined. Mount checks power-of-
+ * two sector and cluster sizes before reaching the normal call sites.
+ */
 static int tobits(fsw_u32 val)
 {
     return 31 - __builtin_clz(val);
@@ -1043,6 +1075,13 @@ static fsw_status_t fsw_ntfs_dnode_get_lcn(struct fsw_ntfs_volume *vol, struct f
     return FSW_NOT_FOUND;
 }
 
+/*
+ * Read resident bytes or map nonresident virtual clusters into disk blocks.
+ * Return value is a byte count; zero can mean EOF or an unresolved attribute
+ * or mapping failure, so it is not a rich error code. Uninitialised file
+ * tails are zero-filled. The offset + size arithmetic is not independently
+ * overflow-checked here and needs malformed-metadata regression coverage.
+ */
 static int fsw_ntfs_read_buffer(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dnode *dno, fsw_u8 *buf, fsw_u64 offset, int size)
 {
     if(dno->embeded) {
@@ -1117,6 +1156,11 @@ static int fsw_ntfs_read_buffer(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dno
     return ret;
 }
 
+/*
+ * Present a resident attribute as one cluster-sized buffered extent. The
+ * buffer is allocated for the FSW extent consumer; only the resident bytes
+ * copied into it have defined contents at this point.
+ */
 static fsw_status_t fsw_ntfs_get_extent_embeded(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dnode *dno, struct fsw_extent *extent)
 {
     fsw_status_t err;
@@ -1567,11 +1611,22 @@ notfound:
     return FSW_NOT_FOUND;
 }
 
+/*
+ * Directory stream position packs an index-block number in the high 32 bits
+ * and a byte offset in the low 32 bits. Block zero refers to the resident
+ * index root; later positive blocks refer to index-allocation records.
+ */
 static inline void set_shand_pos( struct fsw_shandle *shand, int block, int off)
 {
     shand->pos = (((fsw_u64)block) << 32) + off;
 }
 
+/*
+ * Map a one-based index-block number to the allocation bitmap. A missing
+ * bitmap is treated as fully allocated. The current comparison allows the
+ * calculated byte index equal to bmpsz; last-byte boundary behaviour needs
+ * malformed-image testing and must not be presumed safe.
+ */
 static inline int test_idxbmp(struct fsw_ntfs_dnode *dno, int block)
 {
     int mask;
@@ -1586,6 +1641,12 @@ static inline int test_idxbmp(struct fsw_ntfs_dnode *dno, int block)
 }
 
 #define shand_pos(x,y)	(((fsw_u64)(x)<<32)|(y))
+/*
+ * Continue directory enumeration from the packed block/offset cursor,
+ * first in INDEX_ROOT and then the indexed blocks indicated by the bitmap.
+ * On exhaustion the cursor advances beyond the last block and the method
+ * returns FSW_NOT_FOUND. This is traversal, not whole-tree verification.
+ */
 static fsw_status_t fsw_ntfs_dir_read(struct fsw_volume *volg, struct fsw_dnode *dnog, struct fsw_shandle *shand, struct fsw_dnode **child_dno)
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
@@ -1646,6 +1707,12 @@ miss:
     return FSW_NOT_FOUND;
 }
 
+/*
+ * Interpret a reparse-name buffer as a UTF-16 link target and convert it to
+ * the host string representation. Backslashes are rewritten in the cached
+ * bytes themselves; input-length and prefix handling remain data-dependent
+ * and are not established as safe for arbitrary corrupt reparse records.
+ */
 static fsw_status_t fsw_ntfs_readlink(struct fsw_volume *volg, struct fsw_dnode *dnog, struct fsw_string *link)
 {
     struct fsw_ntfs_dnode *dno = (struct fsw_ntfs_dnode *)dnog;

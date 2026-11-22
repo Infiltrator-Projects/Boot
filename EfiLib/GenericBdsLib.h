@@ -78,6 +78,11 @@ typedef struct {
   UINTN                     ConnectType;
 } BDS_CONSOLE_CONNECT_ENTRY;
 
+/*
+ * Firmware boot-transition declarations: boot-next dispatch and a boot
+ * option image launch are distinct from parsing or displaying a Boot####
+ * record. Callers must inspect the returned EFI_STATUS where available.
+ */
 VOID
 EFIAPI
 BdsLibBootNext (
@@ -120,6 +125,11 @@ BdsLibLoadDrivers (
   IN LIST_ENTRY                   *BdsDriverLists
   );
 
+/*
+ * Boot-variable decoding creates in-memory option records from untrusted
+ * NVRAM bytes. A decoded label or device path is not evidence of a bootable,
+ * authenticated image. The associated option list owns its entries.
+ */
 EFI_STATUS
 EFIAPI
 BdsLibBuildOptionFromVar (
@@ -140,6 +150,11 @@ BdsLibVariableToOption (
   IN  CHAR16                          *VariableName
   );
 
+/*
+ * Controller connection operates on the UEFI handle/protocol database;
+ * success can change the subsequently discoverable handle set. It is not
+ * equivalent to launching a filesystem driver or validating a disk image.
+ */
 EFI_STATUS
 BdsLibConnectDevicePath (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevicePathToConnect
@@ -259,6 +274,12 @@ BdsRefreshBbsTableForBoot (
   IN BDS_COMMON_OPTION        *Entry
   );
 
+/*
+ * Boot option deletion accepts a mutable BootOrder buffer and byte count.
+ * Treat the firmware variable and the caller's in-memory order as separate
+ * state: a successful helper return must not be assumed to prove unrelated
+ * firmware operations succeeded.
+ */
 EFI_STATUS
 BdsDeleteBootOption (
   IN UINTN                       OptionNumber,
@@ -343,6 +364,11 @@ BdsLibGetBootableHandle (
   IN  EFI_DEVICE_PATH_PROTOCOL      *DevicePath
   );
 
+/*
+ * Device-path acceptability checks may include media reachability when
+ * CheckMedia is set. Neither a TRUE result nor a converted path string
+ * authenticates an executable or certifies a subsequent StartImage call.
+ */
 BOOLEAN
 EFIAPI
 BdsLibIsValidEFIBootOptDevicePath (

@@ -215,6 +215,12 @@ REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
     return SubScreen;
 }  
 
+/*
+ * Extend a parent entry with operating-system-specific launch alternatives.
+ * InitializeSubScreen may reuse an existing submenu; GenerateReturn controls
+ * its return navigation item. Entries and their shared volume remain tied to
+ * the parent menu inventory rather than becoming standalone boot records.
+ */
 VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN GenerateReturn) {
     REFIT_MENU_SCREEN  *SubScreen;
     LOADER_ENTRY       *SubEntry;

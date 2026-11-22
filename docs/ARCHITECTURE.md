@@ -166,3 +166,10 @@ This review deliberately left those runtime and resource-management limitations 
 
 Evidence and remaining regressions are listed in [Validation](VALIDATION.md).
 
+## Commentary and implementation evidence boundaries
+
+The maintained interface headers describe the ownership and side effects that a caller must understand before invoking a firmware routine. [Loader discovery](../boot/scan.h) distinguishes menu population from execution, but the network discovery path may invoke an EFI child during scanning; treating every scan as passive would be incorrect. [Volume and directory interfaces](../boot/lib.h) distinguish a recognised volume from an open firmware filesystem, document the directory iterator's short-lived entry buffers, and call out the existing `FindVolumeAndFilename` output-ownership trap. These contracts document present code rather than silently changing it.
+
+[Boot-variable compatibility declarations](../EfiLib/GenericBdsLib.h) distinguish parsing, controller connection and persistent firmware-variable mutation. [Device-path formatting](../EfiLib/DevicePath.c) reports diagnostic strings but has no independently bounded source length in its fallback walker. [The additional NTFS reader](../filesystems/fsw_ntfs.c) documents low-level on-disk offsets, MFT and index traversal and current validation limitations; it is not among the six default installed drivers.
+
+Comments are not proof of correctness. The implementation, tests, and precise tested revision are separate forms of evidence. A documented unchecked allocation or boundary condition is an unresolved engineering limitation until production behaviour and a targeted regression establish its disposition.

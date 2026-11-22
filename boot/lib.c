@@ -1570,6 +1570,10 @@ CHAR16 * Basename(IN CHAR16 *Path)
     return StrDuplicate(FileName);
 }
 
+/*
+ * Returns a new allocation even when no .efi suffix is present. Failure
+ * to duplicate the input returns NULL; the original FileName is not changed.
+ */
 CHAR16 * StripEfiExtension(IN CHAR16 *FileName) {
     UINTN  Length;
     CHAR16 *Copy = NULL;
@@ -1607,6 +1611,11 @@ INTN FindMem(IN VOID *Buffer, IN UINTN BufferLength, IN VOID *SearchString, IN U
     return -1;
 }
 
+/*
+ * The search stops at a path separator, then lower-cases the copied suffix.
+ * When no dot is found it returns an allocated empty UTF-16 string, not NULL
+ * (except on an allocation failure).
+ */
 CHAR16 *FindExtension(IN CHAR16 *Path) {
     CHAR16     *Extension;
     BOOLEAN    Found = FALSE, FoundSlash = FALSE;
@@ -1631,6 +1640,10 @@ CHAR16 *FindExtension(IN CHAR16 *Path) {
     return (Extension);
 }  
 
+/*
+ * Extract the directory immediately before the last backslash. A path
+ * lacking that delimiter returns NULL; successful results are new allocations.
+ */
 CHAR16 *FindLastDirName(IN CHAR16 *Path) {
     UINTN i, StartOfElement = 0, EndOfElement = 0, PathLength, CopyLength;
     CHAR16 *Found = NULL;
@@ -1662,6 +1675,10 @@ CHAR16 *FindLastDirName(IN CHAR16 *Path) {
     return (Found);
 }  
 
+/*
+ * Duplicate the portion preceding the last backslash. This uses backslash
+ * separators only and does not canonicalise or test the resulting path.
+ */
 CHAR16 *FindPath(IN CHAR16* FullPath) {
     UINTN i, LastBackslash = 0;
     CHAR16 *PathOnly = NULL;
@@ -1862,6 +1879,11 @@ VOID MyFreePool(IN VOID *Pointer) {
 
 static EFI_GUID AppleRemovableMediaGuid = APPLE_REMOVABLE_MEDIA_PROTOCOL_GUID;
 
+/*
+ * Try every enumerated Apple removable-media protocol instance. Individual
+ * handle or eject failures are skipped; only at least one successful Eject
+ * produces TRUE. Other handles may remain mounted or accessible.
+ */
 BOOLEAN EjectMedia(VOID) {
     EFI_STATUS                      Status;
     UINTN                           HandleIndex, HandleCount = 0, Ejected = 0;

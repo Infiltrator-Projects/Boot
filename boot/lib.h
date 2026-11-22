@@ -79,11 +79,23 @@ VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID 
 VOID FreeList(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount);
 
 VOID SetVolumeBadgeIcon(REFIT_VOLUME *Volume);
+/*
+ * Rebuild the global Volumes inventory from firmware Block I/O handles and
+ * partition metadata. Discovery can produce an unreadable volume record;
+ * callers must not equate a recognised filesystem with an open RootDir.
+ * Selections referencing a previous inventory require reconsideration.
+ */
 VOID ScanVolumes(VOID);
 VOID SetVolumeIcons(VOID);
 
 BOOLEAN FileExists(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath);
 
+/*
+ * Advance the supplied firmware directory cursor. FilterMode 1 accepts
+ * directories, 2 non-directories, otherwise either. Each call releases the
+ * preceding *DirEntry allocation; a successful end-of-directory read may
+ * leave *DirEntry NULL. Do not retain that buffer across another call.
+ */
 EFI_STATUS DirNextEntry(IN EFI_FILE_PROTOCOL *Directory, IN OUT EFI_FILE_INFO **DirEntry, IN UINTN FilterMode);
 
 /*
@@ -98,14 +110,27 @@ EFI_STATUS DirIterClose(IN OUT REFIT_DIR_ITER *DirIter);
 
 /* Caller owns the independent UTF-16 string returned by Basename. */
 CHAR16 * Basename(IN CHAR16 *Path);
+/* Duplicate FileName and strip a trailing .efi suffix when present; caller frees. */
 CHAR16 * StripEfiExtension(CHAR16 *FileName);
 
 INTN FindMem(IN VOID *Buffer, IN UINTN BufferLength, IN VOID *SearchString, IN UINTN SearchStringLength);
 VOID ReinitVolumes(VOID);
 
+/*
+ * These three helpers return independently allocated UTF-16 strings: a
+ * lower-case extension, the last directory component, and the directory
+ * prefix respectively. They do not inspect filesystem contents. NULL may
+ * indicate absent input or allocation failure depending on the helper.
+ */
 CHAR16 *FindExtension(IN CHAR16 *Path);
 CHAR16 *FindLastDirName(IN CHAR16 *Path);
 CHAR16 *FindPath(IN CHAR16* FullPath);
+/*
+ * WARNING: the implementation frees previous *loader and *DeviceVolume
+ * values before assigning outputs. Only pass previously owned allocations
+ * to those slots; a borrowed pointer from Volumes must never be passed as
+ * *DeviceVolume. Textual device-path matching is not identity validation.
+ */
 VOID FindVolumeAndFilename(IN EFI_DEVICE_PATH *loadpath, OUT REFIT_VOLUME **DeviceVolume, OUT CHAR16 **loader);
 BOOLEAN SplitVolumeAndFilename(IN OUT CHAR16 **Path, OUT CHAR16 **VolName);
 VOID SplitPathName(CHAR16 *InPath, CHAR16 **VolName, CHAR16 **Path, CHAR16 **Filename);
@@ -120,10 +145,16 @@ VOID MyFreePool(IN OUT VOID *Pointer);
 #define MyCopyMem(Dest, Src, len) CopyMem(Dest, Src, len)
 #endif
 
+/*
+ * Invoke Apple removable-media Eject on matching firmware handles. TRUE
+ * means at least one invocation succeeded, not that every device was ejected.
+ */
 BOOLEAN EjectMedia(VOID);
 
+/* Compare two non-NULL EFI_GUID objects by their 16-byte representation. */
 BOOLEAN GuidsAreEqual(EFI_GUID *Guid1, EFI_GUID *Guid2);
 
+/* Free the linked UINT32_LIST nodes and leave the caller's head NULL. */
 VOID EraseUint32List(UINT32_LIST **TheList);
 
 #endif

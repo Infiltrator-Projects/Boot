@@ -61,3 +61,15 @@ The current documentation does not contain a completed per-device result matrix.
 UEFI Block I/O and Disk I/O handle exposure is platform-dependent. An ESP on FAT does not demonstrate that additional disks can be read through BOOT's separate EFI filesystem drivers. Drivers may bind to newly discovered controllers, but detection and successful file reading must be measured separately. Failure to mount a dirty EXT4 filesystem, an unsupported HFS variant, an incompatible Btrfs profile or an unreadable optical device must remain visible as an unsupported or failed path rather than becoming a false boot candidate.
 
 A Common V2 hosted `.so`, a freestanding module and a PE/COFF EFI driver differ in binary format and execution environment. Until the source and integration tests establish a shared V2 implementation, hardware claims apply to the present EFI-driver integration only.
+
+## Qualification ledger (evidence classes, not a supported-device list)
+
+| Environment or claim | Current documented evidence | Unverified scope |
+| --- | --- | --- |
+| GNU-EFI x86-64 release build | Build and package checks for BOOT and six EFI filesystem drivers | Other CPU architectures and firmware implementations |
+| QEMU/OVMF x86-64 | Smoke fixture checks driver launch and entry into the menu loop | Direct-kernel userspace, real controllers, vendor NVRAM and graphics/input combinations |
+| Reported physical Linux EXT4 boot | One observed direct-kernel outcome, without complete reproducible device metadata | Other EXT4 feature states, machines, kernels or operating systems |
+| Physical Secure Boot variants | No completed per-firmware key-chain qualification ledger in this repository | Accepted signatures, enrolled keys, failure and recovery paths |
+| Common V2 filesystem modules | No deployed V2 `.so` firmware module execution evidence in this BOOT revision | ABI compliance, authentication, freestanding loading, reads and boot handoff |
+
+A new device row requires an exact BOOT commit and artifact checksum, hardware and firmware identifiers, filesystem feature flags, trust state, boot path, measured outcome and reproducible logs. Until then, the row remains unqualified rather than implicitly green.
