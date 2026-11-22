@@ -88,6 +88,19 @@ Failed CI stops the current release pipeline and must be investigated from the f
 Documentation should state **what passed**, **what failed**, and **what was not tested**. It must not infer success merely because a tag, artifact, EFI image or filesystem source file exists.
 
 
+## Source-comment review: reproducible acceptance criteria
+
+This documentation correction is **not** an execution of the regressions below. It records the exact observations necessary to qualify the corresponding source contracts; it does not promote source inspection to test evidence.
+
+| Source boundary | Reproduction needed | Acceptance condition |
+| --- | --- | --- |
+| `filesystems/fsw_efi.c:fsw_efi_read_block` | Exercise zero/oversized physical block geometry, near-`UINT64_MAX` block indices, last-sector partial read-ahead, wide-read failure and media/cache transitions | No wrapped byte offsets, out-of-window copy, stale cache data, or success after firmware I/O failure |
+| `boot/scan.c:DuplicatesFallback` | Stub `EFI_FILE_INFO` allocation failure, very large reported files, one or both short reads, and changing file contents | No null dereference, out-of-bounds comparison or false positive equality; failures must not masquerade as proven identity |
+| `boot/launch_efi.c:StartEFIImage` | Probe zero, truncated, malformed and expansion-heavy gzip inputs; LoadImage/StartImage authentication and failure paths; driver-versus-application unload | Decoded length never exceeds allocated capacity; child options remain live for the image handoff; handles and buffers are reclaimed according to image type and failure path |
+| `boot/install.c:SetBootDefault` | BootOrder empty/odd-length, duplicate first element, selected entry absent, denied SetVariable and allocation failure | Invalid records do not write firmware; unique existing first entry avoids a rewrite; failures are reported and temporary buffers released |
+
+Review requirements for the **remaining** code are independent of these cases: document firmware-owned versus project-owned allocations, input units and widths, integer overflow assumptions, stable-versus-borrowed pointers, protocol-open/close balance and whether an error code distinguishes absent input from an I/O failure. High comment density alone is not acceptance evidence. A complete postgraduate-level certification would require this examination across every relevant active source file plus executed tests of nontrivial contracts.
+
 ## Source-to-evidence traceability and outstanding regressions
 
 The table distinguishes *existing fixture coverage* from *missing tests*. It does not claim these proposed assertions ran in CI.
