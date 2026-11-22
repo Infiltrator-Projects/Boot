@@ -113,7 +113,7 @@ The source review also establishes **test requirements, not passing tests**, for
 
 ## Failure reporting and documentation changes
 
-Failed CI stops the current release pipeline and must be investigated from the failing step and log. Source-only comment removal previously required an update to a package-size assertion; removal of obsolete `COPYING.txt` later required deleting references from the workflow and release scripts. These are examples of repository-contract changes, not filesystem fixes.
+Failed CI stops the current release pipeline and must be investigated from the failing step and log. Source-only comment removal previously required an update to a package-size assertion. Such changes affect repository verification contracts, not filesystem behaviour.
 
 Documentation should state **what passed**, **what failed**, and **what was not tested**. It must not infer success merely because a tag, artifact, EFI image or filesystem source file exists.
 
@@ -621,7 +621,6 @@ invoke external tools and mutate firmware or disks only when actually run.
 | `filesystems/test/README` | 0 | Configuration/data |
 | `fonts/SHA256SUMS` | 0 | Font hash manifest |
 | `gzip/Makefile` | 0 | Build recipe |
-| `icons/README` | 0 | Asset provenance |
 | `libeg/Makefile` | 0 | Build recipe |
 | `mok/Makefile` | 0 | Build recipe |
 | `mountesp` | 1 | Installation/release script |
