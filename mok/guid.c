@@ -1,4 +1,8 @@
-/* GUID definitions for EFI authentication and image protocols.
+/*
+ * BOOT / EFI authentication identifiers
+ *
+ * GUID definitions for EFI authentication and image protocols.
+ *
  * These identifiers select firmware interfaces and signature formats.
  * Matching a GUID alone does not validate a certificate or image.
  */

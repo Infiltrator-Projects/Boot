@@ -1,6 +1,9 @@
 /*
+ * BOOT / EFI file utility API
+ *
  * The open routines return an EFI file handle that the caller closes.
  * read_all allocates a separate pool buffer and updates size through Read.
+ *
  * Closing the handle does not release that data buffer.
  */
 EFI_STATUS

@@ -1,7 +1,10 @@
 /*
+ * BOOT / TrueType qualification harness
+ *
  * Hosted qualification of the exact TrueType outline parser used by BOOT.
- * Each of the 23 canonical files must initialise and produce actual nonempty
- * grayscale glyph bitmaps at both standard and HiDPI menu sizes.
+ *
+ * Each of the 23 canonical files must initialise and produce actual
+ * nonempty grayscale glyph bitmaps at both standard and HiDPI menu sizes.
  */
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,8 +1,12 @@
 /*
- * Host harness for production SetLoaderDefaults(), GuessLinuxDistribution(),
- * ParseReleaseFile() and AppendFirmwareOSIconHints().
- * tests/host-icon-detection.sh extracts those exact function bodies into an
- * include file; the mocks represent disk metadata and resource lookup only.
+ * BOOT / Icon regression harness
+ *
+ * Host harness for production SetLoaderDefaults(),
+ * GuessLinuxDistribution(), ParseReleaseFile() and
+ * AppendFirmwareOSIconHints(). tests/host-icon-detection.sh extracts those
+ * exact function bodies into an include file; the mocks represent disk
+ * metadata and resource lookup only.
+ *
  * No firmware variable or partition is modified.
  */
 #include <stdio.h>

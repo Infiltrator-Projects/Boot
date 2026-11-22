@@ -1,7 +1,11 @@
 /*
+ * BOOT / EFI component naming
+ *
  * EDK driver component-name protocol interfaces used for filesystem driver
- * identity. Strings describe the controller/driver; names are not evidence
- * of successful mount or authenticated image loading.
+ * identity.
+ *
+ * Strings describe the controller/driver; names are not evidence of
+ * successful mount or authenticated image loading.
  */
 
 #ifndef __REFIND_EFI_COMPONENT_NAME_H__

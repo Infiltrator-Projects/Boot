@@ -1,4 +1,8 @@
-/* Secure Boot state and shim validation helpers.
+/*
+ * BOOT / Secure Boot integration
+ *
+ * Secure Boot state and shim validation helpers.
+ *
  * Firmware variables and shim availability are separate conditions.
  * Executable verification follows the configured security protocol.
  */

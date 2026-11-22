@@ -1,8 +1,11 @@
 /*
- * Declarations for GUID objects defined in guid.c. Security and Security2
- * identify protocol interfaces. Certificate GUIDs classify signature-list
- * contents, while the variable-vendor GUID is part of a variable's lookup
- * key.
+ * BOOT / Authentication GUID API
+ *
+ * Declarations for GUID objects defined in guid.c.
+ *
+ * Security and Security2 identify protocol interfaces. Certificate GUIDs
+ * classify signature-list contents, while the variable-vendor GUID is part
+ * of a variable's lookup key.
  */
 
 extern EFI_GUID GV_GUID;

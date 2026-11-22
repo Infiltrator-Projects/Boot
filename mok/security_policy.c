@@ -1,4 +1,8 @@
-/* EFI Security and Security2 policy callbacks.
+/*
+ * BOOT / Firmware security callbacks
+ *
+ * EFI Security and Security2 policy callbacks.
+ *
  * Hooks participate in child-image verification and require restoration.
  * Callback results must preserve the firmware authentication contract.
  */

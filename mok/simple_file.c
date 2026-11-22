@@ -1,4 +1,8 @@
-/* EFI file helpers for security inspection.
+/*
+ * BOOT / EFI security file access
+ *
+ * EFI file helpers for security inspection.
+ *
  * Opened files require Close; device and filesystem protocols remain
  * firmware-owned. Read buffers have independent allocation lifetimes.
  */
