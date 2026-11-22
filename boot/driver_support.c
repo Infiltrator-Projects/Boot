@@ -465,8 +465,12 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
     UINTN                   NumFound = 0;
     EFI_FILE_INFO           *DirEntry;
     CHAR16                  *FileName;
+    CHAR16                  *ProgressMessage;
 
     CleanUpPathNameSlashes(Path);
+    ProgressMessage = PoolPrint(L"Scanning EFI driver directory: %s", Path);
+    BootStartupProgressReport(ProgressMessage, BOOT_PROGRESS_ACTIVE);
+    MyFreePool(ProgressMessage);
 
     DirIterOpen(SelfRootDir, Path, &DirIter);
     while (DirIterNext(&DirIter, 2, LOADER_MATCH_PATTERNS, &DirEntry)) {
@@ -475,7 +479,23 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
 
         FileName = PoolPrint(L"%s\\%s", Path, DirEntry->FileName);
         NumFound++;
+        ProgressMessage = PoolPrint(L"Loading EFI image: %s", DirEntry->FileName);
+        BootStartupProgressReport(ProgressMessage, BOOT_PROGRESS_ACTIVE);
+        MyFreePool(ProgressMessage);
         Status = StartEFIImage(SelfVolume, FileName, L"", DirEntry->FileName, 0, FALSE, TRUE);
+        if (EFI_ERROR(Status)) {
+            ProgressMessage = PoolPrint(L"EFI image load failed: %s (status %lu)",
+                                        DirEntry->FileName, (UINT64)Status);
+            BootStartupProgressReport(ProgressMessage, BOOT_PROGRESS_ERROR);
+        } else {
+            /*
+             * This is the EFI image load result, not proof that its binding
+             * protocol mounted any filesystem. No mount success is inferred.
+             */
+            ProgressMessage = PoolPrint(L"EFI image load accepted: %s", DirEntry->FileName);
+            BootStartupProgressReport(ProgressMessage, BOOT_PROGRESS_OK);
+        }
+        MyFreePool(ProgressMessage);
         MyFreePool(DirEntry);
         MyFreePool(FileName);
     }  
@@ -505,6 +525,7 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
 BOOLEAN LoadDrivers(VOID) {
     CHAR16        *Directory, *SelfDirectory;
     UINTN         i = 0, Length, NumFound = 0;
+    EFI_STATUS    ConnectStatus;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Loading drivers");
 
@@ -527,7 +548,16 @@ BOOLEAN LoadDrivers(VOID) {
         MyFreePool(Directory);
     }  
 
-    if (NumFound > 0)
-        ConnectAllDriversToAllControllers();
+    if (NumFound > 0) {
+        BootStartupProgressReport(L"Connecting EFI controllers", BOOT_PROGRESS_ACTIVE);
+        ConnectStatus = ConnectAllDriversToAllControllers();
+        BootStartupProgressReport(
+            EFI_ERROR(ConnectStatus)
+                ? L"EFI controller connection reported an error"
+                : L"EFI controller connection pass completed",
+            EFI_ERROR(ConnectStatus) ? BOOT_PROGRESS_ERROR : BOOT_PROGRESS_OK);
+    } else {
+        BootStartupProgressReport(L"No additional EFI driver files found", BOOT_PROGRESS_INFO);
+    }
     return (NumFound > 0);
 }  
