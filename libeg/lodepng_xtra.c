@@ -2,6 +2,9 @@
  * Firmware allocation wrappers and PNG-to-EG_IMAGE adapter. Standard PNG
  * library memory callbacks are replaced with EFI-compatible allocation.
  * A valid decode must still satisfy requested image size and alpha semantics.
+ * Ownership is not fully symmetrical in this adapter: the reallocator keeps
+ * the previous pool allocation and several early exits omit decoder-buffer
+ * cleanup. Do not interpret successful compilation as allocator hygiene.
  */
 
 #include "global.h"
@@ -9,6 +12,12 @@
 #include "../boot/lib.h"
 #include "lodepng.h"
 
+/*
+ * Prefix every decoded allocation with its requested payload size, returning
+ * a pointer past the prefix. size + sizeof(size_t) is not overflow-checked;
+ * a huge decoder-requested size can wrap before AllocateZeroPool. The prefix
+ * is private to this allocator family and must be recovered at free time.
+ */
 void* lodepng_malloc(size_t size) {
    void *ptr;
 
