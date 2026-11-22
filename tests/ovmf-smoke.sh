@@ -48,7 +48,7 @@ dd if="$esp" of="$disk" bs=1M seek=1 conv=notrunc status=none
 # leave the bootable EFI disk accessible.
 truncate -s 48M "$hfsdisk"
 sgdisk --clear --new=1:2048:+32M --typecode=1:af00 "$hfsdisk" >/dev/null
-printf '\\x42\\x44' | dd of="$hfsdisk" bs=1 seek=$((2048*512+1024)) conv=notrunc status=none
+printf '\x42\x44' | dd of="$hfsdisk" bs=1 seek=$((2048*512+1024)) conv=notrunc status=none
 cp "$ovmf/OVMF_VARS_4M.fd" "$work/vars.fd"
 qemu=(
  qemu-system-x86_64 -machine q35,accel=tcg -cpu max
