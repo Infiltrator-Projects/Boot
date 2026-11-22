@@ -376,7 +376,6 @@ static VOID LvmDiscoverPhysical(EFI_BLOCK_IO *Block, EFI_DISK_IO *Disk) {
         !Block->Media || !Block->Media->MediaPresent ||
         Block->Media->BlockSize < 512 ||
         Block->Media->BlockSize > 4096 ||
-        !Block->Media->LogicalPartition ||
         Block->Media->LastBlock == ~(EFI_LBA)0) return;
     if (!LvmMultiply((UINT64)Block->Media->LastBlock + 1,
                      Block->Media->BlockSize, &MediaBytes) ||
