@@ -91,10 +91,10 @@ if ! grep -Fq 'MB/Daimler TrueType inventory validated: 23/23' "$work/log.txt"; 
  grep -E 'TrueType|font|glyph|main loop' "$work/log.txt" >&2 || true
  exit 1
 fi
-if ! grep -Fq 'MB TrueType glyph rasterised in graphical menu' "$work/log.txt"; then
- echo "BOOT did not rasterise text into its graphical menu" >&2
+if ! grep -Fq 'MB TrueType glyph rasterised by EFI renderer' "$work/log.txt"; then
+ echo "BOOT native UEFI TrueType rasteriser failed its glyph self-test" >&2
  grep -E 'TrueType|font|glyph|main loop' "$work/log.txt" >&2 || true
  exit 1
 fi
-echo "All 23 native fonts parsed; configured font roles rendered a live glyph in OVMF graphics mode"
+echo "All 23 native fonts parsed; configured font roles rasterised a real glyph using UEFI firmware code"
 
