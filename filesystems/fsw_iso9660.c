@@ -3,6 +3,9 @@
  * logical blocks and directory records come from media, not from an EFI file
  * namespace. Directory record lengths and filename encodings are explicit
  * validation boundaries; device block size may differ from file block size.
+ * Rock Ridge and SUSP continuation records can redirect parsing to additional
+ * sectors; an apparently valid directory-record length alone does not
+ * establish the bounds or termination of the continuation chain.
  */
 
 #include "fsw_iso9660.h"
