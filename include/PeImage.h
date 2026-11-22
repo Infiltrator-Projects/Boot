@@ -1,7 +1,11 @@
 /*
+ * BOOT / PE/COFF image format
+ *
  * PE/COFF binary headers, signatures and relocation metadata used by EFI
- * image inspection. Alignment and fixed field widths are external executable
- * format contracts; parsing a header must not bypass firmware LoadImage trust.
+ * image inspection.
+ *
+ * Alignment and fixed field widths are external executable format
+ * contracts; parsing a header must not bypass firmware LoadImage trust.
  */
 
 #ifndef __PE_IMAGE_H__

@@ -1,7 +1,11 @@
 /*
+ * BOOT / Firmware handle types
+ *
  * EFI handle classification constants for controller, child, image and
- * Driver Binding relationships. The bit flags describe protocol topology,
- * not the trustworthiness or bootability of a filesystem image.
+ * Driver Binding relationships.
+ *
+ * The bit flags describe protocol topology, not the trustworthiness or
+ * bootability of a filesystem image.
  */
 
 #ifndef _HANDLE_H

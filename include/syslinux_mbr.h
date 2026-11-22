@@ -1,7 +1,10 @@
 /*
+ * BOOT / Legacy MBR bootstrap data
+ *
  * Binary legacy MBR bootstrap payload used by a compatibility path.
- * This byte sequence has executable semantics when written to a disk;
- * it is not ordinary source data and must never be modified for appearance.
+ *
+ * This byte sequence has executable semantics when written to a disk; it is
+ * not ordinary source data and must never be modified for appearance.
  */
 
 #ifndef __SYSLINUX_MBR_H__

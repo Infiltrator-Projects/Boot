@@ -1,7 +1,10 @@
 /*
- * Small POSIX FSW root-directory traversal test utility. Its presence is
- * test support, not evidence that any filesystem driver has been authenticated
- * or successfully executed by physical UEFI firmware.
+ * BOOT / Root traversal test
+ *
+ * Small POSIX FSW root-directory traversal test utility.
+ *
+ * Its presence is test support, not evidence that any filesystem driver has
+ * been authenticated or successfully executed by physical UEFI firmware.
  */
 
 #include "fsw_posix.h"

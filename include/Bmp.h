@@ -1,7 +1,11 @@
 /*
- * Packed BMP palette/header records used by EFI image decoding. Bitmap
- * header sizes, scanline strides and pixel offsets must be checked against
- * the provided file length before any cast to these on-disk structures.
+ * BOOT / Bitmap structures
+ *
+ * Packed BMP palette/header records used by EFI image decoding.
+ *
+ * Bitmap header sizes, scanline strides and pixel offsets must be checked
+ * against the provided file length before any cast to these on-disk
+ * structures.
  */
 
 #ifndef _BMP_H__

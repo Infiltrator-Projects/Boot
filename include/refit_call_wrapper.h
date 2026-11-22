@@ -1,8 +1,12 @@
 /*
+ * BOOT / Firmware calling convention
+ *
  * Bind each EFI service call to the calling convention selected at build
- * time. The GNU-EFI path supplies the argument count to uefi_call_wrapper and
- * widens arguments on the specified 64-bit targets. The other path calls the
- * typed function pointer directly.
+ * time.
+ *
+ * The GNU-EFI path supplies the argument count to uefi_call_wrapper and
+ * widens arguments on the specified 64-bit targets. The other path calls
+ * the typed function pointer directly.
  */
 #ifndef __REFIT_CALL_WRAPPER_H__
 #define __REFIT_CALL_WRAPPER_H__

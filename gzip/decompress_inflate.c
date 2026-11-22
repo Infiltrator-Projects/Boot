@@ -1,15 +1,18 @@
 /*
+ * BOOT / Firmware gzip adapter
+ *
  * Firmware-facing gzip decompression adaptor for in-memory EFI images.
+ *
  * Inflate uses bounded input/output lengths; an apparent gzip header does
- * not validate an EFI executable. Output size must be verified before passing
- * the buffer to LoadImage, and allocation belongs to EFI pool services.
- * Header recognition, successful inflate, complete output and valid PE/COFF
- * image loading are distinct proof obligations. The temporary workspace and
- * output allocation have independent cleanup responsibilities on failure.
- * The wrapper skips only the fixed gzip header and optional filename; other
- * FLG-indicated optional fields are not separately consumed before raw
- * DEFLATE decoding. Header recognition is therefore not full RFC 1952
- * header validation; optional-field fixtures are still necessary.
+ * not validate an EFI executable. Output size must be verified before
+ * passing the buffer to LoadImage, and allocation belongs to EFI pool
+ * services. Header recognition, successful inflate, complete output and
+ * valid PE/COFF image loading are distinct proof obligations. The temporary
+ * workspace and output allocation have independent cleanup responsibilities
+ * on failure. The wrapper skips only the fixed gzip header and optional
+ * filename; other FLG-indicated optional fields are not separately consumed
+ * before raw DEFLATE decoding. Header recognition is therefore not full RFC
+ * 1952 header validation; optional-field fixtures are still necessary.
  */
 
 #include "../boot/lib.h"

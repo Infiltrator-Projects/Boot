@@ -1,7 +1,11 @@
 /*
- * EDK/Tiano firmware ABI aliases and library declarations. These mappings
- * exist for an alternative build environment; the published GNU-EFI binary
- * has separately established calling-convention and toolchain requirements.
+ * BOOT / EDK firmware compatibility
+ *
+ * EDK/Tiano firmware ABI aliases and library declarations.
+ *
+ * These mappings exist for an alternative build environment; the published
+ * GNU-EFI binary has separately established calling-convention and
+ * toolchain requirements.
  */
 
 #ifndef _BOOT_TIANO_INCLUDES_
