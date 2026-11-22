@@ -1,5 +1,8 @@
 /*
+ * BOOT / ISO 9660 structures
+ *
  * ISO 9660 volume and dnode structures, with Rock Ridge extension records.
+ *
  * Optical directory entries are variable length and must be bounds checked.
  * Name encoding and POSIX extension semantics differ from normal EFI FAT.
  */

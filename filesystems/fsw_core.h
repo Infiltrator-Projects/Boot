@@ -1,8 +1,12 @@
 /*
+ * BOOT / Filesystem object model
+ *
  * Shared read-only filesystem object model: host callbacks, backend table,
- * volumes, dnodes, extents, strings and stream handles. Extent units distinguish
- * physical device blocks from logical filesystem blocks; refcounts govern
- * cache and dnode lifetime. This interface is FSW, not Common V2.
+ * volumes, dnodes, extents, strings and stream handles.
+ *
+ * Extent units distinguish physical device blocks from logical filesystem
+ * blocks; refcounts govern cache and dnode lifetime. This interface is FSW,
+ * not Common V2.
  */
 
 #ifndef _FSW_CORE_H_

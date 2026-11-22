@@ -1,7 +1,11 @@
 /*
- * Portability foundation for the filesystem wrapper. Integer widths,
- * endianness and allocation/platform hooks must match the actual firmware
- * build profile; no hosted libc or Linux VFS semantics may be presumed.
+ * BOOT / Filesystem portability layer
+ *
+ * Portability foundation for the filesystem wrapper.
+ *
+ * Integer widths, endianness and allocation/platform hooks must match the
+ * actual firmware build profile; no hosted libc or Linux VFS semantics may
+ * be presumed.
  */
 
 #ifndef _FSW_BASE_H_

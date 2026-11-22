@@ -1,6 +1,10 @@
 /*
+ * BOOT / EXT2 disk format
+ *
  * Packed EXT2 on-disk superblock, inode, group descriptor and directory
- * layouts. Field widths and offsets are filesystem ABI, not user-facing data
+ * layouts.
+ *
+ * Field widths and offsets are filesystem ABI, not user-facing data
  * structures. Arithmetic using on-disk counts and block sizes requires
  * validation before allocation, division or physical reads.
  */

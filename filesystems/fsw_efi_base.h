@@ -1,7 +1,11 @@
 /*
- * GNU-EFI type and firmware ABI adaptation for the FSW reader. Host callback
- * signatures and on-disk data widths must not be inferred from native desktop
- * word size; this layer is compiled under UEFI constraints.
+ * BOOT / EFI ABI compatibility
+ *
+ * GNU-EFI type and firmware ABI adaptation for the FSW reader.
+ *
+ * Host callback signatures and on-disk data widths must not be inferred
+ * from native desktop word size; this layer is compiled under UEFI
+ * constraints.
  */
 
 #ifndef _FSW_EFI_BASE_H_

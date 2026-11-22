@@ -1,7 +1,11 @@
 /*
- * EXT4 FSW backend state and extent operations. Inode extent flags determine
- * which block-addressing scheme is active; unsupported superblock feature
- * combinations must fail explicitly before walking filesystem metadata.
+ * BOOT / EXT4 structures
+ *
+ * EXT4 FSW backend state and extent operations.
+ *
+ * Inode extent flags determine which block-addressing scheme is active;
+ * unsupported superblock feature combinations must fail explicitly before
+ * walking filesystem metadata.
  */
 
 #ifndef _FSW_EXT4_H_

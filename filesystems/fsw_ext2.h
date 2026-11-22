@@ -1,7 +1,11 @@
 /*
- * EXT2 FSW backend state, inode and dnode declarations. Filesystem block
- * numbers, indirect pointers and inode geometry are read from disk; callers
- * must not treat these as validated after only checking the superblock magic.
+ * BOOT / EXT2 structures
+ *
+ * EXT2 FSW backend state, inode and dnode declarations.
+ *
+ * Filesystem block numbers, indirect pointers and inode geometry are read
+ * from disk; callers must not treat these as validated after only checking
+ * the superblock magic.
  */
 
 #ifndef _FSW_EXT2_H_
