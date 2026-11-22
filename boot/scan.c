@@ -752,6 +752,13 @@ static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
  * The fallback pathname itself returns FALSE. Equal metadata lengths trigger two
  * whole-file allocations and reads. A TRUE result comes from comparing the first
  * read's returned byte count, assuming both reads completed in full.
+ *
+ * LIMITATION: allocation sizes derive from EFI_FILE_INFO.FileSize without a
+ * configured upper bound. LibFileInfo results are used without a NULL check,
+ * and the final CompareMem does not independently verify both actual read
+ * lengths. Thus a TRUE result is not a proven byte-for-byte equality for
+ * adversarial or changing files. FALSE also includes I/O and allocation
+ * failures; it does not establish that the images differ.
  */
 static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) {
     CHAR8           *FileContents, *FallbackContents;
