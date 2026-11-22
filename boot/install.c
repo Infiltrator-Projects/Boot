@@ -244,17 +244,17 @@ VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries) {
 }  
 
 /*
- * Translates parsed firmware boot options into menu entries. The operation
- * and chosen Boot#### number are returned to the caller; displaying a menu
- * must not itself write firmware variables. Volume names are descriptive
- * and must not be mistaken for authenticated executable identities.
- */
-/*
- * Construct one temporary menu entry for each readable Boot#### record.
- * Titles belong to these menu entries; the entry array and informational
- * pointer array are owned by this invocation. Free both after the selection
- * number has been copied, never leaving a borrowed pointer into the menu.
- * Allocation failure stops the list rather than dereferencing NULL.
+ * Present parsed Boot#### records without mutating firmware NVRAM. For each
+ * readable record, allocate a temporary menu entry and its descriptive title.
+ * Menu.Entries and Menu.InfoLines contain pool-owned pointer arrays; these,
+ * each entry and its title must be released only after RunGenericMenu has
+ * returned and the chosen numeric Boot#### identifier has been copied out.
+ *
+ * The return value is an operation code (do nothing, promote or delete);
+ * BootOrderNum is updated only for a supported selection. A menu escape,
+ * missing list, empty menu or allocation failure can all produce no action.
+ * Volume names and filenames are UI descriptions, not verified EFI image
+ * identities. The caller owns the provided BOOT_ENTRY_LIST.
  */
 static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOrderNum) {
     CHAR16              *Temp = NULL, *Filename = NULL;
