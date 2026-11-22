@@ -502,21 +502,40 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
        MyCopyMem(GlobalConfig.ScanFor, "ihebocm    ", NUM_SCAN_OPTIONS);
     SetConfigFilename(ImageHandle);
     /*
+     * Initialise firmware GOP/UGA before the first disk access. This allows
+     * temporary startup diagnostics to identify slow firmware operations;
+     * normal menu configuration is still applied later by SetupScreen.
+     */
+    InitScreen();
+    BootStartupProgressBegin();
+    /*
      * The first inventory lets configuration refer to known volumes. A
      * matching driver file triggers a second inventory after connection
      * because controllers can now expose additional filesystem handles.
      * Loader discovery uses the resulting inventory.
      */
+    BootStartupProgressReport(L"Scanning firmware volumes", BOOT_PROGRESS_ACTIVE);
     ScanVolumes();
+    BootStartupProgressReport(L"Initial volume scan completed", BOOT_PROGRESS_OK);
+    BootStartupProgressReport(L"Reading BOOT configuration", BOOT_PROGRESS_ACTIVE);
     ReadConfig(GlobalConfig.ConfigFilename);
+    BootStartupProgressReport(L"Configuration check completed", BOOT_PROGRESS_OK);
     if (GlobalConfig.LogLevel > 0) {
         StartLogging(FALSE);
         LogBasicInfo();
     }
     LOG(3, LOG_LINE_NORMAL, L"GlobalConfig.DontScanFiles is '%s'", GlobalConfig.DontScanFiles);
+    BootStartupProgressReport(L"Checking Secure Boot protocols", BOOT_PROGRESS_ACTIVE);
     MokProtocol = SecureBootSetup();
-    if (LoadDrivers())
+    BootStartupProgressReport(L"Secure Boot check completed", BOOT_PROGRESS_OK);
+    BootStartupProgressReport(L"Searching and loading EFI filesystem drivers",
+                              BOOT_PROGRESS_ACTIVE);
+    if (LoadDrivers()) {
+        BootStartupProgressReport(L"Rescanning volumes after driver connection",
+                                  BOOT_PROGRESS_ACTIVE);
         ScanVolumes();
+        BootStartupProgressReport(L"Volume rescan completed", BOOT_PROGRESS_OK);
+    }
 
     LOG(1, LOG_LINE_SEPARATOR, L"Initializing basic features");
     AdjustDefaultSelection();
@@ -524,13 +543,18 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     if (GlobalConfig.SpoofOSXVersion && GlobalConfig.SpoofOSXVersion[0] != L'\0')
         SetAppleOSInfo();
 
-    InitScreen();
+    BootStartupProgressReport(L"Validating graphical font inventory",
+                              BOOT_PROGRESS_ACTIVE);
     /* Genuine MB TTF assets live on the same EFI volume as BOOT. A missing
      * font must not leave an unreadable graphical boot selection screen. */
     if (!egFontReady()) {
         GlobalConfig.TextOnly = TRUE;
+        BootStartupProgressReport(L"Font validation failed: using firmware text mode",
+                                  BOOT_PROGRESS_ERROR);
         LOG(1, LOG_LINE_NORMAL, L"MB/Daimler TrueType renderer unavailable: %d/23 fonts loaded; firmware text mode selected", egGetFontLoadedCount());
     } else {
+        BootStartupProgressReport(L"Font inventory validated",
+                                  BOOT_PROGRESS_OK);
         LOG(1, LOG_LINE_NORMAL, L"MB/Daimler TrueType inventory validated: 23/23");
     }
     WarnIfLegacyProblems();
@@ -539,10 +563,19 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     LOG(1, LOG_LINE_NORMAL, L"Setting watchdog timer");
     refit_call4_wrapper(BS->SetWatchdogTimer, 0x0000, 0x0000, 0x0000, NULL);
 
+    BootStartupProgressReport(L"Preparing normal display mode", BOOT_PROGRESS_ACTIVE);
     SetupScreen();
+    BootStartupProgressReport(L"Display configuration completed", BOOT_PROGRESS_OK);
+    BootStartupProgressReport(L"Loading volume icons", BOOT_PROGRESS_ACTIVE);
     SetVolumeIcons();
+    BootStartupProgressReport(L"Volume icon discovery completed", BOOT_PROGRESS_OK);
+    BootStartupProgressReport(L"Discovering operating systems", BOOT_PROGRESS_ACTIVE);
     ScanForBootloaders(FALSE);
+    BootStartupProgressReport(L"Operating-system discovery completed", BOOT_PROGRESS_OK);
+    BootStartupProgressReport(L"Discovering firmware tools", BOOT_PROGRESS_ACTIVE);
     ScanForTools();
+    BootStartupProgressReport(L"Firmware tool discovery completed", BOOT_PROGRESS_OK);
+    BootStartupProgressEnd();
 
     BltClearScreen(TRUE);
     pdInitialize();
