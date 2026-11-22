@@ -149,6 +149,25 @@ not establish that bytes used for its PE-offset field were initialised.
 These risks require code changes and regression tests; source commentary
 must not claim they have been repaired.
 
+### Classification, de-duplication and driver discovery are distinct predicates
+
+`IsValidLoader` answers a format-classification question, not whether the image
+is trustworthy or will execute. Its NULL-argument branch presently returns
+`LOADER_TYPE_EFI` without examining a file, whereas a failed EFI `Open` returns
+`LOADER_TYPE_INVALID`. This asymmetry means callers cannot treat its positive
+result as proof of a successful file read. The unchecked early allocations and
+short-header access are documented above as defects, not intended contracts.
+
+`boot/scan.c:DuplicatesFallback` answers a different question: whether a
+candidate resembles the fallback file sufficiently to suppress a duplicated
+menu entry. It opens the two files separately, allocates based on reported
+`EFI_FILE_INFO.FileSize`, and compares data without independently proving that
+both reads returned their advertised lengths. Its `FALSE` also covers I/O and
+allocation failure. It does not prove binary identity, on-disk immutability or
+EFI signature validity. Separately, `ScanDriverDir` counts *candidate files*,
+not confirmed EFI-driver binding. Neither scan result can be promoted into an
+OS-boot or filesystem-readiness guarantee.
+
 ## Source contract: firmware BootOrder enumeration
 
 `boot/install.c:FindBootOrderEntries` receives `BootOrder` as a byte-sized EFI
