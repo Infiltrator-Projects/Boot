@@ -28,6 +28,7 @@ mcopy -i "$esp" "$work/driver.gz" ::/EFI/BOOT/drivers_x64/btrfs_x64.efi
 cat > "$work/boot.conf" <<'CONFIG'
 timeout 3
 log_level 4
+startup_diagnostics on
 use_nvram false
 textonly true
 support_gzipped_loaders true
@@ -79,6 +80,17 @@ fi
 if ! grep -Fq 'Entering main loop' "$work/log.txt"; then
  echo "BOOT did not reach main menu under OVMF" >&2
  tail -n 65 "$work/log.txt" >&2 || true
+ exit 1
+fi
+# The same firmware run must produce the new numbered and staged
+# diagnostic records without changing the EFI driver/boot-path assertions.
+if ! grep -Fq '[DIAG] initial ScanVolumes elapsed=' "$work/log.txt" ||
+   ! grep -Fq '[DIAG] initial BlockIo handle enumeration count=' "$work/log.txt" ||
+   ! grep -Fq '[DIAG] controller pass BEGIN' "$work/log.txt" ||
+   ! grep -Fq '[DIAG] controller pass END attempts=' "$work/log.txt" ||
+   ! grep -Fq '[DIAG] menu ' "$work/log.txt"; then
+ echo "BOOT runtime startup diagnostics were not recorded under OVMF" >&2
+ grep -F '[DIAG]' "$work/log.txt" >&2 || true
  exit 1
 fi
 echo "BOOT started the $driver_size-byte Btrfs driver from gzip and reached the main menu in OVMF"
