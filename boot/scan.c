@@ -480,10 +480,6 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, BOOT_VOLUME *Vol
         if (ShortcutLetter == 0)
             ShortcutLetter = 'L';
         Entry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_LINUX;
-    } else if (StriSubCmp(L"boot", LoaderPath)) {
-        MergeStrings(&OSIconName, L"boot", L',');
-        Entry->OSType = 'R';
-        ShortcutLetter = 'R';
     } else if (MyStriCmp(NameClues, L"BOOTX64.EFI") &&
                StriSubCmp(L"InfiltratorOS\\BOOT\\BOOTX64.EFI", LoaderPath)) {
         /* Identify our manager by its own EFI path, not the generic word boot. */
