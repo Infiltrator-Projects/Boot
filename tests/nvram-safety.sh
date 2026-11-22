@@ -136,7 +136,7 @@ echo "BOOT is default on every install; missing, duplicate, or ambiguous firmwar
 # Regression: a Secure Boot entry created by versions up to 0.1.569
 # passed an unterminated shim-name + BOOT-name pair. On Shim 15.8 this
 # leaves the loader looking for grubx64.efi. Replace only the BOOT entry
-# using a single correctly delimited UTF-16 argument; retain GRUB/Windows.
+# using a NUL-terminated UTF-16LE argument; retain GRUB/Windows.
 cat > "$work/bin/efibootmgr" <<'SHIM_MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -151,12 +151,16 @@ case "${1:-}" in
     mv "$MOCK_NVRAM/entries.tmp" "$MOCK_NVRAM/entries"
     echo 0001,0002 > "$MOCK_NVRAM/order" ;;
  -c)
-    [[ "${@: -1}" == 'BOOTX64.EFI ' ]] || {
-        echo "Shim second-stage argument missing its required final delimiter" >&2
-        exit 82
+    [[ "${@: -2:1}" == -@ ]] || exit 82
+    options_file="${@: -1}"
+    [[ -f "$options_file" ]] || exit 83
+    options_hex=$(od -An -tx1 -v "$options_file" | tr -d '[:space:]')
+    [[ "$options_hex" == '42004f004f0054005800360034002e004500460049000000' ]] || {
+        echo "Shim second-stage argument is not UTF-16LE NUL-terminated BOOTX64.EFI" >&2
+        exit 84
     }
-    [[ "$*" == *'-l \EFI\InfiltratorOS\BOOT\shimx64.efi'* ]] || exit 83
-    printf '%s\n' 'Boot0007* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\shimx64.efi) File(.BOOTX64.EFI )' >> "$MOCK_NVRAM/entries"
+    [[ "$*" == *'-l \EFI\InfiltratorOS\BOOT\shimx64.efi'* ]] || exit 85
+    printf '%s\n' 'Boot0007* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\shimx64.efi) File(.BOOTX64.EFI)' >> "$MOCK_NVRAM/entries"
     echo 0007,0001,0002 > "$MOCK_NVRAM/order" ;;
  -o)
     echo "$2" > "$MOCK_NVRAM/order" ;;
