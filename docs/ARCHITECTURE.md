@@ -84,6 +84,35 @@ The generic AMD64 `.deb` installs its precompiled EFI binary, six drivers and re
 
 `.github/workflows/boot.yml` owns current AMD64 verification and automated prerelease publication. The source tree also includes older or alternative make targets; only the explicit native release path is authoritative for the shipped `.run`.
 
+## Font-file provenance, verification and firmware rasterisation
+
+The published font inventory contains 23 MB/Daimler TrueType files with
+a `fonts/SHA256SUMS` manifest. The native and generic installation
+paths check that manifest and the 23-file inventory before installing.
+This is a packaging integrity condition, not a runtime cryptographic
+attestation inside the UEFI text renderer.
+
+`libeg/ttf.c` contains the real outline renderer. Each registered font
+is loaded from BOOT's own EFI directory and passed through structural
+TrueType table checks before `stb_truetype` initialisation. Three
+provisional role mappings select among the full inventory; they are not
+a decision to discard the other 20 fonts. A rasterisation probe checks
+that the role-selected faces produce painted pixels. A successful
+offscreen probe is not equivalent to correct real-world screen output,
+subpixel appearance, glyph coverage in every locale or successful
+loading on every firmware. The hosted `tests/validate-fonts.c` fixture
+also uses `stb_truetype` directly and is not a substitute for exercising
+UEFI allocation and graphics code.
+
+The firmware-local replacement for selected mathematics and memory
+operations has its own numeric and failure assumptions. In particular,
+the renderer caps input file size, glyph bitmap dimensions and cached
+ASCII glyphs. Its dependence on the upstream TrueType parser makes
+defensive table validation and real firmware testing separate obligations.
+Neither a fallback font nor a drawn replacement glyph establishes which
+registered face produced the image. The QEMU/OVMF font smoke test checks
+a narrower rendered-glyph contract, not complete font fidelity.
+
 ## Graphical presentation and product identity
 
 The menu code can load supplied icons, banners, fonts, selection images and other resources. Those are lower-level capabilities of the present firmware renderer, not approval for a user-installable theme ecosystem. BOOT is intended to carry one official InfiltratorOS visual design. The optional Snowy assets have been removed from the repository; the basic icon/graphics infrastructure remains.
@@ -295,7 +324,7 @@ The following map identifies non-obvious contracts recorded in the maintained so
 | NTFS and HFS | NTFS `$UpCase` comparisons are not full Unicode normalisation, and its zero free-byte result is unimplemented accounting, not evidence of a full disk. HFS used-space figures rely on volume metadata | `filesystems/fsw_ntfs.c`, `filesystems/fsw_hfs.c` |
 | ISO 9660 and ReiserFS | ISO Rock Ridge name continuations and ReiserFS tree item offsets originate on disk. Directory-entry names borrow record bytes until node construction copies them; untested malformed continuation cases remain | `filesystems/fsw_iso9660.c`, `filesystems/fsw_reiserfs.c` |
 | Btrfs | Tree and inode numbers jointly identify nodes across subvolumes; RAID/parity paths use their own stripe and recovery-cache ownership. Metadata access is not a promise of support for every device topology | `filesystems/fsw_btrfs.c` |
-| Graphics and font handling | Image planes use EFI pool ownership, and UI cursor snapshots must not survive restoration. `egDisplayMessage` currently does not free its temporary rendered image; font getters assume successful/preceding preparation | `libeg/image.c`, `libeg/screen.c`, `libeg/text.c` |
+| Graphics and font handling | Image planes use EFI pool ownership, and UI cursor snapshots must not survive restoration. `egDisplayMessage` currently does not free its temporary rendered image; font getters assume successful/preceding preparation | `libeg/image.c`, `libeg/screen.c`, `libeg/ttf.c` |
 
 This review deliberately left those runtime and resource-management limitations unchanged. A comment-only change cannot be presented as a repair to an unverified algorithm or a substitute for firmware and malformed-image regressions.
 
