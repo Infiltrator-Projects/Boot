@@ -292,7 +292,7 @@ Error:
 EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 {
     EFI_STATUS           Status;
-    UINTN                AllHandleCount;
+    UINTN                AllHandleCount = 0;
     EFI_HANDLE           *AllHandleBuffer;
     UINTN                Index;
     UINTN                HandleCount;
@@ -302,17 +302,43 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
     UINT32               ControllerIndex;
     BOOLEAN              Parent;
     BOOLEAN              Device;
+    UINTN                ConnectionNumber = 0;
+    UINT64               PassBegin = BootDiagTicks();
+    UINT64               InspectBegin, ConnectBegin;
 
+    /*
+     * The event sequence logs both handle-database inspection and actual
+     * recursive controller calls. A flushed BEGIN record identifies the exact
+     * firmware operation still executing if a boot stalls.
+     */
+    if (GlobalConfig.StartupDiagnostics) {
+        LOG(1, LOG_LINE_NORMAL, L"[DIAG] controller pass BEGIN");
+        BootDiagFlush();
+    }
+    InspectBegin = BootDiagTicks();
     Status = refit_call5_wrapper(gBS->LocateHandleBuffer,
                                  AllHandles,
                                  NULL,
                                  NULL,
                                  &AllHandleCount,
                                  &AllHandleBuffer);
+    if (GlobalConfig.StartupDiagnostics) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"[DIAG] LocateHandleBuffer count=%d status=%lu elapsed=%lu ms",
+            AllHandleCount, (UINT64)Status, BootDiagElapsedMs(InspectBegin));
+        BootDiagFlush();
+    }
     if (EFI_ERROR(Status))
         return Status;
 
     for (Index = 0; Index < AllHandleCount; Index++) {
+        InspectBegin = BootDiagTicks();
+        if (GlobalConfig.StartupDiagnostics) {
+            LOG(1, LOG_LINE_NORMAL,
+                L"[DIAG] handle %d/%d inspect BEGIN",
+                Index + 1, AllHandleCount);
+            BootDiagFlush();
+        }
 
         Status = LibScanHandleDatabase(NULL,
                                        NULL,
@@ -321,7 +347,13 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
                                        &HandleCount,
                                        &HandleBuffer,
                                        &HandleType);
-        if (EFI_ERROR (Status))
+        if (GlobalConfig.StartupDiagnostics) {
+            LOG(1, LOG_LINE_NORMAL,
+                L"[DIAG] handle %d/%d inspect END status=%lu elapsed=%lu ms",
+                Index + 1, AllHandleCount,
+                (UINT64)Status, BootDiagElapsedMs(InspectBegin));
+        }
+        if (EFI_ERROR(Status))
             goto Done;
 
         if (ControllerIndex == 0xffffffff || ControllerIndex >= HandleCount) {
@@ -341,25 +373,64 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
             for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
                 if (HandleType[HandleIndex] & EFI_HANDLE_TYPE_PARENT_HANDLE)
                     Parent = TRUE;
-            }  
+            }
 
             if (!Parent) {
                 if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DEVICE_HANDLE) {
-                   Status = refit_call4_wrapper(BS->ConnectController,
-                                                AllHandleBuffer[Index],
-                                                NULL,
-                                                NULL,
-                                                TRUE);
+                    ConnectionNumber++;
+                    if (GlobalConfig.StartupDiagnostics) {
+                        EFI_DEVICE_PATH *HandlePath;
+                        CHAR16 *PathText = NULL;
+                        CHAR16 *DisplayText;
+                        HandlePath = DevicePathFromHandle(AllHandleBuffer[Index]);
+                        if (HandlePath)
+                            PathText = DevicePathToStr(HandlePath);
+                        LOG(1, LOG_LINE_NORMAL,
+                            L"[DIAG] controller %d handle=%d/%d path='%s' BEGIN recursive=1",
+                            ConnectionNumber, Index + 1, AllHandleCount,
+                            PathText ? PathText : L"(no device path)");
+                        DisplayText = PoolPrint(L"Connecting controller %d (handle %d/%d)",
+                                                ConnectionNumber, Index + 1, AllHandleCount);
+                        BootStartupProgressReport(DisplayText, BOOT_PROGRESS_ACTIVE);
+                        MyFreePool(DisplayText);
+                        MyFreePool(PathText);
+                        BootDiagFlush();
+                    }
+                    ConnectBegin = BootDiagTicks();
+                    Status = refit_call4_wrapper(BS->ConnectController,
+                                                 AllHandleBuffer[Index],
+                                                 NULL,
+                                                 NULL,
+                                                 TRUE);
+                    if (GlobalConfig.StartupDiagnostics) {
+                        UINT64 ConnectionMs = BootDiagElapsedMs(ConnectBegin);
+                        CHAR16 *DisplayText;
+                        LOG(1, LOG_LINE_NORMAL,
+                            L"[DIAG] controller %d handle=%d/%d END status=%lu elapsed=%lu ms",
+                            ConnectionNumber, Index + 1, AllHandleCount,
+                            (UINT64)Status, ConnectionMs);
+                        DisplayText = PoolPrint(L"Controller %d finished (%lu ms, EFI %lu)",
+                                                ConnectionNumber, ConnectionMs, (UINT64)Status);
+                        BootStartupProgressReport(DisplayText,
+                            EFI_ERROR(Status) ? BOOT_PROGRESS_ERROR : BOOT_PROGRESS_OK);
+                        MyFreePool(DisplayText);
+                    }
                 }
             }
         }
 
-        MyFreePool (HandleBuffer);
-        MyFreePool (HandleType);
+        MyFreePool(HandleBuffer);
+        MyFreePool(HandleType);
     }
 
 Done:
-    MyFreePool (AllHandleBuffer);
+    if (GlobalConfig.StartupDiagnostics) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"[DIAG] controller pass END attempts=%d elapsed=%lu ms finalStatus=%lu",
+            ConnectionNumber, BootDiagElapsedMs(PassBegin), (UINT64)Status);
+        BootDiagFlush();
+    }
+    MyFreePool(AllHandleBuffer);
     return Status;
 }  
 #else
