@@ -682,7 +682,9 @@ VOID ReadConfig(CHAR16 *FileName)
         } else if (MyStriCmp(TokenList[0], L"log_level") && (TokenCount == 2)) {
             HandleInt(TokenList, TokenCount, &(GlobalConfig.LogLevel));
 
-        } else if (MyStriCmp(TokenList[0], L"startup_diagnostics")) {
+        } else if (MyStriCmp(TokenList[0], L"startup_diagnostics") &&
+                   MyStriCmp(FileName, GlobalConfig.ConfigFilename)) {
+            /* Primary boot.conf is authoritative even during early scanning. */
             GlobalConfig.StartupDiagnostics = HandleBoolean(TokenList, TokenCount);
 
         } else if (MyStriCmp(TokenList[0], L"also_scan_dirs")) {
