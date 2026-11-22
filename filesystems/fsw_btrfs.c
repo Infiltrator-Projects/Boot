@@ -335,6 +335,10 @@ static int master_uuid_add(struct fsw_btrfs_volume *vol, struct fsw_btrfs_volume
     return 1;
 }
 
+/* Remove one master-volume reference from the global UUID registry.
+ * The registry owns its link nodes but not the referenced mounted volume;
+ * missing entries are a no-op, and iteration is not synchronised.
+ */
 static void master_uuid_remove(struct fsw_btrfs_volume *vol) {
     struct fsw_btrfs_uuid_list **lp;
 
@@ -479,6 +483,11 @@ static void free_iterator (struct fsw_btrfs_leaf_descriptor *desc)
     fsw_free (desc->data);
 }
 
+/* Push a B-tree descent frame recording node address and item cursor.
+ * Capacity doubles when the stack fills. Depth increments before allocation;
+ * a failed expansion leaves the descriptor depth updated, so the caller
+ * must not resume iteration as if the push completed successfully.
+ */
 static fsw_status_t save_ref (struct fsw_btrfs_leaf_descriptor *desc,
         uint64_t addr, unsigned i, unsigned m, int l)
 {
@@ -502,6 +511,11 @@ static fsw_status_t save_ref (struct fsw_btrfs_leaf_descriptor *desc,
     return FSW_SUCCESS;
 }
 
+/* Advance the saved B-tree walk to the next leaf item. Return zero when
+ * exhausted, one with a borrowed logical item address/size and key on success,
+ * or a negative FSW error. Internal-node descent consumes and extends the
+ * descriptor stack; it requires a successfully maintained save_ref state.
+ */
 static int next (struct fsw_btrfs_volume *vol,
         struct fsw_btrfs_leaf_descriptor *desc,
         uint64_t * outaddr, fsw_size_t * outsize,
@@ -780,6 +794,10 @@ static int do_rescan_once(struct fsw_btrfs_volume *vol) {
 }
 
 static struct fsw_volume *
+/* Lookup a Btrfs member by its on-disk device identifier among attached
+ * devices. The returned fsw_volume is borrowed from the multi-device mount;
+ * absence is not proof that the missing member cannot later be discovered.
+ */
 find_device (struct fsw_btrfs_volume *vol, uint64_t id) {
     int i;
 
@@ -1577,6 +1595,10 @@ static void fsw_btrfs_dnode_free(struct fsw_volume *volg, struct fsw_dnode *dnog
         FreePool(dno->raw);
 }
 
+/* Export inode byte accounting, timestamps and POSIX mode if inode data
+ * are cached. A synthetic root without a raw inode reports zero dates and
+ * used bytes. This is on-disk metadata, not a readback of physical extents.
+ */
 static fsw_status_t fsw_btrfs_dnode_stat(struct fsw_volume *volg, struct fsw_dnode *dnog, struct fsw_dnode_stat *sb)
 {
     struct fsw_btrfs_dnode *dno = (struct fsw_btrfs_dnode *)dnog;
@@ -1920,6 +1942,11 @@ static fsw_status_t fsw_btrfs_get_extent(struct fsw_volume *volg, struct fsw_dno
     return FSW_SUCCESS;
 }
 
+/* Read a symlink from buffer-backed extents into one temporary UTF-8 buffer,
+ * capped by FSW_PATH_MAX. Each source extent is freed after copying and the
+ * temporary string is coerced into the host encoding for the caller.
+ * The link read cannot succeed through an unmapped or non-buffer extent.
+ */
 static fsw_status_t fsw_btrfs_readlink(struct fsw_volume *volg, struct fsw_dnode *dnog,
         struct fsw_string *link_target)
 {
@@ -2036,6 +2063,10 @@ static fsw_status_t fsw_btrfs_lookup_dir_item(struct fsw_btrfs_volume *vol,
     return FSW_SUCCESS;
 }
 
+/* Resolve the root-tree item for a directory entry that crosses into a
+ * subvolume. Search returns a candidate at-or-before the requested key, so
+ * both object ID and item type are compared before returning the tree ID.
+ */
 static fsw_status_t fsw_btrfs_get_root_tree(
         struct fsw_btrfs_volume *vol,
         struct btrfs_key *key_in,
@@ -2062,6 +2093,11 @@ static fsw_status_t fsw_btrfs_get_root_tree(
     return FSW_SUCCESS;
 }
 
+/* Construct the child identity from a directory item. A subvolume-root
+ * entry changes the tree identifier and resolves the root object; ordinary
+ * entries retain the parent's tree and use their inode object ID. Preserve
+ * this (tree ID, inode ID) pair when consulting the generic dnode cache.
+ */
 static fsw_status_t fsw_btrfs_get_sub_dnode(
         struct fsw_btrfs_volume *vol,
         struct fsw_btrfs_dnode *dno,

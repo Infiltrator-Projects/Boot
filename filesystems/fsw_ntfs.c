@@ -591,6 +591,10 @@ static fsw_status_t read_mft(struct fsw_ntfs_volume *vol, fsw_u8 *mft, fsw_u64 m
     return FSW_NOT_FOUND;
 }
 
+/* Initialise one attribute cursor with no cached extension record. BADMFT
+ * distinguishes a missing extension record from a valid record number;
+ * later resolution fills ptr/len from the corresponding MFT allocation.
+ */
 static void init_attr(struct fsw_ntfs_volume *vol, struct ntfs_attr *attr, int type)
 {
     fsw_memzero(attr, sizeof(*attr));
@@ -598,6 +602,10 @@ static void init_attr(struct fsw_ntfs_volume *vol, struct ntfs_attr *attr, int t
     attr->emftno = BADMFT;
 }
 
+/* Release only the extension-MFT buffer owned by this attribute cursor.
+ * The base MFT record and attribute pointers into it are borrowed; callers
+ * must not free them through this helper or retain them after base teardown.
+ */
 static void free_attr(struct ntfs_attr *attr)
 {
     if(attr->emft) fsw_free(attr->emft);
@@ -641,6 +649,11 @@ static fsw_status_t find_attribute(struct fsw_ntfs_volume *vol, struct ntfs_mft 
     return find_attribute_direct(buf, 1<<vol->mftbits, attr->type, &attr->ptr, &attr->len);
 }
 
+/* Resolve a small attribute at VCN zero and read its data before releasing
+ * the temporary attribute cursor. Attribute lookup and value extraction
+ * return separate errors; the caller receives the value through out pointers
+ * according to read_attribute_direct's buffer-ownership contract.
+ */
 static fsw_status_t read_small_attribute(struct fsw_ntfs_volume *vol, struct ntfs_mft *mft, int type, fsw_u8 **optrp, int *olenp)
 {
     fsw_status_t err;
@@ -654,6 +667,11 @@ static fsw_status_t read_small_attribute(struct fsw_ntfs_volume *vol, struct ntf
     return err;
 }
 
+/* Append nonresident $DATA runs for one MFT record to the volume's VCN-to-LCN
+ * lookup table. Sparse runs update VCN without adding a physical mapping.
+ * Capacity doubles on demand; allocation failure stops appending but this
+ * VOID interface cannot report whether the map was completed.
+ */
 static void add_single_mft_map(struct fsw_ntfs_volume *vol, fsw_u8 *mft)
 {
     fsw_u8 *ptr;
@@ -996,6 +1014,10 @@ error_out:
     return err;
 }
 
+/* Convert NTFS's 100 ns ticks since 1601 to whole Unix seconds. Division
+ * precedes subtraction of the epoch offset, then the result narrows to
+ * fsw_u32: fractional seconds and dates outside its range are not preserved.
+ */
 static fsw_u32 get_ntfs_time(fsw_u8 *buf, int pos)
 {
     fsw_u64 t = GETU64(buf, pos);
@@ -1004,6 +1026,11 @@ static fsw_u32 get_ntfs_time(fsw_u8 *buf, int pos)
     return t;
 }
 
+/* Project $STANDARD_INFORMATION timestamps and selected file attributes
+ * from the current MFT record into the generic node-stat representation.
+ * The byte count is the logical file size and does not audit allocated
+ * clusters. Attribute-relative offsets rely on a valid resident record.
+ */
 static fsw_status_t fsw_ntfs_dnode_stat(struct fsw_volume *volg, struct fsw_dnode *dnog, struct fsw_dnode_stat *sb)
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
@@ -1428,6 +1455,11 @@ static fsw_status_t fsw_ntfs_get_extent(struct fsw_volume *volg, struct fsw_dnod
     return fsw_ntfs_get_extent_sparse(vol, dno, extent);
 }
 
+/* Read the on-volume $UpCase table from its dedicated MFT record and retain
+ * the decoded UTF-16 mapping in the volume for filename comparison. The
+ * table length is converted from bytes to code units; final ownership
+ * belongs to fsw_ntfs_volume_free, not to the temporary MFT reader.
+ */
 static fsw_status_t load_upcase(struct fsw_ntfs_volume *vol)
 {
     fsw_status_t err;
