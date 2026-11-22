@@ -1,7 +1,11 @@
 /*
- * ReiserFS FSW backend state and tree-item lookup declarations. Metadata
- * keys and item offsets are on-disk values; tree traversal assumes validated
- * node sizes and must report invalid or unsupported layouts as errors.
+ * BOOT / ReiserFS structures
+ *
+ * ReiserFS FSW backend state and tree-item lookup declarations.
+ *
+ * Metadata keys and item offsets are on-disk values; tree traversal assumes
+ * validated node sizes and must report invalid or unsupported layouts as
+ * errors.
  */
 
 #ifndef _FSW_REISERFS_H_

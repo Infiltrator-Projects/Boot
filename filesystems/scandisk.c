@@ -1,8 +1,11 @@
 /*
+ * BOOT / Firmware disk discovery
+ *
  * EFI Disk I/O enumeration helper used by filesystem backend discovery.
+ *
  * Temporary dummy FSW volumes carry controller Disk I/O and media identity
- * for a callback; they are not automatically mounted filesystems.
- * The callback's result must remain separate from handle enumeration success.
+ * for a callback; they are not automatically mounted filesystems. The
+ * callback's result must remain separate from handle enumeration success.
  */
 
 #include "fsw_efi.h"

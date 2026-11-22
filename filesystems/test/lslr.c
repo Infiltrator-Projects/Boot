@@ -1,7 +1,11 @@
 /*
+ * BOOT / Directory traversal test
+ *
  * POSIX FSW integration exerciser for recursive directory listing and file
- * contents on a test filesystem image. Path traversal and file reads share
- * the same backend as EFI but not the same firmware host callbacks.
+ * contents on a test filesystem image.
+ *
+ * Path traversal and file reads share the same backend as EFI but not the
+ * same firmware host callbacks.
  */
 
 #define FSW_DEBUG_LEVEL 3

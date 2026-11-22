@@ -1,11 +1,15 @@
 /*
- * Btrfs-to-Zstandard decompressor adaptation: unaligned little-endian values,
- * fixed-width aliases and page-size assumptions bridge on-disk compressed
- * extents into this private decoder. Input/output sizes are untrusted.
- * This is not a general host-level compression service.
- * The wrapper's final zero-fill uses out_buf.pos even on paths that jump to
- * finish before it is initialised. Neither an error return nor the requested
- * decompressed length proves valid output ownership on that path.
+ * BOOT / Btrfs Zstandard interface
+ *
+ * Btrfs-to-Zstandard decompressor adaptation: unaligned little-endian
+ * values, fixed-width aliases and page-size assumptions bridge on-disk
+ * compressed extents into this private decoder.
+ *
+ * Input/output sizes are untrusted. This is not a general host-level
+ * compression service. The wrapper's final zero-fill uses out_buf.pos even
+ * on paths that jump to finish before it is initialised. Neither an error
+ * return nor the requested decompressed length proves valid output
+ * ownership on that path.
  */
 
 #define PAGE_SIZE 4096

@@ -1,8 +1,11 @@
 /*
+ * BOOT / POSIX filesystem harness
+ *
  * POSIX-hosted FSW test adapter for reading filesystem images outside EFI.
+ *
  * It supplies a file-backed host callback table, dnode paths and directory
- * operations. Success here tests the filesystem parser but does not exercise
- * EFI Driver Binding, Secure Boot or physical firmware behaviour.
+ * operations. Success here tests the filesystem parser but does not
+ * exercise EFI Driver Binding, Secure Boot or physical firmware behaviour.
  */
 
 #include "fsw_posix.h"

@@ -1,4 +1,8 @@
-/* Freestanding gzip/DEFLATE decoder utilities.
+/*
+ * BOOT / Gzip decoder
+ *
+ * Freestanding gzip/DEFLATE decoder utilities.
+ *
  * Bit buffers, Huffman tables and sliding windows require bounded input.
  * Decoder failure must propagate before using decompressed data.
  */

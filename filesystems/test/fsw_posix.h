@@ -1,7 +1,12 @@
 /*
- * POSIX FSW host test-model types: file images, volume wrappers and directory
- * iterators. These utilities exercise parsers without executing EFI services;
- * host-test success is not an EFI driver or physical-hardware qualification.
+ * BOOT / POSIX test interface
+ *
+ * POSIX FSW host test-model types: file images, volume wrappers and
+ * directory iterators.
+ *
+ * These utilities exercise parsers without executing EFI services;
+ * host-test success is not an EFI driver or physical-hardware
+ * qualification.
  */
 
 #ifndef _FSW_POSIX_H_
