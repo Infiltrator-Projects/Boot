@@ -569,4 +569,18 @@ invoke external tools and mutate firmware or disks only when actually run.
 | `mok/Makefile` | 0 | Build recipe |
 | `mountesp` | 1 | Installation/release script |
 | `packaging/build-release.sh` | 0 | Installation/release script |
-<!-- BOOT_TEXT_INDEX_NEXT -->
+| `packaging/install-generic.sh` | 5 | Installation/release script |
+| `packaging/test-release.sh` | 0 | Installation/release script |
+| `tests/deb-install-safety.sh` | 0 | Test harness |
+| `tests/host-bootorder-regressions.sh` | 0 | Test harness |
+| `tests/host-icon-detection.sh` | 1 | Test harness |
+| `tests/host-source-regressions.sh` | 0 | Test harness |
+| `tests/install-safety.sh` | 5 | Test harness |
+| `tests/nvram-safety.sh` | 3 | Test harness |
+| `tests/ovmf-fonts-smoke.sh` | 0 | Test harness |
+| `tests/ovmf-smoke.sh` | 0 | Test harness |
+
+The 154 nontext resources consist of 17 `.cer`, 12 `.crt`, 80 `.png`, 21 `.svg`, 23 `.ttf`, 1 `.wonderbrush` files. They were classified from the pinned Git tree by pathname and size; image/font/certificate bytes were not decoded or cryptographically rechecked as part of this source-comment review. The TrueType checksum manifest and relevant OVMF/host test procedures were inspected, but their existence does not constitute a newly executed validation.
+
+**Status of this index:** all 212 tracked C/header and other text/configuration files at the pinned revision have a row. This is complete *inventory coverage*, not a completed semantic proof for every decoder function or evidence that outstanding fault injections passed. Bundled decoder source is preserved intact; new source commentary is applied at BOOT-owned integration boundaries.
+
