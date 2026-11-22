@@ -3,6 +3,9 @@
  * Pointer hardware is optional; keyboard navigation must remain usable.
  * Opened firmware protocols and cached background images have explicit
  * lifetime requirements when graphics modes or pointer handles change.
+ * Cursor coordinates, visible image snapshots and firmware input events have
+ * separate lifetimes. Repainting a stale captured background after a menu
+ * redraw can erase the current highlight; pointer support remains optional.
  */
 
 #include "pointer.h"
