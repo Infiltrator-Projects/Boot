@@ -555,4 +555,18 @@ invoke external tools and mutate firmware or disks only when actually run.
 | `filesystems/design.dox` | 0 | Configuration/data |
 | `filesystems/ext2.inf` | 0 | EDK build descriptor |
 | `filesystems/ext4.inf` | 0 | EDK build descriptor |
+| `filesystems/hfs.inf` | 0 | EDK build descriptor |
+| `filesystems/iso9660.inf` | 0 | EDK build descriptor |
+| `filesystems/mk_fsw_strfunc.py` | 0 | Generated-code producer |
+| `filesystems/ntfs.inf` | 0 | EDK build descriptor |
+| `filesystems/reiserfs.inf` | 0 | EDK build descriptor |
+| `filesystems/test/Makefile` | 0 | Build recipe |
+| `filesystems/test/README` | 0 | Configuration/data |
+| `fonts/SHA256SUMS` | 0 | Font hash manifest |
+| `gzip/Makefile` | 0 | Build recipe |
+| `icons/README` | 0 | Asset provenance |
+| `libeg/Makefile` | 0 | Build recipe |
+| `mok/Makefile` | 0 | Build recipe |
+| `mountesp` | 1 | Installation/release script |
+| `packaging/build-release.sh` | 0 | Installation/release script |
 <!-- BOOT_TEXT_INDEX_NEXT -->
