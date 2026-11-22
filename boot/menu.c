@@ -3,6 +3,9 @@
  * Rows, selection highlights, hidden-tag records and the default match
  * control menu presentation, not physical installation or EFI BootOrder.
  * The graphics fallback must never compromise a viable boot choice.
+ * Menu entry pointers and selection indices belong to the current inventory.
+ * A rescan invalidates assumptions about stable ordering; painting a cached
+ * selection or tool icon must never be interpreted as an image trust check.
  */
 
 #include "global.h"
