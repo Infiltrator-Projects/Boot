@@ -3,6 +3,10 @@
  * The reader's key comparison and traversal semantics depend on HFS-family
  * volume properties; recognising a plain HFS wrapper does not create support
  * for reading plain HFS contents.
+ * The inline beXX_to_cpu helpers unconditionally swap bytes, assuming the
+ * little-endian host used by the current x86-64 firmware profile. A
+ * big-endian build must not reuse these conversions unchanged. The packed
+ * HFS+ structures remain on-disk definitions, not native aligned records.
  */
 
 #ifndef _FSW_HFS_H_
