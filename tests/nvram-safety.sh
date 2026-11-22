@@ -44,7 +44,7 @@ case "${1:-}" in
      printf '%s\n' "Boot${id}* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\BOOTX64.EFI)" >> "$MOCK_NVRAM/entries"
      before=$(cat "$MOCK_NVRAM/order")
      printf '%s%s\n' "$id" "${before:+,$before}" > "$MOCK_NVRAM/order" ;;
- -b) [[ "${3:-}" == "-a" ]] || exit 73 ;;
+ -b) echo "Firmware refuses redundant activation of an active BOOT entry" >&2; exit 73 ;;
  -o) [[ "${2:-}" =~ ^[0-9A-Fa-f]{4}(,[0-9A-Fa-f]{4})*$ ]] || exit 74
      echo "$2" > "$MOCK_NVRAM/order" ;;
  '') printf 'BootOrder: %s\n' "$(cat "$MOCK_NVRAM/order")" ;;
@@ -66,6 +66,7 @@ set +o pipefail
 Problems=""
 AddBootEntry || exit 1
 test "$(cat "$MOCK_NVRAM/order")" = "0004,0001,0002" || exit 1
+! command grep -q -- '^-b ' "$MOCK_NVRAM/actions" || exit 1
 test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 test "$(command grep -c -- '^-o ' "$MOCK_NVRAM/actions")" = 1 || exit 1
 # Count registration and ordering separately. The first install creates one
