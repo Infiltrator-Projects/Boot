@@ -70,6 +70,12 @@ EG_IMAGE * egCreateFilledImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAl
     return NewImage;
 }
 
+/*
+ * Allocate a fully separate EG_IMAGE and pixel plane. The source remains
+ * borrowed and unchanged; failure returns NULL. Image dimensions drive
+ * Width*Height*sizeof(EG_PIXEL), whose overflow protection belongs to the
+ * allocation path and must not be inferred from a non-NULL Image pointer.
+ */
 EG_IMAGE * egCopyImage(IN EG_IMAGE *Image)
 {
     EG_IMAGE        *NewImage = NULL;
@@ -83,6 +89,12 @@ EG_IMAGE * egCopyImage(IN EG_IMAGE *Image)
     return NewImage;
 }
 
+/*
+ * Copy a rectangular region into independently owned pixel storage. Current
+ * bounds checks compare StartX+Width and StartY+Height against source size,
+ * but do not prove these unsigned additions cannot wrap. A caller must not
+ * treat this function as independently safe for arbitrary untrusted geometry.
+ */
 EG_IMAGE * egCropImage(IN EG_IMAGE *Image, IN UINTN StartX, IN UINTN StartY, IN UINTN Width, IN UINTN Height) {
    EG_IMAGE *NewImage = NULL;
    UINTN x, y;
@@ -336,6 +348,13 @@ EG_IMAGE * egLoadImage(IN EFI_FILE* BaseDir, IN CHAR16 *FileName, IN BOOLEAN Wan
     return NewImage;
 }
 
+/*
+ * Read, decode and optionally rescale one icon. Decode can return NULL on
+ * malformed or unsupported input, yet the current code dereferences Image
+ * before checking that result. This is an outstanding graphics-input safety
+ * defect, not proof that all files with an image extension are readable.
+ * The successfully decoded image belongs to the caller.
+ */
 EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *Path, IN UINTN IconSize)
 {
     EFI_STATUS      Status;
