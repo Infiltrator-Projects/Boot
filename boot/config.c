@@ -1297,6 +1297,13 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
  * Read just the first token-bearing line and duplicate its second field for the
  * primary boot entry. Further option lines belong to the submenu path. Missing
  * files and a first line lacking a second field both yield NULL.
+ *
+ * The returned CHAR16 option string is a new pool allocation owned by the
+ * caller. ReadLinuxOptionsFile returns a REFIT_FILE whose payload may itself
+ * be pool allocated. This routine frees the REFIT_FILE wrapper but does not
+ * explicitly release File->Buffer; the ownership/lifetime of that payload
+ * therefore requires a separate audit. A non-NULL command line is an options
+ * selection, not evidence that the nominated root or initrd can be mounted.
  */
 CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     UINTN        TokenCount;
