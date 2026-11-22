@@ -551,14 +551,9 @@ DevPathMacAddr (
 }
 
 /*
- * Render source/destination addresses and local/remote ports from a network
- * messaging node. The address is a presentation of firmware-supplied bytes,
- * not proof of a reachable network route or a trusted boot endpoint.
- */
-/*
- * Render firmware-reported IPv4 endpoint and transport fields only. These
- * fields describe a path node; they do not prove address configuration,
- * a reachable network route, or an established boot session.
+ * Print only the remote IPv4 address and port encoded in the messaging node.
+ * This is diagnostic text, not network reachability or EFI image validation;
+ * the source node's backing length is not independently checked here.
  */
 VOID
 DevPathIPv4 (
@@ -581,14 +576,9 @@ DevPathIPv4 (
 }
 
 /*
- * IPv6 device-path printing preserves the encoded addresses and connection
- * metadata. This renderer assumes the node is the correct size; it must not
- * be used in place of node-length validation on an untrusted buffer.
- */
-/*
- * Render encoded IPv6 addresses and settings. A caller must supply a
- * complete node: this diagnostic formatter has no independent buffer size
- * with which to validate every field access.
+ * Print the remote IPv6 address encoded by firmware. This renderer assumes
+ * a complete node; it verifies neither the node's backing buffer length nor
+ * the reachability of the displayed endpoint.
  */
 VOID
 DevPathIPv6 (
@@ -772,13 +762,9 @@ DevPathVlan (
 }
 
 /*
- * Formats media partition-path metadata; identifiers are descriptive and
- * do not guarantee filesystem accessibility or executable image validity.
- */
-/*
- * Display a partition number and the embedded MBR signature or GPT GUID.
- * This reads the fixed binary node fields without independently verifying
- * backing length, current partition-table identity or media availability.
+ * Format the partition number and embedded MBR signature or GPT GUID.
+ * The source must contain a complete binary node. This representation does
+ * not verify the current partition table, media access or image integrity.
  */
 VOID
 DevPathHardDrive (
