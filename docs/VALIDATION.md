@@ -368,4 +368,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `EfiLib/LegacyBios.h` | 0 | ABI/header |
 | `EfiLib/Platform.h` | 0 | ABI/header |
 | `EfiLib/gnuefi-helper.c` | 1 | Maintained implementation |
+| `EfiLib/gnuefi-helper.h` | 0 | ABI/header |
+| `EfiLib/legacy.c` | 13 | Maintained implementation |
+| `EfiLib/legacy.h` | 0 | ABI/header |
+| `boot/AutoGen.c` | 1 | Generated/embedded |
+| `boot/AutoGen.h` | 0 | Generated/embedded |
+| `boot/apple.c` | 4 | Maintained implementation |
+| `boot/apple.h` | 0 | ABI/header |
+| `boot/config.c` | 22 | Maintained implementation |
+| `boot/config.h` | 0 | ABI/header |
+| `boot/crc32.c` | 1 | Maintained implementation |
+| `boot/crc32.h` | 0 | ABI/header |
+| `boot/driver_support.c` | 5 | Maintained implementation |
+| `boot/driver_support.h` | 0 | ABI/header |
+| `boot/global.h` | 0 | ABI/header |
+| `boot/gpt.c` | 7 | Maintained implementation |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
