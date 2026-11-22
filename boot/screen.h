@@ -53,25 +53,16 @@ extern EG_PIXEL MenuBackgroundPixel;
  * afterward.
  */
 /*
- * Temporary startup instrumentation. Change this one constant to 0 when
- * diagnostics are no longer required; all call sites then become no-ops.
- * EFI driver load success is deliberately not labelled a successful mount.
+ * Temporary graphical progress is controlled solely by the
+ * 'startup_diagnostics' directive in boot.conf at runtime.
  */
-#define BOOT_STARTUP_PROGRESS_ENABLED 1
 #define BOOT_PROGRESS_ACTIVE 0
 #define BOOT_PROGRESS_OK     1
 #define BOOT_PROGRESS_ERROR  2
 #define BOOT_PROGRESS_INFO   3
-
-#if BOOT_STARTUP_PROGRESS_ENABLED
 VOID BootStartupProgressBegin(VOID);
 VOID BootStartupProgressReport(IN CHAR16 *Message, IN UINTN Result);
 VOID BootStartupProgressEnd(VOID);
-#else
-#define BootStartupProgressBegin()                 ((VOID)0)
-#define BootStartupProgressReport(Message, Result) ((VOID)0)
-#define BootStartupProgressEnd()                   ((VOID)0)
-#endif
 
 VOID InitScreen(VOID);
 VOID SetupScreen(VOID);
