@@ -38,6 +38,13 @@
  * single-byte path. On failure the output size is zeroed and the temporary
  * firmware file handle is closed. A successful call transfers File->Buffer
  * to the caller; the diagnostic message is not part of that allocation.
+ *
+ * LIMITATION: FileInfo->FileSize is UINT64 but is narrowed to UINTN before the
+ * pool allocation without an explicit representability check. The file's
+ * actual read byte count replaces BufferSize, while the separate output size
+ * is set before reading. A successful EFI Read does not by itself prove the
+ * entire advertised file was consumed. UTF-8 detection does not imply UTF-8
+ * decoding: ReadLine widens individual bytes for this encoding label.
  */
 EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFIT_FILE *File, OUT UINTN *size)
 {
