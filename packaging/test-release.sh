@@ -112,6 +112,14 @@ grep -Fq 'set -- --alldrivers' "$run"
 grep -Fq 'sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys filesystems' "$run"
 grep -Fxq 'TargetDir=/EFI/InfiltratorOS/BOOT' "$run"
 grep -Fxq 'TargetX64="BOOTX64.EFI"' "$run"
+# rEFInd-style Secure Boot support is a package-installer responsibility:
+# the RUN must find a host Shim, sign its BOOT stage and refuse to replace a
+# working BootOrder until the local signing MOK is enrolled.
+grep -Fq 'set -- --alldrivers --shim "$BootShim" --keepname --localkeys --yes' "$run"
+grep -Fq 'mokutil --test-key "$DerKey"' "$run"
+grep -Fq 'sbverify --cert "$CertKey"' "$run"
+grep -Fq 'BootSecureBootEnabled=$(od -An -tu1 -j4 -N1' "$run"
+! grep -Fq 'BOOT Boot Manager (direct)' "$run"
 grep -Fq 'rm -rf -- "$InstallDir/$TargetDir"' "$run"
 ! grep -Fq "BootFileHash" "$run"
 ! grep -Fq ".infiltrator-boot-loader.sha256" "$run"
