@@ -1083,29 +1083,40 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
  */
 static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN XPos, UINTN YPos)
 {
-    EG_IMAGE *Background;
+    EG_IMAGE *Background, *ToolTint = NULL;
+    EG_IMAGE *Icon = Entry->Image;
 
+    /*
+     * Operating systems sit on polished silver-edged plates. Utility glyphs
+     * remain floating and are colour-neutral silver, with the reboot accent
+     * in canonical cyan. Do not recolour the real OS icons or badges.
+     */
+    if (Entry->Row == 1 && BootThemeBackground(UGAWidth, UGAHeight)) {
+        ToolTint = BootThemeTintToolIcon(Icon, selected || Entry->Tag == TAG_REBOOT);
+        if (ToolTint) Icon = ToolTint;
+    }
     if (selected && DrawSelection) {
         Background = egCropImage(GlobalConfig.ScreenBackground, XPos, YPos,
                                  SelectionImages[Entry->Row]->Width, SelectionImages[Entry->Row]->Height);
         if (Background) {
             egComposeImage(Background, SelectionImages[Entry->Row], 0, 0);
-            BltImageCompositeBadge(Background, Entry->Image, Entry->BadgeImage, XPos, YPos);
+            BltImageCompositeBadge(Background, Icon, Entry->BadgeImage, XPos, YPos);
             egFreeImage(Background);
-        }  
-    } else if (NormalImages[Entry->Row] && DrawSelection) {
-        Background=egCropImage(GlobalConfig.ScreenBackground,XPos,YPos,
-                               NormalImages[Entry->Row]->Width,NormalImages[Entry->Row]->Height);
-        if(Background) {
-            egComposeImage(Background,NormalImages[Entry->Row],0,0);
-            BltImageCompositeBadge(Background,Entry->Image,Entry->BadgeImage,XPos,YPos);
+        }
+    } else if (Entry->Row == 0 && NormalImages[Entry->Row] && DrawSelection) {
+        Background = egCropImage(GlobalConfig.ScreenBackground, XPos, YPos,
+                                 NormalImages[Entry->Row]->Width, NormalImages[Entry->Row]->Height);
+        if (Background) {
+            egComposeImage(Background, NormalImages[Entry->Row], 0, 0);
+            BltImageCompositeBadge(Background, Icon, Entry->BadgeImage, XPos, YPos);
             egFreeImage(Background);
         }
     } else {
-        egDrawImageWithTransparency(Entry->Image, Entry->BadgeImage, XPos, YPos,
+        egDrawImageWithTransparency(Icon, Entry->BadgeImage, XPos, YPos,
                                     SelectionImages[Entry->Row]->Width, SelectionImages[Entry->Row]->Height);
     }
-}  
+    egFreeImage(ToolTint);
+}
 
 /*
  * Repaint using two index spaces: row-zero tile coordinates are relative to

@@ -189,3 +189,39 @@ EG_IMAGE *BootThemeSelection(UINTN size) {
 EG_IMAGE *BootThemeTile(UINTN size) {
     return makeThemePlate(size,FALSE);
 }
+
+/* Material-neutral tool icon projection. The original loaded artwork remains
+ * untouched; this is a disposable copy with its alpha and anti-aliasing kept.
+ * Cyan is reserved for selected controls and reboot, silver for other tools.
+ * A non-alpha icon is returned unchanged to prevent tinting opaque artwork. */
+EG_IMAGE *BootThemeTintToolIcon(EG_IMAGE *original, BOOLEAN accent) {
+    EG_IMAGE *copy;
+    UINTN i, count;
+    if(!original || !original->HasAlpha)return NULL;
+    copy=egCopyImage(original);
+    if(!copy)return NULL;
+    count=copy->Width*copy->Height;
+    for(i=0;i<count;++i) {
+        EG_PIXEL *p=&copy->PixelData[i];
+        UINTN luminance,scale;
+        if(!p->a)continue;
+        luminance=(UINTN)p->r*3+(UINTN)p->g*6+(UINTN)p->b;
+        luminance/=10;
+        if(luminance<16) {
+            p->a=(UINT8)((UINTN)p->a*luminance/32);
+            continue;
+        }
+        scale=145+luminance/3;
+        if(scale>240)scale=240;
+        if(accent) {
+            p->r=(UINT8)(39*scale/240);
+            p->g=(UINT8)(220*scale/240);
+            p->b=(UINT8)(233*scale/240);
+        } else {
+            p->r=(UINT8)(216*scale/240);
+            p->g=(UINT8)(222*scale/240);
+            p->b=(UINT8)(229*scale/240);
+        }
+    }
+    return copy;
+}
