@@ -3,6 +3,12 @@
  * Superblock feature negotiation is mandatory: an EXT4 signature is not enough
  * for a reader to understand every on-disk feature. Inodes may use either
  * extent trees or direct/indirect block addressing, with distinct risks.
+ * The extent-tree path maps a file-relative logical block to a physical
+ * allocation; its leaf and index records are untrusted disk metadata, not
+ * bounds-checked host pointers by virtue of having a valid magic value.
+ * The inode size, extent length, tree depth and data-block geometry must be
+ * considered together. This reader does not replay the journal: accepting
+ * a recovery-required filesystem is not proof of a consistent snapshot.
  */
 
 #include "fsw_ext4.h"
