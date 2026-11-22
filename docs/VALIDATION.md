@@ -312,6 +312,29 @@ heads. A full repository binary/source equivalence claim would therefore be
 incorrect without separating those other commits. This is a **partial**
 file-by-file review, not a completed repository-wide certification.
 
+## Additional function-level findings — current comment pass
+
+Each row identifies an observed source expression and an executable regression
+that is **not** evidenced by the documentation-only edits. These are explicit
+implementation gaps rather than completed safety fixes.
+
+| Source expression | Observed limitation | Required regression |
+| --- | --- | --- |
+| `libeg/image.c:egLoadIcon` | The result of `egDecodeAny` is dereferenced before it is checked for NULL | Invalid/unsupported icon bytes and allocator failure must return without dereference |
+| `libeg/image.c:egCropImage` | `StartX + Width` and `StartY + Height` can wrap before boundary comparison | Unsigned-max coordinates and zero/nonzero crop widths must be rejected safely |
+| `libeg/screen.c:egScreenShot` | Failure of `egFindESP` returns after BMP encoding without freeing `FileData` | Failed ESP lookup with tracked EFI pool allocation must release encoded image bytes |
+| `filesystems/fsw_ext4.c:test_root` | The power loop multiplies a fixed-width accumulator without overflow detection | Large group numbers around the first 32-bit wrap must terminate and report correct sparse-group membership |
+| `filesystems/fsw_efi.c:fsw_efi_main` | If Component Name protocol installation fails after Driver Binding was installed, the first protocol is not visibly rolled back | Force the second protocol install to fail and verify all previously published interfaces are removed or deliberately retained under a documented policy |
+| `boot/menu.c:TextMenuStyle` | Display-row string allocation is followed by dereferences without explicit independent OOM checks | Inject OOM at the array and each row allocation before painting and during menu teardown |
+| `boot/menu.c:ComputeSubScreenWindowSize` | Width calculation mixes rendered-pixel text measurements with UTF-16 entry title code-unit counts | Compare large proportional TrueType menu labels at narrow and wide GOP modes with clipping detection |
+| `libeg/ttf.c:mbPrepare` | The initialisation latch is set before all font files load, so later SelfDir availability does not trigger a retry | Initialise with unavailable SelfDir, then restore it and verify documented recovery/retry policy |
+| `filesystems/fsw_btrfs.c:grub_btrfs_lzo_decompress` | Input length and intermediate block-boundary checks are insufficient for all page header reads | Truncated page headers, crafted compressed lengths and output-boundary fault injection |
+| `filesystems/fsw_ntfs.c:attribute_get_rle` | No minimum record length and no validation of the encoded runlist start offset | Short nonresident attributes and offsets beyond record length must not reach decoding |
+
+These checks are independent of whether an unrelated workflow succeeds at
+compilation or displays a boot menu. They also remain distinct from the planned
+Common V2-only filesystem ABI work.
+
 ## Commentary review: specific unresolved proof obligations
 
 This section records *review targets*, not newly executed tests or newly repaired runtime defects. Source comments now identify their assumptions so future assessments cannot mistake plausible prose for proven safety.
