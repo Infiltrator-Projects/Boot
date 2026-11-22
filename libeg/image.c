@@ -51,6 +51,10 @@ EG_IMAGE * egCreateImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha)
         return NULL;
     }
 
+    /* Every EFI GOP pixel has a reserved fourth byte, including opaque PNGs.
+     * Initialise the entire plane before any format decoder or scaler writes
+     * channels, so firmware never receives uninitialised pixel bytes. */
+    SetMem(NewImage->PixelData, Width * Height * sizeof(EG_PIXEL), 0);
     NewImage->Width = Width;
     NewImage->Height = Height;
     NewImage->HasAlpha = HasAlpha;
