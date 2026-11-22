@@ -980,7 +980,7 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
            EntriesPosY += (TextLineHeight() * 2);
            if (Screen->InfoLineCount > 0) {
                for (i = 0; i < (INTN)Screen->InfoLineCount; i++) {
-                   DrawText(Screen->InfoLines[i], FALSE, LineWidth, EntriesPosX, EntriesPosY);
+                   DrawText(Screen->InfoLines[i], FALSE, LineWidth, EntriesPosX, EntriesPosY, MB_FONT_BODY);
                    EntriesPosY += TextLineHeight();
                }
                EntriesPosY += TextLineHeight();   
@@ -1009,7 +1009,7 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
             break;
 
         case MENU_FUNCTION_PAINT_TIMEOUT:
-            DrawText(ParamText, FALSE, LineWidth, EntriesPosX, TimeoutPosY);
+            DrawText(ParamText, FALSE, LineWidth, EntriesPosX, TimeoutPosY, MB_FONT_BODY);
             break;
 
     }
