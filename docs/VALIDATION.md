@@ -428,4 +428,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `filesystems/fsw_efi_lib.c` | 3 | Maintained implementation |
 | `filesystems/fsw_ext2.c` | 11 | Maintained implementation |
 | `filesystems/fsw_ext2.h` | 0 | ABI/header |
+| `filesystems/fsw_ext2_disk.h` | 0 | ABI/header |
+| `filesystems/fsw_ext4.c` | 16 | Maintained implementation |
+| `filesystems/fsw_ext4.h` | 0 | ABI/header |
+| `filesystems/fsw_ext4_disk.h` | 0 | ABI/header |
+| `filesystems/fsw_hfs.c` | 26 | Maintained implementation |
+| `filesystems/fsw_hfs.h` | 8 | ABI/header |
+| `filesystems/fsw_iso9660.c` | 14 | Maintained implementation |
+| `filesystems/fsw_iso9660.h` | 0 | ABI/header |
+| `filesystems/fsw_lib.c` | 8 | Maintained implementation |
+| `filesystems/fsw_ntfs.c` | 57 | Maintained implementation |
+| `filesystems/fsw_reiserfs.c` | 14 | Maintained implementation |
+| `filesystems/fsw_reiserfs.h` | 0 | ABI/header |
+| `filesystems/fsw_reiserfs_disk.h` | 0 | ABI/header |
+| `filesystems/fsw_strfunc.h` | 15 | ABI/header |
+| `filesystems/gzio.c` | 13 | Bundled decoder |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
