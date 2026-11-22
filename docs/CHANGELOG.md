@@ -2,6 +2,30 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Decoder integration and full repository source inventory
+
+- Indexed all 366 tracked files from the pinned source revision:
+  162 C/header files, 50 other text/build/test files and 154 resource assets.
+  The C/header index records function-like definition counts and code
+  ownership; an inventory entry is **not** a runtime proof.
+- Inspected third-party PNG/JPEG, TrueType, Zstandard, DEFLATE and LZO
+  integration boundaries and preserved bundled decoder implementations.
+- Corrected comments on PNG reallocation/early-exit allocation leaks,
+  NanoJPEG buffer double-free and grayscale assumptions, Zstandard failure
+  cleanup, gzip optional-header handling and UTF-8 generator input bounds.
+- Documented FSW stream/reference, disk scan, HFS layout and timestamp,
+  ReiserFS accounting, EFI metadata allocation and device-path/NVRAM hazards
+  at the implementing functions.
+- Clarified EFI Simple File System read-only callback behaviour and native
+  installer clean-success status handling. Neither bug repairs nor external
+  deployment changes were made.
+- Added a detailed source-to-regression matrix to Validation and checked the
+  indexed 162 + 50 text file paths against the pinned Git tree with zero
+  missing, extra or duplicate entries.
+- These were comment/documentation-only commits. No firmware compilation,
+  sanitizer/fuzz campaign, OVMF boot or physical hardware validation has
+  been claimed. Full functional correctness remains unqualified.
+
 ## 2026-11-22 — Individual-source engineering commentary review
 
 - Screened the tracked repository inventory by source/configuration versus
