@@ -1,11 +1,8 @@
 /*
- * NanoJPEG-to-EG_IMAGE adaptor for BOOT graphics. JPEG data is optional
- * resource content, never a prerequisite for scanning or launching an EFI
- * image. Adapter allocations are independent of loader and firmware handles.
- * The decoded colour buffer belongs to NanoJPEG and njDone() frees it.
- * This adapter also frees that pointer before calling njDone(), risking a
- * double free. Grayscale decoding uses a single byte per pixel but this
- * adapter assumes interleaved RGB triples without testing njIsColor().
+ * Translate NanoJPEG output to an EFI image without transferring ownership of
+ * the decoder's pixel buffer. njDone() alone releases that buffer. Freeing it
+ * separately corrupts the firmware heap and can damage subsequent UI redraws.
+ * Both RGB and single-channel grayscale JPEGs are supported.
  */
 
 #include "global.h"
@@ -15,57 +12,65 @@
 #define _NJ_INCLUDE_HEADER_ONLY
 #include "nanojpeg.c"
 
-typedef struct _jpeg_color {
-   UINT8 red;
-   UINT8 green;
-   UINT8 blue;
-} jpeg_color;
-
-/**
- * Allocate at the dimensions returned by NanoJPEG and copy its packed colour
- * values into EG_PIXEL members. Requested alpha is initialised to fully opaque.
- * IconSize does not scale this image here. The normal success path releases the
- * decoded buffer after the copy, then njDone() attempts to free that same
- * decoder-owned buffer again. This is not valid ownership transfer.
- * The failure path after njDecode does not explicitly tear down the context.
+/*
+ * Decoder storage is borrowed only until the pixel copy finishes. Failure
+ * always exits through njDone(); the returned EG_IMAGE, if any, is owned by
+ * the caller. IconSize is intentionally unused: resizing is handled by the
+ * normal image loader after decoding.
  */
-EG_IMAGE * egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha) {
-    EG_IMAGE *NewImage = NULL;
-    unsigned Width, Height;
-    jpeg_color *JpegData;
-    UINTN i;
-    nj_result_t Result;
+EG_IMAGE *egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength,
+                       IN UINTN IconSize, IN BOOLEAN WantAlpha) {
+    EG_IMAGE *image = NULL;
+    const UINT8 *decoded;
+    UINTN count, i, channels;
+    unsigned width, height;
 
-    if (njInit()) {
-        Result = njDecode((VOID *) FileData, FileDataLength);
-        if (Result != NJ_OK)
-            return NULL;
+    (void)IconSize;
+    if (!FileData || FileDataLength < 2 || FileDataLength > 0x7fffffffU)
+        return NULL;
+    if (!njInit())
+        return NULL;
 
-        Width = njGetWidth();
-        Height = njGetHeight();
+    if (njDecode((const void *)FileData, (int)FileDataLength) != NJ_OK)
+        goto done;
 
-        NewImage = egCreateImage(Width, Height, WantAlpha);
-        if ((NewImage == NULL) || (NewImage->Width != Width) || (NewImage->Height != Height))
-            return NULL;
-        /*
-         * This loop consumes an RGB triple per pixel and supplies an opaque
-         * alpha channel on request. The decoder returns a one-byte plane for
-         * grayscale images, so this path assumes a three-component decoder
-         * result.
-         */
-        JpegData = (jpeg_color *) njGetImage();
+    width = (unsigned)njGetWidth();
+    height = (unsigned)njGetHeight();
+    channels = njIsColor() ? 3 : 1;
 
-        for (i = 0; i < (NewImage->Height * NewImage->Width); i++) {
-            NewImage->PixelData[i].r = JpegData[i].red;
-            NewImage->PixelData[i].g = JpegData[i].green;
-            NewImage->PixelData[i].b = JpegData[i].blue;
+    /* Bound allocation, multiplication and the NanoJPEG-reported plane size. */
+    if (width == 0 || height == 0 || width > 8192 || height > 8192)
+        goto done;
+    count = (UINTN)width * (UINTN)height;
+    if (njGetImageSize() <= 0 ||
+        (UINTN)njGetImageSize() != count * channels)
+        goto done;
 
-            if (WantAlpha)
-                NewImage->PixelData[i].a = 255;
+    decoded = (const UINT8 *)njGetImage();
+    if (!decoded)
+        goto done;
+
+    image = egCreateImage(width, height, WantAlpha);
+    if (!image)
+        goto done;
+
+    for (i = 0; i < count; ++i) {
+        UINT8 red, green, blue;
+        if (channels == 3) {
+            red = decoded[i * 3];
+            green = decoded[i * 3 + 1];
+            blue = decoded[i * 3 + 2];
+        } else {
+            red = green = blue = decoded[i];
         }
-        MyFreePool(JpegData);
-        njDone();
+        image->PixelData[i].r = red;
+        image->PixelData[i].g = green;
+        image->PixelData[i].b = blue;
+        image->PixelData[i].a = WantAlpha ? 255 : 0;
     }
 
-    return NewImage;
-}  
+done:
+    /* NanoJPEG still owns decoded; do not free it separately. */
+    njDone();
+    return image;
+}
