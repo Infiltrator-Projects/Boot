@@ -404,6 +404,15 @@ void EFIAPI fsw_efi_change_blocksize(struct fsw_volume *vol,
  * A failed wide read or buffer allocation triggers a single-block read, which
  * also permits reads near the end of the device. LastIOStatus records the final
  * firmware result for the status mapper.
+ *
+ * UNVERIFIED SAFETY CONDITIONS: StartRead multiplies a disk-supplied block
+ * number by phys_blocksize without an overflow guard. The cache-hit test adds
+ * block size and cache extent endpoints without proving those additions fit
+ * UINT64. Successful use therefore presupposes in-range geometry and a request
+ * that fits the destination buffer; the current adapter does not establish
+ * either condition before DiskIo.ReadDisk/CopyMem. A stale cache window is also
+ * observable if cache invalidation is missed during controller/media changes.
+ * These are limitations of this implementation, not validation guarantees.
  */
 fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno, void *buffer) {
    int              i, ReadCache = -1;
