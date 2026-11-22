@@ -126,12 +126,12 @@ CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
         NewOptions = StrDuplicate(Options);
 
     if (InitrdPath != NULL) {
-        if (StriSubCmp(L"%v", Options)) {
+        if (Options != NULL && StriSubCmp(L"%v", Options)) {
             CHAR16 *InitrdVersion = FindNumbers(InitrdPath);
             ReplaceSubstring(&NewOptions, L"%v", InitrdVersion);
 
             MyFreePool(InitrdVersion);
-        } else if (!StriSubCmp(L"initrd=", Options)) {
+        } else if (Options == NULL || !StriSubCmp(L"initrd=", Options)) {
             MergeStrings(&NewOptions, L"initrd=", L' ');
             MergeStrings(&NewOptions, InitrdPath, 0);
         }
