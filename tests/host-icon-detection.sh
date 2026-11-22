@@ -8,6 +8,9 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 inc="$work/icon-detection-production.inc"
 
+# Extract a named production function body into the host test fixture,
+# preserving nested-brace scope. Function renames require updating the
+# fixture, not substituting a hand-written approximation of production code.
 extract() {
     local signature="$1" file="$2"
     awk -v signature="$signature" '

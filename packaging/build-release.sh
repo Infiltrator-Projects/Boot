@@ -3,6 +3,9 @@
 # its postinst, plus a version-pinned native .run that builds then installs. The released source SHA must
 # match this exact checkout; checksums protect the resulting artifact bytes.
 
+# Packaging ties published installer artifacts to a specific source revision.
+# The .deb contains generic prebuilt EFI images; the native .run builds for
+# the host CPU and installs, without an exposed build-only mode.
 set -euo pipefail
 
 version="${1:?Usage: packaging/build-release.sh VERSION [OUTPUT_DIRECTORY]}"

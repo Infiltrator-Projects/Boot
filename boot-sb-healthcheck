@@ -88,6 +88,8 @@ GetYN() {
     done
 }
 
+# Consume one terminal input line solely to pause an interactive report.
+# This does not read firmware key events or modify Secure Boot variables.
 PauseForKey() {
     echo -n "Press the Enter key to continue: "
     read -r Answer
@@ -464,6 +466,9 @@ CheckMokExpiration() {
     PauseForKey
 }
 
+# Inspect enrolled db certificates returned by mokutil and pass their
+# printable records to CheckKeyExpiration. The shared NUM_KEYS counter
+# indicates parsed records, not image authorization decisions.
 CheckDbExpiration() {
     echo
     echo "*************************************************"
@@ -478,6 +483,9 @@ CheckDbExpiration() {
     PauseForKey
 }
 
+# Examine KEK certificate expiration metadata without writing the key
+# exchange database. Shared status variables come from CheckKeyExpiration;
+# this helper is not a firmware enrollment or revocation operation.
 CheckKekExpiration() {
     echo
     echo "**********************************************"
@@ -491,6 +499,9 @@ CheckKekExpiration() {
     fi
 }
 
+# Examine platform-key validity dates using mokutil's PK export. An absent
+# PK report is not a direct probe of SetupMode or a mutation of Secure Boot
+# enforcement; this function does not write any firmware variable.
 CheckPkExpiration() {
     echo
     echo "*********************************************"

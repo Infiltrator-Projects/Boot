@@ -3,6 +3,9 @@
 # The boot menu must load all 23 installed MB/Daimler TTF resources and
 # rasterise a real glyph in graphics mode, not display an atlas.
 
+# Disposable FAT and OVMF variable images isolate firmware exercise from the
+# host ESP/NVRAM. Logged glyph probes cannot certify the appearance of every
+# rendered letter on a physical monitor.
 set -euo pipefail
 export LC_ALL=C
 test -s boot/boot_x64.efi

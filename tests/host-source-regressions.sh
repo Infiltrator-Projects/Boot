@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Compile extracted production functions against host-only test structures.
 # This does not test EFI protocols, physical Btrfs devices or Common V2.
+# The fixture compiles selected production functions with host-only types.
+# Its passing assertions are narrower than compiling all EFI images or
+# exercising physical firmware protocols.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 work=$(mktemp -d)
