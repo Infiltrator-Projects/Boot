@@ -601,7 +601,6 @@ VOID BltImageCompositeBadge(IN EG_IMAGE *BaseImage,
 }
 
 
-#if BOOT_STARTUP_PROGRESS_ENABLED
 /*
  * Temporary diagnostic splash, independent of the menu wallpaper and the
  * filesystem driver path. Graphics must be initialised once by efi_main
@@ -640,7 +639,8 @@ static VOID BootStartupProgressPaint(VOID)
      * even though the ordinary graphical menu works. Use the actual graphics
      * availability, and request graphics mode where firmware supports it.
      */
-    if (!BootProgressVisible || !AllowGraphicsMode || !egHasGraphicsMode())
+    if (!GlobalConfig.StartupDiagnostics || !BootProgressVisible ||
+        !AllowGraphicsMode || !egHasGraphicsMode())
         return;
     SwitchToGraphics();
     egGetScreenSize(&screenWidth, &screenHeight);
@@ -704,7 +704,8 @@ VOID BootStartupProgressBegin(VOID)
     BootProgressCount = 0;
     BootProgressTick = 0;
     BootProgressVisible = FALSE;
-    if (!AllowGraphicsMode || !egHasGraphicsMode())
+    if (!GlobalConfig.StartupDiagnostics || !AllowGraphicsMode ||
+        !egHasGraphicsMode())
         return;
     /*
      * ConsoleControl is optional. A valid GOP/UGA target is sufficient to
@@ -737,7 +738,7 @@ VOID BootStartupProgressBegin(VOID)
 VOID BootStartupProgressReport(IN CHAR16 *Message, IN UINTN Result)
 {
     UINTN i, row;
-    if (!BootProgressVisible || Message == NULL)
+    if (!GlobalConfig.StartupDiagnostics || !BootProgressVisible || Message == NULL)
         return;
 
     if (BootProgressCount == BOOT_PROGRESS_ROWS) {
@@ -763,4 +764,4 @@ VOID BootStartupProgressEnd(VOID)
 {
     BootProgressVisible = FALSE;
 }
-#endif /* BOOT_STARTUP_PROGRESS_ENABLED */
+
