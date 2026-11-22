@@ -58,6 +58,10 @@ EG_IMAGE * egCreateImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha)
     return NewImage;
 }
 
+/* Construct a caller-owned image and initialise every pixel with Color.
+ * Geometry and allocation failure are delegated to egCreateImage. This is a
+ * deep allocation, not a view into Color or another image's pixel plane.
+ */
 EG_IMAGE * egCreateFilledImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha, IN EG_PIXEL *Color)
 {
     EG_IMAGE        *NewImage;
@@ -419,6 +423,12 @@ EG_IMAGE * egFindIcon(IN CHAR16 *BaseName, IN UINTN IconSize) {
    return Image;
 }  
 
+/* Expand a compile-time embedded image into an independently allocated
+ * EG_IMAGE. Pixel mode selects grayscale versus channel planes; RLE advances
+ * a shared input cursor between planes. Embedded dimensions and DataLength
+ * must be consistent, because the channel helpers accept pixel counts but
+ * not independent source buffer bounds.
+ */
 EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEAN WantAlpha)
 {
     EG_IMAGE            *NewImage;
@@ -665,6 +675,10 @@ VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN 
     }
 }  
 
+/* Copy contiguous one-byte samples into one component of interleaved
+ * EG_PIXEL storage, advancing the destination by four bytes per pixel.
+ * Both backing allocations must cover PixelCount samples/pixels.
+ */
 VOID egInsertPlane(IN UINT8 *SrcDataPtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount)
 {
     UINTN i;
@@ -677,6 +691,9 @@ VOID egInsertPlane(IN UINT8 *SrcDataPtr, IN UINT8 *DestPlanePtr, IN UINTN PixelC
     }
 }
 
+/* Initialise a single EG_PIXEL channel at a four-byte stride. This touches
+ * no other channels and assumes a complete caller-supplied pixel plane.
+ */
 VOID egSetPlane(IN UINT8 *DestPlanePtr, IN UINT8 Value, IN UINTN PixelCount)
 {
     UINTN i;
@@ -689,6 +706,10 @@ VOID egSetPlane(IN UINT8 *DestPlanePtr, IN UINT8 Value, IN UINTN PixelCount)
     }
 }
 
+/* Transfer one interleaved channel between images with four-byte strides.
+ * Source and destination storage are borrowed, and overlapping buffers do
+ * not receive memmove semantics from this forward-copy operation.
+ */
 VOID egCopyPlane(IN UINT8 *SrcPlanePtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount)
 {
     UINTN i;

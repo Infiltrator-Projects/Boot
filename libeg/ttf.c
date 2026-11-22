@@ -228,6 +228,10 @@ static BOOLEAN mbValidateTtf(const UINT8 *bytes, UINTN size) {
     }
     return TRUE;
 }
+/* Decode one Unicode scalar from a borrowed, terminated UTF-16 cursor.
+ * A valid surrogate pair consumes two code units; an isolated surrogate
+ * consumes one and substitutes '?'. Zero ends iteration without advancing.
+ */
 static UINT32 mbNextCodepoint(const CHAR16 **it) {
     UINT32 a = (UINT16)**it;
     if (!a) return 0;
@@ -432,6 +436,11 @@ static BOOLEAN mbBuildGlyph(MB_FACE *f, UINT32 cp, MB_GLYPH *g) {
     g->prepared=TRUE;
     return TRUE;
 }
+/* Rasterise a selected TrueType face into a borrowed RGBA image at its
+ * current role scale. Glyph masks are face-owned when cached, otherwise
+ * temporary; each pixel is clipped to image dimensions before blending.
+ * The brightness hint selects ink contrast but does not own the image.
+ */
 VOID egRenderTextRole(IN CHAR16 *text, IN OUT EG_IMAGE *image,
                       IN UINTN px, IN UINTN py, IN UINT8 brightness,
                       IN UINTN role) {
@@ -525,6 +534,10 @@ static VOID mbClearFaceCache(MB_FACE *face) {
         mbSet(&face->ascii[i],0,sizeof(face->ascii[i]));
     }
 }
+/* Measure a role's real font advances at a requested pixel height without
+ * changing its long-lived default scale. The temporary scale is restored
+ * before returning; width zero also represents missing face/invalid size.
+ */
 UINTN egComputeTextWidthAtPixelHeight(IN CHAR16 *text, IN UINTN role,
                                        IN UINTN pixels) {
     MB_FACE *face;
@@ -540,6 +553,11 @@ UINTN egComputeTextWidthAtPixelHeight(IN CHAR16 *text, IN UINTN role,
     face->scale=prior;
     return width;
 }
+/* Draw a temporary, explicitly sized title face, preserving the role's
+ * previous scale. ASCII glyph caches are cleared before and after the draw
+ * because cached coverage masks encode the earlier rasterisation scale.
+ * This shared face state assumes serialized menu construction, not threads.
+ */
 VOID egRenderTextAtPixelHeight(IN CHAR16 *text, IN OUT EG_IMAGE *image,
                                IN UINTN x, IN UINTN y, IN UINT8 brightness,
                                IN UINTN role, IN UINTN pixels) {

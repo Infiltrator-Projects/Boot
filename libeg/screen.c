@@ -170,6 +170,11 @@ VOID egInitScreen(VOID)
     egDetermineScreenSize();
 }  
 
+/* Query one GOP mode index supplied through ModeWidth, replacing the two
+ * outputs with its pixel dimensions only on success. QueryMode returns an
+ * allocation through Info; this routine does not visibly release it, so
+ * repeated mode inspection has an EFI pool-lifetime consideration.
+ */
 BOOLEAN egGetResFromMode(UINTN *ModeWidth, UINTN *Height) {
     UINTN                                 Size;
     EFI_STATUS                            Status;
@@ -476,6 +481,11 @@ VOID egDrawImageWithTransparency(EG_IMAGE *Image, EG_IMAGE *BadgeImage,
     }
 }  
 
+/* Blit a bounded subsection of a borrowed image into the current graphics
+ * mode. Source coordinates are clipped before GOP/UGA transfer; Delta keeps
+ * the original source-row stride rather than repacking the selected columns.
+ * EFI blit status is not returned to the higher-level presentation caller.
+ */
 VOID egDrawImageArea(IN EG_IMAGE *Image,
                      IN UINTN AreaPosX, IN UINTN AreaPosY,
                      IN UINTN AreaWidth, IN UINTN AreaHeight,
