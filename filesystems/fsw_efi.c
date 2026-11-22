@@ -232,6 +232,16 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_P
  * Failure to allocate the volume record closes the Disk I/O protocol
  * acquired by this binding and returns EFI_OUT_OF_RESOURCES before accessing
  * the record. The later mount/protocol-install cleanup remains independent.
+ *
+ * BlockIo is borrowed using GET_PROTOCOL, while DiskIo is claimed with
+ * BY_DRIVER and requires CloseProtocol. Volume owns the FSW mount and the
+ * storage of the EFI Simple File System protocol embedded within it. A
+ * successful protocol installation transfers no ownership of that storage:
+ * it must remain alive until UninstallMultipleProtocolInterfaces succeeds.
+ * The empty error branch after installation does not skip cleanup; the
+ * following shared failure path unmounts and closes the acquired resources.
+ * Mounting a volume is not evidence that arbitrary filesystem metadata is
+ * fully validated.
  */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                               IN EFI_HANDLE                   ControllerHandle,
