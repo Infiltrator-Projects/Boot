@@ -130,6 +130,57 @@ This path does **not** currently establish that multiplication of the block inde
 
 These descriptions are source-inspection findings. They do not imply that fuzzing, hostile filesystem images, fault-injected EFI allocation, firmware authentication matrices, or physical hardware regression runs have occurred. The related unexecuted regression requirements are tracked in [Validation](VALIDATION.md). Documentation changes do not repair the implementation.
 
+## Source contract: image classification versus authenticated execution
+
+`boot/launch_efi.c:IsValidLoader` is a format classifier, not a complete
+PE validator or a signature verifier. Its current native-image probe requests
+4096 bytes, reads the DOS PE-offset field before confirming that the requested
+number of bytes was returned, and compares an architecture signature only
+when the probe has the expected full size. It recognises a gzip magic header
+separately when that configuration is enabled. Firmware `LoadImage`, together
+with active security policy, performs a later decision about accepting the
+image; menu discovery alone does not establish that the image will execute.
+
+The function presently allocates its probe buffer before rejecting missing
+`RootDir` or `FileName`; the early returns on missing arguments and failed
+`Open` do not release that allocation. This is a **known implementation
+defect**, not a memory-safety property. A short successful `Read` also does
+not establish that bytes used for its PE-offset field were initialised.
+These risks require code changes and regression tests; source commentary
+must not claim they have been repaired.
+
+## Source contract: firmware BootOrder enumeration
+
+`boot/install.c:FindBootOrderEntries` receives `BootOrder` as a byte-sized EFI
+variable, rejects odd byte counts, and iterates its 16-bit option numbers.
+For each readable `Boot####` record it bounds the UTF-16 label terminator
+and the declared device-path span before separately allocating owned copies.
+Missing and malformed records are skipped. Allocation failure terminates
+enumeration and may return an already-built *prefix* of entries. Thus a
+returned list is a presentation inventory, **not proof that every firmware
+option was read**. A `NULL` result does not distinguish an empty/invalid
+inventory from some allocation or variable-read failures.
+
+`DeleteInvalidBootEntries` has a different failure contract: it only
+discards `EFI_NOT_FOUND` records, aborts on other read errors and avoids a
+`BootOrder` rewrite when no remaining option could be read. The deletion of
+a `Boot####` option and subsequent `BootOrder` cleanup are separate
+operations. A successful first mutation followed by cleanup failure is a
+partial firmware change, and documentation or UI messages must reflect it.
+
+## Source contract: driver binding lifetime
+
+`filesystems/fsw_efi.c:fsw_efi_DriverBinding_Start` borrows `BlockIo`
+through `EFI_OPEN_PROTOCOL_GET_PROTOCOL`, opens `DiskIo` with
+`EFI_OPEN_PROTOCOL_BY_DRIVER`, allocates an owning volume record, mounts the
+FSW backend and publishes a Simple File System interface only after mount
+success. On failure the volume is unmounted/freed and the claimed Disk I/O
+protocol is closed. On success the embedded protocol storage remains alive
+until `fsw_efi_DriverBinding_Stop` can uninstall that interface. If firmware
+refuses uninstall, Stop returns without freeing the volume. A firmware
+protocol install is an interface registration, not proof that reads from a
+malformed or unsupported volume are safe.
+
 ## Unverified architectural objectives
 
 The desired Common V2-only filesystem module design, universal operating-system compatibility, production-grade security qualification and complete custom InfiltratorOS appearance require explicit future evidence. This document records the implemented BOOT revision and does not silently declare those objectives done. See [Hardware](HARDWARE.md) and [Validation](VALIDATION.md) for observed limits.
