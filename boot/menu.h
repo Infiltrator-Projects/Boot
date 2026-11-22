@@ -70,6 +70,11 @@ struct _refit_menu_screen;
 
 typedef VOID (*MENU_STYLE_FUNC)(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN Function, IN CHAR16 *ParamText);
 
+/*
+ * Append borrowed record pointers, not deep copies. Strings and nested
+ * entries must outlive the screen; an entry selected from the old inventory
+ * is invalid following ScanForBootloaders. Neither append reports OOM.
+ */
 VOID AddMenuInfoLine(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine);
 VOID AddMenuEntry(IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry);
 UINTN ComputeRow0PosY(VOID);
@@ -84,12 +89,22 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
                        IN SCROLL_STATE *State,
                        IN UINTN Function,
                        IN CHAR16 *ParamText);
+/*
+ * Return a MENU_EXIT_* UI action and a pointer borrowed from Screen.
+ * DefaultEntryIndex is an array index updated by input/scroll handling; it
+ * is not a persistent firmware boot option number.
+ */
 UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
                      IN MENU_STYLE_FUNC StyleFunc,
                      IN OUT INTN *DefaultEntryIndex,
                      OUT REFIT_MENU_ENTRY **ChosenEntry);
 VOID ManageHiddenTags(VOID);
 CHAR16* ReadHiddenTags(CHAR16 *VarName);
+/*
+ * Nested menu selection can return a child rather than a top-level entry.
+ * The returned pointer belongs to the current scan and its Tag controls
+ * downstream EFI application versus firmware-variable dispatch.
+ */
 UINTN RunMainMenu(IN REFIT_MENU_SCREEN *Screen, IN CHAR16** DefaultSelection, OUT REFIT_MENU_ENTRY **ChosenEntry);
 UINTN FindMainMenuItem(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN PosX, IN UINTN PosY);
 VOID GenerateWaitList();

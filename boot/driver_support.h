@@ -13,6 +13,11 @@
 #else
 #include "../include/tiano_includes.h"
 #endif
+/*
+ * LoadDrivers counts candidate driver names, not successfully started EFI
+ * drivers. A positive result triggers controller connection and rescan even
+ * when firmware rejects a candidate. Connection can change handle bindings.
+ */
 #include "global.h"
 /*
  * These flags describe observed protocol relationships. Image, driver and

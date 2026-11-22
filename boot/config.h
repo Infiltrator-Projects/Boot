@@ -13,6 +13,11 @@
 #else
 #include "../include/tiano_includes.h"
 #endif
+/*
+ * Configuration text comes from a writable EFI-visible volume. Encoding and
+ * cursor units follow REFIT_FILE's byte and CHAR16 boundaries. Configuration
+ * governs visibility and preferences; it is not an execution trust grant.
+ */
 #include "global.h"
 /*
  * Both cursor pairs describe the same file buffer. BufferSize is in bytes,

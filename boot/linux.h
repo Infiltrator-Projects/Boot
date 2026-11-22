@@ -7,6 +7,12 @@
 #ifndef __BOOT_LINUX_H_
 #define __BOOT_LINUX_H_
 
+/*
+ * Returned initrd path and composed options are separately allocated for the
+ * caller to free. Selection uses filename/version heuristics, not verified
+ * initramfs contents. An existing initrd= option takes precedence; %v can
+ * select the discovered initrd version. Neither path proves OS boot success.
+ */
 CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume);
 CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath);
 CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume);

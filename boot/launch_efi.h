@@ -28,6 +28,11 @@
 #define LOADER_TYPE_EFI     1
 #define LOADER_TYPE_GZIP    2
 
+/*
+ * Classify then pass an EFI image to firmware LoadImage/StartImage. Pointers
+ * are borrowed for the invocation. A valid header and successful file read
+ * are not proof of signature acceptance or OS user-space execution.
+ */
 EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR16 *Filename,
                          IN CHAR16 *LoadOptions,
@@ -36,6 +41,11 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN BOOLEAN Verbose,
                          IN BOOLEAN IsDriver);
 UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName);
+/*
+ * RebootIntoFirmware requests the firmware UI through OsIndications.
+ * RebootIntoLoader writes BootNext and resets only after successful write;
+ * neither changes persistent BootOrder priority.
+ */
 EFI_STATUS RebootIntoFirmware(VOID);
 VOID StartLoader(LOADER_ENTRY *Entry, CHAR16 *SelectionName);
 VOID StartTool(IN LOADER_ENTRY *Entry);

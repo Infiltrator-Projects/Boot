@@ -48,15 +48,32 @@ typedef struct {
 
 extern EFI_GUID gFreedesktopRootGuid;
 
+/*
+ * Init borrows the entry image handle and opens firmware-facing volume state.
+ * Uninit closes active roots; Reinit restores them if a launched image returns.
+ */
 EFI_STATUS InitRefitLib(IN EFI_HANDLE ImageHandle);
 VOID UninitRefitLib(VOID);
 EFI_STATUS ReinitRefitLib(VOID);
 
+/*
+ * Success returns a caller-owned EFI pool buffer. Despite the legacy OPTIONAL
+ * annotation, EfivarGetRaw can dereference 'size' on failure: always pass a
+ * valid UINTN pointer. GlobalGuid variables including BootOrder use firmware
+ * NVRAM; BootGuid can be configured to use file-backed storage instead.
+ * SetRaw may change persistent state; sizes count bytes, not CHAR16 units.
+ */
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL);
 EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, BOOLEAN persistent);
 
 VOID CleanUpPathNameSlashes(IN OUT CHAR16 *PathName);
 CHAR16* SplitDeviceString(IN OUT CHAR16 *InString);
+/*
+ * List storage is reallocated as a pointer vector. AddListElement cannot
+ * report allocation failure (VOID return), so a failed append leaves the
+ * old count unchanged. FreeList releases individually owned elements and
+ * does not reset the caller's pointer or count.
+ */
 VOID CreateList(OUT VOID ***ListPtr, OUT UINTN *ElementCount, IN UINTN InitialElementCount);
 VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID *NewElement);
 VOID FreeList(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount);
@@ -69,10 +86,17 @@ BOOLEAN FileExists(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath);
 
 EFI_STATUS DirNextEntry(IN EFI_FILE_PROTOCOL *Directory, IN OUT EFI_FILE_INFO **DirEntry, IN UINTN FilterMode);
 
+/*
+ * An iterator borrows BaseDir unless it opens a child. A returned DirEntry
+ * aliases LastFileInfo: callers freeing that record must advance the iterator
+ * or clear the field before closing it to prevent a second free. DirIterClose
+ * returns the prior enumeration status, not the firmware Close status.
+ */
 VOID DirIterOpen(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath OPTIONAL, OUT REFIT_DIR_ITER *DirIter);
 BOOLEAN DirIterNext(IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR16 *FilePattern OPTIONAL, OUT EFI_FILE_INFO **DirEntry);
 EFI_STATUS DirIterClose(IN OUT REFIT_DIR_ITER *DirIter);
 
+/* Caller owns the independent UTF-16 string returned by Basename. */
 CHAR16 * Basename(IN CHAR16 *Path);
 CHAR16 * StripEfiExtension(CHAR16 *FileName);
 
