@@ -54,6 +54,13 @@ struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(ext4) = {
     fsw_ext4_readlink,
 };
 
+/*
+ * Test whether an unsigned group number is an integer power of a small base.
+ * The loop multiplies a 32-bit accumulator without an overflow guard; a large
+ * disk-derived group number can therefore wrap instead of establishing a
+ * mathematically bounded power test. Used in sparse-superblock selection;
+ * this is a known unverified arithmetic boundary rather than a safe parser.
+ */
 static __inline int test_root(fsw_u32 a, int b)
 {
         fsw_u32 num = b;
