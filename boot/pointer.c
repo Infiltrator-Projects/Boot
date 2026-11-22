@@ -6,6 +6,9 @@
  * Cursor coordinates, visible image snapshots and firmware input events have
  * separate lifetimes. Repainting a stale captured background after a menu
  * redraw can erase the current highlight; pointer support remains optional.
+ * Cursor coordinates, visible image snapshots and firmware input events have
+ * separate lifetimes. Repainting a stale captured background after a menu
+ * redraw can erase the current highlight; pointer support remains optional.
  */
 
 #include "pointer.h"
