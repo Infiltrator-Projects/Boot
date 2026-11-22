@@ -632,6 +632,11 @@ static size_t ZSTD_buildSeqTable(FSE_DTable *DTableSpace, const FSE_DTable **DTa
 	}
 }
 
+/* Parse the number of sequences and three entropy-mode selectors for
+ * literal length, match length and match offset. Each mode prepares or
+ * reuses an FSE decode table stored in the context. nbSeqPtr is written
+ * only after decoding the count prefix; later table errors still propagate.
+ */
 size_t ZSTD_decodeSeqHeaders(ZSTD_DCtx *dctx, int *nbSeqPtr, const void *src, size_t srcSize)
 {
 	const BYTE *const istart = (const BYTE *const)src;
@@ -1251,6 +1256,11 @@ static size_t ZSTD_decompressSequencesLong(ZSTD_DCtx *dctx, void *dst, size_t ma
 	return op - ostart;
 }
 
+/* First decode the literals section, then execute match/literal sequences
+ * against the output and previous-window history. A large window on 64-bit
+ * builds selects the long-distance sequence loop; each branch must respect
+ * dstCapacity and must not publish more than its returned byte count.
+ */
 static size_t ZSTD_decompressBlock_internal(ZSTD_DCtx *dctx, void *dst, size_t dstCapacity, const void *src, size_t srcSize)
 {  
 	const BYTE *ip = (const BYTE *)src;
@@ -1431,6 +1441,11 @@ static size_t ZSTD_decompressFrame(ZSTD_DCtx *dctx, void *dst, size_t dstCapacit
 }
 
 static size_t ZSTD_decompressBegin_usingDict(ZSTD_DCtx *dctx, const void *dict, size_t dictSize);
+/* Consume concatenated Zstandard frames, skipping skippable frames by
+ * their advertised lengths. Each data frame resets entropy/dictionary
+ * state and advances the destination by its actual decoded byte count;
+ * a matching frame magic is not sufficient proof of payload integrity.
+ */
 static size_t ZSTD_decompressMultiFrame(ZSTD_DCtx *dctx, void *dst, size_t dstCapacity, const void *src, size_t srcSize, const void *dict, size_t dictSize)
 {
 	void *const dststart = dst;

@@ -34,6 +34,11 @@ typedef struct {
 	BYTE nbBits;
 } HUF_DEltX2;  
 
+/* Build the single-symbol Huffman decoding table using rank counts and
+ * weights parsed from compressed input. Workspace is caller-provided,
+ * subdivided into fixed rank/weight arrays before entropy-table assembly;
+ * tableLog and destination capacity bound the possible decode entries.
+ */
 size_t HUF_readDTableX2_wksp(HUF_DTable *DTable, const void *src, size_t srcSize, void *workspace, size_t workspaceSize)
 {
 	U32 tableLog = 0;
@@ -116,6 +121,11 @@ static BYTE HUF_decodeSymbolX2(BIT_DStream_t *Dstream, const HUF_DEltX2 *dt, con
 	if (ZSTD_64bits())                     \
 	HUF_DECODE_SYMBOLX2_0(ptr, DStreamPtr)
 
+/* Decode symbols from a reverse bitstream with a table that emits one byte
+ * per symbol. The fast loop unrolls four decodes only while the output has
+ * room; the tail path handles the final bytes. BIT_reloadDStream governs
+ * input replenishment and must not be confused with output exhaustion.
+ */
 FORCE_INLINE size_t HUF_decodeStreamX2(BYTE *p, BIT_DStream_t *const bitDPtr, BYTE *const pEnd, const HUF_DEltX2 *const dt, const U32 dtLog)
 {
 	BYTE *const pStart = p;
@@ -754,6 +764,11 @@ U32 HUF_selectDecoder(size_t dstSize, size_t cSrcSize)
 	return DTime1 < DTime0;
 }
 
+/* Choose X2 (one symbol) or X4 (paired symbols) Huffman table decoding
+ * using an estimated cost for the declared compressed/destination sizes.
+ * Both branches consume the same caller-owned scratch workspace and must
+ * report malformed compressed lengths before interpreting stream headers.
+ */
 size_t HUF_decompress4X_hufOnly_wksp(HUF_DTable *dctx, void *dst, size_t dstSize, const void *cSrc, size_t cSrcSize, void *workspace, size_t workspaceSize)
 {
 

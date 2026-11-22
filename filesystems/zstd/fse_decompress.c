@@ -246,6 +246,12 @@ size_t FSE_decompress_wksp(void *dst, size_t dstCapacity, const void *cSrc, size
 	return FSE_decompress_usingDTable(dst, dstCapacity, ip, cSrcSize, dt);  
 }
 
+/* Parse normalised symbol probabilities from the packed FSE header.
+ * remaining tracks unassigned table probability, while bitCount records
+ * already consumed header bits. Runs of zero-frequency symbols change
+ * symbol indices without filling table slots. The caller owns the output
+ * counts and must honour the returned byte consumption/error code.
+ */
 size_t FSE_readNCount(short *normalizedCounter, unsigned *maxSVPtr, unsigned *tableLogPtr, const void *headerBuffer, size_t hbSize)
 {
 	const BYTE *const istart = (const BYTE *)headerBuffer;
