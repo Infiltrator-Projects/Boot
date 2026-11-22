@@ -412,6 +412,9 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
     UINTN MenuExit;
     EFI_STATUS PointerStatus = EFI_NOT_READY;
     UINTN Item;
+    UINT64 DiagnosticMenuBegin = BootDiagTicks();
+    UINT64 DiagnosticPhaseBegin = 0;
+    BOOLEAN DiagnosticFirstFrame = FALSE;
 
     LOG(2, LOG_LINE_NORMAL, L"Running menu screen: '%s'", Screen->Title);
     if (Screen->TimeoutSeconds > 0) {
@@ -420,8 +423,12 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
     }
     MenuExit = 0;
 
+    DiagnosticPhaseBegin = BootDiagTicks();
     StyleFunc(Screen, &State, MENU_FUNCTION_INIT, NULL);
     IdentifyRows(&State, Screen);
+    if (GlobalConfig.StartupDiagnostics)
+        LOG(1, LOG_LINE_NORMAL, L"[DIAG] menu '%s' initialised in %lu ms",
+            Screen->Title, BootDiagElapsedMs(DiagnosticPhaseBegin));
 
     if (*DefaultEntryIndex >= 0 && *DefaultEntryIndex <= State.MaxIndex) {
         State.CurrentSelection = *DefaultEntryIndex;
@@ -453,6 +460,8 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
     LOG(3, LOG_LINE_NORMAL, L"About to enter while() loop in RunGenericMenu()");
     while (!MenuExit) {
 
+        if (!DiagnosticFirstFrame)
+            DiagnosticPhaseBegin = BootDiagTicks();
         pdClear();
         if (State.PaintAll && (GlobalConfig.ScreensaverTime != -1)) {
             StyleFunc(Screen, &State, MENU_FUNCTION_PAINT_ALL, NULL);
@@ -462,6 +471,14 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
             State.PaintSelection = FALSE;
         }
         pdDraw();
+        if (!DiagnosticFirstFrame && GlobalConfig.StartupDiagnostics) {
+            LOG(1, LOG_LINE_NORMAL,
+                L"[DIAG] menu '%s' first frame elapsed=%lu ms; entry-to-frame=%lu ms",
+                Screen->Title, BootDiagElapsedMs(DiagnosticPhaseBegin),
+                BootDiagElapsedMs(DiagnosticMenuBegin));
+            BootDiagFlush();
+        }
+        DiagnosticFirstFrame = TRUE;
 
         if (WaitForRelease) {
             Status = refit_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
