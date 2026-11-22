@@ -161,6 +161,7 @@ static UINTN mbRoleFace[MB_FONT_ROLE_COUNT] = { 16, 11, 9 };
 static UINTN mbLoadedCount;
 static BOOLEAN mbRasterisedGlyph;
 static BOOLEAN mbInitialized;
+static UINTN mbCurrentPixelHeight;
 static UINTN mbLineHeight = 20;
 static UINTN mbAverageAdvance = 10;
 
@@ -257,49 +258,92 @@ static MB_FACE *mbFace(UINTN role) {
     if (mbFaces[idx].ready) return &mbFaces[idx];
     return NULL;
 }
-static VOID mbPrepare(VOID) {
-    UINTN i, sw, sh, pixels;
-    if (mbInitialized) return;
-    mbInitialized = TRUE;
-    egGetScreenSize(&sw, &sh);
-    pixels = sw >= HIDPI_MIN ? 30 : 18;
-    mbLineHeight = pixels + (pixels/5);
-    mbAverageAdvance = pixels*3/5;
+/*
+ * UEFI's GOP mode may change after fonts are initially loaded (SetupScreen
+ * and external EFI programs). Parsed outlines are reusable, but pixel-size-
+ * dependent cached glyphs must be freed before changing rasterisation scale.
+ */
+static VOID mbUpdateScreenScale(VOID) {
+    UINTN i,j,screenWidth,screenHeight,pixels;
+    egGetScreenSize(&screenWidth,&screenHeight);
+    pixels = screenWidth >= HIDPI_MIN ? 30 : 18;
+    if (mbCurrentPixelHeight == pixels) return;
     for (i=0; i<MB_FONT_COUNT; ++i) {
         MB_FACE *f=&mbFaces[i];
-        UINT8 *buf=NULL;
-        UINTN len=0;
-        EFI_STATUS status;
-        if (!SelfDir) continue;
-        status=egLoadFile(SelfDir, f->path, &buf, &len);
-        if (EFI_ERROR(status) || !buf) continue;
-        if (!mbValidateTtf(buf,len) ||
-            !stbtt_InitFont(&f->font,buf,stbtt_GetFontOffsetForIndex(buf,0))) {
-            mbFree(buf);
-            continue;
+        for (j=0; j<MB_GLYPH_ASCII_CACHE; ++j) {
+            mbFree(f->ascii[j].mask);
+            mbSet(&f->ascii[j],0,sizeof(f->ascii[j]));
         }
-        f->data=buf;
-        f->length=len;
-        f->scale=stbtt_ScaleForPixelHeight(&f->font,(float)pixels);
-        stbtt_GetFontVMetrics(&f->font,&f->ascent,NULL,NULL);
-        f->ready=TRUE;
-        ++mbLoadedCount;
+        if (f->ready) {
+            f->scale=stbtt_ScaleForPixelHeight(&f->font,(float)pixels);
+            stbtt_GetFontVMetrics(&f->font,&f->ascent,NULL,NULL);
+        }
     }
+    mbCurrentPixelHeight=pixels;
+    mbLineHeight=pixels+pixels/5;
+    mbAverageAdvance=pixels*3/5;
+    LOG(1,LOG_LINE_NORMAL,L"MB TrueType renderer scale: %d px at %dx%d",pixels,screenWidth,screenHeight);
 }
-/* Exercise the actual firmware-built rasteriser on an off-screen image.
- * A valid TTF header alone cannot establish working glyph rasterisation. */
+
+static VOID mbPrepare(VOID) {
+    UINTN i;
+    if (!mbInitialized) {
+        mbInitialized=TRUE;
+        for (i=0; i<MB_FONT_COUNT; ++i) {
+            MB_FACE *f=&mbFaces[i];
+            UINT8 *buf=NULL;
+            UINTN len=0;
+            EFI_STATUS status;
+            if (!SelfDir) continue;
+            status=egLoadFile(SelfDir,f->path,&buf,&len);
+            if (EFI_ERROR(status) || !buf) continue;
+            if (!mbValidateTtf(buf,len) ||
+                !stbtt_InitFont(&f->font,buf,stbtt_GetFontOffsetForIndex(buf,0))) {
+                mbFree(buf);
+                continue;
+            }
+            f->data=buf;
+            f->length=len;
+            f->ready=TRUE;
+            ++mbLoadedCount;
+        }
+    }
+    mbUpdateScreenScale();
+}
+/* Ensure codepoint substitution and kerning agree between layout and draw. */
+static UINT32 mbSupportedCodepoint(MB_FACE *f, UINT32 cp) {
+    return cp && !stbtt_FindGlyphIndex(&f->font,(int)cp) ? (UINT32)'?' : cp;
+}
+/*
+ * Probe each configured face using the actual firmware rasteriser on an
+ * off-screen pixel buffer. Detects blank glyphs and invalid role mappings
+ * without modifying the BOOT banner or producing diagnostic text onscreen.
+ */
 BOOLEAN egFontReady(VOID) {
-    EG_IMAGE *image;
-    EG_PIXEL dark = {0, 0, 0, 0};
-    BOOLEAN passed;
+    UINTN role;
+    EG_PIXEL black = {0,0,0,0};
     mbPrepare();
     if (mbLoadedCount != MB_FONT_COUNT) return FALSE;
-    image = egCreateFilledImage(160, 64, FALSE, &dark);
-    if (!image) return FALSE;
-    egRenderTextRole(L"BOOT", image, 3, 3, 0, MB_FONT_BODY);
-    passed = mbRasterisedGlyph;
-    egFreeImage(image);
-    return passed;
+    for (role=0; role<MB_FONT_ROLE_COUNT; ++role) {
+        EG_IMAGE *scratch=egCreateFilledImage(160,64,FALSE,&black);
+        UINTN i,count;
+        BOOLEAN changed=FALSE;
+        if (!scratch) return FALSE;
+        egRenderTextRole(L"BOOT",scratch,3,3,0,role);
+        count=scratch->Width*scratch->Height;
+        for (i=0; i<count; ++i) {
+            EG_PIXEL *p=&scratch->PixelData[i];
+            if (p->r || p->g || p->b) { changed=TRUE; break; }
+        }
+        egFreeImage(scratch);
+        if (!changed) {
+            LOG(1,LOG_LINE_NORMAL,L"MB TrueType font role %d failed glyph test",role);
+            return FALSE;
+        }
+        LOG(1,LOG_LINE_NORMAL,L"MB TrueType font role %d rendered using %s",
+            role,mbFaces[mbRoleFace[role]].path);
+    }
+    return TRUE;
 }
 UINTN egGetFontLoadedCount(VOID) {
     mbPrepare();
@@ -323,11 +367,10 @@ UINTN egComputeTextWidthRole(IN CHAR16 *text, IN UINTN role) {
     mbPrepare();
     f=mbFace(role);
     if (!f) return StrLen(text)*mbAverageAdvance;
-    cp=mbNextCodepoint(&p);
+    cp=mbSupportedCodepoint(f,mbNextCodepoint(&p));
     while (cp) {
         int advance=0;
-        next=mbNextCodepoint(&p);
-        if (!stbtt_FindGlyphIndex(&f->font,(int)cp)) cp='?';
+        next=mbSupportedCodepoint(f,mbNextCodepoint(&p));
         stbtt_GetCodepointHMetrics(&f->font,(int)cp,&advance,NULL);
         width += (float)advance*f->scale;
         if (next) width += (float)stbtt_GetCodepointKernAdvance(&f->font,(int)cp,(int)next)*f->scale;
@@ -382,10 +425,9 @@ VOID egRenderTextRole(IN CHAR16 *text, IN OUT EG_IMAGE *image,
     while (cp && pen<(float)image->Width) {
         MB_GLYPH temp={0}, *g=&temp;
         int advance=0;
-        UINT32 rendered=cp;
+        UINT32 rendered=mbSupportedCodepoint(f,cp);
         UINTN y,x;
         INTN left,top;
-        if (!stbtt_FindGlyphIndex(&f->font,(int)rendered)) rendered='?';
         if (rendered<MB_GLYPH_ASCII_CACHE)
             g=&f->ascii[rendered];
         if (!g->prepared && !mbBuildGlyph(f,rendered,g)) break;
@@ -435,7 +477,7 @@ VOID egRenderTextRole(IN CHAR16 *text, IN OUT EG_IMAGE *image,
         stbtt_GetCodepointHMetrics(&f->font,(int)rendered,&advance,NULL);
         next=mbNextCodepoint(&p);
         pen+=(float)advance*f->scale;
-        if (next) pen+=(float)stbtt_GetCodepointKernAdvance(&f->font,(int)rendered,(int)next)*f->scale;
+        if (next) pen+=(float)stbtt_GetCodepointKernAdvance(&f->font,(int)rendered,(int)mbSupportedCodepoint(f,next))*f->scale;
         cp=next;
     }
 }
