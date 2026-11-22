@@ -294,6 +294,15 @@ static BOOLEAN SecureBootUninstall(VOID) {
  * " -c ". The remaining suffix is duplicated, shortened to 256 characters and
  * tested relative to SelfDir. An absent file leaves the configured default in
  * place.
+ *
+ * The options originate in EFI_LOADED_IMAGE and therefore are externally
+ * supplied loader data, not a trusted in-memory configuration contract. This
+ * routine searches them as a CHAR16 string; a valid LoadOptionsSize byte count
+ * alone does not prove a terminating CHAR16 NUL or a well-formed option suffix.
+ * The source does not establish those bounds before MyStrStr, so do not claim
+ * hostile LoadOptions are safely parsed until a size-bounded parser and test
+ * cases exist. The chosen filename affects configuration lookup, not ESP
+ * installation location or the firmware BootOrder.
  */
 static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
     EFI_LOADED_IMAGE *Info;
