@@ -3,6 +3,13 @@
 # fsw_strfunc.h is derived source: changes to generated Unicode/byte-width
 # handling should be made here and regenerated coherently. This script uses
 # legacy Python syntax and is not the standard GNU-EFI release entry point.
+# CONTRACT LIMITATION: generated UTF-8 getnext fragments read continuation
+# bytes without receiving or comparing against a source byte-buffer limit.
+# Conversion loops use srclen as a count of decoded units rather than a
+# measured available-byte bound. Invalid UTF-8 continuation sequences and
+# truncated multibyte encodings are not rejected here. Generated C must not
+# be described as a complete Unicode validator; preserve output consistency
+# with fsw_strfunc.h when designing a future bounds-aware generator.
 
 types = {
     'ISO88591': 'fsw_u8',
