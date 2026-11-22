@@ -1,11 +1,15 @@
 /*
- * UEFI Boot Device Selection connection helpers. Controller/child handles
- * and open-protocol relationships come from firmware and may change as drivers
- * attach. Whole-platform reconnection has more side effects than file scanning;
- * callers must not confuse 'connected' with a bootable filesystem.
- * Protocol-interface indexes are meaningful only in the corresponding
- * handle snapshot. Dispatch or ConnectController can change handle topology,
- * invalidating any previous positional association.
+ * BOOT / Device connection
+ *
+ * UEFI Boot Device Selection connection helpers.
+ *
+ * Controller/child handles and open-protocol relationships come from
+ * firmware and may change as drivers attach. Whole-platform reconnection
+ * has more side effects than file scanning; callers must not confuse
+ * 'connected' with a bootable filesystem. Protocol-interface indexes are
+ * meaningful only in the corresponding handle snapshot. Dispatch or
+ * ConnectController can change handle topology, invalidating any previous
+ * positional association.
  */
 
 #include "Platform.h"

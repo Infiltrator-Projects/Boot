@@ -1,4 +1,8 @@
-/* Linux EFI-stub candidate and boot-option helpers.
+/*
+ * BOOT / Linux boot options API
+ *
+ * Linux EFI-stub candidate and boot-option helpers.
+ *
  * Distribution recognition supplies hints, not authoritative OS identity.
  * Initrd discovery and command-line construction are separate stages.
  */

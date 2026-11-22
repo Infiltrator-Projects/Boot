@@ -1,4 +1,8 @@
-/* Firmware volume, file, variable and device-path interfaces.
+/*
+ * BOOT / Firmware service API
+ *
+ * Firmware volume, file, variable and device-path interfaces.
+ *
  * RootDir identifies a usable EFI file protocol, not merely a disk type.
  * Allocated strings and device paths require paired release.
  */

@@ -1,10 +1,14 @@
 /*
+ * BOOT / Legacy BDS helpers
+ *
  * Legacy BDS interoperability helpers connecting firmware option data with
- * BIOS boot-services tables. Hardware/firmware capability is a prerequisite;
- * legacy mappings cannot be inferred from native UEFI image discovery.
- * LegacyBoot requires an appropriate BBS device path and firmware protocol;
- * simply finding a Boot#### variable does not establish an executable BIOS
- * service on the current platform.
+ * BIOS boot-services tables.
+ *
+ * Hardware/firmware capability is a prerequisite; legacy mappings cannot be
+ * inferred from native UEFI image discovery. LegacyBoot requires an
+ * appropriate BBS device path and firmware protocol; simply finding a
+ * Boot#### variable does not establish an executable BIOS service on the
+ * current platform.
  */
 
 #include "BdsHelper.h"

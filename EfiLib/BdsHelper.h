@@ -1,7 +1,11 @@
 /*
- * Legacy dispatch takes a parsed BDS option. UpdateBbsTable derives device
- * priorities from its description and device type before the platform
- * LegacyBoot call receives the selected BBS path and load options.
+ * BOOT / BDS helper API
+ *
+ * Legacy dispatch takes a parsed BDS option.
+ *
+ * UpdateBbsTable derives device priorities from its description and device
+ * type before the platform LegacyBoot call receives the selected BBS path
+ * and load options.
  */
 
 #ifdef __MAKEWITH_TIANO

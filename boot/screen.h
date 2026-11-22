@@ -1,4 +1,8 @@
-/* Firmware console, GOP and display-state interfaces.
+/*
+ * BOOT / Display and console API
+ *
+ * Firmware console, GOP and display-state interfaces.
+ *
  * Graphical resources are invalidated by relevant display-mode changes.
  * Text-mode fallback remains available if rendering fails.
  */

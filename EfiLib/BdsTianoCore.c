@@ -1,11 +1,15 @@
 /*
- * EDK/Tiano BDS compatibility bridge for device paths and firmware variables.
+ * BOOT / EDK compatibility bridge
+ *
+ * EDK/Tiano BDS compatibility bridge for device paths and firmware
+ * variables.
+ *
  * The module maps the library interfaces required by BOOT's historical BDS
  * code into the selected build environment. Firmware data lengths and EFI
- * error results must remain authoritative.
- * Caller-visible buffer lengths follow UEFI's size-in/out conventions, not
- * arbitrary C-string termination. A compatibility wrapper must preserve
- * failure and ownership semantics across GNU-EFI and Tiano build profiles.
+ * error results must remain authoritative. Caller-visible buffer lengths
+ * follow UEFI's size-in/out conventions, not arbitrary C-string
+ * termination. A compatibility wrapper must preserve failure and ownership
+ * semantics across GNU-EFI and Tiano build profiles.
  */
 
 #ifdef __MAKEWITH_TIANO

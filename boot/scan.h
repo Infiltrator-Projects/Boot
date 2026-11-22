@@ -1,4 +1,8 @@
-/* Loader discovery and submenu construction interface.
+/*
+ * BOOT / Loader discovery API
+ *
+ * Loader discovery and submenu construction interface.
+ *
  * Entry records are tied to the current scanned volume inventory.
  * Rebuilding menus invalidates previous entry pointers.
  */

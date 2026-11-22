@@ -1,4 +1,8 @@
-/* Graphical theme API and image ownership.
+/*
+ * BOOT / Theme rendering API
+ *
+ * Graphical theme API and image ownership.
+ *
  * The background is borrowed from a cache; selection plates are owned.
  * Wordmark composition draws onto its caller-supplied image.
  */

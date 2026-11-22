@@ -1,8 +1,11 @@
 /*
+ * BOOT / Absolute-pointer protocol
+ *
  * UEFI absolute-pointer protocol GUID and mode/state structure layout.
+ *
  * The reported absolute-coordinate range is device-specific; it must be
- * normalised before comparison with framebuffer pixel coordinates.
- * Pointer support is optional and must not be required for keyboard boot.
+ * normalised before comparison with framebuffer pixel coordinates. Pointer
+ * support is optional and must not be required for keyboard boot.
  */
 
 #ifndef __ABSOLUTE_POINTER_H__

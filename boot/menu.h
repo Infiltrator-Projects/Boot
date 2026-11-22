@@ -1,4 +1,8 @@
-/* Menu layout, scroll and selection-result interface.
+/*
+ * BOOT / Menu selection API
+ *
+ * Menu layout, scroll and selection-result interface.
+ *
  * Entry pointers are borrowed; selection results describe UI transitions.
  * Ownership and selected-entry validity follow the active scan.
  */
