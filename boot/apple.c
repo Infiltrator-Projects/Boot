@@ -43,6 +43,11 @@ EFI_STATUS GetCsrStatus(UINT32 *CsrStatus) {
     return Status;
 }  
 
+/*
+ * Translate the vendor-specific CSR mask into user-visible status text.
+ * The output is a diagnostic label and optional timed message; this
+ * routine does not change SIP policy or any firmware variable.
+ */
 VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage) {
     EG_PIXEL    BGColor = COLOR_LIGHTBLUE;
 

@@ -22,12 +22,12 @@ EFI_GUID EfiDevicePathProtocolGuid = { 0x09576E91, 0x6D3F, 0x11D2, { 0x8E, 0x39,
  * discover a longer prefix. Only the Tiano build dispatches additional drivers
  * when the same handle is returned twice.
  */
-EFI_STATUS
 /*
  * Walks a firmware device path, connecting controller instances where
  * possible. A structurally sound path need not refer to a present device;
  * returned EFI_STATUS governs whether the attempted connection succeeded.
  */
+EFI_STATUS
 BdsLibConnectDevicePath (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevicePathToConnect
   )
@@ -116,11 +116,11 @@ BdsLibConnectDevicePath (
  * are appended to the caller's list. This legacy decoder expects a structurally
  * valid variable.
  */
-BDS_COMMON_OPTION *
 /*
  * Decodes a firmware load-option variable; the data is externally supplied
  * and its device path and description cannot be treated as trusted pointers.
  */
+BDS_COMMON_OPTION *
 BdsLibVariableToOption (
   IN OUT LIST_ENTRY                   *BdsCommonOptionList,
   IN  CHAR16                          *VariableName

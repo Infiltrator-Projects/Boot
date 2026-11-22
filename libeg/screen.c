@@ -103,6 +103,11 @@ VOID egSetMaxResolution(VOID) {
     return;
 }  
 
+/*
+ * Prefer GOP's active mode and fall back to UGA's GetMode response.
+ * Protocol presence does not guarantee the mode query succeeds; a
+ * failed UGA query clears the cached protocol pointer.
+ */
 static VOID egDetermineScreenSize(VOID) {
     EFI_STATUS Status = EFI_SUCCESS;
     UINT32 UGAWidth, UGAHeight, UGADepth, UGARefreshRate;
@@ -134,6 +139,11 @@ VOID egGetScreenSize(OUT UINTN *ScreenWidth, OUT UINTN *ScreenHeight)
         *ScreenHeight = egScreenHeight;
 }  
 
+/*
+ * Discover optional console-control, UGA and GOP protocols before
+ * selecting the initial display dimensions. A requested maximum mode
+ * is applied through firmware, not by resizing BOOT's image buffers.
+ */
 VOID egInitScreen(VOID)
 {
     EFI_STATUS Status = EFI_SUCCESS;
@@ -275,6 +285,11 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
     return (ModeSet);
 }  
 
+/*
+ * A failed firmware text-mode switch invokes the diagnostic text
+ * path and enumerates reported console modes. The return value
+ * indicates an actual successful change, not that the request was valid.
+ */
 BOOLEAN egSetTextMode(UINT32 RequestedMode) {
     UINTN         i = 0, Width, Height;
     EFI_STATUS    Status;
@@ -306,6 +321,11 @@ BOOLEAN egSetTextMode(UINT32 RequestedMode) {
     return ChangedIt;
 }  
 
+/*
+ * Return an allocated UTF-16 description of the selected graphics or
+ * text path. The caller owns this string; format text is diagnostic
+ * and does not attest graphics protocol correctness.
+ */
 CHAR16 * egScreenDescription(VOID)
 {
     CHAR16 *GraphicsInfo = NULL, *TextInfo;
@@ -347,6 +367,11 @@ BOOLEAN egIsGraphicsModeEnabled(VOID)
     return FALSE;
 }
 
+/*
+ * Use the optional console-control protocol to change the text/graphics
+ * screen mode only when it differs. Firmware status from GetMode and
+ * SetMode is currently ignored, so the call is not a success guarantee.
+ */
 VOID egSetGraphicsModeEnabled(IN BOOLEAN Enable)
 {
     EFI_CONSOLE_CONTROL_SCREEN_MODE CurrentMode;
@@ -468,6 +493,12 @@ VOID egDrawImageArea(IN EG_IMAGE *Image,
     }
 }
 
+/*
+ * Render a temporary notification image at a persistent vertical
+ * position. The default placement stacks messages across calls;
+ * CENTER, TOP and BOTTOM reset/override that placement. This routine
+ * does not release its temporary Box image, an existing ownership gap.
+ */
 VOID egDisplayMessage(IN CHAR16 *Text, EG_PIXEL *BGColor, UINTN PositionCode) {
     UINTN BoxWidth, BoxHeight;
     static UINTN Position = 1;

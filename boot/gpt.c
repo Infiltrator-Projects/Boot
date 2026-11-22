@@ -39,6 +39,11 @@ GPT_DATA * AllocateGptData(VOID) {
     return GptData;
 }  
 
+/*
+ * Free a complete cached GPT table and its individually allocated
+ * protective MBR, header and entries. A caller must also clear its
+ * own pointer: this destructor does not alter the caller's variable.
+ */
 VOID ClearGptData(GPT_DATA *Data) {
     if (Data) {
         if (Data->ProtectiveMBR)
@@ -215,6 +220,11 @@ GPT_ENTRY * FindPartWithGuid(EFI_GUID *Guid) {
     return Found;
 }  
 
+/*
+ * Drop all globally cached GPT tables before rebuilding discovery.
+ * Partitions returned by FindPartWithGuid are independent copies, but
+ * borrowed pointers into the cache become invalid after this traversal.
+ */
 VOID ForgetPartitionTables(VOID) {
     GPT_DATA  *Next;
 
@@ -225,6 +235,11 @@ VOID ForgetPartitionTables(VOID) {
     }  
 }  
 
+/*
+ * Read a candidate volume's GPT and append a successful result in
+ * discovery order. The global list is not sorted by partition GUID;
+ * a read failure does not invalidate previously cached tables.
+ */
 VOID AddPartitionTable(REFIT_VOLUME *Volume) {
     GPT_DATA    *GptData = NULL, *GptList;
     EFI_STATUS  Status;

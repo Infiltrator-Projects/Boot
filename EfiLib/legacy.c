@@ -150,11 +150,11 @@ BdsBuildLegacyDevNameString (
  * record and a 16-bit index. The returned record aliases the original variable,
  * whose lifetime and record bounds are the caller's responsibility.
  */
-BOOLEAN
 /*
  * Inspects an EFI load option to classify legacy boot encoding.
  * Classification alone does not prove CSM execution support.
  */
+BOOLEAN
 BdsIsLegacyBootOption (
   IN UINT8                 *BootOptionVar,
   OUT BBS_TABLE            **BbsEntry,
@@ -245,12 +245,12 @@ BdsFindLegacyBootOptionByDevTypeAndName (
   return Found;
 }
 
-EFI_STATUS
 /*
  * Constructs a legacy boot option from BBS state and its device path.
  * The output participates in firmware boot-order bookkeeping; a created
  * descriptor does not certify that a BIOS compatibility handoff will work.
  */
+EFI_STATUS
 BdsCreateLegacyBootOption (
   IN BBS_TABLE                        *CurrentBbsEntry,
   IN EFI_DEVICE_PATH_PROTOCOL         *CurrentBbsDevPath,
@@ -536,11 +536,11 @@ EfiLibDeleteVariable (
   return Status;
 }
 
-EFI_STATUS
 /*
  * May synthesise firmware legacy entries from available BBS devices; avoiding
  * unintended duplicates requires exact device identity, not only labels.
  */
+EFI_STATUS
 BdsAddNonExistingLegacyBootOptions (
   VOID
   )
@@ -661,12 +661,12 @@ BdsAddNonExistingLegacyBootOptions (
   return Status;
 }
 
-EFI_STATUS
 /*
  * Removes a selected firmware boot option from the managed order data.
  * This concerns persistent boot configuration, not the display-only
  * hiding of a menu entry; callers must propagate firmware write failures.
  */
+EFI_STATUS
 BdsDeleteBootOption (
   IN UINTN                       OptionNumber,
   IN OUT UINT16                  *BootOrder,
@@ -705,11 +705,11 @@ BdsDeleteBootOption (
 
 }
 
-EFI_STATUS
 /*
  * Removes firmware legacy options deemed invalid by this implementation;
  * this is a persistent firmware mutation and is not equivalent to UI hiding.
  */
+EFI_STATUS
 BdsDeleteAllInvalidLegacyBootOptions (
   VOID
   )

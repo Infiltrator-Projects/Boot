@@ -173,6 +173,11 @@ EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeigh
    return NewImage;
 }  
 
+/*
+ * Image ownership includes both the pixel plane and its enclosing
+ * allocation. A NULL image is harmless; callers must discard all aliases
+ * to PixelData when the image is released.
+ */
 VOID egFreeImage(IN EG_IMAGE *Image)
 {
     if (Image != NULL) {
@@ -233,6 +238,11 @@ EFI_STATUS egLoadFile(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, OUT UI
     return EFI_SUCCESS;
 }
 
+/*
+ * Locate ESP-protocol handles and open the first returned root.
+ * The chosen root is caller-owned; this routine does not search later
+ * candidate handles if the first root is unavailable.
+ */
 EFI_STATUS egFindESP(OUT EFI_FILE_HANDLE *RootDir)
 {
     EFI_STATUS          Status;
@@ -250,6 +260,12 @@ EFI_STATUS egFindESP(OUT EFI_FILE_HANDLE *RootDir)
     return Status;
 }
 
+/*
+ * A NULL BaseDir selects the first discovered ESP. A nonzero byte count
+ * writes a file, while zero bytes call firmware Delete on the opened
+ * handle. This operation mutates the filesystem and is not an atomic
+ * replace/rename transaction.
+ */
 EFI_STATUS egSaveFile(IN EFI_FILE_PROTOCOL *BaseDir OPTIONAL, IN CHAR16 *FileName,
                       IN UINT8 *FileData, IN UINTN FileDataLength)
 {
@@ -457,6 +473,11 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
     return NewImage;
 }
 
+/*
+ * Clip the requested rectangle against image boundaries without
+ * allocating or touching pixel data. Width and height are in pixels;
+ * an origin outside the image returns a zero-area result.
+ */
 VOID egRestrictImageArea(IN EG_IMAGE *Image,
                          IN UINTN AreaPosX, IN UINTN AreaPosY,
                          IN OUT UINTN *AreaWidth, IN OUT UINTN *AreaHeight)
@@ -493,6 +514,11 @@ VOID egFillImage(IN OUT EG_IMAGE *CompImage, IN EG_PIXEL *Color)
     }
 }
 
+/*
+ * Write an in-place rectangular region using row strides in pixels.
+ * The rectangle is clipped first and its alpha is forced to zero when
+ * the image is declared opaque, matching egFillImage.
+ */
 VOID egFillImageArea(IN OUT EG_IMAGE *CompImage,
                      IN UINTN AreaPosX, IN UINTN AreaPosY,
                      IN UINTN AreaWidth, IN UINTN AreaHeight,
@@ -522,6 +548,11 @@ VOID egFillImageArea(IN OUT EG_IMAGE *CompImage,
     }
 }
 
+/*
+ * Copy rows between prepositioned pixel planes without allocating
+ * intermediate storage. Line offsets count pixels, not bytes; overlapping
+ * source and destination spans are not handled as memmove.
+ */
 VOID egRawCopy(IN OUT EG_PIXEL *CompBasePtr, IN EG_PIXEL *TopBasePtr,
                IN UINTN Width, IN UINTN Height,
                IN UINTN CompLineOffset, IN UINTN TopLineOffset)

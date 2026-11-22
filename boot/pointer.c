@@ -147,14 +147,28 @@ VOID pdCleanup() {
     State.Holding = FALSE;
 }
 
+/*
+ * Report cached pointer availability, not the state of every physical
+ * device. Keyboard navigation remains independent of this flag.
+ */
 BOOLEAN pdAvailable() {
     return PointerAvailable;
 }
 
+/*
+ * Return the sum of absolute and relative pointer protocols discovered
+ * during initialisation. This count can become stale if firmware handle
+ * topology changes without a fresh pointer scan.
+ */
 UINTN pdCount() {
     return NumAPointerDevices + NumSPointerDevices;
 }
 
+/*
+ * Map the combined pointer index to an absolute protocol first, then
+ * a relative protocol. Return NULL for disabled or out-of-range input;
+ * the returned event belongs to the firmware protocol, not the caller.
+ */
 EFI_EVENT pdWaitEvent(UINTN Index) {
     if(!PointerAvailable || Index >= NumAPointerDevices + NumSPointerDevices) {
         return NULL;
@@ -245,6 +259,10 @@ EFI_STATUS pdUpdateState() {
 #endif
 }
 
+/*
+ * Copy current pointer coordinates and button transitions by value;
+ * the caller does not acquire a reference to shared protocol state.
+ */
 POINTER_STATE pdGetState() {
     return State;
 }

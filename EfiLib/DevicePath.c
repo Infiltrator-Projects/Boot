@@ -425,6 +425,11 @@ DevPathUsb (
   MyCatPrint (Str, L"Usb(%x,%x)", (UINTN) Usb->ParentPortNumber, (UINTN) Usb->InterfaceNumber);
 }
 
+/*
+ * The USB vendor/product/interface fields identify a WWID-type path node,
+ * but this formatter prints a literal WWID placeholder rather than the
+ * serial-number suffix. Its result is therefore not a unique USB device key.
+ */
 VOID
 DevPathUsbWWID (
   IN OUT POOL_PRINT       *Str,
@@ -475,6 +480,11 @@ DevPathUsbClass (
     );
 }
 
+/*
+ * The direct-connect flag changes the rendering grammar: a direct HBA
+ * path omits the port-multiplier component. These are encoded topology
+ * values, not proof that firmware currently exposes a usable disk handle.
+ */
 VOID
 DevPathSata (
   IN OUT POOL_PRINT       *Str,
@@ -621,6 +631,11 @@ DevPathInfiniBand (
     );
 }
 
+/*
+ * Zero baud or data-bit values represent protocol defaults rather than
+ * literal zero-speed hardware. The encoded parity and stop-bit enumerations
+ * are mapped to display tokens; no serial port is opened or configured.
+ */
 VOID
 DevPathUart (
   IN OUT POOL_PRINT       *Str,
@@ -746,11 +761,11 @@ DevPathVlan (
   MyCatPrint (Str, L"Vlan(%d)", (UINTN) Vlan->VlanId);
 }
 
-VOID
 /*
  * Formats media partition-path metadata; identifiers are descriptive and
  * do not guarantee filesystem accessibility or executable image validity.
  */
+VOID
 DevPathHardDrive (
   IN OUT POOL_PRINT       *Str,
   IN VOID                 *DevPath
@@ -802,11 +817,11 @@ DevPathCDROM (
   MyCatPrint (Str, L"CDROM(Entry%x)", (UINTN) Cd->BootEntry);
 }
 
-VOID
 /*
  * Formats the FILEPATH_DEVICE_PATH node into text. The formatted Unicode
  * path must not be treated as an authenticated EFI application.
  */
+VOID
 DevPathFilePath (
   IN OUT POOL_PRINT       *Str,
   IN VOID                 *DevPath
@@ -859,6 +874,11 @@ MyDevPathRelativeOffsetRange (
     );
 }
 
+/*
+ * Legacy BBS device types are translated to descriptive labels only.
+ * A BBS node cannot establish that the machine has CSM support or that
+ * the selected legacy device can actually start.
+ */
 VOID
 DevPathBssBss (
   IN OUT POOL_PRINT       *Str,
@@ -905,6 +925,11 @@ DevPathBssBss (
   MyCatPrint (Str, L"Legacy-%s", Type);
 }
 
+/*
+ * A comma separates complete device-path instances, whereas slash
+ * separators belong between nodes in one instance. The caller must not
+ * insert a second separator around this terminator.
+ */
 VOID
 DevPathEndInstance (
   IN OUT POOL_PRINT       *Str,
