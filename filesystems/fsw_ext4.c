@@ -218,6 +218,11 @@ static void fsw_ext4_volume_free(struct fsw_ext4_volume *vol)
         fsw_free(vol->inotab_bno);
 }
 
+/*
+ * Join high and low block counters when 64-bit descriptors are enabled,
+ * then multiply by the logical block size to return bytes. The values are
+ * superblock claims, not a scan of allocation bitmaps.
+ */
 static fsw_status_t fsw_ext4_volume_stat(struct fsw_ext4_volume *vol, struct fsw_volume_stat *sb)
 {
     fsw_u64         count;
@@ -235,6 +240,11 @@ static fsw_status_t fsw_ext4_volume_stat(struct fsw_ext4_volume *vol, struct fsw
     return FSW_SUCCESS;
 }
 
+/*
+ * Map a 1-based inode to its group, inode-table block and in-block slot.
+ * Copy the raw inode out of a borrowed block-cache buffer before releasing
+ * that block. The exported file size currently uses the low inode word.
+ */
 static fsw_status_t fsw_ext4_dnode_fill(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno)
 {
     fsw_status_t    status;
@@ -491,6 +501,11 @@ static fsw_status_t fsw_ext4_get_by_blkaddr(struct fsw_ext4_volume *vol, struct 
     return FSW_SUCCESS;
 }
 
+/*
+ * Scan variable-length records through a private stream. The entry name
+ * is borrowed from the temporary record until child creation copies it;
+ * the stream is closed on success and on search failure.
+ */
 static fsw_status_t fsw_ext4_dir_lookup(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                         struct fsw_string *lookup_name, struct fsw_ext4_dnode **child_dno_out)
 {
@@ -533,6 +548,11 @@ errorexit:
     return status;
 }
 
+/*
+ * Advance the caller's directory cursor while skipping '.' and '..'.
+ * The returned child is independently referenced; fsw_ext4_read_dentry
+ * must validate on-disk record lengths before name inspection.
+ */
 static fsw_status_t fsw_ext4_dir_read(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                       struct fsw_shandle *shand, struct fsw_ext4_dnode **child_dno_out)
 {

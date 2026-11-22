@@ -382,6 +382,11 @@ static void fsw_hfs_volume_free(struct fsw_hfs_volume *vol)
     }
 }
 
+/*
+ * Expose free and total space calculated from the volume header.
+ * These figures are reported metadata rather than a separate bitmap
+ * consistency or physical media qualification test.
+ */
 static fsw_status_t fsw_hfs_volume_stat(struct fsw_hfs_volume *vol, struct fsw_volume_stat *sb)
 {
     sb->total_bytes = be32_to_cpu(vol->primary_voldesc->totalBlocks) << vol->block_size_shift;
@@ -394,6 +399,11 @@ static fsw_status_t fsw_hfs_dnode_fill(struct fsw_hfs_volume *vol, struct fsw_hf
     return FSW_SUCCESS;
 }
 
+/*
+ * Release backend-private catalog allocations only. The generic FSW
+ * destructor subsequently owns the dnode name, parent reference and
+ * node allocation itself.
+ */
 static void fsw_hfs_dnode_free(struct fsw_hfs_volume *vol, struct fsw_hfs_dnode *dno)
 {
 }

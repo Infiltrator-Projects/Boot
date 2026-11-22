@@ -53,6 +53,11 @@ errorexit:
     return status;
 }
 
+/*
+ * Teardown follows reference ownership: release the root node before
+ * backend-private state, caches and label. Callers must not retain a node,
+ * stream handle or cached block pointer after the volume is destroyed.
+ */
 void fsw_unmount(struct fsw_volume *vol)
 {
     if (vol->root)
@@ -192,6 +197,11 @@ void fsw_block_release(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, void *buffer
     }
 }
 
+/*
+ * Invalidate every cached block allocation and the separate EFI-sector
+ * cache. A block number may refer to different bytes after a block-size
+ * change, so retaining either cache across that transition is unsafe.
+ */
 static void fsw_blockcache_free(struct fsw_volume *vol)
 {
     fsw_u32 i;
@@ -208,6 +218,11 @@ static void fsw_blockcache_free(struct fsw_volume *vol)
     fsw_efi_clear_cache();
 }
 
+/*
+ * Prepend an inode to the volume's intrusive doubly linked list.
+ * Registration does not acquire an extra reference; refcount and parent
+ * ownership govern its later unlink and destruction.
+ */
 static void fsw_dnode_register(struct fsw_volume *vol, struct fsw_dnode *dno)
 {
     dno->next = vol->dnode_head;
@@ -217,6 +232,11 @@ static void fsw_dnode_register(struct fsw_volume *vol, struct fsw_dnode *dno)
     vol->dnode_head = dno;
 }
 
+/*
+ * Represent the root as a (tree_id, dnode_id) identity with one owned
+ * reference. The tree component distinguishes equal inode numbers in
+ * different Btrfs subvolumes. The caller must release the returned node.
+ */
 fsw_status_t fsw_dnode_create_root_with_tree(struct fsw_volume *vol, fsw_u64 tree_id, fsw_u64 dnode_id, struct fsw_dnode **dno_out)
 {
     fsw_status_t    status;
@@ -345,6 +365,11 @@ fsw_status_t fsw_dnode_fill(struct fsw_dnode *dno)
     return dno->vol->fstype_table->dnode_fill(dno->vol, dno);
 }
 
+/*
+ * Force lazy inode population, then dispatch statistics to the backend.
+ * A backend-reported zero used_bytes falls back to a rounded logical-size
+ * calculation; it is not independent verification of physical allocation.
+ */
 fsw_status_t fsw_dnode_stat(struct fsw_dnode *dno, struct fsw_dnode_stat *sb)
 {
     fsw_status_t    status;
@@ -360,6 +385,11 @@ fsw_status_t fsw_dnode_stat(struct fsw_dnode *dno, struct fsw_dnode_stat *sb)
     return status;
 }
 
+/*
+ * Resolve exactly one component after filling the directory metadata.
+ * Non-directories return FSW_UNSUPPORTED. The backend returns a referenced
+ * child; separator handling and multi-component traversal happen elsewhere.
+ */
 fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
                               struct fsw_string *lookup_name, struct fsw_dnode **child_dno_out)
 {
@@ -506,6 +536,11 @@ fsw_status_t fsw_dnode_readlink(struct fsw_dnode *dno, struct fsw_string *target
     return dno->vol->fstype_table->readlink(dno->vol, dno, target_name);
 }
 
+/*
+ * Read a data-backed symlink into a stack buffer limited by FSW_PATH_MAX.
+ * Short reads are treated as corruption. Coercion allocates an independent
+ * host-encoded target after the temporary stream has been closed.
+ */
 fsw_status_t fsw_dnode_readlink_data(struct fsw_dnode *dno, struct fsw_string *link_target)
 {
     fsw_status_t    status;

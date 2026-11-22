@@ -148,6 +148,10 @@ static void fsw_ext2_volume_free(struct fsw_ext2_volume *vol)
         fsw_free(vol->inotab_bno);
 }
 
+/*
+ * Convert superblock total/free block counters to bytes using the
+ * active block size. This does not check allocation bitmap consistency.
+ */
 static fsw_status_t fsw_ext2_volume_stat(struct fsw_ext2_volume *vol, struct fsw_volume_stat *sb)
 {
     sb->total_bytes = (fsw_u64)vol->sb->s_blocks_count      * vol->g.log_blocksize;
@@ -319,6 +323,11 @@ static fsw_status_t fsw_ext2_get_extent(struct fsw_ext2_volume *vol, struct fsw_
     return FSW_SUCCESS;
 }
 
+/*
+ * Look up a name by scanning on-disk directory records. The name
+ * storage aliases the current record until node creation duplicates it;
+ * a private stream is closed before returning.
+ */
 static fsw_status_t fsw_ext2_dir_lookup(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno,
                                         struct fsw_string *lookup_name, struct fsw_ext2_dnode **child_dno_out)
 {

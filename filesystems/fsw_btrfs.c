@@ -1509,6 +1509,11 @@ static fsw_status_t fsw_btrfs_read_inode (struct fsw_btrfs_volume *vol,
     return fsw_btrfs_read_logical (vol, elemaddr, inode, sizeof (*inode), 0, 2);
 }
 
+/*
+ * Lazy inode metadata belong to a Btrfs tree and inode-number pair.
+ * The tree identity is essential where different subvolumes reuse
+ * the same inode numbers.
+ */
 static fsw_status_t fsw_btrfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnode *dnog)
 {
     struct fsw_btrfs_volume *vol = (struct fsw_btrfs_volume *)volg;
@@ -2157,6 +2162,11 @@ static fsw_status_t fsw_btrfs_get_default_root(struct fsw_btrfs_volume *vol, uin
     return err;
 }
 
+/*
+ * Enumerate directory items via the stream's backend-specific cursor.
+ * Subvolume and root references require their tree context; exhausting
+ * a directory is not equivalent to exhausting the root tree.
+ */
 static fsw_status_t fsw_btrfs_dir_read(struct fsw_volume *volg, struct fsw_dnode *dnog,
         struct fsw_shandle *shand, struct fsw_dnode **child_dno_out)
 {

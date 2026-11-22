@@ -702,6 +702,10 @@ EFI_STATUS fsw_efi_file_read(IN FSW_FILE_DATA *File,
     return Status;
 }
 
+/*
+ * Return the current logical byte offset of this open stream.
+ * Independent EFI file handles for the same inode hold separate cursors.
+ */
 EFI_STATUS fsw_efi_file_getpos(IN FSW_FILE_DATA *File,
                                OUT UINT64 *Position)
 {
@@ -709,6 +713,10 @@ EFI_STATUS fsw_efi_file_getpos(IN FSW_FILE_DATA *File,
     return EFI_SUCCESS;
 }
 
+/*
+ * The all-ones UEFI offset selects EOF; other positions are assigned in
+ * bytes without performing I/O. Offset validity is deferred until reading.
+ */
 EFI_STATUS fsw_efi_file_setpos(IN FSW_FILE_DATA *File, IN UINT64 Position)
 {
     if (Position == 0xFFFFFFFFFFFFFFFFULL)
@@ -816,6 +824,11 @@ EFI_STATUS fsw_efi_dir_setpos(IN FSW_FILE_DATA *File, IN UINT64 Position)
     }
 }
 
+/*
+ * Select file or volume information by EFI GUID. A short output buffer
+ * receives the required byte count with EFI_BUFFER_TOO_SMALL. Reported
+ * attributes and sizes originate from the read-only FSW metadata layer.
+ */
 EFI_STATUS fsw_efi_dnode_getinfo(IN FSW_FILE_DATA *File,
                                  IN EFI_GUID *InformationType,
                                  IN OUT UINTN *BufferSize,

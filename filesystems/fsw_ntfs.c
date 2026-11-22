@@ -398,6 +398,12 @@ static inline fsw_u64 attribute_last_vcn(fsw_u8 *ptr, int len)
     return GETU8(ptr, 8) ? GETU64(ptr, 0x18) : 0;
 }
 
+/*
+ * Resident data is copied from the MFT attribute; nonresident data
+ * requires runlist mapping and cluster reads. Allocated output belongs
+ * to the caller. This routine assumes its attribute record was bounded
+ * by the preceding lookup rather than validating the full MFT anew.
+ */
 static fsw_status_t read_attribute_direct(struct fsw_ntfs_volume *vol, fsw_u8 *ptr, int len, fsw_u8 **optrp, int *olenp)
 {
     fsw_status_t err;
@@ -812,6 +818,11 @@ static void fsw_ntfs_volume_free(struct fsw_volume *volg)
 	fsw_free((void *)vol->upcase);
 }
 
+/*
+ * Total bytes come from volume metadata, but this reader returns zero
+ * free bytes without walking NTFS allocation data. Zero is therefore
+ * an unimplemented statistic, not evidence of a full volume.
+ */
 static fsw_status_t fsw_ntfs_volume_stat(struct fsw_volume *volg, struct fsw_volume_stat *sb)
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
@@ -834,6 +845,11 @@ static void fsw_ntfs_dnode_free(struct fsw_volume *vol, struct fsw_dnode *dnog)
 	fsw_free(dno->cbuf);
 }
 
+/*
+ * Populate a node lazily from MFT and optional attribute-list records.
+ * The node owns cached index/compression allocations. An accessible MFT
+ * entry does not imply all encrypted or unsupported streams are readable.
+ */
 static fsw_status_t fsw_ntfs_dnode_fill(struct fsw_volume *volg, struct fsw_dnode *dnog)
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
@@ -1298,6 +1314,11 @@ hit:
     return FSW_SUCCESS;
 }
 
+/*
+ * Translate a virtual cluster to physical storage or a synthetic sparse
+ * range when data are uninitialised or unmapped. Extent units are clusters;
+ * the extent type controls whether the common reader issues disk I/O.
+ */
 static fsw_status_t fsw_ntfs_get_extent_sparse(struct fsw_ntfs_volume *vol, struct fsw_ntfs_dnode *dno, struct fsw_extent *extent)
 {
     fsw_status_t err;
@@ -1329,6 +1350,11 @@ static fsw_status_t fsw_ntfs_get_extent_sparse(struct fsw_ntfs_volume *vol, stru
     return FSW_SUCCESS;
 }
 
+/*
+ * Choose resident, compressed or nonresident mapping from dnode flags.
+ * An unreadable data stream fails before mapping. The result describes
+ * one FSW extent, not a newly allocated file handle.
+ */
 static fsw_status_t fsw_ntfs_get_extent(struct fsw_volume *volg, struct fsw_dnode *dnog, struct fsw_extent *extent)
 {
     struct fsw_ntfs_volume *vol = (struct fsw_ntfs_volume *)volg;
@@ -1363,6 +1389,11 @@ static fsw_status_t load_upcase(struct fsw_ntfs_volume *vol)
     return err;
 }
 
+/*
+ * Case-fold UTF-16 names using the NTFS volume's UpCase table where
+ * available. ASCII has a compiled fallback; missing non-ASCII mapping
+ * cannot be treated as full Unicode-normalised equivalence.
+ */
 static int ntfs_filename_cmp(struct fsw_ntfs_volume *vol, fsw_u8 *p1, int s1, fsw_u8 *p2, int s2)
 {
     while(s1 > 0 && s2 > 0) {
