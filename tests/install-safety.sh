@@ -13,6 +13,10 @@ set -euo pipefail
 # not appear as a recursive selection.
 grep -Eq '^scanfor[[:space:]]+f([,[:space:]]|$)' boot.conf-sample
 grep -Fqx 'dont_scan_firmware "BOOT Boot Manager"' boot.conf-sample
+# A scanfor directive must not consume a scan slot for its own keyword.
+# In the host parser, the first configured mode is TokenList[1].
+grep -Fq 'GlobalConfig.ScanFor[i] = TokenList[i + 1][0];' boot/config.c
+grep -Fq 'if (i + 1 < TokenCount)' boot/config.c
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 awk '/^RootDir=/ {inside=1} /^GetParams "\$@"$/ {exit} inside {print}' boot-native-installer.run > "$work/functions.sh"
