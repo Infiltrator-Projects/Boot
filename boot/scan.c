@@ -1,6 +1,12 @@
-/* Volume and EFI-loader discovery.
- * Builds candidates from firmware-visible filesystems, exclusions and loader
- * metadata. Menu entries are recreated when the volume inventory changes.
+/*
+ *  B O O T    /    DISCOVERY
+ *  ----------------------------------------------------------------------
+ *
+ *  Dynamic volume and EFI loader discovery. Readable firmware volumes,
+ *  exclusions, loader header checks and fallback de-duplication
+ *  determine which choices are displayed. Hidden menu entries are not
+ *  deleted from disk. Every supported installation should remain
+ *  discoverable, not a fixed pair.
  */
 
 #include "global.h"

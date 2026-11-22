@@ -1,6 +1,15 @@
-/* Menu presentation, navigation and selection state.
- * Visible entries are views of the current scan; repaint and scroll state
- * must be rebuilt when that inventory changes.
+/*
+ *  B O O T    /    MENU & NAVIGATION
+ *  ----------------------------------------------------------------------
+ *
+ *  Firmware console/UI rendering, input and entry-selection state.
+ *  Rows, selection highlights, hidden-tag records and the default
+ *  match control menu presentation, not physical installation or EFI
+ *  BootOrder. The graphics fallback must never compromise a viable
+ *  boot choice. Menu entry pointers and selection indices belong to
+ *  the current inventory. A rescan invalidates assumptions about
+ *  stable ordering; painting a cached selection or tool icon must
+ *  never be interpreted as an image trust check.
  */
 
 #include "global.h"

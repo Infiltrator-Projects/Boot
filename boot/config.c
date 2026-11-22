@@ -1,6 +1,12 @@
-/* Configuration parser for boot.conf and loader options.
- * Decodes firmware-volume input into scan and presentation settings.
- * Configuration paths are input data, not validated EFI executables.
+/*
+ *  B O O T    /    CONFIGURATION
+ *  ----------------------------------------------------------------------
+ *
+ *  Untrusted, volume-resident configuration is parsed into runtime
+ *  scanning and presentation state. Tokens must be handled as
+ *  settings, not as verified filesystem paths or authorisation to
+ *  launch a payload. BOOT-owned variable storage is separate from
+ *  firmware global BootOrder.
  */
 
 #include "global.h"
