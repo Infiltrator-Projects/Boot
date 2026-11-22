@@ -349,3 +349,23 @@ This section records *review targets*, not newly executed tests or newly repaire
 | `boot/lib.c` device-path to volume resolution | Existing output pointers are released before replacement, although discovered volume pointers may be borrowed from the global inventory | Ownership-aware call-site review and fault injection; no claim of safety from comment-only work |
 
 **Source-only change check.** For an engineering-comments commit, compare the changed C and header files with comments removed and whitespace normalised; the remaining tokens must match the parent revision. Also review every added assertion against its implementing routine. This equivalence test excludes documentation itself and is not a substitute for firmware compilation, host unit tests, QEMU execution, or a physical-hardware boot test.
+
+## Source-function inventory and inspection boundary — 22 November 2026
+
+Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is a **static function-definition inventory** of every tracked C/header file, including generated and bundled code. A function count is determined from source-like definitions (and can include conditional build alternatives or miss unusual macro signatures); it is *not* a test-pass count. Files are classified by code ownership to separate direct review of BOOT-owned logic from upstream decoder and ABI/derived-data integration review. Source commentary changes do not certify behaviour. Specific uncorrected defects are recorded in the proof-obligation tables above.
+
+| File | Function-like definitions | Review scope |
+| --- | ---: | --- |
+| `EfiLib/AbsolutePointer.h` | 0 | ABI/header |
+| `EfiLib/BdsConnect.c` | 3 | Maintained implementation |
+| `EfiLib/BdsHelper.c` | 2 | Maintained implementation |
+| `EfiLib/BdsHelper.h` | 0 | ABI/header |
+| `EfiLib/BdsTianoCore.c` | 2 | Maintained implementation |
+| `EfiLib/BmLib.c` | 4 | Maintained implementation |
+| `EfiLib/DevicePath.c` | 37 | Maintained implementation |
+| `EfiLib/DevicePathUtilities.h` | 0 | ABI/header |
+| `EfiLib/GenericBdsLib.h` | 0 | ABI/header |
+| `EfiLib/LegacyBios.h` | 0 | ABI/header |
+| `EfiLib/Platform.h` | 0 | ABI/header |
+| `EfiLib/gnuefi-helper.c` | 1 | Maintained implementation |
+<!-- BOOT_SOURCE_INDEX_NEXT -->
