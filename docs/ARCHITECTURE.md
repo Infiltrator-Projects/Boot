@@ -118,6 +118,14 @@ This path does **not** currently establish that multiplication of the block inde
 
 `boot/launch_efi.c:StartEFIImage` first classifies a candidate loader, then delegates loading to UEFI `LoadImage`. The classifier is not an authenticity check. For gzip input, BOOT rejects compressed files that are empty or larger than `512 MiB / 10`, allocates at most ten times the compressed size, and passes the decoder's actual reported output byte count to `LoadImage` only after successful decompression. A `LoadedImage` options buffer is held across `StartImage`; the size is counted in bytes and includes the CHAR16 terminator. A child image that loads or returns does not establish successful operating-system boot. Driver images deliberately remain resident when needed for installed protocols.
 
+### Configuration-file length and encoding semantics
+
+`boot/config.c:ReadFile` obtains an advertised `UINT64` file length, narrows it to `UINTN` for allocation and uses the eventual read byte count as `REFIT_FILE.BufferSize`. The separately returned size is assigned before the read. There is no explicit pre-allocation check that the advertised length is representable in `UINTN`; a successful read status alone need not imply that the advertised file length was fully consumed. BOM detection distinguishes UTF-16LE and a UTF-8-labelled path, but `ReadLine` currently widens individual bytes rather than decoding UTF-8 sequences. Consequently, non-ASCII UTF-8 text does not have a demonstrated Unicode-correct parse contract.
+
+### Driver file discovery versus driver binding
+
+`boot/driver_support.c:ScanDriverDir` increments its count upon finding a candidate EFI file, before inspecting the result of `StartEFIImage`. `LoadDrivers` uses a positive count to trigger reconnection and a volume rescan. That Boolean reports discovered candidate files, not confirmed driver installation, authentication, protocol binding or filesystem readability. Any operational claim about newly readable volumes requires inspection after the rescan and an actual read-path test.
+
 ### Evidence distinction
 
 These descriptions are source-inspection findings. They do not imply that fuzzing, hostile filesystem images, fault-injected EFI allocation, firmware authentication matrices, or physical hardware regression runs have occurred. The related unexecuted regression requirements are tracked in [Validation](VALIDATION.md). Documentation changes do not repair the implementation.
