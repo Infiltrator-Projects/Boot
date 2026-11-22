@@ -1,7 +1,11 @@
 /*
+ * BOOT / Generated filesystem declarations
+ *
  * Generated EFI library constructor and GUID declarations retained for the
- * EDK-oriented build profile. They are not the runtime filesystem ABI and
- * are not evidence of freestanding Common V2 module compatibility.
+ * EDK-oriented build profile.
+ *
+ * They are not the runtime filesystem ABI and are not evidence of
+ * freestanding Common V2 module compatibility.
  */
 
 #ifndef _AUTOGENH_B34E5765_2E02_4DAF_867F_7F40BE6FC33D

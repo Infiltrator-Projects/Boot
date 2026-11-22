@@ -1,8 +1,12 @@
 /*
+ * BOOT / Generated filesystem GUIDs
+ *
  * EDK-style generated protocol GUIDs and library-constructor glue for
- * alternate filesystem-driver build integration. These tables are linkage
- * data and should be regenerated from their owner when the firmware profile
- * changes. The shipped AMD64 GNU-EFI workflow is a separate build profile.
+ * alternate filesystem-driver build integration.
+ *
+ * These tables are linkage data and should be regenerated from their owner
+ * when the firmware profile changes. The shipped AMD64 GNU-EFI workflow is
+ * a separate build profile.
  */
 
 #include <Uefi.h>

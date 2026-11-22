@@ -1,7 +1,11 @@
 /*
+ * BOOT / EFI driver binding API
+ *
  * EDK-compatible EFI Driver Binding protocol interface used by filesystem
- * drivers. The callbacks may install or uninstall controller protocols;
- * these are firmware-visible changes with strict handle/lifetime semantics.
+ * drivers.
+ *
+ * The callbacks may install or uninstall controller protocols; these are
+ * firmware-visible changes with strict handle/lifetime semantics.
  */
 
 #ifndef _EFI_DRIVER_BINDING_H_
