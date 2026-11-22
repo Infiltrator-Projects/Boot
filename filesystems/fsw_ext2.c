@@ -18,6 +18,10 @@ static fsw_status_t fsw_ext2_volume_stat(struct fsw_ext2_volume *vol, struct fsw
 
 static fsw_status_t fsw_ext2_dnode_fill(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno);
 static void         fsw_ext2_dnode_free(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno);
+/* Translate inode block accounting, timestamps and mode into generic FSW
+ * statistics. EXT2 i_blocks counts 512-byte sectors, regardless of mounted
+ * filesystem block size. No separate allocation bitmap audit is performed.
+ */
 static fsw_status_t fsw_ext2_dnode_stat(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno,
                                         struct fsw_dnode_stat *sb);
 static fsw_status_t fsw_ext2_get_extent(struct fsw_ext2_volume *vol, struct fsw_ext2_dnode *dno,
@@ -409,6 +413,11 @@ static fsw_status_t fsw_ext2_dir_read(struct fsw_ext2_volume *vol, struct fsw_ex
     return status;
 }
 
+/* Read a variable-length directory entry using the eight-byte fixed header
+ * followed by its counted name. Deleted entries retain rec_len bytes and are
+ * skipped without publishing an inode. rec_len must contain the name and
+ * advance the stream; a truncated name is filesystem corruption, not EOF.
+ */
 static fsw_status_t fsw_ext2_read_dentry(struct fsw_shandle *shand, struct ext2_dir_entry *entry)
 {
     fsw_status_t    status;

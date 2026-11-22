@@ -49,6 +49,11 @@ static fsw_status_t fsw_iso9660_readlink(struct fsw_iso9660_volume *vol, struct 
  * as a complete SP structure. Finding SP enables extension interpretation,
  * not general validation of continuation areas or arbitrary Rock Ridge data.
  */
+/* Search the system-use region of a counted ISO directory record for the
+ * SUSP 'SP' signature and 0xBE/0xEF check bytes. The result is a borrowed
+ * pointer into dirrec's storage, not an allocated copy. This bytewise scan
+ * does not prove the surrounding Rock Ridge fields are well-formed.
+ */
 static fsw_status_t rr_find_sp(struct iso9660_dirrec *dirrec, struct fsw_rock_ridge_susp_sp **psp);
 static fsw_status_t rr_find_nm(struct fsw_iso9660_volume *vol, struct iso9660_dirrec *dirrec, int off, struct fsw_string *str);
 static fsw_status_t rr_read_ce(struct fsw_iso9660_volume *vol, union fsw_rock_ridge_susp_ce *ce, fsw_u8 *begin);

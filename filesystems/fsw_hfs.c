@@ -115,6 +115,10 @@ static fsw_u16 fsw_to_lower(fsw_u16 ch)
     return ch;
 }
 
+/* Map one HFS+ file-logical block to a physical allocation block, copy a
+ * requested slice and release the cache pin. The caller must ensure off+len
+ * fits that block: this routine does not bound either value before memcpy.
+ */
 static fsw_s32
 fsw_hfs_read_block (struct fsw_hfs_dnode    * dno,
                     fsw_u32                   log_bno,
@@ -146,6 +150,11 @@ fsw_hfs_read_block (struct fsw_hfs_dnode    * dno,
 
 }
 
+/* Split a file read into block-mapped slices. Position is a byte offset and
+ * the return value is a byte count, or -1 for a failed read. Each iteration
+ * caps the slice at block_size but does not subtract the starting in-block
+ * offset, leaving partial-block requests dependent on the caller's bounds.
+ */
 static fsw_s32
 fsw_hfs_read_file (struct fsw_hfs_dnode    * dno,
                    fsw_u64                   pos,
@@ -503,6 +512,10 @@ fsw_hfs_btree_recoffset (struct fsw_hfs_btree * btree,
   return be16_to_cpu(*recptr);
 }
 
+/* Compute a borrowed key pointer from a B-tree record index and node-local
+ * offset table. This wrapper performs no independent node-size or index
+ * checks: its pointer is valid only while the node buffer remains pinned.
+ */
 static BTreeKey *
 fsw_hfs_btree_rec (struct fsw_hfs_btree   * btree,
                    BTNodeDescriptor       * node,
@@ -778,6 +791,11 @@ fsw_hfs_btree_visit_node(BTreeKey *record, void* param)
     return 1;
 }
 
+/* Iterate remaining catalog records, then follow successive leaf fLinks.
+ * The callback returns 1 for a match, -1 to stop without a match and zero
+ * to continue. The error return on a failed next-node read bypasses 'done'
+ * after allocating buffer, so that path does not release its scratch memory.
+ */
 static fsw_status_t
 fsw_hfs_btree_iterate_node (struct fsw_hfs_btree * btree,
                             BTNodeDescriptor     * first_node,
@@ -854,6 +872,11 @@ void deb(fsw_u16* p, int len, int swap)
 }
 #endif
 
+/* Order extent-overflow keys by file ID, fork type and starting block.
+ * The on-disk left operand is byte-swapped, while the right operand is used
+ * in host order; this comparator assumes the caller supplied a normalised
+ * search key as key2 rather than two raw disk-format keys.
+ */
 static int
 fsw_hfs_cmp_extkey(BTreeKey* key1, BTreeKey* key2)
 {
@@ -1069,6 +1092,10 @@ static struct
 };
 #endif
 
+/* Materialise a catalog result as a referenced child dnode. File size,
+ * timestamps and fork extent records are copied from the parsed catalog
+ * record; the temporary visitor data does not outlive this function.
+ */
 static fsw_status_t
 create_hfs_dnode(struct fsw_hfs_dnode  * dno,
                  file_info_t           * file_info,

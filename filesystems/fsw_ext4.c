@@ -70,6 +70,10 @@ static __inline int test_root(fsw_u32 a, int b)
         return num == a;
 }
 
+/* Identify superblock backup groups under the sparse-superblock rule:
+ * groups zero and one, or odd powers of 3, 5 and 7. This relies on test_root,
+ * whose unchecked integer multiplication limits its validity on large input.
+ */
 static int fsw_ext4_group_sparse(fsw_u32 group)
 {
         if (group <= 1)
@@ -80,6 +84,10 @@ static int fsw_ext4_group_sparse(fsw_u32 group)
                 test_root(group, 3));
 }
 
+/* Convert a group index to its filesystem-logical starting block. Promote
+ * the product to 64 bits before adding the first-data-block offset; a
+ * physical device-block conversion is a separate layer's responsibility.
+ */
 static __inline fsw_u64
 fsw_ext4_group_first_block_no(struct ext4_super_block *sb, fsw_u32 group_no)
 {

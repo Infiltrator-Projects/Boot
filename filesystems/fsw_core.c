@@ -383,6 +383,10 @@ void fsw_dnode_release(struct fsw_dnode *dno)
     }
 }
 
+/* Dispatch lazy metadata loading to the owning filesystem implementation.
+ * The generic layer does not change dnode refcounts or guarantee that a
+ * successful callback validated every on-disk extent referenced by the node.
+ */
 fsw_status_t fsw_dnode_fill(struct fsw_dnode *dno)
 {
 
@@ -531,6 +535,10 @@ errorexit:
     return status;
 }
 
+/* Read one directory member through the backend's opaque stream cursor.
+ * On failure restore the cursor for retry; any successful child carries a
+ * retained node reference that the caller must eventually release.
+ */
 fsw_status_t fsw_dnode_dir_read(struct fsw_shandle *shand, struct fsw_dnode **child_dno_out)
 {
     fsw_status_t    status;
@@ -550,6 +558,10 @@ fsw_status_t fsw_dnode_dir_read(struct fsw_shandle *shand, struct fsw_dnode **ch
     return status;
 }
 
+/* Resolve link content only after populating metadata and confirming the
+ * symlink type. The backend controls target encoding and allocation; this
+ * dispatcher does not normalise relative paths or resolve nested links.
+ */
 fsw_status_t fsw_dnode_readlink(struct fsw_dnode *dno, struct fsw_string *target_name)
 {
     fsw_status_t    status;
