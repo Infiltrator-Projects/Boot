@@ -1,10 +1,6 @@
-/*
- * Apple ICNS icon decoding and run-length expansion. Container element
- * sizes and channel counts originate from image data and constrain decoding.
- * Failure to find a suitable variant is cosmetic, not an OS detection fault.
- * RLE input cursor and output pixel count are separate bounds. An element
- * may be syntactically present while an individual colour-plane expansion
- * still consumes more bytes or pixels than its enclosing record provides.
+/* Apple ICNS decoding and RLE expansion.
+ * Selects compatible embedded representations and validates element lengths.
+ * Missing or malformed icons do not change loader discovery.
  */
 
 #include "libegint.h"

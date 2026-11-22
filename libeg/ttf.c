@@ -1,19 +1,8 @@
-/*
- * BOOT firmware TrueType text renderer.
- *
- * Loads the verified MB Corpo outlines installed beside BOOTX64.EFI and
- * rasterises glyphs directly into EG_IMAGE surfaces. No pre-rendered font
- * atlas, ImageMagick, host font subsystem, or runtime libc is required.
- *
- * stb_truetype is included as an independently licensed single-header
- * outline parser/rasteriser. The wrapper supplies firmware allocations,
- * bounded font loading and mathematical primitives without libm.
- * Packaging verifies the 23 font-file checksums before installation; this
- * renderer itself checks structural TrueType tables, not a cryptographic
- * digest at runtime. All 23 faces must parse for egFontReady to succeed,
- * but a font-success indication is separate from correct glyph appearance
- * on every physical graphics implementation.
+/* Firmware TrueType rendering from packaged MB/Daimler font faces.
+ * Validates font tables, rasterises glyphs and caches scale-dependent masks.
+ * Packaging verifies checksums; runtime validation is structural.
  */
+
 #include "libegint.h"
 #include "../boot/global.h"
 #include "../boot/log.h"
@@ -177,6 +166,9 @@ static UINT32 mb32(const UINT8 *p) {
 static BOOLEAN mbWithin(UINTN start, UINTN length, UINTN total) {
     return start <= total && length <= total - start;
 }
+/* Find a TrueType table by tag after validating directory and table bounds.
+ * Pointers into the supplied font buffer remain borrowed.
+ */
 static BOOLEAN mbTable(const UINT8 *data, UINTN size, UINT32 tag,
                        const UINT8 **table, UINTN *length) {
     UINTN n, i;
@@ -367,10 +359,14 @@ BOOLEAN egFontReady(VOID) {
     }
     return TRUE;
 }
+/* Return the number of successfully prepared font faces.
+ */
 UINTN egGetFontLoadedCount(VOID) {
     mbPrepare();
     return mbLoadedCount;
 }
+/* Return the prepared line height in device pixels.
+ */
 UINTN egGetFontHeight(VOID) {
     mbPrepare();
     return mbLineHeight;
@@ -408,9 +404,14 @@ UINTN egComputeTextWidthRole(IN CHAR16 *text, IN UINTN role) {
     if (width>(float)((UINTN)-1)/2.0f) return (UINTN)-1;
     return (UINTN)(width+1.5f);
 }
+/* Measure body-role text using the same advances as rendering.
+ */
 UINTN egComputeTextWidth(IN CHAR16 *text) {
     return egComputeTextWidthRole(text,MB_FONT_BODY);
 }
+/* Return measured body-role width and current font line height.
+ * NULL output pointers are permitted.
+ */
 VOID egMeasureText(IN CHAR16 *text, OUT UINTN *width, OUT UINTN *height) {
     if (width) *width=egComputeTextWidth(text);
     if (height) *height=egGetFontHeight();
@@ -521,6 +522,9 @@ VOID egRenderTextRole(IN CHAR16 *text, IN OUT EG_IMAGE *image,
         cp=next;
     }
 }
+/* Render text with the body font onto a borrowed image.
+ * Pixel allocation and cache ownership stay with the renderer.
+ */
 VOID egRenderText(IN CHAR16 *text, IN OUT EG_IMAGE *image,
                   IN UINTN px, IN UINTN py, IN UINT8 brightness) {
     egRenderTextRole(text,image,px,py,brightness,MB_FONT_BODY);

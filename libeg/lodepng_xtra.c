@@ -1,10 +1,6 @@
-/*
- * Firmware allocation wrappers and PNG-to-EG_IMAGE adapter. Standard PNG
- * library memory callbacks are replaced with EFI-compatible allocation.
- * A valid decode must still satisfy requested image size and alpha semantics.
- * Ownership is not fully symmetrical in this adapter: the reallocator keeps
- * the previous pool allocation and several early exits omit decoder-buffer
- * cleanup. Do not interpret successful compilation as allocator hygiene.
+/* EFI allocation and image adapters for LodePNG.
+ * Pool allocations carry a private size prefix for copying and release.
+ * The current realloc path retains its old allocation on success.
  */
 
 #include "global.h"
@@ -30,6 +26,8 @@ void* lodepng_malloc(size_t size) {
    }
 }  
 
+/* Release a payload pointer by recovering its EFI allocation prefix.
+ */
 void lodepng_free (void *ptr) {
    if (ptr) {
       ptr = (void *) (((size_t *) ptr) - 1);
@@ -37,6 +35,8 @@ void lodepng_free (void *ptr) {
    }
 }  
 
+/* Read the payload length recorded directly before an adapter allocation.
+ */
 static size_t report_size(void *ptr) {
    if (ptr)
       return * (((size_t *) ptr) - 1);
@@ -56,11 +56,6 @@ void* lodepng_realloc(void *ptr, size_t new_size) {
 
    new_pool = lodepng_malloc(new_size);
    if (new_pool && ptr) {
-      /*
-       * The shim prefixes each pool allocation with its byte length. Copy at
-       * most the smaller payload into the new block. This implementation
-       * returns the replacement without freeing ptr.
-       */
       old_size = report_size(ptr);
       MyCopyMem(new_pool, ptr, (old_size < new_size) ? old_size : new_size);
    }

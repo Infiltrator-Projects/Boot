@@ -1,11 +1,6 @@
-/*
- * UEFI graphical console/GOP mode selection and framebuffer drawing.
- * Firmware modes may be absent, constrained or behave differently across
- * platforms. Screen resolution and saved pixel areas must be bounds checked;
- * text-mode fallback is required for a usable boot menu.
- * GOP mode changes may invalidate cached dimensions and saved pixel regions.
- * Rendering failure must remain a presentation failure, not silently change
- * the selected boot target or erase independently discovered loader entries.
+/* Firmware GOP selection and framebuffer drawing.
+ * Controls graphics mode, blits and saved display regions.
+ * Mode changes invalidate cached geometry and must permit text fallback.
  */
 
 #include "libegint.h"

@@ -1,8 +1,6 @@
-/*
- * Translate NanoJPEG output to an EFI image without transferring ownership of
- * the decoder's pixel buffer. njDone() alone releases that buffer. Freeing it
- * separately corrupts the firmware heap and can damage subsequent UI redraws.
- * Both RGB and single-channel grayscale JPEGs are supported.
+/* NanoJPEG-to-EFI image conversion.
+ * Decoder pixels remain owned by NanoJPEG until njDone().
+ * Both RGB and grayscale inputs are copied into caller-owned images.
  */
 
 #include "global.h"

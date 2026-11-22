@@ -1,7 +1,6 @@
-/*
- * Secure Boot and shim-mediated validation helpers. Firmware Secure Boot
- * state, shim presence and trust-path validation are distinct conditions.
- * A successful menu selection is insufficient to establish executable trust.
+/* Secure Boot state and shim validation helpers.
+ * Firmware variables and shim availability are separate conditions.
+ * Executable verification follows the configured security protocol.
  */
 
 #include "global.h"

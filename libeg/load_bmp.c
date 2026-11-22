@@ -1,10 +1,6 @@
-/*
- * BMP reader/writer for firmware resource images. Packed headers, pixel
- * format and row padding come from external bytes; offset and stride checks
- * must precede any pointer arithmetic. Decoded graphics are display-only.
- * Bottom-up BMP row ordering and 4-byte scanline alignment are independent
- * of the destination EG_IMAGE pixel stride. A valid magic pair is not proof
- * that palette, pixel data, header lengths and multiplication fit input.
+/* BMP resource decoding and encoding.
+ * Parses packed headers and padded scanlines before producing EFI pixels.
+ * Header lengths, dimensions and data offsets require bounds checks.
  */
 
 #include "libegint.h"

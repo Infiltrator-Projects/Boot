@@ -1,11 +1,6 @@
-/*
- * EFI security and Security2 authentication policy interception.
- * Installing or removing these hooks modifies the security protocol path
- * used by child EFI execution, so status and restoration matter. This is
- * not an ordinary display setting or proof of global Secure Boot support.
- * Security and Security2 hooks may be installed independently. A partial
- * failure or returned child image makes restoration of every successfully
- * replaced function pointer a separate lifetime obligation.
+/* EFI Security and Security2 policy callbacks.
+ * Hooks participate in child-image verification and require restoration.
+ * Callback results must preserve the firmware authentication contract.
  */
 
 #include <global.h>

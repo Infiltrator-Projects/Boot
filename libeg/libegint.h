@@ -1,7 +1,6 @@
-/*
- * Private graphical image/decoder implementation contract. Pixel sizes,
- * alpha channels, palette conversions and pooled allocation must preserve
- * bounds across PNG, BMP, ICNS and JPEG readers.
+/* Internal graphics and decoder interfaces.
+ * Image geometry, palette conversion and allocator lifetimes are shared
+ * across PNG, JPEG, BMP and ICNS implementations.
  */
 
 #ifndef __LIBEG_LIBEGINT_H__

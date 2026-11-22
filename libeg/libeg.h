@@ -1,7 +1,6 @@
-/*
- * Public EFI graphics and resource API. Image allocation, decoding, display
- * and firmware console state have separate lifetimes from filesystem handles.
- * A missing icon or banner must not suppress a legitimate boot choice.
+/* Public firmware graphics and image-resource API.
+ * Separates image ownership, alpha composition and display state.
+ * Decoder results must be released independently of firmware protocols.
  */
 
 #ifndef __LIBEG_LIBEG_H__

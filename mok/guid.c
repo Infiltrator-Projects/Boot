@@ -1,7 +1,6 @@
-/*
- * EFI signature database, certificate and loaded-image protocol GUID values.
- * These constants select firmware authentication interfaces; a GUID match
- * is not proof that a certificate or executable has been validated.
+/* GUID definitions for EFI authentication and image protocols.
+ * These identifiers select firmware interfaces and signature formats.
+ * Matching a GUID alone does not validate a certificate or image.
  */
 
 #include "global.h"
