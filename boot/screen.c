@@ -636,10 +636,6 @@ static VOID BootStartupProgressPaint(VOID)
     EG_PIXEL surface = { 25, 23, 19, 0 };
     EG_PIXEL track = { 46, 43, 37, 0 };
     EG_PIXEL cyan = { 233, 220, 39, 0 };
-    EG_PIXEL green = { 135, 193, 94, 0 };
-    EG_PIXEL red = { 93, 93, 227, 0 };
-    EG_PIXEL muted = { 120, 115, 109, 0 };
-    EG_PIXEL *indicator;
 
     /*
      * GOP/UGA drawing does not require the optional ConsoleControl protocol.
@@ -684,16 +680,8 @@ static VOID BootStartupProgressPaint(VOID)
     for (index = 0; index < limit; ++index) {
         UINTN sourceIndex = BootProgressCount - limit + index;
         UINTN y = 134 + index * rowHeight;
-        indicator = &muted;
-        if (BootProgressResults[sourceIndex] == BOOT_PROGRESS_ACTIVE)
-            indicator = &cyan;
-        else if (BootProgressResults[sourceIndex] == BOOT_PROGRESS_OK)
-            indicator = &green;
-        else if (BootProgressResults[sourceIndex] == BOOT_PROGRESS_ERROR)
-            indicator = &red;
-
-        egFillImageArea(panel, 33, y + 5, 7, 7, indicator);
-        egRenderTextRole(BootProgressLines[sourceIndex], panel, 49, y,
+        /* Text-only history; no colour-coded status dots on the display. */
+        egRenderTextRole(BootProgressLines[sourceIndex], panel, 33, y,
                          0, MB_FONT_BODY);
     }
 

@@ -30,6 +30,9 @@ jobs:
         run: |
 
           if git ls-files | grep -iE '(^|/)(refind|refind-install)(/|$)'; then exit 1; fi
+          test -s themes/boot-mark.png
+          test -s themes/boot-underline.png
+          ! grep -Eqi 'drawTwinSlash|svg' boot/theme.c
           test -s filesystems/fsw_ext4.c
           test -s filesystems/Make.gnuefi
           grep -Fq 'if (LoadDrivers())' boot/main.c

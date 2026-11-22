@@ -1083,7 +1083,7 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
  */
 static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN XPos, UINTN YPos)
 {
-    EG_IMAGE *Background, *ToolTint = NULL;
+    EG_IMAGE *Background, *ToolTint = NULL, *ScaledIcon = NULL;
     EG_IMAGE *Icon = Entry->Image;
 
     /*
@@ -1094,6 +1094,20 @@ static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN X
     if (Entry->Row == 1 && BootThemeBackground(UGAWidth, UGAHeight)) {
         ToolTint = BootThemeTintToolIcon(Icon, selected || Entry->Tag == TAG_REBOOT);
         if (ToolTint) Icon = ToolTint;
+    }
+    /* Keep OS artwork comfortably inside the 144-pixel plate even when an
+     * icon source or a configuration override provides a larger bitmap. */
+    if (Entry->Row == 0 && Icon && Icon->Width > 1 && Icon->Height > 1) {
+        UINTN limit = (TileSizes[0] * 72) / 100;
+        UINTN largest = Icon->Width > Icon->Height ? Icon->Width : Icon->Height;
+        if (largest > limit) {
+            UINTN width = Icon->Width * limit / largest;
+            UINTN height = Icon->Height * limit / largest;
+            if (width > 1 && height > 1) {
+                ScaledIcon = egScaleImage(Icon, width, height);
+                if (ScaledIcon) Icon = ScaledIcon;
+            }
+        }
     }
     if (selected && DrawSelection) {
         Background = egCropImage(GlobalConfig.ScreenBackground, XPos, YPos,
@@ -1115,6 +1129,7 @@ static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN X
         egDrawImageWithTransparency(Icon, Entry->BadgeImage, XPos, YPos,
                                     SelectionImages[Entry->Row]->Width, SelectionImages[Entry->Row]->Height);
     }
+    egFreeImage(ScaledIcon);
     egFreeImage(ToolTint);
 }
 

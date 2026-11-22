@@ -67,8 +67,8 @@ cd "$source_dir"
     echo "Downloaded BOOT build source is incomplete" >&2; exit 1;
 }
 echo "Building BOOT natively from source commit $SOURCE_SHA..."
-[[ -s themes/boot-luxury.jpg ]] || {
-    echo "BOOT native theme build failed." >&2; exit 1;
+[[ -s themes/boot-luxury.jpg && -s themes/boot-mark.png && -s themes/boot-underline.png ]] || {
+    echo "BOOT native theme build failed: missing wallpaper or PNG wordmark." >&2; exit 1;
 }
 
 printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$RELEASE_VERSION" > boot-sbat-release.csv
@@ -322,8 +322,8 @@ CheckForFiles() {
    }
 
    ThemesDir="$ThisDir/themes"
-   [[ -s "$ThemesDir/boot-luxury.jpg" ]] || {
-       echo "BOOT luxury background missing from native installation." >&2; exit 1;
+   [[ -s "$ThemesDir/boot-luxury.jpg" && -s "$ThemesDir/boot-mark.png" && -s "$ThemesDir/boot-underline.png" ]] || {
+       echo "BOOT wallpaper or PNG wordmark assets are missing from native installation." >&2; exit 1;
    }
 
    echo "ShimSource is $ShimSource"

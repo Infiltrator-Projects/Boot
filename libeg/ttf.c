@@ -162,7 +162,7 @@ static MB_FACE mbFaces[MB_FONT_COUNT] = {
     { .path = L"fonts\\mb_corpo_s_title_light.ttf" },
     { .path = L"fonts\\mb_corpo_s_title_regular.ttf" }
 };
-static UINTN mbRoleFace[MB_FONT_ROLE_COUNT] = { 16, 11, 9 };
+static UINTN mbRoleFace[MB_FONT_ROLE_COUNT] = { 16, 11, 10 };
 static UINTN mbLoadedCount;
 static BOOLEAN mbRasterisedGlyph;
 static BOOLEAN mbInitialized;
@@ -275,7 +275,12 @@ static MB_FACE *mbFace(UINTN role) {
 static VOID mbUpdateScreenScale(VOID) {
     UINTN i,j,screenWidth,screenHeight,pixels;
     egGetScreenSize(&screenWidth,&screenHeight);
-    pixels = screenWidth >= HIDPI_MIN ? 30 : 18;
+    /* Scale footer/menu labels with physical GOP resolution, rather than
+     * holding them at 18 or 30 pixels on every display. */
+    pixels = screenWidth / 60;
+    if (pixels > screenHeight / 26) pixels = screenHeight / 26;
+    if (pixels < 22) pixels = 22;
+    if (pixels > 56) pixels = 56;
     if (mbCurrentPixelHeight == pixels) return;
     for (i=0; i<MB_FONT_COUNT; ++i) {
         MB_FACE *f=&mbFaces[i];

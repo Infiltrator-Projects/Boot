@@ -63,6 +63,12 @@ grep -Fq 'Depends: bash, efibootmgr' <(dpkg-deb -f "$deb")
 bash tests/deb-install-safety.sh "$deb"
 
 test -s themes/boot-luxury.jpg
+for asset in boot-mark.png boot-underline.png; do
+    test -s "themes/$asset"
+    grep -Fq "usr/share/infiltrator-boot/boot/themes/$asset" "$work/package-files.txt"
+    test -s "$work/unpacked/usr/share/infiltrator-boot/boot/themes/$asset"
+done
+! grep -Eq 'drawTwinSlash|[Ss][Vv][Gg]' boot/theme.c
 bash -n "$run"
 bash -n boot-native-installer.run
 test "$(head -n 1 "$run")" = '#!/usr/bin/env bash'

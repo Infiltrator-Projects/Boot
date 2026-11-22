@@ -23,6 +23,9 @@ command -v dpkg-deb >/dev/null || { echo "dpkg-deb is required" >&2; exit 1; }
 command -v git >/dev/null || { echo "git is required to pin the exact source revision" >&2; exit 1; }
 
 test -s themes/boot-luxury.jpg || { echo "Missing BOOT JPEG wallpaper" >&2; exit 1; }
+for asset in boot-mark.png boot-underline.png; do
+    test -s "themes/$asset" || { echo "Missing BOOT native PNG theme: $asset" >&2; exit 1; }
+done
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 work="$(mktemp -d)"

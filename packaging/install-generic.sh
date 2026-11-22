@@ -33,6 +33,12 @@ boot_generic_payload_check() {
         echo "BOOT generic package is missing its luxury background." >&2
         return 1
     }
+    for asset in boot-mark.png boot-underline.png; do
+        [[ -s "$source/themes/$asset" ]] || {
+            echo "BOOT generic package is missing the $asset resource." >&2
+            return 1
+        }
+    done
     for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
         [[ -s "$source/drivers_x64/${filesystem}_x64.efi" ]] || {
             echo "BOOT generic package is missing the $filesystem EFI driver." >&2
