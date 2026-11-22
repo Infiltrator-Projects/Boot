@@ -641,9 +641,15 @@ static VOID BootStartupProgressPaint(VOID)
     EG_PIXEL muted = { 120, 115, 109, 0 };
     EG_PIXEL *indicator;
 
-    if (!BootProgressVisible || !AllowGraphicsMode ||
-        !egIsGraphicsModeEnabled())
+    /*
+     * GOP/UGA drawing does not require the optional ConsoleControl protocol.
+     * A protocol-less firmware reports FALSE from egIsGraphicsModeEnabled()
+     * even though the ordinary graphical menu works. Use the actual graphics
+     * availability, and request graphics mode where firmware supports it.
+     */
+    if (!BootProgressVisible || !AllowGraphicsMode || !egHasGraphicsMode())
         return;
+    SwitchToGraphics();
     egGetScreenSize(&screenWidth, &screenHeight);
     if (screenWidth < 460 || screenHeight < 300)
         return;
@@ -713,11 +719,13 @@ VOID BootStartupProgressBegin(VOID)
     BootProgressCount = 0;
     BootProgressTick = 0;
     BootProgressVisible = FALSE;
-    if (!AllowGraphicsMode)
+    if (!AllowGraphicsMode || !egHasGraphicsMode())
         return;
+    /*
+     * ConsoleControl is optional. A valid GOP/UGA target is sufficient to
+     * blit our diagnostic surface even when no console mode query exists.
+     */
     SwitchToGraphics();
-    if (!egIsGraphicsModeEnabled())
-        return;
     BootProgressVisible = TRUE;
     egClearScreen(&background);
 
