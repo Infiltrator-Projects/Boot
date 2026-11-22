@@ -488,4 +488,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `include/egemb_arrow_right.h` | 0 | Generated/embedded |
 | `include/egemb_back_selected_big.h` | 0 | Generated/embedded |
 | `include/egemb_back_selected_small.h` | 0 | Generated/embedded |
+| `include/egemb_boot_banner.h` | 0 | Generated/embedded |
+| `include/refit_call_wrapper.h` | 0 | ABI/header |
+| `include/syslinux_mbr.h` | 0 | Generated/embedded |
+| `include/tiano_includes.h` | 0 | ABI/header |
+| `include/version.h` | 0 | ABI/header |
+| `libeg/efiConsoleControl.h` | 0 | ABI/header |
+| `libeg/efiUgaDraw.h` | 0 | ABI/header |
+| `libeg/image.c` | 24 | Maintained implementation |
+| `libeg/libeg.h` | 0 | ABI/header |
+| `libeg/libegint.h` | 0 | ABI/header |
+| `libeg/load_bmp.c` | 2 | Maintained implementation |
+| `libeg/load_icns.c` | 2 | Maintained implementation |
+| `libeg/lodepng.c` | 254 | Bundled decoder |
+| `libeg/lodepng.h` | 0 | ABI/header |
+| `libeg/lodepng_xtra.c` | 8 | Maintained implementation |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
