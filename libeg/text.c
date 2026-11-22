@@ -36,15 +36,30 @@ static VOID egPrepareFont() {
         FontCellWidth = BaseFontImage->Width / FONT_NUM_CHARS;
 }  
 
+/*
+ * Demand-load the embedded font before obtaining its pixel height.
+ * The code assumes font preparation succeeds and dereferences
+ * BaseFontImage without an allocation-failure fallback.
+ */
 UINTN egGetFontHeight(VOID) {
    egPrepareFont();
    return BaseFontImage->Height;
 }  
 
+/*
+ * Return the cached fixed-glyph advance in pixels. The cache is
+ * populated by egPrepareFont, so a call before preparation may
+ * observe its uninitialised/default width.
+ */
 UINTN egGetFontCellWidth(VOID) {
    return FontCellWidth;
 }
 
+/*
+ * Calculate the rendered width as a glyph count times the cached
+ * fixed-cell advance; this is not a Unicode shaping or kerning
+ * measurement. Font preparation precedes the calculation.
+ */
 UINTN egComputeTextWidth(IN CHAR16 *Text) {
    UINTN Width = 0;
 

@@ -68,6 +68,11 @@ VOID fsw_efi_decode_time(OUT EFI_TIME *EfiTime, IN UINT32 UnixTime)
     EfiTime->Day = (UINT8) (days + 1);
 }
 
+/*
+ * Return the byte capacity required for a NUL-terminated UTF-16 EFI
+ * name. FSW string length is counted in code units, whereas UEFI
+ * buffer negotiation and allocations use bytes.
+ */
 UINTN fsw_efi_strsize(struct fsw_string *s)
 {
     if (s->type == FSW_STRING_TYPE_EMPTY)

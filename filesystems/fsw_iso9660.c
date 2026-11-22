@@ -99,6 +99,13 @@ static fsw_status_t rr_find_sp(struct iso9660_dirrec *dirrec, struct fsw_rock_ri
     return FSW_NOT_FOUND;
 }
 
+/*
+ * Accumulate Rock Ridge NM name fragments into an owned fsw_string,
+ * including continuation (CE) areas. The continuation offset and length
+ * are on-disk inputs, and this routine does not uniformly validate every
+ * variable-length entry before accessing it: malformed-image coverage is
+ * still required. A returned name must be released by the consumer.
+ */
 static fsw_status_t rr_find_nm(struct fsw_iso9660_volume *vol, struct iso9660_dirrec *dirrec, int off, struct fsw_string *str)
 {
     fsw_u8 *r, *begin;
@@ -189,6 +196,12 @@ done:
     return FSW_SUCCESS;
 }
 
+/*
+ * Read the device block named by a Rock Ridge CE reference into the
+ * caller-supplied destination. This helper returns the host block-read
+ * status and does not independently validate the continuation offset
+ * or the advertised CE length.
+ */
 static fsw_status_t rr_read_ce(struct fsw_iso9660_volume *vol, union fsw_rock_ridge_susp_ce *ce, fsw_u8 *begin)
 {
     int rc;
@@ -306,12 +319,21 @@ static fsw_status_t fsw_iso9660_volume_mount(struct fsw_iso9660_volume *vol)
     return FSW_SUCCESS;
 }
 
+/*
+ * Release the retained primary volume descriptor; the generic volume
+ * teardown owns the label, caches, root and enclosing volume allocation.
+ */
 static void fsw_iso9660_volume_free(struct fsw_iso9660_volume *vol)
 {
     if (vol->primary_voldesc)
         fsw_free(vol->primary_voldesc);
 }
 
+/*
+ * No free-space accounting is implemented for this optical reader:
+ * both output counters are zero, not an assertion that the medium has
+ * zero capacity or no remaining writable blocks.
+ */
 static fsw_status_t fsw_iso9660_volume_stat(struct fsw_iso9660_volume *vol, struct fsw_volume_stat *sb)
 {
     sb->total_bytes = 0;  
@@ -319,6 +341,11 @@ static fsw_status_t fsw_iso9660_volume_stat(struct fsw_iso9660_volume *vol, stru
     return FSW_SUCCESS;
 }
 
+/*
+ * Derive the logical byte size and file/directory type from the ISO
+ * directory record. A recognised file flag does not establish that its
+ * extent lies on readable media.
+ */
 static fsw_status_t fsw_iso9660_dnode_fill(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno)
 {
 
@@ -335,6 +362,11 @@ static void fsw_iso9660_dnode_free(struct fsw_iso9660_volume *vol, struct fsw_is
 {
 }
 
+/*
+ * Round the logical file length up to an ISO 2048-byte allocation block
+ * for FSW's used-byte statistic. This is a synthetic read-only accounting
+ * value, not a physical write-allocation query.
+ */
 static fsw_status_t fsw_iso9660_dnode_stat(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno,
                                            struct fsw_dnode_stat *sb)
 {
@@ -538,6 +570,11 @@ static fsw_status_t fsw_iso9660_read_dirrec(struct fsw_iso9660_volume *vol, stru
     return FSW_SUCCESS;
 }
 
+/*
+ * Use the generic bounded data-backed link reader for a node no
+ * larger than FSW_PATH_MAX. Link-target decoding is separate from the
+ * Rock Ridge name-extension parser and may still fail on bad metadata.
+ */
 static fsw_status_t fsw_iso9660_readlink(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno,
                                          struct fsw_string *link_target)
 {

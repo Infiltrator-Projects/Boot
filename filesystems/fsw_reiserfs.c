@@ -133,12 +133,21 @@ static fsw_status_t fsw_reiserfs_volume_mount(struct fsw_reiserfs_volume *vol)
     return FSW_SUCCESS;
 }
 
+/*
+ * Release the stored superblock. Generic FSW teardown owns the
+ * remaining cache, label, root references and volume allocation.
+ */
 static void fsw_reiserfs_volume_free(struct fsw_reiserfs_volume *vol)
 {
     if (vol->sb)
         fsw_free(vol->sb);
 }
 
+/*
+ * Convert the superblock's total and free block counts to bytes using
+ * the active logical block size. The reader does not rescan bitmap
+ * allocation to verify these advertised counters.
+ */
 static fsw_status_t fsw_reiserfs_volume_stat(struct fsw_reiserfs_volume *vol, struct fsw_volume_stat *sb)
 {
     sb->total_bytes = (fsw_u64)vol->sb->s_v1.s_block_count * vol->g.log_blocksize;
@@ -146,6 +155,12 @@ static fsw_status_t fsw_reiserfs_volume_stat(struct fsw_reiserfs_volume *vol, st
     return FSW_SUCCESS;
 }
 
+/*
+ * Resolve an object from its directory/object identifiers, then
+ * decode either ReiserFS 3.5 or 3.6 stat-data layout. The decoded
+ * record is copied to dnode-owned memory; unexpected item type,
+ * size or version is rejected as corrupt metadata.
+ */
 static fsw_status_t fsw_reiserfs_dnode_fill(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno)
 {
     fsw_status_t    status;
@@ -211,6 +226,11 @@ static fsw_status_t fsw_reiserfs_dnode_fill(struct fsw_reiserfs_volume *vol, str
     return FSW_SUCCESS;
 }
 
+/*
+ * Release whichever version of stat-data was allocated for this
+ * node. The generic FSW layer handles the surrounding node, name
+ * and retained parent references.
+ */
 static void fsw_reiserfs_dnode_free(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno)
 {
     if (dno->sd_v1)
@@ -322,6 +342,12 @@ bail:
 
 }
 
+/*
+ * Enumerate B-tree directory items and compare names against the
+ * requested component. Entry name bytes alias the current item buffer
+ * until child creation copies them; successful lookup must preserve
+ * both object ID and its directory ID as the node identity.
+ */
 static fsw_status_t fsw_reiserfs_dir_lookup(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno,
                                             struct fsw_string *lookup_name, struct fsw_reiserfs_dnode **child_dno_out)
 {
@@ -377,6 +403,11 @@ static fsw_status_t fsw_reiserfs_dir_lookup(struct fsw_reiserfs_volume *vol, str
     }
 }
 
+/*
+ * Continue enumeration using the directory stream position as a
+ * tree-key offset. The cursor is backend-specific rather than an
+ * absolute byte offset in a flat directory file.
+ */
 static fsw_status_t fsw_reiserfs_dir_read(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno,
                                           struct fsw_shandle *shand, struct fsw_reiserfs_dnode **child_dno_out)
 {
@@ -451,6 +482,11 @@ static fsw_status_t fsw_reiserfs_dir_read(struct fsw_reiserfs_volume *vol, struc
     }
 }
 
+/*
+ * Return the target through the common FSW stream-backed link
+ * reader. The path-length bound and allocated output's ownership
+ * follow fsw_dnode_readlink_data, not a ReiserFS-specific allocator.
+ */
 static fsw_status_t fsw_reiserfs_readlink(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno,
                                           struct fsw_string *link_target)
 {
@@ -696,6 +732,11 @@ static fsw_status_t fsw_reiserfs_item_next(struct fsw_reiserfs_volume *vol,
     return FSW_NOT_FOUND;
 }
 
+/*
+ * Release the cached B-tree block only when the item still owns it,
+ * then clear its block number to make later teardown idempotent.
+ * Item-data pointers become invalid after this release.
+ */
 static void fsw_reiserfs_item_release(struct fsw_reiserfs_volume *vol,
                                       struct fsw_reiserfs_item *item)
 {
