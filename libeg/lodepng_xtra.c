@@ -98,9 +98,8 @@ typedef struct _lode_color {
  * structure by name. WantAlpha controls whether the destination alpha byte is
  * populated. Image dimensions come from the decoded PNG, and icon resizing occurs
  * later in the loading path. The decoder owns PixelData until lodepng_free;
- * the current early returns after successful decoding omit that release
- * when EG_IMAGE creation or dimension validation fails. This can leak pool
- * allocations on malformed-resource and allocation-failure paths.
+ * each failure path releases that buffer after decoding succeeds. For opaque
+ * images, the GOP reserved fourth byte is set explicitly to zero.
  */
 EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha) {
    EG_IMAGE *NewImage = NULL;
@@ -117,11 +116,14 @@ EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
    }
 
    NewImage = egCreateImage(Width, Height, WantAlpha);
-   if (NewImage == NULL)
+   if (NewImage == NULL) {
+       lodepng_free(PixelData);
        return NULL;
+   }
 
    if ((NewImage->Width != Width) || (NewImage->Height != Height)) {
       egFreeImage(NewImage);
+      lodepng_free(PixelData);
       return NULL;
    }
 
@@ -136,8 +138,7 @@ EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN Ico
       NewImage->PixelData[i].r = LodeData[i].red;
       NewImage->PixelData[i].g = LodeData[i].green;
       NewImage->PixelData[i].b = LodeData[i].blue;
-      if (WantAlpha)
-         NewImage->PixelData[i].a = LodeData[i].alpha;
+      NewImage->PixelData[i].a = WantAlpha ? LodeData[i].alpha : 0;
    }
    lodepng_free(PixelData);
 
