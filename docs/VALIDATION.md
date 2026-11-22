@@ -81,6 +81,20 @@ A single successful direct Linux Mint boot on an EXT4 volume is an observed outc
 
 At this revision, the released BOOT builds the original EFI filesystem drivers rather than a verified Common V2 `.so`-based firmware module loader. Full V2 compliance would require explicit ABI conformance tests, freestanding build checks, image authentication and dependency handling, module execution proofs and representative read-path tests for each filesystem. No such end-to-end guarantee is asserted by the current test suite.
 
+## Interpretation of source-level contracts
+
+Code comments document the branch-level contract **as implemented**; they do not establish that the contract has been exercised on firmware. In particular:
+
+| Interface | Source-visible fact | Independent evidence needed |
+| --- | --- | --- |
+| `FindBootOrderEntries` | Malformed or missing `Boot####` entries are skipped; memory exhaustion may truncate the returned list | Inject malformed UTF-16 descriptions, inconsistent path lengths and allocation failures; verify callers do not treat partial results as complete firmware state |
+| `DeleteInvalidBootEntries` | Non-`EFI_NOT_FOUND` reads abort cleanup; a successful `Boot####` deletion can precede failed `BootOrder` cleanup | Inject NVRAM read/write errors and verify final variables as well as surfaced status |
+| `ConnectFilesystemDriver` | Disconnect/reconnect outcomes are not returned to callers | Firmware mocks and OVMF tests showing bindings before and after connection, including failed disconnect/reconnect |
+| `LoadDrivers` | Positive return counts candidate driver filenames, not mounts | Distinguish candidate, authenticated image, successful binding, volume visibility and successful file read in separate assertions |
+| `fsw_efi_DriverBinding_Start/Stop` | Volume storage contains an installed protocol; teardown must uninstall it before release | Fault-inject mount, protocol installation and uninstallation, followed by protocol use/cleanup checks |
+
+These are **unverified regression requirements**, not new test results. The descriptions also expose areas where a public API cannot express partial failure (for example, the `VOID` controller reconnection function). Documentation must preserve this limitation rather than silently implying stronger success guarantees.
+
 ## Failure reporting and documentation changes
 
 Failed CI stops the current release pipeline and must be investigated from the failing step and log. Source-only comment removal previously required an update to a package-size assertion; removal of obsolete `COPYING.txt` later required deleting references from the workflow and release scripts. These are examples of repository-contract changes, not filesystem fixes.
