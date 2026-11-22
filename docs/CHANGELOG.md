@@ -2,6 +2,12 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — EFI device-path commentary and string lifetime
+
+- Added decoder-specific explanations of vendor, ACPI, network, iSCSI and unknown device-path node formatting, distinguishing display output from validated binary input.
+- Made MyCatPrint appends transactional under allocation failure, bounded output growth to MAX_CHAR and tracked the length in CHAR16 units instead of bytes; removed redundant terminal reallocation.
+- Preserved the existing EFI device-path protocol fallback and noted its unresolved lack of an external input byte bound. This change does not certify parsing of malformed firmware nodes.
+
 ## 2026-11-22 — Parser boundary and configuration-file lifetime corrections
 
 - Bounded NTFS attribute-list name spans, MFT name offsets, directory index entries and compressed-page chunk-header reads before dereferencing on-disk input.

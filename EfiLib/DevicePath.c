@@ -21,40 +21,52 @@ MyCatPrint (
   ...
   )
 {
-  UINT16  *AppendStr;
+  CHAR16  *AppendStr;
+  CHAR16  *NewStr;
   VA_LIST Args;
-  UINTN   StringSize;
+  UINTN   AppendBytes;
+  UINTN   UsedBytes;
+  UINTN   NeededBytes;
 
+  if (Str == NULL || Fmt == NULL)
+    return NULL;
   AppendStr = AllocateZeroPool (0x1000);
-  if (AppendStr == NULL) {
+  if (AppendStr == NULL)
     return Str->Str;
-  }
-
   VA_START (Args, Fmt);
   UnicodeVSPrint (AppendStr, 0x1000, Fmt, Args);
   VA_END (Args);
-  if (NULL == Str->Str) {
-        StringSize   = StrSize (AppendStr);
-    Str->Str  = AllocateZeroPool (StringSize);
-    ASSERT (Str->Str != NULL);
-  } else {
-        StringSize = StrSize (AppendStr);
-        StringSize += (StrSize (Str->Str) - sizeof (UINT16));
 
-    Str->Str = EfiReallocatePool (
-					Str->Str,		   
-                                   StrSize (Str->Str),
-					StringSize                
-                );
-    ASSERT (Str->Str != NULL);
+  AppendBytes = StrSize (AppendStr);
+  UsedBytes = (Str->Str != NULL) ? StrSize (Str->Str) - sizeof (CHAR16) : 0;
+  if (UsedBytes > (~(UINTN)0) - AppendBytes) {
+    FreePool (AppendStr);
+    return Str->Str;
+  }
+  NeededBytes = UsedBytes + AppendBytes;
+  Str->Maxlen = MAX_CHAR;
+  if (NeededBytes >= MAX_CHAR * sizeof (CHAR16)) {
+    FreePool (AppendStr);
+    return Str->Str;
   }
 
-  Str->Maxlen = MAX_CHAR * sizeof (UINT16);
-  if (StringSize < Str->Maxlen) {
-    StrCat (Str->Str, AppendStr);
-    Str->Len = StringSize - sizeof (UINT16);
+  /*
+   * Allocate before freeing the previous string. This makes an allocation
+   * failure non-destructive even when firmware reallocation semantics differ.
+   * Str->Len counts UTF-16 code units, not allocation bytes.
+   */
+  NewStr = AllocateZeroPool (NeededBytes);
+  if (NewStr == NULL) {
+    FreePool (AppendStr);
+    return Str->Str;
   }
-
+  if (Str->Str != NULL) {
+    CopyMem (NewStr, Str->Str, UsedBytes);
+    FreePool (Str->Str);
+  }
+  Str->Str = NewStr;
+  StrCat (Str->Str, AppendStr);
+  Str->Len = StrLen (Str->Str);
   FreePool (AppendStr);
   return Str->Str;
 }
@@ -113,6 +125,12 @@ DevPathController (
   MyCatPrint (Str, L"Ctrl(%d)", (UINTN) Controller->ControllerNumber);
 }
 
+/*
+ * Vendor path rendering is descriptive only. The node's vendor GUID selects
+ * the textual form, and optional vendor bytes are emitted individually.
+ * DevicePathNodeLength is supplied by firmware and must not be mistaken for
+ * the length of an independently validated backing allocation.
+ */
 VOID
 DevPathVendor (
   IN OUT POOL_PRINT       *Str,
@@ -209,6 +227,13 @@ DevPathAcpi (
   }
 }
 
+/*
+ * Parse the optional HID, UID and CID NUL-delimited suffixes using the node's
+ * encoded length. Zero string indices represent absent components; a numeric
+ * HID/CID may be rendered in PNP notation. This formatter assumes a complete
+ * ACPI node was provided and does not independently verify its enclosing
+ * device-path allocation.
+ */
 VOID
 DevPathExtendedAcpi (
   IN OUT POOL_PRINT       *Str,
@@ -307,6 +332,12 @@ DevPathExtendedAcpi (
 
 }
 
+/*
+ * The first ACPI ADR occupies the fixed eight-byte prefix. Subsequent ADR
+ * values are 32-bit words counted from the node length. A malformed length
+ * below eight would underflow the unsigned count; callers need a validated
+ * node before invoking this display-only formatter.
+ */
 VOID
 DevPathAdrAcpi (
   IN OUT POOL_PRINT       *Str,
@@ -509,6 +540,11 @@ DevPathMacAddr (
   MyCatPrint (Str, L")");
 }
 
+/*
+ * Render source/destination addresses and local/remote ports from a network
+ * messaging node. The address is a presentation of firmware-supplied bytes,
+ * not proof of a reachable network route or a trusted boot endpoint.
+ */
 VOID
 DevPathIPv4 (
   IN OUT POOL_PRINT       *Str,
@@ -529,6 +565,11 @@ DevPathIPv4 (
     );
 }
 
+/*
+ * IPv6 device-path printing preserves the encoded addresses and connection
+ * metadata. This renderer assumes the node is the correct size; it must not
+ * be used in place of node-length validation on an untrusted buffer.
+ */
 VOID
 DevPathIPv6 (
   IN OUT POOL_PRINT       *Str,
@@ -655,6 +696,11 @@ DevPathUart (
   }
 }
 
+/*
+ * The iSCSI option word encodes digest modes and authentication choices.
+ * Displaying the requested settings does not establish that a remote target
+ * was reached or that an authenticated session took place.
+ */
 VOID
 DevPathiSCSI (
   IN OUT POOL_PRINT       *Str,
@@ -868,6 +914,11 @@ DevPathEndInstance (
   MyCatPrint (Str, L",");
 }
 
+/*
+ * Unknown type/subtype pairs intentionally render as '?' instead of being
+ * classified as valid hardware. This fallback has no side effect on the
+ * original firmware device path or on boot selection.
+ */
 VOID
 DevPathNodeUnknown (
   IN OUT POOL_PRINT       *Str,
@@ -1084,6 +1135,9 @@ DEVICE_PATH_STRING_TABLE  DevPathTable[] = {
  * buffer is allocated for the caller. The fallback has no independently
  * supplied total path length: it assumes node lengths eventually reach a
  * valid terminator rather than establishing binary path well-formedness.
+ * MyCatPrint now preserves its prior buffer on pool exhaustion, counts CHAR16
+ * units correctly and stops appending at MAX_CHAR. Truncation can therefore
+ * produce an incomplete diagnostic string, never a validated boot path.
  */
 CHAR16 *
 EFIAPI
@@ -1096,7 +1150,6 @@ DevicePathToStr (
   VOID (*DumpNode) (POOL_PRINT *, VOID *);
 
   UINTN Index;
-  UINTN NewSize;
 
   EFI_STATUS                       Status;
   CHAR16                           *ToText;
@@ -1156,9 +1209,9 @@ DevicePathToStr (
   }
 
 Done:
-  NewSize = (Str.Len + 1) * sizeof (CHAR16);
-  Str.Str = EfiReallocatePool (Str.Str, NewSize, NewSize);
-  ASSERT (Str.Str != NULL);
-  Str.Str[Str.Len] = 0;
+  /* MyCatPrint maintains the terminator and counts UTF-16 code units. An
+   * empty path still needs a caller-owned, terminated string. */
+  if (Str.Str == NULL)
+    Str.Str = AllocateZeroPool (sizeof (CHAR16));
   return Str.Str;
 }

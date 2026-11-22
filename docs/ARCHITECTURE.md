@@ -94,7 +94,7 @@ Appearance changes must not alter scan ordering, delete other loaders, disable f
 
 There are distinct integrity boundaries: the `.run` pins its downloaded source to the release commit; both installers restrict ESP writes to BOOT's fixed directory; EFI image and driver authentication depends on the active firmware trust configuration. Installation-path checks must not be confused with Secure Boot image authentication.
 
-Input surfaces include ESP directory entries, filesystem metadata, configuration text, EFI load options, firmware NVRAM state and optional hardware-dependent paths. Malformed or missing data must not be represented as successful OS discovery, authenticated execution or a verified firmware update.
+Input surfaces include ESP directory entries, filesystem metadata, configuration text, EFI load options, firmware NVRAM state and optional hardware-dependent paths. EFI device-path text formatting now preserves its UTF-16 append buffer on allocation failure, but the fallback formatter still accepts an unbounded device-path pointer and must never be presented as a binary validator. Malformed or missing data must not be represented as successful OS discovery, authenticated execution or a verified firmware update.
 
 ## Secure Boot and signing side-effect boundaries
 
