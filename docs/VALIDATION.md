@@ -383,4 +383,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `boot/driver_support.h` | 0 | ABI/header |
 | `boot/global.h` | 0 | ABI/header |
 | `boot/gpt.c` | 7 | Maintained implementation |
+| `boot/gpt.h` | 0 | ABI/header |
+| `boot/icns.c` | 3 | Maintained implementation |
+| `boot/icns.h` | 0 | ABI/header |
+| `boot/install.c` | 8 | Maintained implementation |
+| `boot/install.h` | 0 | ABI/header |
+| `boot/launch_efi.c` | 8 | Maintained implementation |
+| `boot/launch_efi.h` | 0 | ABI/header |
+| `boot/launch_legacy.c` | 15 | Maintained implementation |
+| `boot/launch_legacy.h` | 0 | ABI/header |
+| `boot/lib.c` | 49 | Maintained implementation |
+| `boot/lib.h` | 0 | ABI/header |
+| `boot/line_edit.c` | 3 | Maintained implementation |
+| `boot/line_edit.h` | 0 | ABI/header |
+| `boot/linux.c` | 7 | Maintained implementation |
+| `boot/linux.h` | 0 | ABI/header |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
