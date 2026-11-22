@@ -179,7 +179,10 @@ VOID AboutBOOT(VOID)
  * Persist the displayed title under BootGuid for the next "+" expansion. The
  * length passed to EfivarSetRaw is a byte count including the CHAR16 terminator.
  * This title participates in a later menu search and may match more than one
- * entry.
+ * entry. NULL is a no-op. The multiplication by two assumes CHAR16 is two
+ * bytes; there is no checked arithmetic for an extreme input length. This
+ * VOID function discards EfivarSetRaw's status, so the caller cannot know
+ * whether the title survived an NVRAM or BOOT-variable-file write.
  */
 VOID StoreLoaderName(IN CHAR16 *Name) {
 
