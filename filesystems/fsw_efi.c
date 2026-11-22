@@ -3,6 +3,10 @@
  * Driver Binding and Simple File System protocol. The driver exposes a new
  * firmware filesystem interface only after mount succeeds. Protocol installs,
  * controller claims, caches and file handles have matching teardown duties.
+ * Firmware ReadDisk reports EFI_STATUS, while the shared host callbacks use
+ * FSW status values: returning an unconverted value risks confusing the
+ * caller's error interpretation. Cached byte ranges also require overflow-
+ * safe arithmetic and volume identity, not merely a matching block number.
  */
 
 #include "fsw_efi.h"
