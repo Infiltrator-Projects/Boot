@@ -601,6 +601,11 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_Close(IN EFI_FILE_PROTOCOL *This)
     return EFI_SUCCESS;
 }
 
+/*
+ * This read-only backend can close a handle but cannot delete its backing
+ * filesystem node. A successful close is reported as EFI_WARN_DELETE_FAILURE;
+ * it must not be interpreted as a successful mutation of media contents.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_Delete(IN EFI_FILE_PROTOCOL *This)
 {
     EFI_STATUS          Status;
@@ -644,6 +649,10 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_Write(IN EFI_FILE_PROTOCOL *This,
     return EFI_WRITE_PROTECTED;
 }
 
+/*
+ * Expose the independent stream byte cursor only for ordinary file handles;
+ * directory enumeration state has a distinct representation and is rejected.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_GetPosition(IN EFI_FILE_PROTOCOL *This,
                                                  OUT UINT64 *Position)
 {
@@ -655,6 +664,11 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_GetPosition(IN EFI_FILE_PROTOCOL *This,
     return EFI_UNSUPPORTED;
 }
 
+/*
+ * Dispatch seek operations according to handle type. Files use a byte cursor,
+ * while directories use their backend enumeration cursor. The encoded
+ * positions are not interchangeable between these two handle classes.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_SetPosition(IN EFI_FILE_PROTOCOL *This,
                                                  IN UINT64 Position)
 {
@@ -667,6 +681,11 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_SetPosition(IN EFI_FILE_PROTOCOL *This,
     return EFI_UNSUPPORTED;
 }
 
+/*
+ * Delegate EFI information-class and buffer-size negotiation to the dnode
+ * adapter. The caller retains ownership of its supplied information buffer;
+ * a successful query does not allocate a new EFI file handle.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_GetInfo(IN EFI_FILE_PROTOCOL *This,
                                              IN EFI_GUID *InformationType,
                                              IN OUT UINTN *BufferSize,
@@ -677,6 +696,10 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_GetInfo(IN EFI_FILE_PROTOCOL *This,
     return fsw_efi_dnode_getinfo(File, InformationType, BufferSize, Buffer);
 }
 
+/*
+ * Metadata mutation is not supported by the read-only FSW bridge.
+ * A writable-looking information class does not override this rejection.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_SetInfo(IN EFI_FILE_PROTOCOL *This,
                                              IN EFI_GUID *InformationType,
                                              IN UINTN BufferSize,
@@ -686,6 +709,11 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_SetInfo(IN EFI_FILE_PROTOCOL *This,
     return EFI_WRITE_PROTECTED;
 }
 
+/*
+ * No mutable file data are buffered for persistence. This implementation
+ * reports EFI_WRITE_PROTECTED, rather than treating Flush as a successful
+ * durability or disk-write operation.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_Flush(IN EFI_FILE_PROTOCOL *This)
 {
 
