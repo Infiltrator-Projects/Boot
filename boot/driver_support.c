@@ -483,6 +483,14 @@ static UINTN ScanDriverDir(IN CHAR16 *Path)
  * configured additional directories. Sum the numbers of matching files and
  * connect controllers when the sum is nonzero. efi_main uses the returned Boolean
  * to decide whether to scan volumes again.
+ *
+ * Its Boolean is derived from filenames encountered across built-in and
+ * configured directories. No invariant equates this number with successful
+ * LoadImage, StartImage, driver binding, newly installed filesystem protocols,
+ * or valid filesystems. A rescan can therefore observe an unchanged volume
+ * inventory even when LoadDrivers returns TRUE. A caller needing confirmed
+ * readability must inspect an actual post-connection volume and perform a
+ * read, not reinterpret this return value as a successful mount count.
  */
 BOOLEAN LoadDrivers(VOID) {
     CHAR16        *Directory, *SelfDirectory;
