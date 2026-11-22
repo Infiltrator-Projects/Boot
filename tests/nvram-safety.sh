@@ -132,3 +132,64 @@ command grep -Fq "Boot0001* Windows Boot Manager" "$MOCK_NVRAM/entries" || exit 
 command grep -Fq "Boot0002* Ubuntu" "$MOCK_NVRAM/entries" || exit 1
 ! command grep -Eq -- ' -B($| )' "$MOCK_NVRAM/actions" || exit 1
 echo "BOOT is default on every install; missing, duplicate, or ambiguous firmware records cannot create extra entries"
+
+# Regression: a Secure Boot entry created by versions up to 0.1.569
+# passed an unterminated shim-name + BOOT-name pair. On Shim 15.8 this
+# leaves the loader looking for grubx64.efi. Replace only the BOOT entry
+# using a single correctly delimited UTF-16 argument; retain GRUB/Windows.
+cat > "$work/bin/efibootmgr" <<'SHIM_MOCK'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$MOCK_NVRAM/actions"
+case "${1:-}" in
+ -v)
+    printf 'BootOrder: %s\n' "$(cat "$MOCK_NVRAM/order")"
+    cat "$MOCK_NVRAM/entries" ;;
+ -b)
+    [[ "${3:-}" == -B && "${2:-}" == 0004 ]] || exit 81
+    command grep -v '^Boot0004' "$MOCK_NVRAM/entries" > "$MOCK_NVRAM/entries.tmp"
+    mv "$MOCK_NVRAM/entries.tmp" "$MOCK_NVRAM/entries"
+    echo 0001,0002 > "$MOCK_NVRAM/order" ;;
+ -c)
+    [[ "${@: -1}" == 'BOOTX64.EFI ' ]] || {
+        echo "Shim second-stage argument missing its required final delimiter" >&2
+        exit 82
+    }
+    [[ "$*" == *'-l \EFI\InfiltratorOS\BOOT\shimx64.efi'* ]] || exit 83
+    printf '%s\n' 'Boot0007* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\shimx64.efi) File(.BOOTX64.EFI )' >> "$MOCK_NVRAM/entries"
+    echo 0007,0001,0002 > "$MOCK_NVRAM/order" ;;
+ -o)
+    echo "$2" > "$MOCK_NVRAM/order" ;;
+ '')
+    printf 'BootOrder: %s\n' "$(cat "$MOCK_NVRAM/order")" ;;
+ *)
+    exit 84 ;;
+esac
+SHIM_MOCK
+chmod +x "$work/bin/efibootmgr"
+cat > "$MOCK_NVRAM/entries" <<'SHIM_ENTRIES'
+Boot0001* ubuntu HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\ubuntu\shimx64.efi)
+Boot0002* Windows Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\Microsoft\Boot\bootmgfw.efi)
+Boot0004* BOOT Boot Manager HD(1,GPT,12345678-1111-2222-3333-444455556666)File(\EFI\InfiltratorOS\BOOT\shimx64.efi) File(.shimx64.efi BOOTX64.EFI)
+SHIM_ENTRIES
+echo 0004,0001,0002 > "$MOCK_NVRAM/order"
+: > "$MOCK_NVRAM/actions"
+KeepName=1
+ShimSource=/boot/efi/EFI/ubuntu/shimx64.efi
+TargetShim=shimx64.efi
+TargetX64=BOOTX64.EFI
+Boot=shimx64.efi
+Problems=""
+AddBootEntry || exit 1
+test "$(cat "$MOCK_NVRAM/order")" = 0007,0001,0002 || exit 1
+test "$(command grep -c '^Boot0007' "$MOCK_NVRAM/entries")" = 1 || exit 1
+! command grep -q '^Boot0004' "$MOCK_NVRAM/entries" || exit 1
+command grep -q '^Boot0001\* ubuntu' "$MOCK_NVRAM/entries" || exit 1
+command grep -q '^Boot0002\* Windows Boot Manager' "$MOCK_NVRAM/entries" || exit 1
+test "$(command grep -c -- '^-b ' "$MOCK_NVRAM/actions")" = 1 || exit 1
+test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
+AddBootEntry || exit 1
+test "$(command grep -c -- '^-b ' "$MOCK_NVRAM/actions")" = 1 || exit 1
+test "$(command grep -c -- '^-c ' "$MOCK_NVRAM/actions")" = 1 || exit 1
+test "$(cat "$MOCK_NVRAM/order")" = 0007,0001,0002 || exit 1
+echo "Shim 15.8 filename handoff repaired without duplicating BOOT or changing GRUB/Windows"
