@@ -1,7 +1,6 @@
-/*
- * Embedded image and OS icon resource contract. Icon lookup may return a
- * fallback/dummy image and must not imply that its corresponding EFI image
- * was validated, authenticated or executed successfully.
+/* Graphical icon resolution and fallback interface.
+ * Embedded and external resources are display metadata only.
+ * Missing artwork is handled without suppressing menu entries.
  */
 
 #ifndef __ICNS_H_

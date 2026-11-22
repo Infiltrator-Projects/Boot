@@ -1,7 +1,6 @@
-/*
- * FindInitrd searches the kernel's directory on the supplied volume.
- * AddInitrdToOptions and GetMainLinuxOptions return allocated command-line
- * strings. HasSignedCounterpart is a filename lookup used during discovery.
+/* Linux EFI-stub candidate and boot-option helpers.
+ * Distribution recognition supplies hints, not authoritative OS identity.
+ * Initrd discovery and command-line construction are separate stages.
  */
 
 #ifndef __BOOT_LINUX_H_

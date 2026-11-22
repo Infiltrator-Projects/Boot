@@ -1,7 +1,6 @@
-/*
- * Vendor-specific Apple EFI variables and OS information protocol declarations.
- * These protocols and CSR fields are not universally present on UEFI systems;
- * a failed lookup is not a general-purpose Secure Boot state determination.
+/* Apple EFI interoperability interface.
+ * Vendor protocols and CSR/SIP state are optional platform facilities.
+ * No Apple-specific interface is required for ordinary UEFI boot.
  */
 
 #ifndef __APPLE_H_

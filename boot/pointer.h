@@ -1,7 +1,6 @@
-/*
- * Optional EFI absolute/simple-pointer device abstraction. Keyboard-only
- * selection remains required when no compatible pointer protocol is present.
- * Pointer handle closure and cached graphics release are lifecycle contracts.
+/* UEFI pointer device discovery and cursor interface.
+ * Absolute and simple pointer devices are optional inputs.
+ * Keyboard navigation does not depend on cursor availability.
  */
 
 #ifndef __BOOT_POINTERDEVICE_H_

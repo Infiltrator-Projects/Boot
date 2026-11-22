@@ -1,7 +1,6 @@
-/*
- * The editor treats line_in as borrowed text. On Enter it returns TRUE and
- * transfers a newly allocated edited string through line_out. On cancellation
- * the caller keeps its original string. x_max specifies display columns.
+/* UTF-16 interactive line editor interface.
+ * Cursor and viewport bounds are maintained separately from text length.
+ * Results are caller-owned edited strings where documented.
  */
 
 #ifndef __LINE_EDIT_H_

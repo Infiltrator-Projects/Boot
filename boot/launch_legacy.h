@@ -1,8 +1,6 @@
-/*
- * Apple-compatible legacy startup prepares the disk and starts a firmware
- * loader image. The UEFI legacy route dispatches a BDS boot option through
- * the legacy BIOS protocol. Scan functions populate the entry type that
- * selects the corresponding launch route.
+/* Legacy BIOS/CSM discovery and handoff interface.
+ * Platform-dependent boot hints and entries do not use EFI-stub dispatch.
+ * Firmware support governs whether legacy boot paths are available.
  */
 
 #ifndef __LAUNCH_LEGACY_H

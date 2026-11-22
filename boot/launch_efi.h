@@ -1,8 +1,6 @@
-/*
- * EFI loader image classes, image dispatch and reboot interfaces.
- * LOADER_TYPE_EFI versus LOADER_TYPE_GZIP controls input preparation but
- * neither indicates firmware signature acceptance or successful OS startup.
- * EFI_STATUS remains the definitive result at the loader handoff.
+/* EFI image loading and child dispatch interface.
+ * Separates candidate inspection, loaded-image ownership and StartImage.
+ * Returning images may require reopening firmware resources.
  */
 
 #ifndef __BOOT_LAUNCH_EFI_H_

@@ -1,7 +1,6 @@
-/*
- * Pass zero for a new CRC-32 calculation or the previous return value to
- * extend one across successive buffers. size is measured in bytes. GPT header
- * and entry-array checks start separate calculations.
+/* CRC-32 checksum helper interface.
+ * Uses the reflected CRC-32 polynomial for binary metadata.
+ * A checksum is a corruption check, not executable authentication.
  */
 
 #ifndef __CRC32_H_

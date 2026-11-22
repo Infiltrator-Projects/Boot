@@ -1,8 +1,6 @@
-/*
- * Firmware BootOrder entry parsing and boot-entry management interface.
- * Never trust Boot#### payload lengths or device-path nodes without checks.
- * This firmware menu code is separate from the native host installation path
- * that writes /EFI/InfiltratorOS/BOOT and registers BOOT.
+/* Firmware boot-option and EFI variable interface.
+ * Provides Boot#### inspection, ordering and related firmware operations.
+ * Host-side installation onto the ESP is a separate component.
  */
 
 #ifndef __INSTALL_H_

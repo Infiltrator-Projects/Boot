@@ -1,7 +1,6 @@
-/*
- * UTF-16 comparison, GUID conversion and delimited-list helpers. Case folding
- * in several routines is ASCII-oriented rather than full Unicode collation;
- * caller allocation and NULL handling are function-specific.
+/* UTF-16 and device-identifier string utility API.
+ * Some comparisons are ASCII-oriented and not locale-aware.
+ * Allocated results must be released by their callers.
  */
 
 #ifndef __MYSTRINGS_H_

@@ -1,8 +1,6 @@
-/*
- * UEFI device-path node decoding and textual representation. Device paths
- * can contain hardware, messaging, media and terminal nodes from firmware or
- * Boot#### variables; each node has type, subtype and encoded length.
- * Formatting a path is diagnostics, not validation of a boot target.
+/* UEFI device-path parsing and text formatting.
+ * Firmware-supplied nodes encode type, subtype and byte length.
+ * Display formatting does not substitute for bounded binary validation.
  */
 
 #include "Platform.h"

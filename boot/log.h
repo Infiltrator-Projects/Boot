@@ -1,7 +1,6 @@
-/*
- * Diagnostic recording interface for BOOT's EFI-volume log. Log write errors
- * must not be interpreted as the status of a loader transfer, and logging
- * should not require destructive operations on other EFI vendors' directories.
+/* Firmware log levels, output and lifecycle declarations.
+ * Log operations may fail independently of the action being traced.
+ * Callers retain responsibility for EFI_STATUS handling.
  */
 
 #ifndef __LOG_H_

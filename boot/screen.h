@@ -1,8 +1,6 @@
-/*
- * Firmware console dimensions, graphics state and screen rendering API.
- * The display may use text or UEFI graphics; loss of a preferred mode
- * must not remove discovered boot options. Images and surfaces have distinct
- * allocation/ownership boundaries from loader device handles.
+/* Firmware console, GOP and display-state interfaces.
+ * Graphical resources are invalidated by relevant display-mode changes.
+ * Text-mode fallback remains available if rendering fails.
  */
 
 #ifndef __SCREEN_H_
