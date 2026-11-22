@@ -339,13 +339,31 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
                     Parent = TRUE;
             }  
 
-            if (!Parent) {
-                if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DEVICE_HANDLE) {
-                   Status = refit_call4_wrapper(BS->ConnectController,
-                                                AllHandleBuffer[Index],
-                                                NULL,
-                                                NULL,
-                                                TRUE);
+            if (!Parent && (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DEVICE_HANDLE)) {
+                MY_EFI_BLOCK_IO_PROTOCOL *BlockIo = NULL;
+                EFI_STATUS ProbeStatus;
+
+                /*
+                 * The per-driver connection pass already offered every
+                 * filesystem driver to logical partitions. Recursively
+                 * connecting those same partitions again can restart a
+                 * rejecting driver indefinitely on unsupported media.
+                 * Keep discovery of parent/storage controllers intact.
+                 */
+                ProbeStatus = refit_call3_wrapper(BS->HandleProtocol,
+                                                  AllHandleBuffer[Index],
+                                                  &gMyEfiBlockIoProtocolGuid,
+                                                  (VOID **)&BlockIo);
+                if (!EFI_ERROR(ProbeStatus) && BlockIo != NULL &&
+                    BlockIo->Media != NULL && BlockIo->Media->LogicalPartition) {
+                    LOG(3, LOG_LINE_NORMAL,
+                        L"Skipping duplicate filesystem partition connection");
+                } else {
+                    Status = refit_call4_wrapper(BS->ConnectController,
+                                                 AllHandleBuffer[Index],
+                                                 NULL,
+                                                 NULL,
+                                                 TRUE);
                 }
             }
         }
