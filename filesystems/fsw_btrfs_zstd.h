@@ -3,6 +3,9 @@
  * fixed-width aliases and page-size assumptions bridge on-disk compressed
  * extents into this private decoder. Input/output sizes are untrusted.
  * This is not a general host-level compression service.
+ * The wrapper's final zero-fill uses out_buf.pos even on paths that jump to
+ * finish before it is initialised. Neither an error return nor the requested
+ * decompressed length proves valid output ownership on that path.
  */
 
 #define PAGE_SIZE 4096
@@ -58,7 +61,8 @@ static inline void put_unaligned_le16(uint16_t v, void *s)
  * The final stream call may produce fewer bytes than destlen. This wrapper
  * zero-fills the remaining range and reports destlen on its success path. A
  * caller comparing the return value with destlen cannot detect that distinction
- * here.
+ * here. A complete stream end is not independently established by the
+ * final call, and a prior allocation failure can leave out_buf.pos unset.
  */
 static fsw_ssize_t zstd_decompress(char *data_in, fsw_size_t srclen,
 		grub_off_t start_byte,
