@@ -151,6 +151,12 @@ static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
  * record. Validate the path span before copying it. The linked list owns both the
  * label and the path independently of the variable buffer.
  *
+ * BootOrder is a sequence of native UINT16 option numbers; an odd byte count
+ * rejects the whole sequence. Each Boot#### record begins with a four-byte
+ * attributes word and a two-byte FilePathListLength. The UTF-16 description
+ * must terminate inside the remaining record; the path length must fit after
+ * that terminator and finish with a bounded end-of-device-path node. Bytes
+ * after FilePathListLength are optional load data, not part of path validation.
  * A malformed or missing option skips only that number. Allocation failure ends
  * enumeration and returns the valid prefix accumulated so far.
  * DeleteBootOrderEntries releases that list.
