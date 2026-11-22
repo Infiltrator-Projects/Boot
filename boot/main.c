@@ -108,7 +108,8 @@ REFIT_CONFIG GlobalConfig = {   FALSE,
                                 NULL,
                                 { TAG_SHELL, TAG_MEMTEST, TAG_GDISK, TAG_APPLE_RECOVERY, TAG_WINDOWS_RECOVERY,
                                                   TAG_MOK_TOOL, TAG_ABOUT, TAG_HIDDEN, TAG_SHUTDOWN, TAG_REBOOT, TAG_FIRMWARE,
-                                                  TAG_FWUPDATE_TOOL, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+                                                  TAG_FWUPDATE_TOOL, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                                TRUE /* StartupDiagnostics: toggle only through boot.conf. */
                             };
 
 CHAR16 *gHiddenTools = NULL;
@@ -494,6 +495,8 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     UINTN              MenuExit = MENU_EXIT_ENTER, i;
     CHAR16             *SelectionName = NULL;
     EG_PIXEL           BGColor = COLOR_LIGHTBLUE;
+    UINT64             ScanBegin = 0, InitialScanMs = 0, StageBegin = 0;
+    BOOLEAN            DriverFilesFound = FALSE;
 
     InitializeLib(ImageHandle, SystemTable);
     Status = InitRefitLib(ImageHandle);
@@ -505,13 +508,17 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     if (GlobalConfig.LegacyType == LEGACY_TYPE_MAC)
        MyCopyMem(GlobalConfig.ScanFor, "ihebocm    ", NUM_SCAN_OPTIONS);
     SetConfigFilename(ImageHandle);
+    ReadStartupDiagnosticsSetting(GlobalConfig.ConfigFilename);
+    BootDiagCalibrateClock();
     /*
      * Initialise firmware GOP/UGA before the first disk access. This allows
      * temporary startup diagnostics to identify slow firmware operations;
      * normal menu configuration is still applied later by SetupScreen.
      */
-    InitScreen();
-    BootStartupProgressBegin();
+    if (GlobalConfig.StartupDiagnostics) {
+        InitScreen();
+        BootStartupProgressBegin();
+    }
     /*
      * The first inventory lets configuration refer to known volumes. A
      * matching driver file triggers a second inventory after connection
@@ -519,7 +526,9 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
      * Loader discovery uses the resulting inventory.
      */
     BootStartupProgressReport(L"Scanning firmware volumes", BOOT_PROGRESS_ACTIVE);
+    ScanBegin = BootDiagTicks();
     ScanVolumes();
+    InitialScanMs = BootDiagElapsedMs(ScanBegin);
     BootStartupProgressReport(L"Initial volume scan completed", BOOT_PROGRESS_OK);
     BootStartupProgressReport(L"Reading BOOT configuration", BOOT_PROGRESS_ACTIVE);
     ReadConfig(GlobalConfig.ConfigFilename);
@@ -528,16 +537,33 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
         StartLogging(FALSE);
         LogBasicInfo();
     }
+    if (GlobalConfig.StartupDiagnostics) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"[DIAG] initial ScanVolumes elapsed=%lu ms volumes=%d",
+            InitialScanMs, VolumesCount);
+        BootDiagFlushEarlyVolumes();
+    }
     LOG(3, LOG_LINE_NORMAL, L"GlobalConfig.DontScanFiles is '%s'", GlobalConfig.DontScanFiles);
     BootStartupProgressReport(L"Checking Secure Boot protocols", BOOT_PROGRESS_ACTIVE);
     MokProtocol = SecureBootSetup();
     BootStartupProgressReport(L"Secure Boot check completed", BOOT_PROGRESS_OK);
     BootStartupProgressReport(L"Searching and loading EFI filesystem drivers",
                               BOOT_PROGRESS_ACTIVE);
-    if (LoadDrivers()) {
+    StageBegin = BootDiagTicks();
+    DriverFilesFound = LoadDrivers();
+    if (GlobalConfig.StartupDiagnostics) {
+        LOG(1, LOG_LINE_NORMAL, L"[DIAG] driver discovery and connection elapsed=%lu ms",
+            BootDiagElapsedMs(StageBegin));
+        BootDiagFlush();
+    }
+    if (DriverFilesFound) {
         BootStartupProgressReport(L"Rescanning volumes after driver connection",
                                   BOOT_PROGRESS_ACTIVE);
+        StageBegin = BootDiagTicks();
         ScanVolumes();
+        if (GlobalConfig.StartupDiagnostics)
+            LOG(1, LOG_LINE_NORMAL, L"[DIAG] post-driver ScanVolumes elapsed=%lu ms volumes=%d",
+                BootDiagElapsedMs(StageBegin), VolumesCount);
         BootStartupProgressReport(L"Volume rescan completed", BOOT_PROGRESS_OK);
     }
 
@@ -547,6 +573,8 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     if (GlobalConfig.SpoofOSXVersion && GlobalConfig.SpoofOSXVersion[0] != L'\0')
         SetAppleOSInfo();
 
+    if (!GlobalConfig.StartupDiagnostics)
+        InitScreen();
     BootStartupProgressReport(L"Validating graphical font inventory",
                               BOOT_PROGRESS_ACTIVE);
     /* Genuine MB TTF assets live on the same EFI volume as BOOT. A missing
@@ -568,16 +596,28 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     refit_call4_wrapper(BS->SetWatchdogTimer, 0x0000, 0x0000, 0x0000, NULL);
 
     BootStartupProgressReport(L"Preparing normal display mode", BOOT_PROGRESS_ACTIVE);
+    StageBegin = BootDiagTicks();
     SetupScreen();
+    if (GlobalConfig.StartupDiagnostics)
+        LOG(1, LOG_LINE_NORMAL, L"[DIAG] SetupScreen elapsed=%lu ms", BootDiagElapsedMs(StageBegin));
     BootStartupProgressReport(L"Display configuration completed", BOOT_PROGRESS_OK);
     BootStartupProgressReport(L"Loading volume icons", BOOT_PROGRESS_ACTIVE);
+    StageBegin = BootDiagTicks();
     SetVolumeIcons();
+    if (GlobalConfig.StartupDiagnostics)
+        LOG(1, LOG_LINE_NORMAL, L"[DIAG] SetVolumeIcons elapsed=%lu ms", BootDiagElapsedMs(StageBegin));
     BootStartupProgressReport(L"Volume icon discovery completed", BOOT_PROGRESS_OK);
     BootStartupProgressReport(L"Discovering operating systems", BOOT_PROGRESS_ACTIVE);
+    StageBegin = BootDiagTicks();
     ScanForBootloaders(FALSE);
+    if (GlobalConfig.StartupDiagnostics)
+        LOG(1, LOG_LINE_NORMAL, L"[DIAG] ScanForBootloaders elapsed=%lu ms", BootDiagElapsedMs(StageBegin));
     BootStartupProgressReport(L"Operating-system discovery completed", BOOT_PROGRESS_OK);
     BootStartupProgressReport(L"Discovering firmware tools", BOOT_PROGRESS_ACTIVE);
+    StageBegin = BootDiagTicks();
     ScanForTools();
+    if (GlobalConfig.StartupDiagnostics)
+        LOG(1, LOG_LINE_NORMAL, L"[DIAG] ScanForTools elapsed=%lu ms", BootDiagElapsedMs(StageBegin));
     BootStartupProgressReport(L"Firmware tool discovery completed", BOOT_PROGRESS_OK);
     BootStartupProgressEnd();
 
@@ -601,6 +641,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
         MainMenu.TimeoutText = L"Shutdown";
 
     LOG(1, LOG_LINE_SEPARATOR, L"Entering main loop");
+    BootDiagFlush();
     while (MainLoopRunning) {
         MenuExit = RunMainMenu(&MainMenu, &SelectionName, &ChosenEntry);
 
