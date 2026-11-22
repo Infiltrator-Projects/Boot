@@ -364,6 +364,13 @@ EFI_STATUS CreateVarsDir(VOID) {
  * optional: an internal variable receives the byte count when it is omitted.
  * An error clears the caller's buffer and any supplied size; the firmware
  * allocation is freed, and the caller never owns a failed result.
+ *
+ * The firmware allocation is sized as sizeof(CHAR16 *) multiplied by
+ * EFI_MAXIMUM_VARIABLE_SIZE, not by sizeof(CHAR16). GetVariable receives that
+ * computed byte capacity and supplies its actual returned byte count. This
+ * allocation policy is implementation-dependent and should not be mistaken
+ * for a portable fixed-size bound. A disk-backed variable read that fails
+ * after CreateVarsDir succeeds does not automatically retry firmware.
  */
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL) {
     UINT8 *buf = NULL;
