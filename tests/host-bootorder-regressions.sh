@@ -20,6 +20,7 @@ typedef char CHAR8;
 typedef wchar_t CHAR16;
 typedef unsigned long EFI_STATUS;
 typedef int BOOLEAN;
+typedef void VOID;
 typedef struct { int unused; } EFI_GUID;
 static EFI_GUID GlobalGuid;
 #define EFI_SUCCESS 0UL
