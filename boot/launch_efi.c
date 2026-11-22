@@ -3,6 +3,10 @@
  * EFI-stub kernels. A displayed file can still fail header validation,
  * firmware LoadImage, image authentication or StartImage.
  * Compressed images require explicit allocation and decompression limits.
+ * PE/COFF recognition, firmware LoadImage status, security authentication and
+ * StartImage status are distinct stages. Child-image load options borrow a
+ * buffer that must remain live through the firmware handoff; execution
+ * success cannot be inferred from a valid menu entry or image header.
  */
 
 #include "global.h"
