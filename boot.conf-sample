@@ -32,6 +32,11 @@ small_icon_size 64
 # An explicit log_level 0 disables logging when diagnostics are not required.
 log_level 4
 
+# Temporary graphical progress and detailed EFI controller/volume timing.
+# Use 'startup_diagnostics off' to disable ALL extra startup instrumentation.
+# This runtime switch lives only in boot.conf; no rebuild is required.
+startup_diagnostics on
+
 timeout 20
 
 use_nvram false
