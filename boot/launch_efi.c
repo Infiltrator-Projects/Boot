@@ -135,6 +135,20 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
  * option string until StartImage returns. BOOT closes its own open volume handles
  * before transfer, then reacquires them on return. Returning applications are
  * unloaded, while drivers remain resident for their protocol bindings.
+ *
+ * Security and failure boundaries: IsValidLoader is a type/format gate, not
+ * cryptographic authentication; firmware LoadImage and the active Secure Boot
+ * policy determine whether the image can be accepted. Decompression refuses
+ * a zero-length input or one exceeding 512 MiB / 10 before multiplication.
+ * The output buffer capacity is ten times compressed length, not the length
+ * asserted by gzip metadata, and decoded length is supplied to LoadImage only
+ * after a successful decoder result. A return from StartImage is not evidence
+ * that the operating system started successfully.
+ *
+ * Callers supply borrowed Volume/Filename/LoadOptions pointers. The function
+ * duplicates LoadOptions for the child LoadedImage protocol and must retain
+ * that allocation until StartImage or unwind has finished. Firmware handles
+ * and protocol pointers are not caller-owned pool allocations.
  */
 EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                          IN CHAR16 *Filename,
