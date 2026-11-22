@@ -166,11 +166,11 @@ if InstallOnLinux > "$work/secureboot-pending.txt" 2>&1; then
     echo "BOOT accepted Secure Boot with unenrolled local MOK" >&2
     exit 1
 fi
-grep -Fq 'is not yet enrolled as a MOK' "$work/secureboot-pending.txt" || exit 1
+grep -Fq 'could not be verified as enrolled' "$work/secureboot-pending.txt" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf" || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/shimx64.efi")" = protected-ubuntu || exit 1
-mokutil() { echo "$DerKey is already enrolled"; return 0; }
+mokutil() { echo "$DerKey is already enrolled"; return 1; }
 if ! InstallOnLinux > "$work/secureboot-enrolled.txt" 2>&1; then
     cat "$work/secureboot-enrolled.txt" >&2
     exit 1
