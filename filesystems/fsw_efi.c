@@ -240,8 +240,12 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_P
  * it must remain alive until UninstallMultipleProtocolInterfaces succeeds.
  * The empty error branch after installation does not skip cleanup; the
  * following shared failure path unmounts and closes the acquired resources.
- * Mounting a volume is not evidence that arbitrary filesystem metadata is
- * fully validated.
+ * A successful return implies the mounted FSW volume and installed protocol
+ * share one live Volume allocation. Disk I/O remains open BY_DRIVER until Stop
+ * removes the protocol and unmounts the FSW backend. The shared cache is
+ * cleared at Stop rather than at this installation point. The firmware's
+ * controller and media IDs may change independently of this retained state;
+ * mounting is not evidence that arbitrary filesystem metadata is validated.
  */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                               IN EFI_HANDLE                   ControllerHandle,
