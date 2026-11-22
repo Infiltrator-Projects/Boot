@@ -19,6 +19,11 @@
 static EG_IMAGE *CachedBackground;
 static UINTN CachedWidth, CachedHeight;
 
+/* Cache one scaled wallpaper for the current GOP dimensions. The returned
+ * image is borrowed: menu code may composite it but must not release it.
+ * A failed load or scale leaves the previous cache intact; width and height
+ * are bounded here, whereas the image allocator owns byte-count validation.
+ */
 EG_IMAGE *BootThemeBackground(UINTN width, UINTN height) {
     EG_IMAGE *loaded, *resized;
     if (!width || !height || width>8192 || height>8192)
@@ -80,7 +85,10 @@ static VOID drawTwinSlash(EG_IMAGE *image,UINTN x0,UINTN y0,
 
 /* Restore the original icon canvas before every menu repaint. There are no
  * labels, fixed OS names or faked controls baked into the wallpaper. BOOT's
- * menu still owns the live OS icons, selection, shortcuts and help strings. */
+ * menu still owns the live OS icons, selection, shortcuts and help strings.
+ * The result is the lower edge of the intended plate, not a success status:
+ * if the background crop fails, this routine still returns that coordinate.
+ * Both temporary images are released before returning. */
 UINTN BootThemeDrawWordmark(EG_IMAGE *background) {
     EG_IMAGE *letters, *region;
     EG_PIXEL clear={0,0,0,0};
@@ -132,7 +140,10 @@ UINTN BootThemeDrawWordmark(EG_IMAGE *background) {
 
 /* Transparent, smoked-graphite selection plate with a fine cyan highlight,
  * matched to Common's Night surfaces and the website's #27DCE9 accent.
- * Draw the actual OS icon on top using the existing menu compositor. */
+ * Draw the actual OS icon on top using the existing menu compositor.
+ * This rasteriser returns independently allocated RGBA pixels. Corner
+ * coverage and edge alpha depend on the requested size; the 32..1024
+ * range is checked before allocating the size-by-size pixel plane. */
 static EG_IMAGE *makeThemePlate(UINTN size, BOOLEAN selected) {
     UINT8 red=selected?39:174;
     UINT8 green=selected?220:182;
@@ -181,6 +192,9 @@ static EG_IMAGE *makeThemePlate(UINTN size, BOOLEAN selected) {
     return image;
 }
 
+/* Both public plate constructors transfer their new image to the caller.
+ * The selected variant changes colour and alpha, not icon identification.
+ */
 EG_IMAGE *BootThemeSelection(UINTN size) {
     return makeThemePlate(size,TRUE);
 }

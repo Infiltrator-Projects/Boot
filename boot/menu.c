@@ -676,6 +676,11 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
     return MenuExit;
 }  
 
+/* Output the screen's informational lines in firmware text mode, starting
+ * at column 3, row 4. Screen owns the UTF-16 strings. The fixed offsets do
+ * not independently clip lines to the active console's row/column limits;
+ * console protocol errors are not propagated through this VOID interface.
+ */
 static VOID ShowTextInfoLines(IN REFIT_MENU_SCREEN *Screen) {
     INTN i;
 
@@ -823,6 +828,9 @@ VOID TextMenuStyle(IN REFIT_MENU_SCREEN *Screen,
     }
 }
 
+/* Pixel row height consists of the selected face's metrics plus symmetric
+ * vertical padding. It is a graphics measurement, not a ConOut text row.
+ */
 inline static UINTN TextLineHeight(VOID) {
     return egGetFontHeight() + TEXT_YMARGIN * 2;
 }  
@@ -852,6 +860,11 @@ static VOID DrawText(IN CHAR16 *Text, IN BOOLEAN Selected, IN UINTN FieldWidth, 
     }
 }  
 
+/* Compute mean RGB brightness of a borrowed image without altering pixels.
+ * The dimension product and accumulated channel sum use UINTN with no
+ * saturation checks; callers must supply realistically bounded UI surfaces.
+ * NULL and zero-area images yield zero to the text contrast selector.
+ */
 static UINT8 AverageBrightness(EG_IMAGE *Image) {
     UINTN i;
     UINTN Sum = 0;

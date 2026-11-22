@@ -304,6 +304,12 @@ BOOLEAN ReadAllKeyStrokes(VOID)
     return GotKeyStrokes;
 }
 
+/* Emergency/status text selects Apple graphics overlay only when graphics
+ * output is available; other platforms use ConOut. The incoming string is
+ * borrowed, and this path is intentionally independent of menu selection.
+ * Marking GraphicsScreenDirty requests a subsequent presentation refresh;
+ * it does not establish that firmware displayed the overlay successfully.
+ */
 VOID PrintUglyText(IN CHAR16 *Text, IN UINTN PositionCode) {
     EG_PIXEL BGColor = COLOR_RED;
 
