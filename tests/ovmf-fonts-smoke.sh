@@ -24,9 +24,9 @@ mkfs.fat -F32 "$esp"
 mmd -i "$esp" ::/EFI ::/EFI/BOOT ::/EFI/BOOT/drivers_x64 ::/EFI/BOOT/fonts
 mcopy -i "$esp" fonts/*.ttf ::/EFI/BOOT/fonts/
 mcopy -i "$esp" fonts/SHA256SUMS ::/EFI/BOOT/fonts/
-[[ -s themes/boot-luxury.png ]] || bash themes/render.sh
+test -s themes/boot-luxury.jpg || exit 1
 mmd -i "$esp" ::/EFI/BOOT/themes
-mcopy -i "$esp" themes/boot-luxury.png ::/EFI/BOOT/themes/
+mcopy -i "$esp" themes/boot-luxury.jpg ::/EFI/BOOT/themes/
 
 mcopy -i "$esp" boot/boot_x64.efi ::/EFI/BOOT/BOOTX64.EFI
 driver=drivers_x64/btrfs_x64.efi

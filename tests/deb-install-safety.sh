@@ -31,7 +31,7 @@ while read -r digest face; do
     cmp "$source_dir/fonts/$face" "$boot_dir/fonts/$face"
 done < "$source_dir/fonts/SHA256SUMS"
 ( cd "$boot_dir/fonts" && sha256sum -c SHA256SUMS >/dev/null )
-cmp "$source_dir/themes/boot-luxury.png" "$boot_dir/themes/boot-luxury.png"
+cmp "$source_dir/themes/boot-luxury.jpg" "$boot_dir/themes/boot-luxury.jpg"
 test ! -e "$boot_dir/icons/old.png"
 test ! -e "$boot_dir/arbitrary-file"
 test ! -e "$boot_dir/.infiltrator-boot-loader.sha256"
@@ -44,7 +44,7 @@ done
 
 # Failure to validate the staged image must not delete a working installation.
 cp -a "$source_dir" "$work/no-theme"
-rm -f "$work/no-theme/themes/boot-luxury.png"
+rm -f "$work/no-theme/themes/boot-luxury.jpg"
 if boot_generic_install_files "$esp" "$work/no-theme"; then
     echo "Generic installer accepted an incomplete graphical theme." >&2
     exit 1

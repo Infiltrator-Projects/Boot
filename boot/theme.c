@@ -1,10 +1,10 @@
 /*
  * BOOT's UEFI-native graphical theme.
  *
- * The background is a canonical, offline-rendered PNG, sourced from the
- * bundled SVG. BOOT itself never needs an SVG engine, GPU, filesystem driver,
+ * The background is a native JPEG asset loaded by the existing firmware
+ * decoder. BOOT never needs an image converter, GPU, filesystem driver,
  * Linux framebuffer or network access to show it. The logo overlays two cyan
- * parallelograms with EXACT geometry from ssmithnet.net/assets/brand-2026.svg
+ * parallelograms with EXACT geometry from the canonical two-bar Infiltrator mark
  * and draws the genuine MB Corpo A Title face at a native rasterisation size.
  *
  * All images allocated here are owned by this module or returned to a caller
@@ -25,7 +25,7 @@ EG_IMAGE *BootThemeBackground(UINTN width, UINTN height) {
         return NULL;
     if (CachedBackground && width==CachedWidth && height==CachedHeight)
         return CachedBackground;
-    loaded=egLoadImage(SelfDir,L"themes\\boot-luxury.png",FALSE);
+    loaded=egLoadImage(SelfDir,L"themes\\boot-luxury.jpg",FALSE);
     if (!loaded) {
         LOG(1,LOG_LINE_NORMAL,L"Graphite BOOT wallpaper absent; using legacy graphics");
         return NULL;

@@ -29,7 +29,7 @@ boot_generic_payload_check() {
         echo "BOOT generic package font integrity check failed." >&2
         return 1
     }
-    [[ -s "$source/themes/boot-luxury.png" ]] || {
+    [[ -s "$source/themes/boot-luxury.jpg" ]] || {
         echo "BOOT generic package is missing its luxury background." >&2
         return 1
     }

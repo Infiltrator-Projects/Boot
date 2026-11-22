@@ -22,7 +22,7 @@ if ((EUID != 0)); then
     exec sudo bash "$0"
 fi
 
-required=(git make gcc ld objcopy tar mktemp efibootmgr findmnt lsblk blkid realpath od rsvg-convert)
+required=(git make gcc ld objcopy tar mktemp efibootmgr findmnt lsblk blkid realpath od)
 missing=()
 for program in "${required[@]}"; do
     command -v "$program" >/dev/null 2>&1 || missing+=("$program")
@@ -35,11 +35,11 @@ if ((${#missing[@]})) || [[ ! -f /usr/include/efi/efi.h ]]; then
     fi
     if ((EUID == 0)); then
         apt-get -o DPkg::Lock::Timeout=300 update
-        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils librsvg2-bin
+        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils
     else
         command -v sudo >/dev/null || { echo "sudo is required to install build dependencies" >&2; exit 1; }
         sudo apt-get -o DPkg::Lock::Timeout=300 update
-        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils librsvg2-bin
+        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils
     fi
 fi
 for program in "${required[@]}"; do
@@ -67,8 +67,7 @@ cd "$source_dir"
     echo "Downloaded BOOT build source is incomplete" >&2; exit 1;
 }
 echo "Building BOOT natively from source commit $SOURCE_SHA..."
-bash themes/render.sh
-[[ -s themes/boot-luxury.png ]] || {
+[[ -s themes/boot-luxury.jpg ]] || {
     echo "BOOT native theme build failed." >&2; exit 1;
 }
 
@@ -323,7 +322,7 @@ CheckForFiles() {
    }
 
    ThemesDir="$ThisDir/themes"
-   [[ -s "$ThemesDir/boot-luxury.png" ]] || {
+   [[ -s "$ThemesDir/boot-luxury.jpg" ]] || {
        echo "BOOT luxury background missing from native installation." >&2; exit 1;
    }
 

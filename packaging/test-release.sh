@@ -62,7 +62,7 @@ bash -n "$work/unpacked/usr/lib/infiltrator-boot/install-generic.sh"
 grep -Fq 'Depends: bash, efibootmgr' <(dpkg-deb -f "$deb")
 bash tests/deb-install-safety.sh "$deb"
 
-test -s themes/boot-luxury.png
+test -s themes/boot-luxury.jpg
 bash -n "$run"
 bash -n boot-native-installer.run
 test "$(head -n 1 "$run")" = '#!/usr/bin/env bash'

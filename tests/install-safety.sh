@@ -37,8 +37,8 @@ printf 'original-native-binary' > "$BootDir/boot_x64.efi"
 printf 'showtools about\n' > "$ConfFile"
 printf 'icon' > "$IconsDir/test.png"
 cp -a fonts/. "$FontsDir/"
-[[ -s themes/boot-luxury.png ]] || bash themes/render.sh
-cp themes/boot-luxury.png "$ThemesDir/"
+test -s themes/boot-luxury.jpg || exit 1
+cp themes/boot-luxury.jpg "$ThemesDir/"
 
 # Exercise the fixed path without requiring a marker or recognising previous
 # BOOT contents. A reinstall deliberately clears the complete BOOT directory.
@@ -54,7 +54,7 @@ test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/.infiltrator-boot-loader.sha256" |
 while read -r digest face; do
     cmp "$FontsDir/$face" "$InstallDir/EFI/InfiltratorOS/BOOT/fonts/$face" || exit 1
 done < "$FontsDir/SHA256SUMS"
-cmp "$ThemesDir/boot-luxury.png" "$InstallDir/EFI/InfiltratorOS/BOOT/themes/boot-luxury.png" || exit 1
+cmp "$ThemesDir/boot-luxury.jpg" "$InstallDir/EFI/InfiltratorOS/BOOT/themes/boot-luxury.jpg" || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
 test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
