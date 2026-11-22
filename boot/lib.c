@@ -1332,6 +1332,12 @@ VOID ScanVolumes(VOID)
     LOG(1, LOG_LINE_NORMAL, L"Identified %d volumes", VolumesCount);
 }  
 
+/*
+ * Assign badge and optional per-volume artwork across the current volume
+ * inventory. Internal disks can supply .VolumeIcon, but a missing graphic
+ * changes only presentation. Volume records and RootDir references belong
+ * to the active ScanVolumes inventory and must not survive its teardown.
+ */
 VOID SetVolumeIcons(VOID) {
     UINTN        VolumeIndex;
     REFIT_VOLUME *Volume;
