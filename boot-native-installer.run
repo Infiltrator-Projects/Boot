@@ -86,6 +86,37 @@ set +e +u
 set +o pipefail
 
 set -- --alldrivers
+# The rEFInd package supplied Shim, signing and a non-interactive response.
+# BOOT's self-contained native RUN must select these without prompting.
+BootSecureBootEnabled=0
+SecureBootVariable=/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c
+LegacySecureBootVariable=/sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data
+if [[ -r "$SecureBootVariable" ]]; then
+    BootSecureBootEnabled=$(od -An -tu1 -j4 -N1 "$SecureBootVariable" | tr -d '[:space:]')
+elif [[ -r "$LegacySecureBootVariable" ]]; then
+    BootSecureBootEnabled=$(od -An -tu1 -N1 "$LegacySecureBootVariable" | tr -d '[:space:]')
+fi
+if [[ "$BootSecureBootEnabled" == "1" ]]; then
+    BootShim=""
+    for candidate in /boot/efi/EFI/ubuntu/shimx64.efi /boot/efi/EFI/Ubuntu/shimx64.efi \
+                     /boot/efi/EFI/ubuntu/shimx64.efi.signed \
+                     /usr/lib/shim/shimx64.efi.signed /usr/share/shim-signed/shimx64.efi.signed; do
+        if [[ -s "$candidate" ]]; then BootShim="$candidate"; break; fi
+    done
+    if [[ -z "$BootShim" ]]; then
+        echo "BOOT: Secure Boot enabled but no installed Shim found; EFI unchanged." >&2
+        exit 1
+    fi
+    if ! command -v mokutil >/dev/null 2>&1 || ! command -v sbsign >/dev/null 2>&1 ||
+       ! command -v sbverify >/dev/null 2>&1 || ! command -v openssl >/dev/null 2>&1; then
+        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends \
+            mokutil sbsigntool openssl || exit 1
+    fi
+    # Shim loads the one signed BOOTX64.EFI using its UEFI load options.
+    # No alternative EFI destination or second BOOT executable is created.
+    set -- --alldrivers --shim "$BootShim" --keepname --localkeys --yes
+    echo "BOOT: Secure Boot detected; signing BOOTX64.EFI for installed Shim."
+fi
 
 RootDir="/"
 TargetDir=/EFI/InfiltratorOS/BOOT
@@ -326,8 +357,10 @@ CheckForFiles() {
    if [[ "$ShimSource" != "none" ]] ; then
       if [[ -f "$ShimSource" ]] ; then
          if [[ $ShimType == "shimx64.efi" || $ShimType == "shim.efi" || $ShimType == "shimx64.efi.signed" ]] ; then
-            TargetX64="grubx64.efi"
-            TargetAARCH64="grubaa64.efi"
+            if [[ "$KeepName" != "1" ]]; then
+                TargetX64="grubx64.efi"
+                TargetAARCH64="grubaa64.efi"
+            fi
             MokManagerSource=$(dirname "$ShimSource")/mm$Platform.efi.signed
             if [[ ! -f "$MokManagerSource" ]] ; then
                 MokManagerSource=$(dirname "$ShimSource")/mm$Platform.efi
@@ -599,7 +632,7 @@ CreateBootCsvFile() {
    IConv="$(command -v iconv 2> /dev/null)"
    if [[ -x "$IConv" ]] ; then
       if [[ "$Platform" == "x64" && -d "$InstallDir/$TargetDir" ]] ; then
-         echo "$TargetX64,BOOT Boot Manager,,This is the boot entry for BOOT" | \
+         echo "$Boot,BOOT Boot Manager,,This is the boot entry for BOOT" | \
               $IConv -t UCS-2 > "$InstallDir/$TargetDir/BOOT.CSV"
       fi
       if [[ "$Platform" == "ia32" && -d "$InstallDir/$TargetDir" ]] ; then
@@ -894,7 +927,7 @@ ReSignBinaries() {
    SaveIFS=$IFS
    IFS=$(echo -en "\n\b")
    for Driver in "$BootDir"/drivers_"$Platform"/*.efi "$ThisDir"/drivers_"$Platform"/*.efi ; do
-      [[ -e "$Driver" ]] || break
+      [[ -e "$Driver" ]] || continue
       TempName=$(basename "$Driver")
       SignOneBinary "$Driver" "$TempDir/drivers_$Platform/$TempName"
    done
@@ -1082,17 +1115,8 @@ AddBootEntry() {
 
       Registered=1
 
-      if [[ "$Boot" == *"shim"* ]] ; then
-         if [[ "$KeepName" == 1 ]] ; then
-            RealBootBinary="$TargetDir/boot_$Platform.efi"
-         else
-            RealBootBinary="$TargetDir/grub$Platform.efi"
-         fi
-         "$Efibootmgr" -c -l "$RealBootBinary" -L "BOOT Boot Manager (direct)" -d "$InstallDisk" -p "$PartNum" || {
-            Problems=1
-            return 1
-         }
-      fi
+      # One shim-backed firmware entry; never register a second unsigned
+      # "direct" BOOT entry and then fail the duplicate-entry check.
       if [[ "$KeepName" == 0 ]] ; then
          "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" -p "$PartNum" || {
             Problems=1
@@ -1206,6 +1230,26 @@ InstallOnLinux() {
    fi
 
    CheckSecureBoot
+
+   # Do not modify the ESP or BootOrder until the local signing key is
+   # enrolled. MOK enrollment requires a firmware-screen action that a
+   # detached background installer cannot perform.
+   if [[ "$IsSecureBoot" == "1" ]]; then
+      if [[ "$ShimSource" == "none" || "$LocalKeys" != "1" || "$KeepName" != "1" ]]; then
+         echo "BOOT: Secure Boot requires signed BOOTX64.EFI and trusted Shim." >&2
+         return 1
+      fi
+      if ! mokutil --test-key "$DerKey" >/dev/null 2>&1; then
+         echo "BOOT: local signing certificate $DerKey is not yet enrolled as a MOK." >&2
+         echo "BOOT: run sudo mokutil --import $DerKey, enroll at reboot, then rerun BOOT." >&2
+         echo "BOOT: ESP contents and firmware BootOrder are unchanged." >&2
+         return 1
+      fi
+      if ! sbverify --cert "$CertKey" "$BootDir/boot_$Platform.efi" >/dev/null 2>&1; then
+         echo "BOOT: EFI signature verification failed; firmware unchanged." >&2
+         return 1
+      fi
+   fi
 
    if [[ "$TargetDir" == "/EFI/InfiltratorOS/BOOT" ]] ; then
       if [[ -L "$InstallDir/EFI" || -L "$InstallDir/EFI/InfiltratorOS" ||
