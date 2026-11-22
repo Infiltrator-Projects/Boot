@@ -14,6 +14,13 @@ This file records changes supported by repository commits and existing release q
 - All changes in this entry are comments or Markdown only; **no firmware code, scripts, packaged drivers, tests or executable behaviours were modified**. No new build, firmware or physical-system test result is claimed.
 - This is a targeted correction, **not** a completed every-file postgraduate-level certification.
 
+## 2026-11-22 — Source contract accuracy follow-up
+
+- Tightened comments in seven firmware and filesystem implementation files without changing C declarations, expressions or control flow: `boot/main.c`, `boot/menu.c`, `boot/config.c`, `boot/scan.c`, `boot/launch_efi.c`, `boot/driver_support.c` and `filesystems/fsw_efi.c`.
+- Documented the distinction between loader format classification, fallback-entry de-duplication, candidate EFI driver discovery and actual authenticated firmware execution; specified menu-entry borrowing and external loaded-image option limitations.
+- Updated Architecture and Validation with explicit failure-semantics and unresolved test obligations for short reads, metadata-size conversions, allocation faults, EFI-to-FSW status mismatch and physical-block cache arithmetic.
+- No functionality, build, installer or test fixtures were changed. These source-only observations are **not** evidence that the identified defects have been fixed, that all source files have been exhaustively reviewed or that physical firmware tests were run.
+
 ## 2026-11-22 — Code-comment and documentation-only review
 
 - Added 115 source-level technical function contracts across 28 maintained C implementation files, covering firmware and menu entry lifetimes, file and variable ownership, C/EFI byte and block units, loader discovery, FSW stream mappings, parser assumptions, Unicode limitations and outstanding resource hazards.
