@@ -66,6 +66,15 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
  * 4096-byte probe and recognises either the MZ/PE signature and target machine or
  * the fat-image magic. With gzip enabled a matching two-byte gzip signature
  * selects the decoder path. LoadImage performs the later firmware load decision.
+ *
+ * Known implementation limitations (not validations): the 4096-byte header
+ * allocation occurs before RootDir/FileName validation; both early returns
+ * for missing arguments and failed Open currently bypass its release. The
+ * PE-offset field is also read before LoadedSize has been checked, so a short
+ * successful read does not establish that those bytes were initialised.
+ * Caller-provided names and file records must therefore not be described as
+ * memory-safe or fully validated solely by this classifier. Neither an EFI
+ * signature match nor a gzip magic match authenticates the image.
  */
 UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     UINTN           LoaderType = LOADER_TYPE_EFI;
