@@ -98,10 +98,15 @@ elif [[ -r "$LegacySecureBootVariable" ]]; then
 fi
 if [[ "$BootSecureBootEnabled" == "1" ]]; then
     BootShim=""
-    for candidate in /boot/efi/EFI/ubuntu/shimx64.efi /boot/efi/EFI/Ubuntu/shimx64.efi \
-                     /boot/efi/EFI/ubuntu/shimx64.efi.signed \
-                     /usr/lib/shim/shimx64.efi.signed /usr/share/shim-signed/shimx64.efi.signed; do
-        if [[ -s "$candidate" ]]; then BootShim="$candidate"; break; fi
+    # Search standard mounted ESPs before distro package directories. Avoid
+    # assuming an Ubuntu, Fedora, Mint, or particular disk layout.
+    for search_root in /boot/efi/EFI /efi/EFI /boot/EFI /usr/lib/shim /usr/share/shim-signed; do
+        [[ -d "$search_root" ]] || continue
+        while IFS= read -r -d '' candidate; do
+            if [[ -s "$candidate" ]]; then BootShim="$candidate"; break; fi
+        done < <(find "$search_root" -maxdepth 3 -type f \
+            \( -iname shimx64.efi -o -iname shimx64.efi.signed \) -print0 2>/dev/null)
+        [[ -n "$BootShim" ]] && break
     done
     if [[ -z "$BootShim" ]]; then
         echo "BOOT: Secure Boot enabled but no installed Shim found; EFI unchanged." >&2
