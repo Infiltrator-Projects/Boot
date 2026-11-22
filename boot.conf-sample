@@ -39,6 +39,13 @@ startup_diagnostics on
 
 timeout 20
 
+# Enumerate firmware boot entries before filesystem scans, so an installed
+# Linux distribution remains selectable even if direct kernel discovery is
+# unavailable on its filesystem. BOOT's own firmware entry is hidden to
+# prevent a recursive menu option; Ubuntu, Windows and other OS entries remain.
+scanfor f,i,e,o,m
+dont_scan_firmware "BOOT Boot Manager"
+
 use_nvram false
 
 dont_scan_files +,grubx64.efi,EFI/BOOT/bootx64.efi
