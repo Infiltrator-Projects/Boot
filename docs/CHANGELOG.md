@@ -6,6 +6,8 @@ This file records changes supported by repository commits and existing release q
 
 - Replaced duplicated commentary on firmware boot-option menu construction with one explicit ownership, output and failure contract.
 - Documented the unguarded offset arithmetic and cache-range assumptions in the EFI filesystem block adapter without suggesting those defects were fixed.
+- Clarified that configuration file sizes narrow from UINT64 to UINTN, that short-read completeness is unproven, and that UTF-8-labelled input is not decoded into Unicode code points.
+- Clarified that EFI driver discovery counts filenames rather than authenticated or successfully bound drivers.
 - Documented fallback-loader comparison limits: unchecked file-information results, unbounded file-sized allocations and independently unchecked read lengths.
 - Distinguished format recognition, firmware authentication, gzip size limits and successful operating-system boot at the EFI launch boundary.
 - Added source-specific cross-boundary contracts to Architecture and executable regression acceptance criteria to Validation.
