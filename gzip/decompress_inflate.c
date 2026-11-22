@@ -6,6 +6,10 @@
  * Header recognition, successful inflate, complete output and valid PE/COFF
  * image loading are distinct proof obligations. The temporary workspace and
  * output allocation have independent cleanup responsibilities on failure.
+ * The wrapper skips only the fixed gzip header and optional filename; other
+ * FLG-indicated optional fields are not separately consumed before raw
+ * DEFLATE decoding. Header recognition is therefore not full RFC 1952
+ * header validation; optional-field fixtures are still necessary.
  */
 
 #include "../boot/lib.h"
@@ -23,6 +27,11 @@
 
 #define u8 UINT8
 
+/*
+ * Sentinel for callers without a streaming input callback. A request for
+ * additional compressed bytes returns failure, never a fabricated EOF byte.
+ * The parameters are deliberately unused; no memory is read or written.
+ */
 static long nofill(void *buffer, unsigned long len)
 {
     return -1;
