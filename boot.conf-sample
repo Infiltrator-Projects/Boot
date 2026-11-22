@@ -3,9 +3,11 @@
 # Set an individual asset to 'none' to suppress it. You may substitute your
 # own PNG/JPEG files; no alternative theme package is required.
 theme_background themes/boot-luxury.jpg
-theme_mark themes/boot-mark.png
-theme_underline themes/boot-underline.png
-# theme_logo themes/my-complete-logo.png
+theme_logo themes/boot-logo.png
+# Optional custom themes can supply their own PNG/JPEG logo or disable it
+# with theme_logo none; no text substitution is drawn for this default.
+# theme_mark themes/boot-mark.png
+# theme_underline themes/boot-underline.png
 # Existing settings banner, banner_scale, icons_dir, selection_big,
 # selection_small, font_body, font_bold and font_title remain supported.
 font_body mb_corpo_s_text_regular.ttf
