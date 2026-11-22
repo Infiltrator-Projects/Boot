@@ -8,6 +8,11 @@
  * stb_truetype is included as an independently licensed single-header
  * outline parser/rasteriser. The wrapper supplies firmware allocations,
  * bounded font loading and mathematical primitives without libm.
+ * Packaging verifies the 23 font-file checksums before installation; this
+ * renderer itself checks structural TrueType tables, not a cryptographic
+ * digest at runtime. All 23 faces must parse for egFontReady to succeed,
+ * but a font-success indication is separate from correct glyph appearance
+ * on every physical graphics implementation.
  */
 #include "libegint.h"
 #include "../boot/global.h"
