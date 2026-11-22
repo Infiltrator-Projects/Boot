@@ -660,9 +660,15 @@ VOID ReadConfig(CHAR16 *FileName)
             HandleString(TokenList, TokenCount, &(GlobalConfig.IconsDir));
 
         } else if (MyStriCmp(TokenList[0], L"scanfor")) {
+            /*
+             * TokenList[0] is the directive, not a scan mode. Scan modes
+             * begin at TokenList[1]; consuming the keyword as 's' wastes a
+             * slot and can silently drop the last configured scan mode.
+             * Commas and whitespace are both separators in ReadTokenLine.
+             */
             for (i = 0; i < NUM_SCAN_OPTIONS; i++) {
-                if (i < TokenCount)
-                    GlobalConfig.ScanFor[i] = TokenList[i][0];
+                if (i + 1 < TokenCount)
+                    GlobalConfig.ScanFor[i] = TokenList[i + 1][0];
                 else
                     GlobalConfig.ScanFor[i] = ' ';
             }
