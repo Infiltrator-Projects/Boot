@@ -23,6 +23,11 @@ EFI_FILE_HANDLE  gLogHandle;
 CHAR16           *gLogTemp = NULL;
 BOOLEAN          gLogActive = FALSE;
 
+/* Open one named EFI file for read/write and invoke Delete on that handle.
+ * UEFI Delete consumes the opened handle; unlike Closing, it mutates the
+ * filesystem. Rotation uses this only for BOOT's own log paths, and a
+ * successful open does not imply that media permits deletion.
+ */
 EFI_STATUS DeleteFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
     EFI_FILE_HANDLE FileHandle;
     UINT64          FileMode = EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE;;

@@ -874,6 +874,12 @@ static VOID ScanVolumeBootcode(REFIT_VOLUME *Volume, BOOLEAN *Bootable)
 #endif
 }  
 
+/* Associate an optional volume-specific badge with a scanned volume. A
+ * readable .VolumeBadge has precedence over the generic disk-kind icon.
+ * The built-in icon comes from a shared cache, whereas a decoded override
+ * belongs to the volume's presentation lifetime; neither establishes what
+ * operating system is installed on that volume.
+ */
 VOID SetVolumeBadgeIcon(REFIT_VOLUME *Volume)
 {
     if (Volume == NULL)
@@ -1005,6 +1011,11 @@ static VOID SetPartGuidAndName(REFIT_VOLUME *Volume, EFI_DEVICE_PATH_PROTOCOL *D
     }  
 }  
 
+/* Look for legacy NTLDR/bootmgr names on a readable root directory.
+ * If RootDir is absent the initial TRUE remains unchanged, so this helper
+ * cannot be interpreted as proof of Windows BIOS boot support or even file
+ * existence on an inaccessible volume.
+ */
 static BOOLEAN HasWindowsBiosBootFiles(REFIT_VOLUME *Volume) {
     BOOLEAN FilesFound = TRUE;
 
@@ -1470,6 +1481,10 @@ VOID DirIterOpen(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath OPTIONAL
 EFI_UNICODE_COLLATION_PROTOCOL *mUnicodeCollation = NULL;
 
 static EFI_STATUS
+/* Acquire firmware Unicode Collation 2, falling back to the older protocol.
+ * The cached protocol pointer is firmware-owned and valid only while the
+ * provider remains connected. Failure leaves matching capability absent.
+ */
 InitializeUnicodeCollationProtocol (VOID)
 {
     EFI_STATUS  Status;
@@ -1489,6 +1504,10 @@ InitializeUnicodeCollationProtocol (VOID)
 }
 
 static BOOLEAN
+/* Delegate wildcard matching to firmware collation. A missing collation
+ * protocol returns FALSE rather than treating the pattern as a literal or
+ * attempting a different host-language glob interpretation.
+ */
 MetaiMatch (IN CHAR16 *String, IN CHAR16 *Pattern)
 {
     if (!mUnicodeCollation) {
@@ -1923,10 +1942,18 @@ BOOLEAN EjectMedia(VOID) {
     return (Ejected > 0);
 }  
 
+/* Compare the fixed 16-byte EFI GUID representation by value. Both pointers
+ * must designate valid GUID structs; this is identity comparison, not a
+ * constant-time security primitive or text-normalisation operation.
+ */
 BOOLEAN GuidsAreEqual(EFI_GUID *Guid1, EFI_GUID *Guid2) {
     return (CompareMem(Guid1, Guid2, 16) == 0);
 }  
 
+/* Destroy a caller-owned singly linked list and clear the caller's head.
+ * Each successor is saved before freeing its predecessor; nodes must not
+ * be retained elsewhere after this operation.
+ */
 VOID EraseUint32List(UINT32_LIST **TheList) {
     UINT32_LIST *NextItem;
 

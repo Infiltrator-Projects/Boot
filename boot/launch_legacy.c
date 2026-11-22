@@ -430,6 +430,11 @@ VOID StartLegacyUEFI(LEGACY_ENTRY *Entry, CHAR16 *SelectionName)
 }  
 
 #if defined(EFI32) || defined(EFIX64)
+/* Allocate one menu entry for a legacy candidate discovered on this volume.
+ * The menu owns the resulting entry and its copied title; the volume record
+ * is borrowed from the current scan. Detection is not proof that firmware
+ * implements CSM handoff for the selected device.
+ */
 static LEGACY_ENTRY * AddLegacyEntry(IN CHAR16 *LoaderTitle, IN REFIT_VOLUME *Volume)
 {
     LEGACY_ENTRY            *Entry, *SubEntry;
@@ -494,6 +499,10 @@ static LEGACY_ENTRY * AddLegacyEntry(IN CHAR16 *LoaderTitle, IN REFIT_VOLUME *Vo
     return Entry;
 }  
 
+/* Adapt a firmware BDS legacy option for the BOOT menu. The BDS option and
+ * embedded device-path data originate in a firmware variable and must be
+ * treated as metadata; a displayed legacy item is not an executable PE image.
+ */
 static LEGACY_ENTRY * AddLegacyEntryUEFI(BDS_COMMON_OPTION *BdsOption, IN UINT16 DiskType)
 {
     LEGACY_ENTRY            *Entry, *SubEntry;

@@ -180,6 +180,11 @@ VOID MergeWords(CHAR16 **MergeTo, CHAR16 *SourceString, CHAR16 AddChar) {
     }  
 }  
 
+/* Canonicalise adjacent spaces in the caller's writable UTF-16 string, then
+ * cap its code-unit count. Collapsing a run uses a temporary duplicate, so
+ * allocation failure can stop normalisation before truncation occurs.
+ * Limit is a count of CHAR16 units, not Unicode scalar values or pixels.
+ */
 BOOLEAN LimitStringLength(CHAR16 *TheString, UINTN Limit) {
     CHAR16    *SubString, *TempString;
     UINTN     i;
@@ -264,6 +269,10 @@ CHAR16 *FindNumbers(IN CHAR16 *InString) {
     return (Found);
 }  
 
+/* Count equal leading UTF-16 code units, stopping at either NUL terminator.
+ * This is a binary-prefix length, not case folding or Unicode normalisation;
+ * NULL inputs intentionally produce an empty common prefix.
+ */
 UINTN NumCharsInCommon(IN CHAR16* String1, IN CHAR16* String2) {
     UINTN Count = 0;
     if ((String1 == NULL) || (String2 == NULL))
@@ -339,6 +348,10 @@ BOOLEAN DeleteItemFromCsvList(CHAR16 *ToDelete, CHAR16 *List) {
     }  
 }  
 
+/* Exact-element membership in a comma-separated UTF-16 list. Each element
+ * is temporarily duplicated and released; comparisons inherit MyStriCmp's
+ * case-folding semantics, not a Unicode locale-independent identity rule.
+ */
 BOOLEAN IsIn(IN CHAR16 *SmallString, IN CHAR16 *List) {
     UINTN     i = 0;
     BOOLEAN   Found = FALSE;
@@ -354,6 +367,10 @@ BOOLEAN IsIn(IN CHAR16 *SmallString, IN CHAR16 *List) {
     return Found;
 }  
 
+/* Return TRUE if any nonempty CSV element matches BigString's leading
+ * substring according to StriSubCmp. This is prefix matching, not arbitrary
+ * substring containment; owned temporary list elements are always freed.
+ */
 BOOLEAN IsInSubstring(IN CHAR16 *BigString, IN CHAR16 *List) {
     UINTN   i = 0, ElementLength;
     BOOLEAN Found = FALSE;
@@ -437,6 +454,10 @@ BOOLEAN ReplaceSubstring(IN OUT CHAR16 **MainString, IN CHAR16 *SearchString, IN
     return TRUE;
 }
 
+/* Check ASCII hexadecimal digits through the first UTF-16 NUL. The empty
+ * string returns TRUE and NULL is not accepted; callers validating a GUID
+ * must additionally establish its exact length and separator positions.
+ */
 BOOLEAN IsValidHex(CHAR16 *Input) {
     BOOLEAN IsHex = TRUE;
     UINTN i = 0;
@@ -541,6 +562,10 @@ CHAR16 * GuidAsString(EFI_GUID *GuidData) {
     return TheString;
 }  
 
+/* Convert the canonical 8-4-4-4-12 hex layout after IsGuid validation.
+ * Failure returns the all-zero GUID sentinel; callers must not interpret
+ * that sentinel as a valid nonzero identity supplied by firmware.
+ */
 EFI_GUID StringAsGuid(CHAR16 * InString) {
     EFI_GUID  Guid = NULL_GUID_VALUE;
 
