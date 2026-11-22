@@ -386,6 +386,11 @@ typedef struct {
    CHAR8            ScanFor[NUM_SCAN_OPTIONS];  
 } REFIT_CONFIG;
 
+/*
+ * Image/volume handles are borrowed from firmware and may become invalid after
+ * teardown. SelfDir and SelfRootDir are open EFI file handles; Volumes is a
+ * process-owned scan inventory and cannot serve as persistent device identity.
+ */
 extern EFI_HANDLE         SelfImageHandle;
 extern EFI_LOADED_IMAGE   *SelfLoadedImage;
 extern EFI_FILE_PROTOCOL  *SelfRootDir;
@@ -410,6 +415,11 @@ extern EFI_GUID BootGuid;
 extern REFIT_MENU_SCREEN MainMenu;
 extern REFIT_MENU_ENTRY MenuEntryReturn;
 
+/*
+ * Boot UI actions operate on the current inventory. RescanAll rebuilds entries
+ * and invalidates borrowed menu pointers; each returned loader record follows
+ * the menu's ownership rules.
+ */
 VOID AboutBOOT(VOID);
 EG_IMAGE * GetDiskBadge(IN UINTN DiskType);
 LOADER_ENTRY * MakeGenericLoaderEntry(VOID);

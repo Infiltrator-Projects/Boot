@@ -68,6 +68,11 @@ BOOLEAN egHasGraphicsMode(VOID);
 BOOLEAN egIsGraphicsModeEnabled(VOID);
 VOID egSetGraphicsModeEnabled(IN BOOLEAN Enable);
 
+/*
+ * Image constructors return independently allocated pixel planes released by
+ * egFreeImage. Colours, source images and masks are borrowed inputs; failure
+ * returns NULL.
+ */
 EG_IMAGE * egCreateImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha);
 EG_IMAGE * egCreateFilledImage(IN UINTN Width, IN UINTN Height, IN BOOLEAN HasAlpha, IN EG_PIXEL *Color);
 EG_IMAGE * egCopyImage(IN EG_IMAGE *Image);
@@ -75,6 +80,11 @@ EG_IMAGE * egCropImage(IN EG_IMAGE *Image, IN UINTN StartX, IN UINTN StartY, IN 
 EG_IMAGE * egScaleImage(EG_IMAGE *Image, UINTN NewWidth, UINTN NewHeight);
 VOID egFreeImage(IN EG_IMAGE *Image);
 
+/*
+ * File-backed graphics decoders consume a borrowed EFI directory handle and
+ * return owned surfaces. A missing or malformed icon is a presentation
+ * failure, not an OS discovery or image authentication result.
+ */
 EG_IMAGE * egLoadImage(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, IN BOOLEAN WantAlpha);
 EG_IMAGE * egLoadIcon(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, IN UINTN IconSize);
 EG_IMAGE * egLoadIconAnyType(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *SubdirName, IN CHAR16 *BaseName, IN UINTN IconSize);
@@ -83,6 +93,11 @@ EG_IMAGE * egPrepareEmbeddedImage(IN EG_EMBEDDED_IMAGE *EmbeddedImage, IN BOOLEA
 
 EG_IMAGE * egEnsureImageSize(IN EG_IMAGE *Image, IN UINTN Width, IN UINTN Height, IN EG_PIXEL *Color);
 
+/*
+ * File loaders produce allocated bytes and a reported count. egFindESP finds a
+ * firmware filesystem handle; egSaveFile can modify media and must not be
+ * confused with rendering-only operations.
+ */
 EFI_STATUS egLoadFile(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName,
                       OUT UINT8 **FileData, OUT UINTN *FileDataLength);
 EFI_STATUS egFindESP(OUT EFI_FILE_HANDLE *RootDir);
@@ -118,6 +133,11 @@ UINTN egComputeTextWidth(IN CHAR16 *Text);
 VOID egMeasureText(IN CHAR16 *Text, OUT UINTN *Width, OUT UINTN *Height);
 VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN UINTN PosY, IN UINT8 BGBrightness);
 
+/*
+ * Blits borrow pixel buffers and firmware graphics protocols. Screen-copy
+ * helpers return caller-owned snapshots. Void rendering operations do not
+ * propagate GOP/UGA transfer status.
+ */
 VOID egClearScreen(IN EG_PIXEL *Color);
 VOID egDrawImage(IN EG_IMAGE *Image, IN UINTN ScreenPosX, IN UINTN ScreenPosY);
 VOID egDrawImageWithTransparency(EG_IMAGE *Image, EG_IMAGE *BadgeImage, UINTN XPos, UINTN YPos, UINTN Width, UINTN Height);

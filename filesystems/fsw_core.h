@@ -290,6 +290,11 @@ struct fsw_fstype_table
                              struct fsw_string *link_target);
 };
 
+/*
+ * Mount owns backend-specific volume allocation and calls its read-only probe.
+ * On success the caller releases the volume with fsw_unmount. host_data
+ * remains subject to host-adapter ownership rather than being deep-copied.
+ */
 fsw_status_t fsw_mount(void *host_data,
                        struct fsw_host_table *host_table,
                        struct fsw_fstype_table *fstype_table,
@@ -297,10 +302,20 @@ fsw_status_t fsw_mount(void *host_data,
 void         fsw_unmount(struct fsw_volume *vol);
 fsw_status_t fsw_volume_stat(struct fsw_volume *vol, struct fsw_volume_stat *sb);
 
+/*
+ * Physical blocks address host I/O; logical blocks address filesystem extents.
+ * fsw_block_get returns a pinned shared-cache buffer paired with
+ * fsw_block_release. Callers must release pins before changing geometry.
+ */
 void         fsw_set_blocksize(struct VOLSTRUCTNAME *vol, fsw_u32 phys_blocksize, fsw_u32 log_blocksize);
 fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 cache_level, void **buffer_out);
 void         fsw_block_release(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, void *buffer);
 
+/*
+ * Each successful dnode creation returns a reference. A child retains its
+ * parent, and (tree_id, dnode_id) identifies one node in the mounted volume.
+ * Release returned references through fsw_dnode_release.
+ */
 fsw_status_t fsw_dnode_create_root(struct VOLSTRUCTNAME *vol, fsw_u64 dnode_id, struct DNODESTRUCTNAME **dno_out);
 fsw_status_t fsw_dnode_create(struct DNODESTRUCTNAME *parent_dno, fsw_u64 dnode_id, int type,
                               struct fsw_string *name, struct DNODESTRUCTNAME **dno_out);
@@ -313,6 +328,11 @@ void         fsw_dnode_release(struct fsw_dnode *dno);
 fsw_status_t fsw_dnode_fill(struct fsw_dnode *dno);
 fsw_status_t fsw_dnode_stat(struct fsw_dnode *dno, struct fsw_dnode_stat *sb);
 
+/*
+ * Single-component lookup delegates to a backend; full-path lookup
+ * additionally handles separators, dot components and intermediate symlinks.
+ * Successful returned nodes are retained, never just borrowed from the cache.
+ */
 fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
                               struct fsw_string *lookup_name, struct fsw_dnode **child_dno_out);
 fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
@@ -326,6 +346,11 @@ void fsw_store_time_posix(struct fsw_dnode_stat *sb, int which, fsw_u32 posix_ti
 void fsw_store_attr_posix(struct fsw_dnode_stat *sb, fsw_u16 posix_mode);
 void fsw_store_attr_efi(struct fsw_dnode_stat *sb, fsw_u16 attr);
 
+/*
+ * An open stream owns its byte cursor and buffered extent. fsw_shandle_read
+ * reports actual bytes through buffer_size_inout; EOF returns success with
+ * zero bytes. fsw_shandle_close releases the retained node.
+ */
 fsw_status_t fsw_shandle_open(struct DNODESTRUCTNAME *dno, struct fsw_shandle *shand);
 void         fsw_shandle_close(struct fsw_shandle *shand);
 fsw_status_t fsw_shandle_read(struct fsw_shandle *shand, fsw_u32 *buffer_size_inout, void *buffer);

@@ -68,6 +68,11 @@ typedef struct {
 
 struct _refit_menu_screen;
 
+/*
+ * Style callbacks share Screen and State across initialisation, repaint,
+ * selection changes and cleanup. Entries must outlive this lifecycle; a rescan
+ * invalidates pointers and indices.
+ */
 typedef VOID (*MENU_STYLE_FUNC)(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN Function, IN CHAR16 *ParamText);
 
 /*
@@ -107,6 +112,11 @@ CHAR16* ReadHiddenTags(CHAR16 *VarName);
  */
 UINTN RunMainMenu(IN REFIT_MENU_SCREEN *Screen, IN CHAR16** DefaultSelection, OUT REFIT_MENU_ENTRY **ChosenEntry);
 UINTN FindMainMenuItem(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN PosX, IN UINTN PosY);
+/*
+ * GenerateWaitList allocates the keyboard/pointer event list; WaitForInput
+ * supplies a timer where requested. INPUT_* categories describe input source,
+ * not a successful loader handoff.
+ */
 VOID GenerateWaitList();
 UINTN WaitForInput(IN UINTN Timeout);
 

@@ -71,6 +71,11 @@ typedef struct {
 
 #define FSW_FILE_FROM_FILE_HANDLE(a)  CR (a, FSW_FILE_DATA, FileHandle, FSW_FILE_DATA_SIGNATURE)
 
+/*
+ * These helpers write into existing EFI metadata. String destinations must fit
+ * the converted name and terminator; cache invalidation is global to the
+ * adapter, not tied to one open file.
+ */
 VOID fsw_efi_decode_time(OUT EFI_TIME *EfiTime, IN UINT32 UnixTime);
 
 UINTN fsw_efi_strsize(struct fsw_string *s);
