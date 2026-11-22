@@ -2,6 +2,8 @@
 
 These documents follow the same division of responsibility as the System Monitor engineering documentation, but describe **BOOT's actual UEFI implementation**, not System Monitor's code.
 
+**Design approach: ELEGANCE.** BOOT's artistic visual standard covers firmware presentation and the presentation of its own source and documentation. It is explicitly *not* minimalism or shorter commentary. The binding definition is in [Engineering Philosophy](PHILOSOPHY.md#elegance--the-design-approach).
+
 ## Maintained documents
 
 - [Project README](../README.md): identity, capabilities, repository layout, build/install distinction and limitations.

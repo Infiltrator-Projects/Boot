@@ -2,6 +2,16 @@
 
 BOOT follows the Infiltrator engineering direction expressed by [Libraries/Common](https://github.com/Infiltrator-Projects/Libraries/blob/main/docs/PHILOSOPHY.md): engineering excellence, reliability, evidence, disciplined reduction, technical depth, and an interface whose simplicity is earned by correct underlying engineering. It is the boot manager provided by InfiltratorOS **for the whole computer**, not a mechanism for excluding competing operating systems.
 
+## ELEGANCE — the design approach
+
+**ELEGANCE is an artistic, visual quality standard**, not a demand for fewer words, fewer comments or fewer graphical elements. BOOT should convey the carefully composed sophistication associated with Mercedes-Benz, Fendi and Prada: beautiful proportion, impeccable alignment, purposeful typography, subtle contrast, elegant rhythm, exceptional finishing and an unmistakable identity. Those names are benchmarks for craft, not instructions to copy brand artwork.
+
+In BOOT this means an art-directed firmware screen, thoughtfully placed icons, balanced typography, coherent official imagery, refined accents and a polished presentation across resolutions. A restrained design may be elegant, but minimalism by itself is not elegance; complexity and rich detail may also be elegant when composed exceptionally well. No cosmetic decision may impair boot selection or recovery.
+
+**The same visual standard applies to source code and Markdown.** File introductions, function contracts and long technical explanations should be visually composed for a human reader: attractive hierarchy, consistent alignment, meaningful grouping and deliberately judged whitespace. Do not convert complete documentation into terse notes, replace expressive presentation with a generic template, or mistake oversized ASCII ornament and mechanical banners for luxury design. Preserve the full postgraduate-level explanation of algorithms, design decisions, invariants, ownership, errors, limitations and recovery while improving how that information looks.
+
+**Acceptance is visual as well as technical.** Judge the actual screen, document or editor view as a complete composition rather than by comment counts, line counts, code-format metrics or the absence of decoration. The definitive family-wide interpretation is recorded in [InfiltratorOS Engineering Philosophy](https://github.com/Infiltrator-Projects/InfiltratorOS/blob/main/docs/PHILOSOPHY.md#elegance--the-artistic-design-authority).
+
 ## Non-negotiable behaviours
 
 1. **Universal discovery, no artificial exclusivity.** BOOT must recognise every supported OS/loader it can actually reach, whether the machine has two installations or twenty. Never reduce discovery to machine-specific examples.
@@ -9,7 +19,7 @@ BOOT follows the Infiltrator engineering direction expressed by [Libraries/Commo
 3. **One owned installation location.** The native `.run` and generic `.deb` install exclusively beneath `/EFI/InfiltratorOS/BOOT`. Reinstallation intentionally replaces the complete reserved directory, including previous configuration, without an ownership marker; the installers must reject alternate targets and symbolic-link traversal. Its install operation must be complete and unambiguous.
 4. **Respect the firmware boundary.** UEFI filesystems, EFI applications, NVRAM and Secure Boot have distinct roles and failure modes. Valid detection is not equivalent to valid execution; an executable's existence is not a guarantee of bootability.
 5. **Treat uncertainty as uncertainty.** Automated builds and virtual firmware prove specific contracts. Real-machine compatibility requires actual hardware evidence. Unsupported volumes and unverifiable security conditions must never be reported as tested or supported.
-6. **One official appearance.** BOOT is an InfiltratorOS product with an intended unified identity, not a downloadable or user-selected theme collection. A cosmetic redesign must leave discovery, recovery and boot safety intact.
+6. **One supplied official identity.** BOOT ships the InfiltratorOS default artwork, not a library of alternative themes. Users retain the ability to select their own PNG/JPEG assets or no image assets through `boot.conf`. A cosmetic redesign must leave discovery, recovery and boot safety intact.
 7. **Protect successful behaviour.** Changes to BOOT's filesystem drivers, EFI dispatch, installer and NVRAM handling require evidence that the existing direct-kernel and alternative firmware paths are preserved. Do not replace working internals merely to tidy their presentation.
 
 ## Documentation and source commentary

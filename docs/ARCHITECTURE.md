@@ -115,6 +115,10 @@ a narrower rendered-glyph contract, not complete font fidelity.
 
 ## Graphical presentation and product identity
 
+**Art direction: ELEGANCE.** BOOT's appearance must be artistically refined, not merely sparse or technically tidy. Its composition, visual balance, typography, spacing, shapes, icon proportions, image integration and detail should be judged as a complete, deliberately crafted design. See [Engineering Philosophy](PHILOSOPHY.md#elegance--the-design-approach); aesthetic elegance never means deleting useful source comments or reducing engineering documentation.
+
+The repository ships one official InfiltratorOS default look, but `boot.conf` remains the user-controlled theme mechanism: configured PNG/JPEG assets may be replaced or disabled without altering the EFI launch machinery. The ability to customise does not require shipping alternative theme collections.
+
 The menu code can load supplied icons, banners, fonts, selection images and other resources. Those are lower-level capabilities of the present firmware renderer, not approval for a user-installable theme ecosystem. BOOT is intended to carry one official InfiltratorOS visual design. The optional Snowy assets have been removed from the repository; the basic icon/graphics infrastructure remains.
 
 Appearance changes must not alter scan ordering, delete other loaders, disable filesystem drivers or change the native installer. A missing image cannot be allowed to invalidate an otherwise sound boot path.

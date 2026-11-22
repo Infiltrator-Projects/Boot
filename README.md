@@ -12,6 +12,8 @@ The standard AMD64 build produces `boot/boot_x64.efi` and six EFI filesystem dri
 
 The default configuration in `boot.conf-sample` hides GRUB's `grubx64.efi` and the standard EFI fallback loader from BOOT's graphical list, while leaving those files and their independent firmware boot paths in place. It prefers a directly discovered `vmlinuz` kernel when available. These display rules do not limit scanning to a particular number of installed operating systems.
 
+**Design approach: ELEGANCE.** BOOT aims for the artistic sophistication, balanced composition and meticulous finish of luxury design, not mere minimalism. Its source comments and documentation must be equally well presented without losing technical depth. The governing definition is [Engineering Philosophy](docs/PHILOSOPHY.md#elegance--the-design-approach).
+
 BOOT ships the official InfiltratorOS artwork only. Its PNG/JPEG theme files are selected by `boot.conf` (`theme_background`, `theme_mark`, `theme_underline`, and optional `theme_logo`), not by hardcoded loader filenames. Users can replace those paths with their own PNG artwork or set them to `none`; BOOT can run without image assets. The existing `banner`, `icons_dir`, `selection_big`, `selection_small`, and font directives continue to work; no alternative themes or rEFInd theme bundle support is shipped.
 
 ## Repository layout
