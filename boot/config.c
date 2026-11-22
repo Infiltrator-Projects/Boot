@@ -780,6 +780,13 @@ VOID ReadConfig(CHAR16 *FileName)
                 HandleString(TokenList, TokenCount, &(GlobalConfig.DefaultSelection));
             }
 
+        } else if (MyStriCmp(TokenList[0], L"font_body") && TokenCount == 2) {
+            egSelectFontRole(MB_FONT_BODY, TokenList[1]);
+        } else if (MyStriCmp(TokenList[0], L"font_bold") && TokenCount == 2) {
+            egSelectFontRole(MB_FONT_BOLD, TokenList[1]);
+        } else if (MyStriCmp(TokenList[0], L"font_title") && TokenCount == 2) {
+            egSelectFontRole(MB_FONT_TITLE, TokenList[1]);
+
         } else if (MyStriCmp(TokenList[0], L"textonly")) {
             GlobalConfig.TextOnly = HandleBoolean(TokenList, TokenCount);
 

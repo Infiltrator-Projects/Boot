@@ -96,11 +96,13 @@ VOID egFillImageArea(IN OUT EG_IMAGE *CompImage,
                      IN EG_PIXEL *Color);
 VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN PosX, IN UINTN PosY);
 
-/* Three native MB Corpo font roles; roles share font pixel height. */
+/* Three selectable menu roles backed by the full 23-face MB/Daimler collection. */
 #define MB_FONT_BODY  (0U)
 #define MB_FONT_BOLD  (1U)
 #define MB_FONT_TITLE (2U)
+BOOLEAN egSelectFontRole(IN UINTN Role, IN CHAR16 *Filename);
 BOOLEAN egFontReady(VOID);
+UINTN egGetFontLoadedCount(VOID);
 UINTN egComputeTextWidthRole(IN CHAR16 *Text, IN UINTN Role);
 VOID egRenderTextRole(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage,
                       IN UINTN PosX, IN UINTN PosY, IN UINT8 BGBrightness,

@@ -21,12 +21,13 @@ test "$(dpkg-deb -f "$deb" Architecture)" = amd64
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 dpkg-deb --contents "$deb" > "$work/package-files.txt"
-for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
+[[ $(wc -l < fonts/SHA256SUMS) -eq 23 ]] || exit 1
+while read -r digest face; do
     grep -Fq "/boot/fonts/$face" "$work/package-files.txt" || {
-        echo "Missing packaged MB Corpo font: $face" >&2
+        echo "Missing packaged MB/Daimler font: $face" >&2
         exit 1
     }
-done
+done < fonts/SHA256SUMS
 grep -Fq 'usr/share/infiltrator-boot/boot/boot_x64.efi' "$work/package-files.txt"
 # Documentation is now part of the staged package but is not an installer.
 # These assertions catch stale packaging loops that silently skip new Markdown.

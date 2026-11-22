@@ -11,12 +11,20 @@ boot_generic_payload_check() {
         return 1
     }
     local face
-    for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
-        [[ -s "$source/fonts/$face" ]] || {
-            echo "BOOT generic package is missing MB Corpo font $face." >&2
-            return 1
-        }
-    done
+    local fontdir="$source/fonts" count
+    [[ -f "$fontdir/SHA256SUMS" && ! -L "$fontdir/SHA256SUMS" ]] || {
+        echo "BOOT generic package has no font checksum manifest." >&2
+        return 1
+    }
+    count=$(find "$fontdir" -maxdepth 1 -type f -name '*.ttf' | wc -l)
+    [[ "$count" -eq 23 && $(wc -l < "$fontdir/SHA256SUMS") -eq 23 ]] || {
+        echo "BOOT generic package requires all 23 MB/Daimler fonts." >&2
+        return 1
+    }
+    ( cd "$fontdir" && sha256sum -c SHA256SUMS >/dev/null ) || {
+        echo "BOOT generic package font integrity check failed." >&2
+        return 1
+    }
     for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
         [[ -s "$source/drivers_x64/${filesystem}_x64.efi" ]] || {
             echo "BOOT generic package is missing the $filesystem EFI driver." >&2

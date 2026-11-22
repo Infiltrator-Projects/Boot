@@ -1,3 +1,9 @@
+# Optional font roles (choose any of the 23 TTF files in fonts/):
+# font_body mb_corpo_s_text_regular.ttf
+# font_bold mb_corpo_s_text_bold.ttf
+# font_title mb_corpo_a_title_cond_regular.ttf
+# These are examples, not the final typography selection.
+
 # BOOT runtime menu defaults and disabled example manual boot entries.
 # timeout is a UI delay. use_nvram false applies to BOOT-managed runtime
 # variables; it does NOT prohibit the native installer modifying BootOrder.

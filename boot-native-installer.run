@@ -306,10 +306,14 @@ CheckForFiles() {
       echo "Required MB Corpo font directory is missing! Aborting installation!"
       exit 1
    fi
-   for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
-      [[ -s "$FontsDir/$face" ]] || { echo "Required MB font missing: $face" >&2; exit 1; }
-   done
-   ( cd "$FontsDir" && sha256sum -c SHA256SUMS ) || exit 1
+   [[ -s "$FontsDir/SHA256SUMS" ]] || { echo "MB/Daimler font manifest missing" >&2; exit 1; }
+   font_count=$(find "$FontsDir" -maxdepth 1 -type f -name '*.ttf' | wc -l)
+   [[ "$font_count" -eq 23 && $(wc -l < "$FontsDir/SHA256SUMS") -eq 23 ]] || {
+      echo "Native BOOT installation requires all 23 MB/Daimler fonts" >&2; exit 1;
+   }
+   ( cd "$FontsDir" && sha256sum -c SHA256SUMS >/dev/null ) || {
+      echo "Native BOOT font checksum verification failed" >&2; exit 1;
+   }
 
    echo "ShimSource is $ShimSource"
    if [[ "$ShimSource" != "none" ]] ; then
@@ -543,7 +547,7 @@ CopyBootFiles() {
       Problems=1
    fi
    # Replace the obsolete bitmap atlas directory with the three native
-   # MB Corpo TrueType resources used by BOOT's UEFI glyph rasteriser.
+   # Verified 23-face TrueType collection for BOOT's native UEFI rasteriser.
    rm -rf -- "$InstallDir/$TargetDir/fonts"
    if ! cp -r "$FontsDir" "$InstallDir/$TargetDir" ; then
       Problems=1

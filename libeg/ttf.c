@@ -11,9 +11,11 @@
  */
 #include "libegint.h"
 #include "../boot/global.h"
+#include "../boot/log.h"
 #include <stddef.h>
 
-#define MB_FONT_COUNT 3
+#define MB_FONT_COUNT 23
+#define MB_FONT_ROLE_COUNT 3
 #define MB_FONT_MAX_BYTES (2U * 1024U * 1024U)
 #define MB_GLYPH_MAX_EDGE 256
 #define MB_GLYPH_ASCII_CACHE 128
@@ -127,11 +129,37 @@ typedef struct {
     MB_GLYPH ascii[MB_GLYPH_ASCII_CACHE];
 } MB_FACE;
 
+/* All 23 verified fonts from InfiltratorOS/assets/fonts. The three initial
+ * UI role mappings are provisional display defaults, not a font selection
+ * decision: boot.conf may map every role to any registered face. */
 static MB_FACE mbFaces[MB_FONT_COUNT] = {
-    { .path = L"fonts\\mb_corpo_s_text_regular.ttf" },
+    { .path = L"fonts\\daimler_cac_app_regular.ttf" },
+    { .path = L"fonts\\daimler_cac_regular.ttf" },
+    { .path = L"fonts\\daimler_cs_app_demi.ttf" },
+    { .path = L"fonts\\daimler_cs_app_regular.ttf" },
+    { .path = L"fonts\\daimler_cs_demi.ttf" },
+    { .path = L"fonts\\daimler_cs_regular.ttf" },
+    { .path = L"fonts\\mb_corpo_a_screen_1_cond_regular.ttf" },
+    { .path = L"fonts\\mb_corpo_a_screen_2_cond_regular.ttf" },
+    { .path = L"fonts\\mb_corpo_a_text_cond_regular.ttf" },
+    { .path = L"fonts\\mb_corpo_a_title_cond_regular.ttf" },
+    { .path = L"fonts\\mb_corpo_a_title_regular.ttf" },
     { .path = L"fonts\\mb_corpo_s_text_bold.ttf" },
-    { .path = L"fonts\\mb_corpo_a_title_cond_regular.ttf" }
+    { .path = L"fonts\\mb_corpo_s_text_cond_bold.ttf" },
+    { .path = L"fonts\\mb_corpo_s_text_cond_light.ttf" },
+    { .path = L"fonts\\mb_corpo_s_text_cond_regular.ttf" },
+    { .path = L"fonts\\mb_corpo_s_text_light.ttf" },
+    { .path = L"fonts\\mb_corpo_s_text_regular.ttf" },
+    { .path = L"fonts\\mb_corpo_s_title_bold.ttf" },
+    { .path = L"fonts\\mb_corpo_s_title_cond_bold.ttf" },
+    { .path = L"fonts\\mb_corpo_s_title_cond_light.ttf" },
+    { .path = L"fonts\\mb_corpo_s_title_cond_regular.ttf" },
+    { .path = L"fonts\\mb_corpo_s_title_light.ttf" },
+    { .path = L"fonts\\mb_corpo_s_title_regular.ttf" }
 };
+static UINTN mbRoleFace[MB_FONT_ROLE_COUNT] = { 16, 11, 9 };
+static UINTN mbLoadedCount;
+static BOOLEAN mbRasterisedGlyph;
 static BOOLEAN mbInitialized;
 static UINTN mbLineHeight = 20;
 static UINTN mbAverageAdvance = 10;
@@ -209,10 +237,24 @@ static UINT32 mbNextCodepoint(const CHAR16 **it) {
     if (a>=0xdc00 && a<=0xdfff) return '?';
     return a;
 }
+/* Match only a registered basename. Paths, extensions outside the inventory,
+ * and arbitrary EFI volume files cannot be used as selectable font resources. */
+BOOLEAN egSelectFontRole(IN UINTN role, IN CHAR16 *filename) {
+    UINTN i;
+    if (role >= MB_FONT_ROLE_COUNT || !filename) return FALSE;
+    for (i=0; i<MB_FONT_COUNT; ++i) {
+        if (StrCmp(filename, mbFaces[i].path + 6) == 0) {
+            mbRoleFace[role] = i;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
 static MB_FACE *mbFace(UINTN role) {
-    if (role >= MB_FONT_COUNT) role=0;
-    if (mbFaces[role].ready) return &mbFaces[role];
-    if (mbFaces[0].ready) return &mbFaces[0];
+    UINTN idx;
+    if (role >= MB_FONT_ROLE_COUNT) role = MB_FONT_BODY;
+    idx = mbRoleFace[role];
+    if (mbFaces[idx].ready) return &mbFaces[idx];
     return NULL;
 }
 static VOID mbPrepare(VOID) {
@@ -241,11 +283,16 @@ static VOID mbPrepare(VOID) {
         f->scale=stbtt_ScaleForPixelHeight(&f->font,(float)pixels);
         stbtt_GetFontVMetrics(&f->font,&f->ascent,NULL,NULL);
         f->ready=TRUE;
+        ++mbLoadedCount;
     }
 }
 BOOLEAN egFontReady(VOID) {
     mbPrepare();
-    return mbFaces[0].ready;
+    return mbLoadedCount == MB_FONT_COUNT;
+}
+UINTN egGetFontLoadedCount(VOID) {
+    mbPrepare();
+    return mbLoadedCount;
 }
 UINTN egGetFontHeight(VOID) {
     mbPrepare();
@@ -360,6 +407,16 @@ VOID egRenderTextRole(IN CHAR16 *text, IN OUT EG_IMAGE *image,
                     pixel->r=(UINT8)((ink*alpha+pixel->r*(255-alpha))/255);
                     pixel->g=(UINT8)((ink*alpha+pixel->g*(255-alpha))/255);
                     pixel->b=(UINT8)((ink*alpha+pixel->b*(255-alpha))/255);
+                }
+            }
+        }
+        if (!mbRasterisedGlyph && g->mask && g->w && g->h) {
+            UINTN k;
+            for (k=0; k<g->w*g->h; ++k) {
+                if (g->mask[k]) {
+                    mbRasterisedGlyph = TRUE;
+                    LOG(1, LOG_LINE_NORMAL, L"MB TrueType glyph rasterised in graphical menu");
+                    break;
                 }
             }
         }

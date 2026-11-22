@@ -1,0 +1,65 @@
+name: BOOT native MB fonts qualification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fonts/**'
+      - 'libeg/**'
+      - 'boot/main.c'
+      - 'boot/config.c'
+      - 'boot/menu.c'
+      - 'boot.conf-sample'
+      - 'boot-native-installer.run'
+      - 'packaging/**'
+      - 'tests/validate-fonts.c'
+      - 'tests/ovmf-fonts-smoke.sh'
+      - '.github/workflows/font-qualification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: boot-font-qualification-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  verify-real-ttf:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install UEFI toolchain and OVMF
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential binutils gnu-efi dpkg-dev file qemu-system-x86 ovmf dosfstools mtools gdisk
+
+      - name: Verify every InfiltratorOS font binary and rasterise sample glyphs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find fonts -maxdepth 1 -type f -name '*.ttf' | wc -l)" -eq 23
+          test "$(wc -l < fonts/SHA256SUMS)" -eq 23
+          (cd fonts && sha256sum -c SHA256SUMS)
+          gcc -std=c99 -O2 -Wall -Wextra tests/validate-fonts.c -lm -o /tmp/boot-validate-fonts
+          /tmp/boot-validate-fonts fonts/*.ttf
+
+      - name: Compile the actual GNU-EFI firmware image
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,0.0.1,https://github.com/Infiltrator-Projects/Boot\n' > boot-sbat-release.csv
+          make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -fno-strict-aliasing -fno-tree-loop-distribute-patterns -fno-stack-protector -fshort-wchar -Wall" gnuefi
+          file boot/boot_x64.efi | grep -F 'PE32+'
+
+      - name: Boot the graphical font renderer under isolated UEFI firmware
+        run: bash tests/ovmf-fonts-smoke.sh
+
+      - name: Verify actual native installation flags and both package payloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          make clean
+          make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall" gnuefi
+          bash packaging/build-release.sh "0.0.${GITHUB_RUN_NUMBER}" dist
+          bash packaging/test-release.sh "0.0.${GITHUB_RUN_NUMBER}" dist

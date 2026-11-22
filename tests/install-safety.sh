@@ -35,9 +35,7 @@ printf 'protected-grub' > "$InstallDir/EFI/ubuntu/grubx64.efi"
 printf 'original-native-binary' > "$BootDir/boot_x64.efi"
 printf 'showtools about\n' > "$ConfFile"
 printf 'icon' > "$IconsDir/test.png"
-for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
-    printf 'font-fixture-%s' "$face" > "$FontsDir/$face"
-done
+cp -a fonts/. "$FontsDir/"
 
 # Exercise the fixed path without requiring a marker or recognising previous
 # BOOT contents. A reinstall deliberately clears the complete BOOT directory.
@@ -50,9 +48,9 @@ for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     test -s "$InstallDir/EFI/InfiltratorOS/BOOT/drivers_x64/${filesystem}_x64.efi" || exit 1
 done
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/.infiltrator-boot-loader.sha256" || exit 1
-for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
+while read -r digest face; do
     cmp "$FontsDir/$face" "$InstallDir/EFI/InfiltratorOS/BOOT/fonts/$face" || exit 1
-done
+done < "$FontsDir/SHA256SUMS"
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
 test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
