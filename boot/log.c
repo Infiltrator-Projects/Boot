@@ -169,8 +169,11 @@ VOID StopLogging(VOID) {
 /**
  * Consume the caller's allocated message and clear its pointer even when logging
  * is inactive. Writes use the UTF-16 byte length without a terminator and flush
- * immediately, allowing a later boot stage to inspect the last completed write.
- * Write and flush statuses are discarded here.
+ * on ordinary boots. With startup_diagnostics enabled, writes are flushed
+ * at separators, periodically, and explicitly before blocking firmware calls
+ * and at close; this reduces the measurement distortion from repeated FAT
+ * flushes. Write and flush statuses are best-effort and do not override the
+ * firmware operation being measured.
  */
 VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
     CHAR16   *TimeStr;
