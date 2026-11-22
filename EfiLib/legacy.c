@@ -21,7 +21,7 @@
 #include "GenericBdsLib.h"
 #include "../boot/global.h"
 #include "../boot/lib.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 BOOT_OPTION_BBS_MAPPING  *mBootOptionBbsMapping     = NULL;
 UINTN                    mBootOptionBbsMappingCount = 0;
@@ -548,7 +548,7 @@ EfiLibDeleteVariable (
 
   if (VarBuf != NULL) {
 
-    Status = refit_call5_wrapper(gRT->SetVariable, VarName, VarGuid, VAR_FLAG, 0, NULL);
+    Status = boot_call5_wrapper(gRT->SetVariable, VarName, VarGuid, VAR_FLAG, 0, NULL);
     ASSERT (!EFI_ERROR (Status));
     MyFreePool (VarBuf);
   }
@@ -597,7 +597,7 @@ BdsAddNonExistingLegacyBootOptions (
     mBootOptionBbsMappingCount = 0;
   }
 
-  refit_call5_wrapper(LegacyBios->GetBbsInfo,
+  boot_call5_wrapper(LegacyBios->GetBbsInfo,
                 LegacyBios,
                 &HddCount,
                 &LocalHddInfo,
@@ -768,7 +768,7 @@ BdsDeleteAllInvalidLegacyBootOptions (
     return Status;
   }
 
-  refit_call5_wrapper(LegacyBios->GetBbsInfo,
+  boot_call5_wrapper(LegacyBios->GetBbsInfo,
                 LegacyBios,
                 &HddCount,
                 &LocalHddInfo,
@@ -795,7 +795,7 @@ BdsDeleteAllInvalidLegacyBootOptions (
                       );
     if (NULL == BootOptionVar) {
       BootOptionSize = 0;
-      Status = refit_call5_wrapper(gRT->GetVariable,
+      Status = boot_call5_wrapper(gRT->GetVariable,
                       BootOption,
                       &EfiGlobalVariableGuid,
                       NULL,

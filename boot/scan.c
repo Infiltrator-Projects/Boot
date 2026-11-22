@@ -26,7 +26,7 @@
 #include "log.h"
 #include "scan.h"
 #include "install.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 #define MACOSX_LOADER_DIR      L"System\\Library\\CoreServices"
 #define MACOSX_LOADER_PATH      ( MACOSX_LOADER_DIR L"\\boot.efi" )
@@ -63,14 +63,14 @@
 
 EFI_GUID GlobalGuid = EFI_GLOBAL_VARIABLE;
 
-static REFIT_MENU_ENTRY MenuEntryAbout    = { L"About BOOT", TAG_ABOUT, 1, 0, 'A', NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryReset    = { L"Reboot Computer", TAG_REBOOT, 1, 0, 'R', NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryShutdown = { L"Shut Down Computer", TAG_SHUTDOWN, 1, 0, 'U', NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryRotateCsr = { L"Change SIP Policy", TAG_CSR_ROTATE, 1, 0, 0, NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryFirmware = { L"Reboot to Computer Setup Utility", TAG_FIRMWARE, 1, 0, 0, NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryManageHidden = { L"Manage Hidden Tags Menu", TAG_HIDDEN, 1, 0, 0, NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryBootorder = { L"Manage EFI boot order", TAG_BOOTORDER, 1, 0, 0, NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryExit     = { L"Exit BOOT", TAG_EXIT, 1, 0, 0, NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryAbout    = { L"About BOOT", TAG_ABOUT, 1, 0, 'A', NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryReset    = { L"Reboot Computer", TAG_REBOOT, 1, 0, 'R', NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryShutdown = { L"Shut Down Computer", TAG_SHUTDOWN, 1, 0, 'U', NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryRotateCsr = { L"Change SIP Policy", TAG_CSR_ROTATE, 1, 0, 0, NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryFirmware = { L"Reboot to Computer Setup Utility", TAG_FIRMWARE, 1, 0, 0, NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryManageHidden = { L"Manage Hidden Tags Menu", TAG_HIDDEN, 1, 0, 0, NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryBootorder = { L"Manage EFI boot order", TAG_BOOTORDER, 1, 0, 0, NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryExit     = { L"Exit BOOT", TAG_EXIT, 1, 0, 0, NULL, NULL, NULL };
 
 struct LOADER_LIST {
     CHAR16              *FileName;
@@ -84,11 +84,11 @@ struct LOADER_LIST {
  * by reference. EntryCount is copied before AddMenuEntry appends, so a populated
  * source screen can leave empty slots before the appended children.
  */
-static REFIT_MENU_SCREEN* CopyMenuScreen(REFIT_MENU_SCREEN *Entry) {
-    REFIT_MENU_SCREEN *NewEntry;
+static BOOT_MENU_SCREEN* CopyMenuScreen(BOOT_MENU_SCREEN *Entry) {
+    BOOT_MENU_SCREEN *NewEntry;
     UINTN i;
 
-    NewEntry = AllocateZeroPool(sizeof(REFIT_MENU_SCREEN));
+    NewEntry = AllocateZeroPool(sizeof(BOOT_MENU_SCREEN));
     if ((Entry != NULL) && (NewEntry != NULL)) {
         NewEntry->Title = (Entry->Title) ? StrDuplicate(Entry->Title) : NULL;
         if (Entry->TitleImage != NULL) {
@@ -102,7 +102,7 @@ static REFIT_MENU_SCREEN* CopyMenuScreen(REFIT_MENU_SCREEN *Entry) {
             NewEntry->InfoLines[i] = (Entry->InfoLines[i]) ? StrDuplicate(Entry->InfoLines[i]) : NULL;
         }  
         NewEntry->EntryCount = Entry->EntryCount;
-        NewEntry->Entries = (REFIT_MENU_ENTRY**) AllocateZeroPool(Entry->EntryCount * (sizeof (REFIT_MENU_ENTRY*)));
+        NewEntry->Entries = (BOOT_MENU_ENTRY**) AllocateZeroPool(Entry->EntryCount * (sizeof (BOOT_MENU_ENTRY*)));
         for (i = 0; i < Entry->EntryCount && NewEntry->Entries; i++) {
             AddMenuEntry(NewEntry, Entry->Entries[i]);
         }  
@@ -120,12 +120,12 @@ static REFIT_MENU_SCREEN* CopyMenuScreen(REFIT_MENU_SCREEN *Entry) {
  * a subscreen goes through CopyMenuScreen. Independent ownership of the
  * descriptors does not give the copy ownership of the underlying pixels.
  */
-static REFIT_MENU_ENTRY* CopyMenuEntry(REFIT_MENU_ENTRY *Entry) {
-    REFIT_MENU_ENTRY *NewEntry;
+static BOOT_MENU_ENTRY* CopyMenuEntry(BOOT_MENU_ENTRY *Entry) {
+    BOOT_MENU_ENTRY *NewEntry;
 
-    NewEntry = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));
+    NewEntry = AllocateZeroPool(sizeof(BOOT_MENU_ENTRY));
     if ((Entry != NULL) && (NewEntry != NULL)) {
-        MyCopyMem(NewEntry, Entry, sizeof(REFIT_MENU_ENTRY));
+        MyCopyMem(NewEntry, Entry, sizeof(BOOT_MENU_ENTRY));
         NewEntry->Title = (Entry->Title) ? StrDuplicate(Entry->Title) : NULL;
         if (Entry->BadgeImage != NULL) {
             NewEntry->BadgeImage = AllocatePool(sizeof(EG_IMAGE));
@@ -181,14 +181,14 @@ LOADER_ENTRY *InitializeLoaderEntry(IN LOADER_ENTRY *Entry) {
  * string is released. A null result indicates inability to build the menu,
  * not proof that the loader is absent.
  */
-REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
+BOOT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
     CHAR16              *FileName, *MainOptions = NULL;
-    REFIT_MENU_SCREEN   *SubScreen = NULL;
+    BOOT_MENU_SCREEN   *SubScreen = NULL;
     LOADER_ENTRY        *SubEntry;
 
     FileName = Basename(Entry->LoaderPath);
     if (Entry->me.SubScreen == NULL) {  
-        SubScreen = AllocateZeroPool(sizeof(REFIT_MENU_SCREEN));
+        SubScreen = AllocateZeroPool(sizeof(BOOT_MENU_SCREEN));
         if (SubScreen != NULL) {
             SubScreen->Title = PoolPrint(L"Boot Options for %s on %s",
                                          (Entry->Title != NULL) ? Entry->Title : FileName,
@@ -203,7 +203,7 @@ REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
                 MainOptions = SubEntry->LoadOptions;
                 SubEntry->LoadOptions = AddInitrdToOptions(MainOptions, SubEntry->InitrdPath);
                 MyFreePool(MainOptions);
-                AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+                AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
             }  
             SubScreen->Hint1 = StrDuplicate(SUBSCREEN_HINT1);
             if (GlobalConfig.HideUIFlags & HIDEUI_FLAG_EDITOR) {
@@ -225,12 +225,12 @@ REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry) {
  * its return navigation item. Entries and their shared volume remain tied to
  * the parent menu inventory rather than becoming standalone boot records.
  */
-VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN GenerateReturn) {
-    REFIT_MENU_SCREEN  *SubScreen;
+VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN BOOT_VOLUME *Volume, IN BOOLEAN GenerateReturn) {
+    BOOT_MENU_SCREEN  *SubScreen;
     LOADER_ENTRY       *SubEntry;
     CHAR16             *InitrdName, *KernelVersion = NULL;
     CHAR16             DiagsFileName[256];
-    REFIT_FILE         *File;
+    BOOT_FILE         *File;
     UINTN              TokenCount;
     CHAR16             **TokenList;
 
@@ -247,7 +247,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Boot macOS with a 64-bit kernel";
             SubEntry->LoadOptions     = L"arch=x86_64";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_OSX;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }  
 
         SubEntry = InitializeLoaderEntry(Entry);
@@ -255,7 +255,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Boot macOS with a 32-bit kernel";
             SubEntry->LoadOptions     = L"arch=i386";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_OSX;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }  
 #endif
 
@@ -265,7 +265,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
                 SubEntry->me.Title        = L"Boot macOS in verbose mode";
                 SubEntry->UseGraphicsMode = FALSE;
                 SubEntry->LoadOptions     = L"-v";
-                AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+                AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
             }  
 
 #if defined(EFIX64)
@@ -274,7 +274,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
                 SubEntry->me.Title        = L"Boot macOS in verbose mode (64-bit)";
                 SubEntry->UseGraphicsMode = FALSE;
                 SubEntry->LoadOptions     = L"-v arch=x86_64";
-                AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+                AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
             }
 
             SubEntry = InitializeLoaderEntry(Entry);
@@ -282,7 +282,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
                 SubEntry->me.Title        = L"Boot macOS in verbose mode (32-bit)";
                 SubEntry->UseGraphicsMode = FALSE;
                 SubEntry->LoadOptions     = L"-v arch=i386";
-                AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+                AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
             }
 #endif
 
@@ -291,7 +291,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
                 SubEntry->me.Title        = L"Boot macOS in single user mode";
                 SubEntry->UseGraphicsMode = FALSE;
                 SubEntry->LoadOptions     = L"-v -s";
-                AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+                AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
             }  
         }  
 
@@ -301,7 +301,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
                 SubEntry->me.Title        = L"Boot macOS in safe mode";
                 SubEntry->UseGraphicsMode = FALSE;
                 SubEntry->LoadOptions     = L"-v -x";
-                AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+                AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
             }  
         }  
 
@@ -314,7 +314,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
                 SubEntry->LoaderPath      = StrDuplicate(DiagsFileName);
                 SubEntry->Volume          = Volume;
                 SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_OSX;
-                AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+                AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
             }  
         }  
 
@@ -341,7 +341,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
                 SubEntry->LoadOptions = AddInitrdToOptions(TokenList[1], InitrdName);
                 FreeTokenLine(&TokenList, &TokenCount);
                 SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_LINUX;
-                AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+                AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
             }  
             MyFreePool(KernelVersion);
             MyFreePool(InitrdName);
@@ -354,7 +354,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Run ELILO in interactive mode";
             SubEntry->LoadOptions     = L"-p";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_ELILO;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }
 
         SubEntry = InitializeLoaderEntry(Entry);
@@ -362,7 +362,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Boot Linux for a 17\" iMac or a 15\" MacBook Pro (*)";
             SubEntry->LoadOptions     = L"-d 0 i17";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_ELILO;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }
 
         SubEntry = InitializeLoaderEntry(Entry);
@@ -370,7 +370,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Boot Linux for a 20\" iMac (*)";
             SubEntry->LoadOptions     = L"-d 0 i20";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_ELILO;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }
 
         SubEntry = InitializeLoaderEntry(Entry);
@@ -378,7 +378,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Boot Linux for a Mac Mini (*)";
             SubEntry->LoadOptions     = L"-d 0 mini";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_ELILO;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }
 
         AddMenuInfoLine(SubScreen, L"NOTE: This is an example. Entries");
@@ -393,7 +393,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Boot Windows from Hard Disk";
             SubEntry->LoadOptions     = L"-s -h";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_WINDOWS;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }
 
         SubEntry = InitializeLoaderEntry(Entry);
@@ -401,7 +401,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Boot Windows from CD-ROM";
             SubEntry->LoadOptions     = L"-s -c";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_WINDOWS;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }
 
         SubEntry = InitializeLoaderEntry(Entry);
@@ -409,7 +409,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
             SubEntry->me.Title        = L"Run XOM in text mode";
             SubEntry->LoadOptions     = L"-v";
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_WINDOWS;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }
     }  
     if (GenerateReturn)
@@ -425,7 +425,7 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
  * establish successful OS startup. Volume is borrowed from the current scan
  * inventory.
  */
-VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Volume) {
+VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, BOOT_VOLUME *Volume) {
     CHAR16      *NameClues, *PathOnly, *NoExtension, *OSIconName = NULL;
     CHAR16      *WeakIconClues = NULL, *Temp;
     CHAR16      ShortcutLetter = 0;
@@ -480,8 +480,8 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
         if (ShortcutLetter == 0)
             ShortcutLetter = 'L';
         Entry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_LINUX;
-    } else if (StriSubCmp(L"refit", LoaderPath)) {
-        MergeStrings(&OSIconName, L"refit", L',');
+    } else if (StriSubCmp(L"boot", LoaderPath)) {
+        MergeStrings(&OSIconName, L"boot", L',');
         Entry->OSType = 'R';
         ShortcutLetter = 'R';
     } else if (MyStriCmp(NameClues, L"BOOTX64.EFI") &&
@@ -615,18 +615,18 @@ static LOADER_ENTRY * AddEfiLoaderEntry(IN EFI_DEVICE_PATH *EfiLoaderPath,
         Entry->InitrdPath = NULL;
         Entry->Enabled = TRUE;
     }  
-    AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+    AddMenuEntry(&MainMenu, (BOOT_MENU_ENTRY *)Entry);
     return Entry;
 }  
 
 /**
  * Normalise the caller's mutable pathname, build a separately owned rooted
- * LoaderPath and borrow the scanned REFIT_VOLUME and badge. Derive defaults and
+ * LoaderPath and borrow the scanned BOOT_VOLUME and badge. Derive defaults and
  * the subscreen before appending to MainMenu, so display and later dispatch refer
  * to the same volume inventory.
  */
 static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
-                                     IN REFIT_VOLUME *Volume, IN BOOLEAN SubScreenReturn) {
+                                     IN BOOT_VOLUME *Volume, IN BOOLEAN SubScreenReturn) {
     LOADER_ENTRY  *Entry;
 
     CleanUpPathNameSlashes(LoaderPath);
@@ -653,7 +653,7 @@ static LOADER_ENTRY * AddLoaderEntry(IN OUT CHAR16 *LoaderPath, IN CHAR16 *Loade
         Entry->Volume = Volume;
         SetLoaderDefaults(Entry, LoaderPath, Volume);
         GenerateSubScreen(Entry, Volume, SubScreenReturn);
-        AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+        AddMenuEntry(&MainMenu, (BOOT_MENU_ENTRY *)Entry);
         LOG(3, LOG_LINE_NORMAL, L"Have successfully created menu entry for '%s'", Entry->Title);
     } else {
         LOG(1, LOG_LINE_NORMAL, L"Unable to initialize loader entry in AddLoaderEntry()!");
@@ -736,7 +736,7 @@ static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
  * may carry a volume qualifier. The same pathname on two firmware handles can
  * therefore produce different decisions.
  */
-static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
+static BOOLEAN ShouldScan(BOOT_VOLUME *Volume, CHAR16 *Path) {
     CHAR16   *VolName = NULL, *DontScanDir, *PathCopy = NULL, *VolGuid = NULL;
     UINTN    i = 0;
     BOOLEAN  ScanIt = TRUE;
@@ -805,7 +805,7 @@ static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
  * return value is a display de-duplication hint, never a cryptographic or
  * executable-identity assertion.
  */
-static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) {
+static BOOLEAN DuplicatesFallback(IN BOOT_VOLUME *Volume, IN CHAR16 *FileName) {
     CHAR8           *FileContents, *FallbackContents;
     EFI_FILE_HANDLE FileHandle, FallbackHandle;
     EFI_FILE_INFO   *FileInfo, *FallbackInfo;
@@ -821,7 +821,7 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
     if (MyStriCmp(FileName, FALLBACK_FULLNAME))
         return FALSE;  
 
-    Status = refit_call5_wrapper(Volume->RootDir->Open, Volume->RootDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
+    Status = boot_call5_wrapper(Volume->RootDir->Open, Volume->RootDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
     if (Status == EFI_SUCCESS) {
         FileInfo = LibFileInfo(FileHandle);
         FileSize = FileInfo->FileSize;
@@ -830,12 +830,12 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
     }
     MyFreePool(FileInfo);
 
-    Status = refit_call5_wrapper(Volume->RootDir->Open, Volume->RootDir, &FallbackHandle, FALLBACK_FULLNAME, EFI_FILE_MODE_READ, 0);
+    Status = boot_call5_wrapper(Volume->RootDir->Open, Volume->RootDir, &FallbackHandle, FALLBACK_FULLNAME, EFI_FILE_MODE_READ, 0);
     if (Status == EFI_SUCCESS) {
         FallbackInfo = LibFileInfo(FallbackHandle);
         FallbackSize = FallbackInfo->FileSize;
     } else {
-        refit_call1_wrapper(FileHandle->Close, FileHandle);
+        boot_call1_wrapper(FileHandle->Close, FileHandle);
         return FALSE;
     }
     MyFreePool(FallbackInfo);
@@ -849,9 +849,9 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
         FileContents = AllocatePool(FileSize);
         FallbackContents = AllocatePool(FallbackSize);
         if (FileContents && FallbackContents) {
-            Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &FileSize, FileContents);
+            Status = boot_call3_wrapper(FileHandle->Read, FileHandle, &FileSize, FileContents);
             if (Status == EFI_SUCCESS) {
-                Status = refit_call3_wrapper(FallbackHandle->Read, FallbackHandle, &FallbackSize, FallbackContents);
+                Status = boot_call3_wrapper(FallbackHandle->Read, FallbackHandle, &FallbackSize, FallbackContents);
             }
             if (Status == EFI_SUCCESS) {
                 AreIdentical = (CompareMem(FileContents, FallbackContents, FileSize) == 0);
@@ -861,8 +861,8 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
         MyFreePool(FallbackContents);
     }  
 
-    refit_call1_wrapper(FileHandle->Close, FallbackHandle);
-    refit_call1_wrapper(FileHandle->Close, FileHandle);
+    boot_call1_wrapper(FileHandle->Close, FallbackHandle);
+    boot_call1_wrapper(FileHandle->Close, FileHandle);
     return AreIdentical;
 }  
 
@@ -877,13 +877,13 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
  * a symbolic link. This BOOLEAN is a display/scanning heuristic, not a
  * verified filesystem-level symbolic-link classification.
  */
-static BOOLEAN IsSymbolicLink(REFIT_VOLUME *Volume, CHAR16 *FullName, EFI_FILE_INFO *DirEntry) {
+static BOOLEAN IsSymbolicLink(BOOT_VOLUME *Volume, CHAR16 *FullName, EFI_FILE_INFO *DirEntry) {
     EFI_FILE_HANDLE FileHandle;
     EFI_FILE_INFO   *FileInfo = NULL;
     EFI_STATUS      Status;
     UINTN           FileSize2 = 0;
 
-    Status = refit_call5_wrapper(Volume->RootDir->Open, Volume->RootDir, &FileHandle, FullName, EFI_FILE_MODE_READ, 0);
+    Status = boot_call5_wrapper(Volume->RootDir->Open, Volume->RootDir, &FileHandle, FullName, EFI_FILE_MODE_READ, 0);
     if (Status == EFI_SUCCESS) {
         FileInfo = LibFileInfo(FileHandle);
         if (FileInfo != NULL)
@@ -923,10 +923,10 @@ static VOID LogMenuEntries(UINTN LogLevel) {
  * The Boolean result reports whether any candidate duplicated the fallback file.
  * A directory can publish several valid loaders and still return FALSE.
  */
-static BOOLEAN ScanLoaderDir(IN REFIT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16 *Pattern)
+static BOOLEAN ScanLoaderDir(IN BOOT_VOLUME *Volume, IN CHAR16 *Path, IN CHAR16 *Pattern)
 {
     EFI_STATUS              Status;
-    REFIT_DIR_ITER          DirIter;
+    BOOT_DIR_ITER          DirIter;
     EFI_FILE_INFO           *DirEntry;
     CHAR16                  *Message, *Extension, *FullName;
     struct LOADER_LIST      *LoaderList = NULL, *NewLoader;
@@ -1025,11 +1025,11 @@ static CHAR16* RuniPXEDiscover(EFI_HANDLE Volume)
     UINTN            boot_info_size = 0;
 
     FilePath = FileDevicePath (Volume, IPXE_DISCOVER_NAME);
-    Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, FilePath, NULL, 0, &iPXEHandle);
+    Status = boot_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, FilePath, NULL, 0, &iPXEHandle);
     if (Status != 0)
         return NULL;
 
-    Status = refit_call3_wrapper(BS->StartImage, iPXEHandle, &boot_info_size, &boot_info);
+    Status = boot_call3_wrapper(BS->StartImage, iPXEHandle, &boot_info_size, &boot_info);
 
     return boot_info;
 }  
@@ -1044,7 +1044,7 @@ static CHAR16* RuniPXEDiscover(EFI_HANDLE Volume)
 static VOID ScanNetboot() {
     CHAR16        *iPXEFileName = IPXE_NAME;
     CHAR16        *Location;
-    REFIT_VOLUME  *NetVolume;
+    BOOT_VOLUME  *NetVolume;
 
     LOG(1, LOG_LINE_NORMAL, L"Scanning for iPXE boot options");
     if (FileExists(SelfVolume->RootDir, IPXE_DISCOVER_NAME) &&
@@ -1053,10 +1053,10 @@ static VOID ScanNetboot() {
         IsValidLoader(SelfVolume->RootDir, IPXE_NAME)) {
             Location = RuniPXEDiscover(SelfVolume->DeviceHandle);
             if (Location != NULL && FileExists(SelfVolume->RootDir, iPXEFileName)) {
-                NetVolume = AllocatePool(sizeof(REFIT_VOLUME));
+                NetVolume = AllocatePool(sizeof(BOOT_VOLUME));
                 if (NetVolume == NULL)
                     return;
-                MyCopyMem(NetVolume, SelfVolume, sizeof(REFIT_VOLUME));
+                MyCopyMem(NetVolume, SelfVolume, sizeof(BOOT_VOLUME));
                 NetVolume->DiskKind = DISK_KIND_NET;
                 NetVolume->VolBadgeImage = BuiltinIcon(BUILTIN_ICON_VOL_NET);
                 NetVolume->PartName = NetVolume->VolName = NetVolume->FsName = NULL;
@@ -1070,7 +1070,7 @@ static VOID ScanNetboot() {
  * exclusions. The Boolean result controls whether the generic fallback
  * candidate remains eligible; it is not a success flag for OS startup.
  */
-static BOOLEAN ScanMacOsLoader(REFIT_VOLUME *Volume, CHAR16* FullFileName) {
+static BOOLEAN ScanMacOsLoader(BOOT_VOLUME *Volume, CHAR16* FullFileName) {
     BOOLEAN  ScanFallbackLoader = TRUE;
     CHAR16   *VolName = NULL, *PathName = NULL, *FileName = NULL;
 
@@ -1090,9 +1090,9 @@ static BOOLEAN ScanMacOsLoader(REFIT_VOLUME *Volume, CHAR16* FullFileName) {
  * Searches EFI directories on each readable volume, with special handling
  * for the standard fallback to avoid duplicate menu representations.
  */
-static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
+static VOID ScanEfiFiles(BOOT_VOLUME *Volume) {
     EFI_STATUS       Status;
-    REFIT_DIR_ITER   EfiDirIter;
+    BOOT_DIR_ITER   EfiDirIter;
     EFI_FILE_INFO    *EfiDirEntry;
     CHAR16           *FileName, *Directory = NULL, *MatchPatterns, *VolName = NULL, *SelfPath, *Temp;
     UINTN            i, Length;
@@ -1335,7 +1335,7 @@ EG_IMAGE * GetDiskBadge(IN UINTN DiskType) {
  * icon references. It is appended to the global menu; the return value
  * does not establish successful launch or a firmware trust decision.
  */
-static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
+static LOADER_ENTRY * AddToolEntry(BOOT_VOLUME *Volume,IN CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
                                    IN EG_IMAGE *Image, IN CHAR16 ShortcutLetter, IN BOOLEAN UseGraphicsMode)
 {
     LOADER_ENTRY *Entry;
@@ -1353,7 +1353,7 @@ static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, I
     Entry->Volume = Volume;
     Entry->UseGraphicsMode = UseGraphicsMode;
 
-    AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+    AddMenuEntry(&MainMenu, (BOOT_MENU_ENTRY *)Entry);
     return Entry;
 }  
 
@@ -1447,7 +1447,7 @@ VOID ScanForBootloaders(BOOLEAN ShowMessage) {
  * and persisted exclusion rules. A successful test makes the candidate
  * visible; it does not authenticate its signature or run it.
  */
-static BOOLEAN IsValidTool(IN REFIT_VOLUME *BaseVolume, CHAR16 *PathName) {
+static BOOLEAN IsValidTool(IN BOOT_VOLUME *BaseVolume, CHAR16 *PathName) {
     CHAR16 *DontVolName = NULL, *DontPathName = NULL, *DontFileName = NULL, *DontScanThis = NULL;
     CHAR16 *TestVolName = NULL, *TestPathName = NULL, *TestFileName = NULL, *DontScanTools = NULL;
     BOOLEAN retval = TRUE;
@@ -1563,7 +1563,7 @@ VOID FindTool(CHAR16 *Locations, CHAR16 *Names, CHAR16 *Description, UINTN Icon)
  */
 VOID ScanForTools(VOID) {
     CHAR16 *FileName = NULL, *VolName = NULL, *Description, *AllToolLocations;
-    REFIT_MENU_ENTRY *TempMenuEntry;
+    BOOT_MENU_ENTRY *TempMenuEntry;
     UINTN i, j, VolumeIndex;
     UINT64 osind;
     CHAR8 *b = 0;

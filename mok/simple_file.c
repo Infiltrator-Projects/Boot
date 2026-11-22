@@ -8,7 +8,7 @@
  */
 
 #include <global.h>
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 #include "simple_file.h"
 #include "../boot/lib.h"

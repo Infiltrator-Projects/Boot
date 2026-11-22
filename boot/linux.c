@@ -33,12 +33,12 @@
  * The result is separately allocated and belongs to the caller; it
  * survives the disposal of the temporary candidate list.
  */
-CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
+CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN BOOT_VOLUME *Volume) {
     CHAR16              *InitrdName = NULL, *FileName, *KernelVersion, *InitrdVersion, *Path;
     CHAR16              *KernelPostNum, *InitrdPostNum;
     UINTN               MaxSharedChars, SharedChars;
     STRING_LIST         *InitrdNames = NULL, *FinalInitrdName = NULL, *CurrentInitrdName = NULL, *MaxSharedInitrd;
-    REFIT_DIR_ITER      DirIter;
+    BOOT_DIR_ITER      DirIter;
     EFI_FILE_INFO       *DirEntry;
 
     LOG(1, LOG_LINE_NORMAL, L"Searching for an initrd to match '%s' on '%s'", LoaderPath, Volume->VolName);
@@ -145,7 +145,7 @@ CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
  * three intermediate strings after AddInitrdToOptions has produced the
  * independently owned result.
  */
-CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume) {
+CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN BOOT_VOLUME *Volume) {
     CHAR16 *Options = NULL, *InitrdName, *FullOptions = NULL, *KernelVersion;
 
     Options = GetFirstOptionsFromFile(LoaderPath, Volume);
@@ -175,9 +175,9 @@ CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume) {
  * The release file is informational; a malformed/missing file must not prevent
  * fallback to the generic Linux icon or affect loader execution.
  */
-static VOID ParseReleaseFile(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *FileName) {
+static VOID ParseReleaseFile(CHAR16 **OSIconName, BOOT_VOLUME *Volume, CHAR16 *FileName) {
     UINTN       FileSize = 0;
-    REFIT_FILE  File;
+    BOOT_FILE  File;
     CHAR16      **TokenList = NULL;
     UINTN       TokenCount;
     CHAR16      *SimilarIDs = NULL, *DisplayNames = NULL;
@@ -217,7 +217,7 @@ static VOID ParseReleaseFile(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *
  * labels; no signature, root filesystem identity or bootability check occurs.
  * OSIconName is an in/out string allocation managed by the string helpers.
  */
-VOID GuessLinuxDistribution(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *LoaderPath) {
+VOID GuessLinuxDistribution(CHAR16 **OSIconName, BOOT_VOLUME *Volume, CHAR16 *LoaderPath) {
 
     ParseReleaseFile(OSIconName, Volume, L"etc\\lsb-release");
     ParseReleaseFile(OSIconName, Volume, L"etc\\os-release");
@@ -234,11 +234,11 @@ VOID GuessLinuxDistribution(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *L
  * version and selected initrd. This preserves a separately launchable entry for
  * each kernel under one top-level icon.
  */
-VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOLUME *Volume) {
-    REFIT_FILE          *File;
+VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, BOOT_VOLUME *Volume) {
+    BOOT_FILE          *File;
     CHAR16              **TokenList = NULL, *InitrdName, *SubmenuName = NULL, *VolName = NULL;
     CHAR16              *Path = NULL, *Title, *KernelVersion;
-    REFIT_MENU_SCREEN   *SubScreen;
+    BOOT_MENU_SCREEN   *SubScreen;
     LOADER_ENTRY        *SubEntry;
     UINTN               TokenCount;
 
@@ -264,7 +264,7 @@ VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOL
             SubEntry->Volume = Volume;
             FreeTokenLine(&TokenList, &TokenCount);
             SubEntry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_LINUX;
-            AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+            AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
         }  
         MyFreePool(VolName);
         MyFreePool(Path);
@@ -280,7 +280,7 @@ VOID AddKernelToSubmenu(LOADER_ENTRY * TargetLoader, CHAR16 *FileName, REFIT_VOL
  * Naming alone does not verify a digital signature: firmware authentication
  * still occurs at the subsequent EFI image-loading boundary.
  */
-BOOLEAN HasSignedCounterpart(IN REFIT_VOLUME *Volume, IN CHAR16 *FullName) {
+BOOLEAN HasSignedCounterpart(IN BOOT_VOLUME *Volume, IN CHAR16 *FullName) {
     CHAR16 *NewFile = NULL;
     BOOLEAN retval = FALSE;
 

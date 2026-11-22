@@ -15,7 +15,7 @@
 #include "screen.h"
 #include "launch_efi.h"
 #include "log.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 #if defined (EFIX64)
 #define DRIVER_DIRS             L"drivers,drivers_x64"
@@ -119,7 +119,7 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
   *HandleBuffer = NULL;
   *HandleType   = NULL;
 
-  Status = refit_call5_wrapper(BS->LocateHandleBuffer,
+  Status = boot_call5_wrapper(BS->LocateHandleBuffer,
      AllHandles,
      NULL,
      NULL,
@@ -156,7 +156,7 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
 
   for (HandleIndex = 0; HandleIndex < *HandleCount; HandleIndex++) {
 
-    Status = refit_call3_wrapper(BS->ProtocolsPerHandle,
+    Status = boot_call3_wrapper(BS->ProtocolsPerHandle,
                   (*HandleBuffer)[HandleIndex],
                   &ProtocolGuidArray,
                   &ArrayCount
@@ -189,7 +189,7 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
           (*HandleType)[HandleIndex] |= EFI_HANDLE_TYPE_DEVICE_HANDLE;
         }
 
-        Status = refit_call4_wrapper(BS->OpenProtocolInformation,
+        Status = boot_call4_wrapper(BS->OpenProtocolInformation,
                       (*HandleBuffer)[HandleIndex],
                       ProtocolGuidArray[ProtocolIndex],
                       &OpenInfo,
@@ -312,7 +312,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
         BootDiagFlush();
     }
     InspectBegin = BootDiagTicks();
-    Status = refit_call5_wrapper(gBS->LocateHandleBuffer,
+    Status = boot_call5_wrapper(gBS->LocateHandleBuffer,
                                  AllHandles,
                                  NULL,
                                  NULL,
@@ -393,7 +393,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
                         BootDiagFlush();
                     }
                     ConnectBegin = BootDiagTicks();
-                    Status = refit_call4_wrapper(BS->ConnectController,
+                    Status = boot_call4_wrapper(BS->ConnectController,
                                                  AllHandleBuffer[Index],
                                                  NULL,
                                                  NULL,
@@ -461,7 +461,7 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     UINTN                                 OpenInfoCount;
     EFI_HANDLE                            DriverHandleList[2];
 
-    Status = refit_call5_wrapper(gBS->LocateHandleBuffer,
+    Status = boot_call5_wrapper(gBS->LocateHandleBuffer,
                                  ByProtocol,
                                  &gMyEfiDiskIoProtocolGuid,
                                  NULL,
@@ -472,7 +472,7 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
 
     for (Index = 0; Index < HandleCount; Index++) {
 
-        Status = refit_call3_wrapper(gBS->HandleProtocol,
+        Status = boot_call3_wrapper(gBS->HandleProtocol,
                                      Handles[Index],
                                      &gMyEfiBlockIoProtocolGuid,
                                      (VOID **) &BlockIo);
@@ -481,14 +481,14 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
         if (BlockIo->Media == NULL || !BlockIo->Media->LogicalPartition)
             continue;
 
-        Status = refit_call3_wrapper(gBS->HandleProtocol,
+        Status = boot_call3_wrapper(gBS->HandleProtocol,
                                      Handles[Index],
                                      &gMyEfiSimpleFileSystemProtocolGuid,
                                      (VOID **) &Fs);
         if (Status == EFI_SUCCESS)
             continue;
 
-        Status = refit_call4_wrapper(gBS->OpenProtocolInformation,
+        Status = boot_call4_wrapper(gBS->OpenProtocolInformation,
                                      Handles[Index],
                                      &gMyEfiDiskIoProtocolGuid,
                                      &OpenInfo,
@@ -498,13 +498,13 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
         DriverHandleList[1] = NULL;
         for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
             if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
-                Status = refit_call3_wrapper(gBS->DisconnectController,
+                Status = boot_call3_wrapper(gBS->DisconnectController,
                                              Handles[Index],
                                              OpenInfo[OpenInfoIndex].AgentHandle,
                                              NULL);
                 if (!(EFI_ERROR(Status))) {
                     DriverHandleList[0] = DriverHandle;
-                    refit_call4_wrapper(gBS->ConnectController,
+                    boot_call4_wrapper(gBS->ConnectController,
                                         Handles[Index],
                                         DriverHandleList,
                                         NULL,
@@ -532,7 +532,7 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
 static UINTN ScanDriverDir(IN CHAR16 *Path)
 {
     EFI_STATUS              Status;
-    REFIT_DIR_ITER          DirIter;
+    BOOT_DIR_ITER          DirIter;
     UINTN                   NumFound = 0;
     EFI_FILE_INFO           *DirEntry;
     CHAR16                  *FileName;

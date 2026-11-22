@@ -29,7 +29,7 @@
 #include "launch_efi.h"
 #include "scan.h"
 #include "log.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "../include/version.h"
 #include "../libeg/efiConsoleControl.h"
 #include "../libeg/efiUgaDraw.h"
@@ -38,14 +38,14 @@
 #define LibLocateProtocol EfiLibLocateProtocol
 #endif
 
-REFIT_MENU_ENTRY MenuEntryReturn   = { L"Return to Main Menu", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
+BOOT_MENU_ENTRY MenuEntryReturn   = { L"Return to Main Menu", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
 
-REFIT_MENU_SCREEN MainMenu       = { L"Main Menu", NULL, 0, NULL, 0, NULL, 0, L"Automatic boot",
+BOOT_MENU_SCREEN MainMenu       = { L"Main Menu", NULL, 0, NULL, 0, NULL, 0, L"Automatic boot",
                                      L"Use arrow keys to move cursor; Enter to boot;",
                                      L"Insert, Tab, or F2 for more options; Esc or Backspace to refresh" };
-static REFIT_MENU_SCREEN AboutMenu      = { L"About", NULL, 0, NULL, 0, NULL, 0, NULL, L"Press Enter to return to main menu", L"" };
+static BOOT_MENU_SCREEN AboutMenu      = { L"About", NULL, 0, NULL, 0, NULL, 0, NULL, L"Press Enter to return to main menu", L"" };
 
-REFIT_CONFIG GlobalConfig = {   FALSE,
+BOOT_CONFIG GlobalConfig = {   FALSE,
                                 TRUE,
                                 FALSE,
                                 FALSE,
@@ -292,7 +292,7 @@ static BOOLEAN SecureBootUninstall(VOID) {
             BeginTextScreen(L"Secure Boot Policy Failure");
             Print(L"Failed to uninstall MOK Secure Boot extensions; forcing a reboot.");
             PauseForKey();
-            refit_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
+            boot_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
         }
     }
     return Success;
@@ -318,7 +318,7 @@ static VOID SetConfigFilename(EFI_HANDLE ImageHandle) {
     CHAR16 *Options, *FileName, *SubString;
     EFI_STATUS Status;
 
-    Status = refit_call3_wrapper(BS->HandleProtocol, ImageHandle, &LoadedImageProtocol, (VOID **) &Info);
+    Status = boot_call3_wrapper(BS->HandleProtocol, ImageHandle, &LoadedImageProtocol, (VOID **) &Info);
     if ((Status == EFI_SUCCESS) && (Info->LoadOptionsSize > 0)) {
         Options = (CHAR16 *) Info->LoadOptions;
         SubString = MyStrStr(Options, L" -c ");
@@ -428,7 +428,7 @@ VOID LogBasicInfo(VOID) {
     LOG(1, LOG_LINE_NORMAL, TempStr);
     if (EfiMajorVersion > 1) {  
         LOG(3, LOG_LINE_NORMAL, L"Trying to get variable info....");
-        Status = refit_call4_wrapper(RT->QueryVariableInfo, EFI_VARIABLE_NON_VOLATILE,
+        Status = boot_call4_wrapper(RT->QueryVariableInfo, EFI_VARIABLE_NON_VOLATILE,
                                      &MaximumVariableStorageSize, &RemainingVariableStorageSize,
                                      &MaximumVariableSize);
         if (EFI_ERROR(Status)) {
@@ -488,7 +488,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     EFI_STATUS         Status;
     BOOLEAN            MainLoopRunning = TRUE;
     BOOLEAN            MokProtocol;
-    REFIT_MENU_ENTRY   *ChosenEntry;
+    BOOT_MENU_ENTRY   *ChosenEntry;
     UINTN              MenuExit = MENU_EXIT_ENTER, i;
     CHAR16             *SelectionName = NULL;
     EG_PIXEL           BGColor = COLOR_LIGHTBLUE;
@@ -496,7 +496,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     BOOLEAN            DriverFilesFound = FALSE;
 
     InitializeLib(ImageHandle, SystemTable);
-    Status = InitRefitLib(ImageHandle);
+    Status = InitBootLib(ImageHandle);
     if (EFI_ERROR(Status))
         return Status;
 
@@ -590,7 +590,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     MainMenu.TimeoutSeconds = GlobalConfig.Timeout;
 
     LOG(1, LOG_LINE_NORMAL, L"Setting watchdog timer");
-    refit_call4_wrapper(BS->SetWatchdogTimer, 0x0000, 0x0000, 0x0000, NULL);
+    boot_call4_wrapper(BS->SetWatchdogTimer, 0x0000, 0x0000, 0x0000, NULL);
 
     BootStartupProgressReport(L"Preparing normal display mode", BOOT_PROGRESS_ACTIVE);
     StageBegin = BootDiagTicks();
@@ -627,7 +627,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
           egDisplayMessage(L"Pausing before disk scan; please wait....", &BGColor, CENTER);
        }
        for (i = 0; i < GlobalConfig.ScanDelay; i++)
-          refit_call1_wrapper(BS->Stall, 1000000);
+          boot_call1_wrapper(BS->Stall, 1000000);
        RescanAll(GlobalConfig.ScanDelay > 1, TRUE);
        BltClearScreen(TRUE);
     }  
@@ -657,7 +657,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
             case TAG_REBOOT:     
                 TerminateScreen();
                 LOG(1, LOG_LINE_SEPARATOR, L"Rebooting system");
-                refit_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
+                boot_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
                 LOG(1, LOG_LINE_NORMAL, L"Reboot FAILED!");
                 MainLoopRunning = FALSE;    
                 break;
@@ -665,7 +665,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
             case TAG_SHUTDOWN:  
                 TerminateScreen();
                 LOG(1, LOG_LINE_SEPARATOR, L"Shutting down system");
-                refit_call4_wrapper(RT->ResetSystem, EfiResetShutdown, EFI_SUCCESS, 0, NULL);
+                boot_call4_wrapper(RT->ResetSystem, EfiResetShutdown, EFI_SUCCESS, 0, NULL);
                 LOG(1, LOG_LINE_NORMAL, L"Shutdown FAILED!");
                 MainLoopRunning = FALSE;    
                 break;
@@ -723,9 +723,9 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     MyFreePool(SelectionName);
 
     LOG(1, LOG_LINE_SEPARATOR, L"Main loop has exited, but it should not have!");
-    UninitRefitLib();
-    refit_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
-    ReinitRefitLib();
+    UninitBootLib();
+    boot_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
+    ReinitBootLib();
     LOG(1, LOG_LINE_SEPARATOR, L"Shutdown after main loop exit has FAILED!");
     StopLogging();
     EndlessIdleLoop();

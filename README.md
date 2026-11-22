@@ -6,7 +6,7 @@ BOOT presents detected operating-system and loader choices from the firmware env
 
 ## Current implementation
 
-The present source is a BOOT-branded, rEFInd-derived UEFI application built with GNU-EFI. The first-row operating-system menu, loader scanning, EFI launch path, Linux direct-kernel support, filesystem-driver loading and graphical presentation are implemented in `boot/` and associated libraries.
+The present source is a BOOT-branded UEFI application descended from an established boot-manager implementation built with GNU-EFI. The first-row operating-system menu, loader scanning, EFI launch path, Linux direct-kernel support, filesystem-driver loading and graphical presentation are implemented in `boot/` and associated libraries.
 
 The standard AMD64 build produces `boot/boot_x64.efi` and six EFI filesystem drivers: EXT2, EXT4, ReiserFS, ISO 9660, HFS-family and Btrfs. Drivers are built from `filesystems/` and installed under BOOT's dedicated `drivers_x64/` directory. These are the **current UEFI drivers**; their existence must not be represented as proof that BOOT already loads Common V2 filesystem `.so` modules. The Common V2 transition is an architectural objective requiring separate implementation and validation.
 
@@ -14,7 +14,7 @@ The default configuration in `boot.conf-sample` hides GRUB's `grubx64.efi` and t
 
 **Design approach: ELEGANCE.** BOOT aims for the artistic sophistication, balanced composition and meticulous finish of luxury design, not mere minimalism. Its source comments and documentation must be equally well presented without losing technical depth. The governing definition is [Engineering Philosophy](docs/PHILOSOPHY.md#elegance--the-design-approach).
 
-BOOT ships the official InfiltratorOS artwork only. Its PNG/JPEG theme files are selected by `boot.conf` (`theme_background`, `theme_mark`, `theme_underline`, and optional `theme_logo`), not by hardcoded loader filenames. Users can replace those paths with their own PNG artwork or set them to `none`; BOOT can run without image assets. The existing `banner`, `icons_dir`, `selection_big`, `selection_small`, and font directives continue to work; no alternative themes or rEFInd theme bundle support is shipped.
+BOOT ships the official InfiltratorOS artwork only. Its PNG/JPEG theme files are selected by `boot.conf` (`theme_background`, `theme_mark`, `theme_underline`, and optional `theme_logo`), not by hardcoded loader filenames. Users can replace those paths with their own PNG artwork or set them to `none`; BOOT can run without image assets. The existing `banner`, `icons_dir`, `selection_big`, `selection_small`, and font directives continue to work; no alternative themes or upstream theme bundle support is shipped.
 
 ## Repository layout
 

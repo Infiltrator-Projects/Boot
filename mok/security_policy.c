@@ -12,7 +12,7 @@
 #include "guid.h"
 #include "../boot/lib.h"
 #include "simple_file.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "mok.h"
 
 #include <security_policy.h>
@@ -110,7 +110,7 @@ security_policy_authentication (
       DevPath = OrigDevPath = DuplicateDevicePath((EFI_DEVICE_PATH *)DevicePathConst);
    }
 
-   Status = refit_call3_wrapper(BS->LocateDevicePath, &SIMPLE_FS_PROTOCOL, &DevPath, &h);
+   Status = boot_call3_wrapper(BS->LocateDevicePath, &SIMPLE_FS_PROTOCOL, &DevPath, &h);
    if (Status != EFI_SUCCESS)
       goto out;
 

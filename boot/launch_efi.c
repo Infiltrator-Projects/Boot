@@ -15,7 +15,7 @@
 #include "mok.h"
 #include "mystrings.h"
 #include "driver_support.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "launch_efi.h"
 #include "log.h"
 #include "scan.h"
@@ -48,9 +48,9 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
     if (Name == NULL)
         Name = L"the loader";
 
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_ERROR);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_ERROR);
     Print(L"Secure Boot validation failure loading %s!\n", Name);
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
     if (Verbose && secure_mode()) {
         Print(L"\nThis computer is configured with Secure Boot active, but\n%s has failed validation.\n", Name);
         Print(L"\nYou can:\n * Launch another boot loader\n");
@@ -109,12 +109,12 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
         return LOADER_TYPE_EFI;
     }  
 
-    Status = refit_call5_wrapper(RootDir->Open, RootDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
+    Status = boot_call5_wrapper(RootDir->Open, RootDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
     if (EFI_ERROR(Status))
         return LOADER_TYPE_INVALID;
 
-    Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &LoadedSize, Header);
-    refit_call1_wrapper(FileHandle->Close, FileHandle);
+    Status = boot_call3_wrapper(FileHandle->Read, FileHandle, &LoadedSize, Header);
+    boot_call1_wrapper(FileHandle->Close, FileHandle);
 
     if (EFI_ERROR(Status)) {
         MyFreePool(Header);
@@ -171,7 +171,7 @@ UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
  * that allocation until StartImage or unwind has finished. Firmware handles
  * and protocol pointers are not caller-owned pool allocations.
  */
-EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
+EFI_STATUS StartEFIImage(IN BOOT_VOLUME *Volume,
                          IN CHAR16 *Filename,
                          IN CHAR16 *LoadOptions,
                          IN CHAR16 *ImageTitle,
@@ -217,7 +217,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
 
         if (LoaderType == LOADER_TYPE_EFI) {
 
-            ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
+            ReturnStatus = Status = boot_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePath,
                                                         NULL, 0, &ChildImageHandle);
         } else {
             Status = egLoadFile(Volume->RootDir, Filename, &gzData, &gzSize);
@@ -238,7 +238,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
                             gzStatus, (UINT64)DecodedSize);
                         if (gzStatus == 0 && DecodedSize > 0 &&
                             DecodedSize <= ImageCapacity) {
-                            ReturnStatus = Status = refit_call6_wrapper(
+                            ReturnStatus = Status = boot_call6_wrapper(
                                 BS->LoadImage, FALSE, SelfImageHandle,
                                 DevicePath, ImageData, DecodedSize,
                                 &ChildImageHandle);
@@ -253,7 +253,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
         if (secure_mode() && ShimLoaded() && !EFI_ERROR(Status)) {
 
             LOG(3, LOG_LINE_NORMAL, L"Employing Shim LoadImage() hack");
-            refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, GlobalConfig.SelfDevicePath,
+            boot_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, GlobalConfig.SelfDevicePath,
                                 NULL, 0, &ChildImageHandle2);
         }
     } else {
@@ -273,7 +273,7 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
     }
     MyFreePool(ErrorInfo);
 
-    ReturnStatus = Status = refit_call3_wrapper(BS->HandleProtocol, ChildImageHandle, &LoadedImageProtocol,
+    ReturnStatus = Status = boot_call3_wrapper(BS->HandleProtocol, ChildImageHandle, &LoadedImageProtocol,
                                                 (VOID **) &ChildLoadedImage);
     if (CheckError(Status, L"while getting a LoadedImageProtocol handle")) {
         goto bailout_unload;
@@ -306,9 +306,9 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
      * return path reacquires BOOT's handles. Started drivers are kept
      * resident for subsequent protocol calls.
      */
-    UninitRefitLib();
+    UninitBootLib();
 
-    ReturnStatus = Status = refit_call3_wrapper(BS->StartImage, ChildImageHandle, NULL, NULL);
+    ReturnStatus = Status = boot_call3_wrapper(BS->StartImage, ChildImageHandle, NULL, NULL);
 
     ErrorInfo = PoolPrint(L"returned from %s", ImageTitle);
     CheckError(Status, ErrorInfo);
@@ -318,13 +318,13 @@ EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
         ConnectFilesystemDriver(ChildImageHandle);
     }
 
-    ReinitRefitLib();
+    ReinitBootLib();
     LOG(1, LOG_LINE_NORMAL, L"Program has returned %d", Status);
 
 bailout_unload:
 
     if (!IsDriver)
-        Status = refit_call1_wrapper(BS->UnloadImage, ChildImageHandle);
+        Status = boot_call1_wrapper(BS->UnloadImage, ChildImageHandle);
 
 bailout:
     MyFreePool(gzData);
@@ -361,9 +361,9 @@ EFI_STATUS RebootIntoFirmware(VOID) {
         return err;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Rebooting into the computer's firmware");
-    UninitRefitLib();
-    refit_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
-    ReinitRefitLib();
+    UninitBootLib();
+    boot_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
+    ReinitBootLib();
     LOG(1, LOG_LINE_NORMAL, L"Error calling ResetSystem: %r", err);
     Print(L"Error calling ResetSystem: %r\n", err);
     PauseForKey();
@@ -389,9 +389,9 @@ VOID RebootIntoLoader(LOADER_ENTRY *Entry) {
     }
     StoreLoaderName(Entry->me.Title);
     LOG(1, LOG_LINE_NORMAL, L"Attempting to reboot....", Entry->Title, Entry->EfiBootNum);
-    UninitRefitLib();
-    refit_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
-    ReinitRefitLib();
+    UninitBootLib();
+    boot_call4_wrapper(RT->ResetSystem, EfiResetCold, EFI_SUCCESS, 0, NULL);
+    ReinitBootLib();
     LOG(1, LOG_LINE_NORMAL, L"Error calling ResetSystem: %r", Status);
     Print(L"Error calling ResetSystem: %r\n", Status);
     PauseForKey();

@@ -16,7 +16,7 @@
 #include "log.h"
 #include "menu.h"
 #include "mystrings.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "../include/Handle.h"
 
 /*
@@ -39,7 +39,7 @@ EFI_STATUS BackupOldFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
         MyFreePool(BackupName);
         return EFI_ALREADY_STARTED;
     }
-    Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &FilePtr, FileName,
+    Status = boot_call5_wrapper(BaseDir->Open, BaseDir, &FilePtr, FileName,
                                  EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0);
     if (EFI_ERROR(Status) || !FilePtr) goto finished;
     Original = LibFileInfo(FilePtr);
@@ -57,10 +57,10 @@ EFI_STATUS BackupOldFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
     Replacement->Size = InformationBytes;
     Replacement->FileName[0] = 0;
     StrCat(Replacement->FileName, BackupName);
-    Status = refit_call4_wrapper(BaseDir->SetInfo, FilePtr,
+    Status = boot_call4_wrapper(BaseDir->SetInfo, FilePtr,
                                  &gEfiFileInfoGuid, InformationBytes, Replacement);
 finished:
-    if (FilePtr) refit_call1_wrapper(FilePtr->Close, FilePtr);
+    if (FilePtr) boot_call1_wrapper(FilePtr->Close, FilePtr);
     MyFreePool(Original);
     MyFreePool(Replacement);
     MyFreePool(BackupName);
@@ -275,13 +275,13 @@ VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries) {
  */
 static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOrderNum) {
     CHAR16              *Temp = NULL, *Filename = NULL;
-    REFIT_VOLUME        *Volume = NULL;
+    BOOT_VOLUME        *Volume = NULL;
     INTN                DefaultEntry = 0, MenuExit = MENU_EXIT_ESCAPE;
     UINTN               Operation = EFI_BOOT_OPTION_DO_NOTHING;
     UINTN               i, PriorCount;
     MENU_STYLE_FUNC     Style = TextMenuStyle;
-    REFIT_MENU_ENTRY    *ChosenOption = NULL, *MenuEntryItem = NULL;
-    REFIT_MENU_SCREEN   Menu = { L"Manage EFI Boot Order", NULL, 0, NULL, 0, NULL, 0, NULL,
+    BOOT_MENU_ENTRY    *ChosenOption = NULL, *MenuEntryItem = NULL;
+    BOOT_MENU_SCREEN   Menu = { L"Manage EFI Boot Order", NULL, 0, NULL, 0, NULL, 0, NULL,
                                  L"Select an option and press Enter to make it the default, press '-' or",
                                  L"Delete to delete it, or Esc to return to main menu without changes" };
 

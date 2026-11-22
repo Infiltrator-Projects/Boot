@@ -84,7 +84,7 @@ typedef struct _gpt_data {
  * object; ClearGptData releases that ownership.
  */
 VOID ClearGptData(GPT_DATA *Data);
-EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data);
+EFI_STATUS ReadGptData(BOOT_VOLUME *Volume, GPT_DATA **Data);
 
 /*
  * Partition-table discovery and cached GUID lookup have scan-generation
@@ -93,6 +93,6 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data);
  */
 GPT_ENTRY * FindPartWithGuid(EFI_GUID *Guid);
 VOID ForgetPartitionTables(VOID);
-VOID AddPartitionTable(REFIT_VOLUME *Volume);
+VOID AddPartitionTable(BOOT_VOLUME *Volume);
 
 #endif

@@ -734,19 +734,6 @@ InstallOnOSX() {
    if [[ $? != 0 ]] ; then
       Problems=1
    fi
-   if [[ -f /Library/StartupItems/rEFItBlesser || -d /Library/StartupItems/rEFItBlesser ]] ; then
-      echo
-      echo "/Library/StartupItems/rEFItBlesser found!"
-      echo "This program is part of rEFIt, and will cause BOOT to fail to work after"
-      echo -n "its first boot. Do you want to remove rEFItBlesser (Y/N)? "
-      ReadYesNo
-      if [[ $YesNo == "Y" || $YesNo == "y" ]] ; then
-         echo "Deleting /Library/StartupItems/rEFItBlesser..."
-         rm -r /Library/StartupItems/rEFItBlesser
-      else
-         echo "Not deleting rEFItBlesser."
-      fi
-   fi
 }
 
 # Queries Secure Boot firmware state and interactive signing/shim choices.

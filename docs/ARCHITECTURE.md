@@ -39,7 +39,7 @@ The branch point is visible in the two cases below. [Entry point](../boot/main.c
 | `filesystems/` | The six primary built EFI filesystem drivers and additional source/build targets |
 | `boot-native-installer.run` | Single native build-and-install path for the versioned `.run` release |
 
-The current codebase originated from the established rEFInd implementation. It retains its discovery, menu and EFI filesystem mechanisms; no documentation should claim that those mechanisms were replaced by a new universal boot engine during the recent cleanup. Conversely, the operational history of an upstream boot manager is not transferable hardware certification for BOOT after changes in loader defaults, drivers, build profiles or installer behaviour. The meaningful compatibility claim is limited to the exact paths and environments actually exercised.
+The current codebase originated from the original upstream boot-manager implementation. It retains its discovery, menu and EFI filesystem mechanisms; no documentation should claim that those mechanisms were replaced by a new universal boot engine during the recent cleanup. Conversely, the operational history of an upstream boot manager is not transferable hardware certification for BOOT after changes in loader defaults, drivers, build profiles or installer behaviour. The meaningful compatibility claim is limited to the exact paths and environments actually exercised.
 
 ## Volume discovery and filesystem-driver contract
 
@@ -153,7 +153,7 @@ This path does **not** currently establish that multiplication of the block inde
 
 ### Configuration-file length and encoding semantics
 
-`boot/config.c:ReadFile` obtains an advertised `UINT64` file length, narrows it to `UINTN` for allocation and uses the eventual read byte count as `REFIT_FILE.BufferSize`. The separately returned size is assigned before the read. There is no explicit pre-allocation check that the advertised length is representable in `UINTN`; a successful read status alone need not imply that the advertised file length was fully consumed. BOM detection distinguishes UTF-16LE and a UTF-8-labelled path, but `ReadLine` currently widens individual bytes rather than decoding UTF-8 sequences. Consequently, non-ASCII UTF-8 text does not have a demonstrated Unicode-correct parse contract.
+`boot/config.c:ReadFile` obtains an advertised `UINT64` file length, narrows it to `UINTN` for allocation and uses the eventual read byte count as `BOOT_FILE.BufferSize`. The separately returned size is assigned before the read. There is no explicit pre-allocation check that the advertised length is representable in `UINTN`; a successful read status alone need not imply that the advertised file length was fully consumed. BOM detection distinguishes UTF-16LE and a UTF-8-labelled path, but `ReadLine` currently widens individual bytes rather than decoding UTF-8 sequences. Consequently, non-ASCII UTF-8 text does not have a demonstrated Unicode-correct parse contract.
 
 ### Driver file discovery versus driver binding
 
@@ -259,7 +259,7 @@ The comments on the following routines now state observed limitations rather tha
 
 - [`GenerateWaitList`](../boot/menu.c) allocates its global EFI event array without checking the allocation before indexing it. A later invocation may replace the global pointer without releasing the earlier array. Its caller must not interpret the VOID return as evidence of allocation success.
 - [`IsSymbolicLink`](../boot/scan.c) compares EFI directory metadata with a separately opened file's length. It does not prove symbolic-link identity, can classify read failures as mismatches, and does not currently close a successfully opened file handle.
-- [`GetFirstOptionsFromFile`](../boot/config.c) copies the first Linux command-line entry but frees only the `REFIT_FILE` wrapper; the options-file payload's lifetime must be established independently.
+- [`GetFirstOptionsFromFile`](../boot/config.c) copies the first Linux command-line entry but frees only the `BOOT_FILE` wrapper; the options-file payload's lifetime must be established independently.
 - [`EfivarGetRaw`](../boot/lib.c) may use BOOT's file-backed variable directory for the BOOT vendor GUID; a failed file read after opening that directory does not trigger a firmware-variable retry. Firmware allocation capacity is derived from a pointer-size multiplication rather than a literal maximum byte count.
 
 These are defects or behaviour limits documented from source inspection, **not corrections to execution**. The validation plan must specify corresponding failed-allocation, interrupted-read and repeated-call fixtures before the affected contracts can be declared qualified.

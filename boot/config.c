@@ -19,7 +19,7 @@
 #include "apple.h"
 #include "mystrings.h"
 #include "scan.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "../mok/mok.h"
 
 #define LINUX_OPTIONS_FILENAMES  L"boot_linux.conf,boot-linux.conf"
@@ -58,7 +58,7 @@
  * Unicode. These limitations are source-observed and require regression
  * fixtures before an encoding or input-size guarantee can be made.
  */
-EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFIT_FILE *File, OUT UINTN *size)
+EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT BOOT_FILE *File, OUT UINTN *size)
 {
     EFI_STATUS      Status;
     EFI_FILE_HANDLE FileHandle;
@@ -72,7 +72,7 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
     File->Buffer = NULL;
     File->BufferSize = 0;
 
-    Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
+    Status = boot_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
     Message = PoolPrint(L"while loading the file '%s'", FileName);
     if (CheckError(Status, Message)) {
         MyFreePool(Message);
@@ -82,7 +82,7 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
     FileInfo = LibFileInfo(FileHandle);
     if (FileInfo == NULL) {
         MyFreePool(Message);
-        refit_call1_wrapper(FileHandle->Close, FileHandle);
+        boot_call1_wrapper(FileHandle->Close, FileHandle);
         return EFI_LOAD_ERROR;
     }
     ReadSize = FileInfo->FileSize;
@@ -93,19 +93,19 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
     if (File->Buffer == NULL) {
         File->BufferSize = 0;
         MyFreePool(Message);
-        refit_call1_wrapper(FileHandle->Close, FileHandle);
+        boot_call1_wrapper(FileHandle->Close, FileHandle);
         return EFI_OUT_OF_RESOURCES;
     }
     *size = File->BufferSize;  
-    Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &File->BufferSize, File->Buffer);
+    Status = boot_call3_wrapper(FileHandle->Read, FileHandle, &File->BufferSize, File->Buffer);
     if (CheckError(Status, Message)) {
         MyFreePool(File->Buffer);
         MyFreePool(Message);
         File->Buffer = NULL;
-        refit_call1_wrapper(FileHandle->Close, FileHandle);
+        boot_call1_wrapper(FileHandle->Close, FileHandle);
         return Status;
     }
-    Status = refit_call1_wrapper(FileHandle->Close, FileHandle);
+    Status = boot_call1_wrapper(FileHandle->Close, FileHandle);
 
     File->Current8Ptr  = (CHAR8 *)File->Buffer;
     File->End8Ptr      = File->Current8Ptr + File->BufferSize;
@@ -142,7 +142,7 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
  * the single-byte branch does. Only the UTF-16LE branch copies existing 16-bit
  * units. This distinction matters for non-ASCII loader titles.
  */
-static CHAR16 *ReadLine(REFIT_FILE *File)
+static CHAR16 *ReadLine(BOOT_FILE *File)
 {
     CHAR16  *Line, *q;
     UINTN   LineLength;
@@ -263,7 +263,7 @@ static BOOLEAN KeepReading(IN OUT CHAR16 *p, IN OUT BOOLEAN *IsQuoted) {
  * bounds the array. FreeTokenLine releases the strings and array together. Zero
  * also ends parsing when the line reader cannot allocate.
  */
-UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList)
+UINTN ReadTokenLine(IN BOOT_FILE *File, OUT CHAR16 ***TokenList)
 {
     BOOLEAN         LineFinished, IsQuoted = FALSE;
     CHAR16          *Line, *Token, *p;
@@ -475,7 +475,7 @@ static VOID SetDefaultByTime(IN CHAR16 **TokenList, OUT CHAR16 **Default) {
     EndTime = HandleTime(TokenList[3]);
 
     if ((StartTime <= LAST_MINUTE) && (EndTime <= LAST_MINUTE)) {
-        Status = refit_call2_wrapper(GetTime, &CurrentTime, NULL);
+        Status = boot_call2_wrapper(GetTime, &CurrentTime, NULL);
         if (Status != EFI_SUCCESS)
             return;
         Now = CurrentTime.Hour * 60 + CurrentTime.Minute;
@@ -506,7 +506,7 @@ static VOID SetDefaultByTime(IN CHAR16 **TokenList, OUT CHAR16 **Default) {
  * the caller retains the lifetime constraints of the menu inventory.
  */
 static LOADER_ENTRY * AddPreparedLoaderEntry(LOADER_ENTRY *Entry) {
-    AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+    AddMenuEntry(&MainMenu, (BOOT_MENU_ENTRY *)Entry);
 
     return(Entry);
 }  
@@ -545,7 +545,7 @@ static VOID SetLinuxMatchPatterns(CHAR16 *Prefixes) {
  */
 VOID ReadStartupDiagnosticsSetting(CHAR16 *FileName)
 {
-    REFIT_FILE File;
+    BOOT_FILE File;
     CHAR16 **Tokens;
     UINTN Count, Size;
     EFI_STATUS Status;
@@ -568,7 +568,7 @@ VOID ReadStartupDiagnosticsSetting(CHAR16 *FileName)
 VOID ReadConfig(CHAR16 *FileName)
 {
     EFI_STATUS      Status;
-    REFIT_FILE      File;
+    BOOT_FILE      File;
     CHAR16          **TokenList;
     CHAR16          *FlagName;
     CHAR16          *TempStr = NULL;
@@ -954,8 +954,8 @@ VOID ReadConfig(CHAR16 *FileName)
  * directive clears the inherited value. At completion any remaining initrd path
  * is folded into LoadOptions, and an enabled entry is attached to the submenu.
  */
-static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volume, CHAR16 *Title) {
-    REFIT_MENU_SCREEN  *SubScreen;
+static VOID AddSubmenu(LOADER_ENTRY *Entry, BOOT_FILE *File, BOOT_VOLUME *Volume, CHAR16 *Title) {
+    BOOT_MENU_SCREEN  *SubScreen;
     LOADER_ENTRY       *SubEntry;
     UINTN              TokenCount;
     CHAR16             **TokenList;
@@ -1021,7 +1021,7 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
         SubEntry->InitrdPath = NULL;
     }  
     if (SubEntry->Enabled == TRUE) {
-        AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+        AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
     }
     Entry->me.SubScreen = SubScreen;
 }  
@@ -1037,12 +1037,12 @@ static VOID AddSubmenu(LOADER_ENTRY *Entry, REFIT_FILE *File, REFIT_VOLUME *Volu
  * This distinction determines whether selecting the entry starts an image or
  * requests a firmware reboot.
  */
-static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, CHAR16 *Title) {
+static LOADER_ENTRY * AddStanzaEntries(BOOT_FILE *File, BOOT_VOLUME *Volume, CHAR16 *Title) {
     CHAR16       **TokenList;
     UINTN        TokenCount;
     LOADER_ENTRY *Entry;
     BOOLEAN      DefaultsSet = FALSE, AddedSubmenu = FALSE;
-    REFIT_VOLUME *CurrentVolume = Volume, *PreviousVolume;
+    BOOT_VOLUME *CurrentVolume = Volume, *PreviousVolume;
 
     Entry = InitializeLoaderEntry(NULL);
     if (Entry == NULL)
@@ -1153,8 +1153,8 @@ static LOADER_ENTRY * AddStanzaEntries(REFIT_FILE *File, REFIT_VOLUME *Volume, C
 VOID ScanUserConfigured(CHAR16 *FileName)
 {
     EFI_STATUS        Status;
-    REFIT_FILE        File;
-    REFIT_VOLUME      *Volume;
+    BOOT_FILE        File;
+    BOOT_VOLUME      *Volume;
     CHAR16            **TokenList;
     UINTN             TokenCount, size;
     LOADER_ENTRY      *Entry;
@@ -1196,15 +1196,15 @@ VOID ScanUserConfigured(CHAR16 *FileName)
  * normalises unquoted slashes. Convert the device string back to Linux separators
  * before synthesising normal and single-user options.
  */
-static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
+static BOOT_FILE * GenerateOptionsFromEtcFstab(BOOT_VOLUME *Volume) {
     UINTN        TokenCount, i;
-    REFIT_FILE   *Options = NULL, *Fstab = NULL;
+    BOOT_FILE   *Options = NULL, *Fstab = NULL;
     EFI_STATUS   Status;
     CHAR16       **TokenList, *Line, *Root = NULL;
 
     if (FileExists(Volume->RootDir, L"\\etc\\fstab")) {
-        Options = AllocateZeroPool(sizeof(REFIT_FILE));
-        Fstab = AllocateZeroPool(sizeof(REFIT_FILE));
+        Options = AllocateZeroPool(sizeof(BOOT_FILE));
+        Fstab = AllocateZeroPool(sizeof(BOOT_FILE));
         Status = ReadFile(Volume->RootDir, L"\\etc\\fstab", Fstab, &i);
         if (CheckError(Status, L"while reading /etc/fstab")) {
             if (Options != NULL)
@@ -1264,12 +1264,12 @@ static REFIT_FILE * GenerateOptionsFromEtcFstab(REFIT_VOLUME *Volume) {
  * generated CHAR16 text has the same label/options pairs as an on-disk Linux
  * options file.
  */
-static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
-    REFIT_FILE   *Options = NULL;
+static BOOT_FILE * GenerateOptionsFromPartTypes(VOID) {
+    BOOT_FILE   *Options = NULL;
     CHAR16       *Line, *GuidString, *WriteStatus;
 
     if (GlobalConfig.DiscoveredRoot) {
-        Options = AllocateZeroPool(sizeof(REFIT_FILE));
+        Options = AllocateZeroPool(sizeof(BOOT_FILE));
         if (Options) {
             Options->Encoding = ENCODING_UTF16_LE;
             GuidString = GuidAsString(&(GlobalConfig.DiscoveredRoot->PartGuid));
@@ -1300,14 +1300,14 @@ static REFIT_FILE * GenerateOptionsFromPartTypes(VOID) {
 /**
  * Search the kernel's own directory in LINUX_OPTIONS_FILENAMES order and stop on
  * the first successful read. If none opens, try the volume's fstab and then the
- * partition-type discovery result. Both synthetic sources use the same REFIT_FILE
+ * partition-type discovery result. Both synthetic sources use the same BOOT_FILE
  * cursor contract as a physical file.
  */
-REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
+BOOT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN BOOT_VOLUME *Volume) {
     CHAR16       *OptionsFilename, *FullFilename;
     BOOLEAN      GoOn = TRUE, FileFound = FALSE;
     UINTN        i = 0, size;
-    REFIT_FILE   *File = NULL;
+    BOOT_FILE   *File = NULL;
     EFI_STATUS   Status;
 
     do {
@@ -1316,7 +1316,7 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
         if ((OptionsFilename != NULL) && (FullFilename != NULL)) {
             MergeStrings(&FullFilename, OptionsFilename, '\\');
             if (FileExists(Volume->RootDir, FullFilename)) {
-                File = AllocateZeroPool(sizeof(REFIT_FILE));
+                File = AllocateZeroPool(sizeof(BOOT_FILE));
                 Status = ReadFile(Volume->RootDir, FullFilename, File, &size);
                 if (CheckError(Status, L"while loading the Linux options file")) {
                     MyFreePool(File);
@@ -1353,8 +1353,8 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
  * files and a first line lacking a second field both yield NULL.
  *
  * The returned CHAR16 option string is a new pool allocation owned by the
- * caller. ReadLinuxOptionsFile returns a REFIT_FILE whose payload may itself
- * be pool allocated. This routine frees the REFIT_FILE wrapper but does not
+ * caller. ReadLinuxOptionsFile returns a BOOT_FILE whose payload may itself
+ * be pool allocated. This routine frees the BOOT_FILE wrapper but does not
  * explicitly release File->Buffer; the ownership/lifetime of that payload
  * therefore requires a separate audit. A non-NULL command line is an options
  * selection, not evidence that the nominated root or initrd can be mounted.
@@ -1362,11 +1362,11 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
  * leak, not an intentional transfer to the caller. Verify this against the
  * file-reader allocation contract before claiming the entire path leak-free.
  */
-CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
+CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN BOOT_VOLUME *Volume) {
     UINTN        TokenCount;
     CHAR16       *Options = NULL;
     CHAR16       **TokenList;
-    REFIT_FILE   *File;
+    BOOT_FILE   *File;
 
     File = ReadLinuxOptionsFile(LoaderPath, Volume);
     if (File != NULL) {

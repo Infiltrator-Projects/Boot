@@ -14,7 +14,7 @@
 #include "launch_legacy.h"
 #include "lib.h"
 #include "menu.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "screen.h"
 #if defined(EFI32) || defined(EFIX64)
 #include "../include/syslinux_mbr.h"
@@ -25,8 +25,8 @@
 #include "../EfiLib/legacy.h"
 #include "../include/Handle.h"
 
-extern REFIT_MENU_ENTRY MenuEntryReturn;
-extern REFIT_MENU_SCREEN MainMenu;
+extern BOOT_MENU_ENTRY MenuEntryReturn;
+extern BOOT_MENU_SCREEN MainMenu;
 
 #ifndef __MAKEWITH_GNUEFI
 #define LibLocateHandle gBS->LocateHandleBuffer
@@ -57,7 +57,7 @@ static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN Partit
     UINTN               i;
     BOOLEAN             HaveBootCode;
 
-    Status = refit_call5_wrapper(BlockIO->ReadBlocks, BlockIO, BlockIO->Media->MediaId, 0, 512, SectorBuffer);
+    Status = boot_call5_wrapper(BlockIO->ReadBlocks, BlockIO, BlockIO->Media->MediaId, 0, 512, SectorBuffer);
     if (EFI_ERROR(Status))
         return Status;
     if (*((UINT16 *)(SectorBuffer + 510)) != 0xaa55)
@@ -90,7 +90,7 @@ static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN Partit
             MbrTable[i].Flags = 0x00;
     }
 
-    Status = refit_call5_wrapper(BlockIO->WriteBlocks, BlockIO, BlockIO->Media->MediaId, 0, 512, SectorBuffer);
+    Status = boot_call5_wrapper(BlockIO->WriteBlocks, BlockIO, BlockIO->Media->MediaId, 0, 512, SectorBuffer);
     if (EFI_ERROR(Status))
         return Status;
 
@@ -98,7 +98,7 @@ static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN Partit
 
         for (ExtCurrent = ExtBase; ExtCurrent; ExtCurrent = NextExtCurrent) {
 
-            Status = refit_call5_wrapper(BlockIO->ReadBlocks, BlockIO, BlockIO->Media->MediaId, ExtCurrent, 512, SectorBuffer);
+            Status = boot_call5_wrapper(BlockIO->ReadBlocks, BlockIO, BlockIO->Media->MediaId, ExtCurrent, 512, SectorBuffer);
             if (EFI_ERROR(Status))
                 return Status;
             if (*((UINT16 *)(SectorBuffer + 510)) != 0xaa55)
@@ -127,7 +127,7 @@ static EFI_STATUS ActivateMbrPartition(IN EFI_BLOCK_IO *BlockIO, IN UINTN Partit
                 }
             }
 
-            Status = refit_call5_wrapper(BlockIO->WriteBlocks, BlockIO, BlockIO->Media->MediaId, ExtCurrent, 512, SectorBuffer);
+            Status = boot_call5_wrapper(BlockIO->WriteBlocks, BlockIO, BlockIO->Media->MediaId, ExtCurrent, 512, SectorBuffer);
             if (EFI_ERROR(Status))
                 return Status;
 
@@ -200,11 +200,11 @@ static VOID ExtractLegacyLoaderPaths(EFI_DEVICE_PATH **PathList, UINTN MaxPaths,
     for (HandleIndex = 0; HandleIndex < HandleCount && PathCount < MaxPaths; HandleIndex++) {
         Handle = Handles[HandleIndex];
 
-        Status = refit_call3_wrapper(BS->HandleProtocol, Handle, &LoadedImageProtocol, (VOID **) &LoadedImage);
+        Status = boot_call3_wrapper(BS->HandleProtocol, Handle, &LoadedImageProtocol, (VOID **) &LoadedImage);
         if (EFI_ERROR(Status))
             continue;   
 
-        Status = refit_call3_wrapper(BS->HandleProtocol, LoadedImage->DeviceHandle, &DevicePathProtocol, (VOID **) &DevicePath);
+        Status = boot_call3_wrapper(BS->HandleProtocol, LoadedImage->DeviceHandle, &DevicePathProtocol, (VOID **) &DevicePath);
         if (EFI_ERROR(Status))
             continue;   
 
@@ -316,7 +316,7 @@ static EFI_STATUS StartLegacyImageList(IN EFI_DEVICE_PATH **DevicePaths,
 
     ReturnStatus = Status = EFI_NOT_FOUND;   
     for (DevicePathIndex = 0; DevicePaths[DevicePathIndex] != NULL; DevicePathIndex++) {
-        ReturnStatus = Status = refit_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePaths[DevicePathIndex],
+        ReturnStatus = Status = boot_call6_wrapper(BS->LoadImage, FALSE, SelfImageHandle, DevicePaths[DevicePathIndex],
                                                     NULL, 0, &ChildImageHandle);
         if (ReturnStatus != EFI_NOT_FOUND) {
             break;
@@ -328,7 +328,7 @@ static EFI_STATUS StartLegacyImageList(IN EFI_DEVICE_PATH **DevicePaths,
         goto bailout;
     }
 
-    ReturnStatus = Status = refit_call3_wrapper(BS->HandleProtocol, ChildImageHandle, &LoadedImageProtocol,
+    ReturnStatus = Status = boot_call3_wrapper(BS->HandleProtocol, ChildImageHandle, &LoadedImageProtocol,
                                                 (VOID **) &ChildLoadedImage);
     if (CheckError(Status, L"while getting a LoadedImageProtocol handle")) {
         if (ErrorInStep != NULL)
@@ -339,8 +339,8 @@ static EFI_STATUS StartLegacyImageList(IN EFI_DEVICE_PATH **DevicePaths,
     ChildLoadedImage->LoadOptionsSize = FullLoadOptions ? ((UINT32)StrLen(FullLoadOptions) + 1) * sizeof(CHAR16) : 0;
 
     LOG(1, LOG_LINE_NORMAL, L"Launching Mac-style BIOS/CSM/legacy loader");
-    UninitRefitLib();
-    ReturnStatus = Status = refit_call3_wrapper(BS->StartImage, ChildImageHandle, NULL, NULL);
+    UninitBootLib();
+    ReturnStatus = Status = boot_call3_wrapper(BS->StartImage, ChildImageHandle, NULL, NULL);
 
     if (CheckError(Status, L"returned from legacy loader")) {
         LOG(1, LOG_LINE_NORMAL, L"returned from legacy loader");
@@ -348,11 +348,11 @@ static EFI_STATUS StartLegacyImageList(IN EFI_DEVICE_PATH **DevicePaths,
             *ErrorInStep = 3;
     }
 
-    ReinitRefitLib();
+    ReinitBootLib();
 
 bailout_unload:
 
-    Status = refit_call1_wrapper(BS->UnloadImage, ChildImageHandle);
+    Status = boot_call1_wrapper(BS->UnloadImage, ChildImageHandle);
 
 bailout:
     MyFreePool(FullLoadOptions);
@@ -418,11 +418,11 @@ VOID StartLegacyUEFI(LEGACY_ENTRY *Entry, CHAR16 *SelectionName)
     BeginExternalScreen(TRUE, L"Booting Legacy OS (UEFI mode)");
     StoreLoaderName(SelectionName);
 
-    UninitRefitLib();
+    UninitBootLib();
     BdsLibConnectDevicePath (Entry->BdsOption->DevicePath);
     BdsLibDoLegacyBoot(Entry->BdsOption);
 
-    ReinitRefitLib();
+    ReinitBootLib();
     LOG(1, LOG_LINE_NORMAL, L"Failure booting legacy (BIOS) OS.");
     Print(L"Failure booting legacy (BIOS) OS.");
     PauseForKey();
@@ -436,10 +436,10 @@ VOID StartLegacyUEFI(LEGACY_ENTRY *Entry, CHAR16 *SelectionName)
  * is borrowed from the current scan. Detection is not proof that firmware
  * implements CSM handoff for the selected device.
  */
-static LEGACY_ENTRY * AddLegacyEntry(IN CHAR16 *LoaderTitle, IN REFIT_VOLUME *Volume)
+static LEGACY_ENTRY * AddLegacyEntry(IN CHAR16 *LoaderTitle, IN BOOT_VOLUME *Volume)
 {
     LEGACY_ENTRY            *Entry, *SubEntry;
-    REFIT_MENU_SCREEN       *SubScreen;
+    BOOT_MENU_SCREEN       *SubScreen;
     CHAR16                  *VolDesc, *LegacyTitle;
     CHAR16                  ShortcutLetter = 0;
 
@@ -477,7 +477,7 @@ static LEGACY_ENTRY * AddLegacyEntry(IN CHAR16 *LoaderTitle, IN REFIT_VOLUME *Vo
                                 ((Volume->DiskKind == DISK_KIND_EXTERNAL) ? L"USB" : L"HD");
     Entry->Enabled           = TRUE;
 
-    SubScreen             = AllocateZeroPool(sizeof(REFIT_MENU_SCREEN));
+    SubScreen             = AllocateZeroPool(sizeof(BOOT_MENU_SCREEN));
     SubScreen->Title      = PoolPrint(L"Boot Options for %s on %s", LoaderTitle, VolDesc);
     SubScreen->TitleImage = Entry->me.Image;
     SubScreen->Hint1      = StrDuplicate(SUBSCREEN_HINT1);
@@ -492,11 +492,11 @@ static LEGACY_ENTRY * AddLegacyEntry(IN CHAR16 *LoaderTitle, IN REFIT_VOLUME *Vo
     SubEntry->me.Tag      = TAG_LEGACY;
     SubEntry->Volume      = Entry->Volume;
     SubEntry->LoadOptions = Entry->LoadOptions;
-    AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+    AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
 
     AddMenuEntry(SubScreen, &MenuEntryReturn);
     Entry->me.SubScreen = SubScreen;
-    AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+    AddMenuEntry(&MainMenu, (BOOT_MENU_ENTRY *)Entry);
     return Entry;
 }  
 
@@ -507,7 +507,7 @@ static LEGACY_ENTRY * AddLegacyEntry(IN CHAR16 *LoaderTitle, IN REFIT_VOLUME *Vo
 static LEGACY_ENTRY * AddLegacyEntryUEFI(BDS_COMMON_OPTION *BdsOption, IN UINT16 DiskType)
 {
     LEGACY_ENTRY            *Entry, *SubEntry;
-    REFIT_MENU_SCREEN       *SubScreen;
+    BOOT_MENU_SCREEN       *SubScreen;
     CHAR16                  ShortcutLetter = 0;
     CHAR16 *LegacyDescription = StrDuplicate(BdsOption->Description);
 
@@ -531,7 +531,7 @@ static LEGACY_ENTRY * AddLegacyEntryUEFI(BDS_COMMON_OPTION *BdsOption, IN UINT16
     Entry->BdsOption         = BdsOption;
     Entry->Enabled           = TRUE;
 
-    SubScreen = AllocateZeroPool(sizeof(REFIT_MENU_SCREEN));
+    SubScreen = AllocateZeroPool(sizeof(BOOT_MENU_SCREEN));
     SubScreen->Title = StrDuplicate(L"No boot options for legacy target");
     SubScreen->TitleImage = Entry->me.Image;
     SubScreen->Hint1 = StrDuplicate(SUBSCREEN_HINT1);
@@ -545,11 +545,11 @@ static LEGACY_ENTRY * AddLegacyEntryUEFI(BDS_COMMON_OPTION *BdsOption, IN UINT16
     SubEntry->me.Title        = PoolPrint(L"Boot %s", LegacyDescription);
     SubEntry->me.Tag          = TAG_LEGACY_UEFI;
     Entry->BdsOption          = BdsOption; 
-    AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+    AddMenuEntry(SubScreen, (BOOT_MENU_ENTRY *)SubEntry);
 
     AddMenuEntry(SubScreen, &MenuEntryReturn);
     Entry->me.SubScreen = SubScreen;
-    AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+    AddMenuEntry(&MainMenu, (BOOT_MENU_ENTRY *)Entry);
     return Entry;
 }  
 
@@ -577,7 +577,7 @@ static VOID ScanLegacyUEFI(IN UINTN DiskType)
     InitializeListHead (&TempList);
     ZeroMem (Buffer, sizeof (Buffer));
 
-    Status = refit_call3_wrapper(gBS->LocateProtocol, &gEfiLegacyBootProtocolGuid,
+    Status = boot_call3_wrapper(gBS->LocateProtocol, &gEfiLegacyBootProtocolGuid,
                                  NULL, (VOID **) &LegacyBios);
     if (EFI_ERROR (Status))
         return;
@@ -625,7 +625,7 @@ static VOID ScanLegacyUEFI(IN UINTN DiskType)
  * Classifies a volume for possible BIOS boot, which is not the same as
  * proving a boot sector or operating system can execute.
  */
-static VOID ScanLegacyVolume(REFIT_VOLUME *Volume, UINTN VolumeIndex) {
+static VOID ScanLegacyVolume(BOOT_VOLUME *Volume, UINTN VolumeIndex) {
     UINTN VolumeIndex2;
     BOOLEAN ShowVolume, HideIfOthersFound;
 
@@ -662,7 +662,7 @@ VOID ScanLegacyDisc(VOID)
 {
 #if defined(EFI32) || defined(EFIX64)
     UINTN                   VolumeIndex;
-    REFIT_VOLUME            *Volume;
+    BOOT_VOLUME            *Volume;
 
     LOG(1, LOG_LINE_THIN_SEP, L"Scanning for BIOS/CSM/legacy-mode optical discs");
     if (GlobalConfig.LegacyType == LEGACY_TYPE_MAC) {
@@ -686,7 +686,7 @@ VOID ScanLegacyInternal(VOID)
 {
 #if defined(EFI32) || defined(EFIX64)
     UINTN                   VolumeIndex;
-    REFIT_VOLUME            *Volume;
+    BOOT_VOLUME            *Volume;
 
     LOG(1, LOG_LINE_THIN_SEP, L"Scanning for BIOS/CSM/legacy-mode internal disks");
     if (GlobalConfig.LegacyType == LEGACY_TYPE_MAC) {
@@ -711,7 +711,7 @@ VOID ScanLegacyExternal(VOID)
 {
 #if defined(EFI32) || defined(EFIX64)
     UINTN                   VolumeIndex;
-    REFIT_VOLUME            *Volume;
+    BOOT_VOLUME            *Volume;
 
     LOG(1, LOG_LINE_THIN_SEP, L"Scanning for BIOS/CSM/legacy-mode external disks");
     if (GlobalConfig.LegacyType == LEGACY_TYPE_MAC) {
@@ -740,7 +740,7 @@ VOID FindLegacyBootType(VOID) {
     EFI_STATUS                Status;
     EFI_LEGACY_BIOS_PROTOCOL  *LegacyBios;
 
-    Status = refit_call3_wrapper(gBS->LocateProtocol, &gEfiLegacyBootProtocolGuid,
+    Status = boot_call3_wrapper(gBS->LocateProtocol, &gEfiLegacyBootProtocolGuid,
                                  NULL, (VOID **) &LegacyBios);
     if (!EFI_ERROR (Status))
         GlobalConfig.LegacyType = LEGACY_TYPE_UEFI;

@@ -40,7 +40,7 @@ typedef struct {
     void *RootDir;
     EG_IMAGE *VolIconImage;
     int DiskKind;
-} REFIT_VOLUME;
+} BOOT_VOLUME;
 typedef struct { CHAR16 *Title; EG_IMAGE *Image; CHAR16 ShortcutLetter; } MENU_ENTRY;
 typedef struct {
     MENU_ENTRY me;
@@ -48,7 +48,7 @@ typedef struct {
     CHAR16 *LoadOptions;
     UINTN UseGraphicsMode;
 } LOADER_ENTRY;
-typedef struct { CHAR16 *Buffer; size_t offset; } REFIT_FILE;
+typedef struct { CHAR16 *Buffer; size_t offset; } BOOT_FILE;
 static struct { UINTN IconSizes[4]; CHAR16 *LinuxPrefixes; UINTN GraphicsFor; } GlobalConfig = {
     {0,0,128,0}, L"vmlinuz,bzImage,kernel", 31
 };
@@ -153,7 +153,7 @@ static EG_IMAGE *egLoadIconAnyType(void *root, CHAR16 *path, CHAR16 *name, UINTN
     (void)root;(void)path;(void)name;(void)size;return NULL;
 }
 static EG_IMAGE *egCopyImage(EG_IMAGE *icon) { return icon; }
-static CHAR16 *GetMainLinuxOptions(CHAR16 *path, REFIT_VOLUME *volume) {
+static CHAR16 *GetMainLinuxOptions(CHAR16 *path, BOOT_VOLUME *volume) {
     (void)path;(void)volume;return NULL;
 }
 static EG_IMAGE *LoadOSIcon(CHAR16 *hints, CHAR16 *fallback, BOOLEAN logo) {
@@ -177,7 +177,7 @@ static EG_IMAGE *LoadOSIcon(CHAR16 *hints, CHAR16 *fallback, BOOLEAN logo) {
     return NULL;
 }
 static BOOLEAN FileExists(void *root, CHAR16 *filename) {
-    REFIT_VOLUME *v=(REFIT_VOLUME*)root;
+    BOOT_VOLUME *v=(BOOT_VOLUME*)root;
     return v && v->release && MyStriCmp(filename,L"etc\\os-release");
 }
 /*
@@ -185,8 +185,8 @@ static BOOLEAN FileExists(void *root, CHAR16 *filename) {
  * Production classification consumes it through token parsing; no actual EFI
  * filesystem I/O or firmware variable access occurs.
  */
-static EFI_STATUS ReadFile(void *root, CHAR16 *filename, REFIT_FILE *file, UINTN *size) {
-    REFIT_VOLUME *v=(REFIT_VOLUME*)root;
+static EFI_STATUS ReadFile(void *root, CHAR16 *filename, BOOT_FILE *file, UINTN *size) {
+    BOOT_VOLUME *v=(BOOT_VOLUME*)root;
     if(!v || !v->release || !MyStriCmp(filename,L"etc\\os-release"))return 1;
     file->Buffer=StrDuplicate(v->release);file->offset=0;
     if(size)*size=wcslen(file->Buffer)*sizeof(CHAR16);
@@ -197,7 +197,7 @@ static EFI_STATUS ReadFile(void *root, CHAR16 *filename, REFIT_FILE *file, UINTN
  * a line resets its caller's TokenCount to zero. The old release-file loop
  * incorrectly examined that reset value rather than reading another line.
  */
-static UINTN ReadTokenLine(REFIT_FILE *file, CHAR16 ***tokens) {
+static UINTN ReadTokenLine(BOOT_FILE *file, CHAR16 ***tokens) {
     const CHAR16 *start,*end;
     CHAR16 *line,*key,*value,*eq;
     *tokens=NULL;
@@ -248,7 +248,7 @@ static VOID FreeTokenLine(CHAR16 ***tokens, UINTN *count) {
  */
 static void expect_icon(const char *name,const CHAR16 *path,const CHAR16 *release,
                         const CHAR16 *expected,char expectedType) {
-    REFIT_VOLUME volume={0};
+    BOOT_VOLUME volume={0};
     LOADER_ENTRY entry={0};
     volume.RootDir=&volume;
     volume.FsName=L"ext4";

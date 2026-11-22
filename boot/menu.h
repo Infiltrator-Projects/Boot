@@ -68,31 +68,31 @@ typedef struct {
 
 #define MAX_LINE_LENGTH 65
 
-struct _refit_menu_screen;
+struct _boot_menu_screen;
 
 /*
  * Style callbacks share Screen and State across initialisation, repaint,
  * selection changes and cleanup. Entries must outlive this lifecycle; a rescan
  * invalidates pointers and indices.
  */
-typedef VOID (*MENU_STYLE_FUNC)(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN Function, IN CHAR16 *ParamText);
+typedef VOID (*MENU_STYLE_FUNC)(IN BOOT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN Function, IN CHAR16 *ParamText);
 
 /*
  * Append borrowed record pointers, not deep copies. Strings and nested
  * entries must outlive the screen; an entry selected from the old inventory
  * is invalid following ScanForBootloaders. Neither append reports OOM.
  */
-VOID AddMenuInfoLine(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine);
-VOID AddMenuEntry(IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry);
+VOID AddMenuInfoLine(IN BOOT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine);
+VOID AddMenuEntry(IN BOOT_MENU_SCREEN *Screen, IN BOOT_MENU_ENTRY *Entry);
 UINTN ComputeRow0PosY(VOID);
-VOID MainMenuStyle(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN Function, IN CHAR16 *ParamText);
-UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry);
+VOID MainMenuStyle(IN BOOT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN Function, IN CHAR16 *ParamText);
+UINTN RunMenu(IN BOOT_MENU_SCREEN *Screen, OUT BOOT_MENU_ENTRY **ChosenEntry);
 VOID DisplaySimpleMessage(CHAR16 *Title, CHAR16 *Message);
-VOID TextMenuStyle(IN REFIT_MENU_SCREEN *Screen,
+VOID TextMenuStyle(IN BOOT_MENU_SCREEN *Screen,
                    IN SCROLL_STATE *State,
                    IN UINTN Function,
                    IN CHAR16 *ParamText);
-VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
+VOID GraphicsMenuStyle(IN BOOT_MENU_SCREEN *Screen,
                        IN SCROLL_STATE *State,
                        IN UINTN Function,
                        IN CHAR16 *ParamText);
@@ -101,10 +101,10 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
  * DefaultEntryIndex is an array index updated by input/scroll handling; it
  * is not a persistent firmware boot option number.
  */
-UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
+UINTN RunGenericMenu(IN BOOT_MENU_SCREEN *Screen,
                      IN MENU_STYLE_FUNC StyleFunc,
                      IN OUT INTN *DefaultEntryIndex,
-                     OUT REFIT_MENU_ENTRY **ChosenEntry);
+                     OUT BOOT_MENU_ENTRY **ChosenEntry);
 VOID ManageHiddenTags(VOID);
 CHAR16* ReadHiddenTags(CHAR16 *VarName);
 /*
@@ -112,8 +112,8 @@ CHAR16* ReadHiddenTags(CHAR16 *VarName);
  * The returned pointer belongs to the current scan and its Tag controls
  * downstream EFI application versus firmware-variable dispatch.
  */
-UINTN RunMainMenu(IN REFIT_MENU_SCREEN *Screen, IN CHAR16** DefaultSelection, OUT REFIT_MENU_ENTRY **ChosenEntry);
-UINTN FindMainMenuItem(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN PosX, IN UINTN PosY);
+UINTN RunMainMenu(IN BOOT_MENU_SCREEN *Screen, IN CHAR16** DefaultSelection, OUT BOOT_MENU_ENTRY **ChosenEntry);
+UINTN FindMainMenuItem(IN BOOT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN PosX, IN UINTN PosY);
 /*
  * GenerateWaitList allocates the keyboard/pointer event list; WaitForInput
  * supplies a timer where requested. INPUT_* categories describe input source,

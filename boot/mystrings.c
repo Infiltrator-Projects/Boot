@@ -9,7 +9,7 @@
 #include "mystrings.h"
 #include "lib.h"
 #include "screen.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 /*
  * Search by clearing bit 5 of CHAR16 code units. This reproduces
@@ -590,7 +590,7 @@ CHAR16 *GetTimeString(VOID) {
     EFI_TIME CurrentTime;
     EFI_STATUS Status = EFI_SUCCESS;
 
-    Status = refit_call2_wrapper(ST->RuntimeServices->GetTime, &CurrentTime, NULL);
+    Status = boot_call2_wrapper(ST->RuntimeServices->GetTime, &CurrentTime, NULL);
     if (EFI_ERROR(Status)) {
         TimeStr = PoolPrint(L"unknown time");
     } else {

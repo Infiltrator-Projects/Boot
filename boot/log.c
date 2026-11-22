@@ -11,7 +11,7 @@
 #include "install.h"
 #include "lib.h"
 #include "mystrings.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "screen.h"
 #include "menu.h"
 
@@ -55,10 +55,10 @@ EFI_STATUS DeleteFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName) {
     UINT64          FileMode = EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE;;
     EFI_STATUS      Status;
 
-    Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle,
+    Status = boot_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle,
                                  FileName, FileMode, 0);
     if (!EFI_ERROR(Status)) {
-        Status = refit_call1_wrapper(FileHandle->Delete, FileHandle);
+        Status = boot_call1_wrapper(FileHandle->Delete, FileHandle);
     }
     return Status;
 }  
@@ -108,7 +108,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
             Status = RotateLogFile(SelfDir);
         }
         if (Status == EFI_SUCCESS) {
-            Status = refit_call5_wrapper(SelfDir->Open, SelfDir, &gLogHandle, LOGFILE,
+            Status = boot_call5_wrapper(SelfDir->Open, SelfDir, &gLogHandle, LOGFILE,
                                          FileMode, 0);
         }
 
@@ -120,7 +120,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
                     Status = RotateLogFile(FoundEsp);
                 }
                 if (Status == EFI_SUCCESS)
-                    Status = refit_call5_wrapper(FoundEsp->Open, FoundEsp,
+                    Status = boot_call5_wrapper(FoundEsp->Open, FoundEsp,
                                                  &gLogHandle, LOGFILE,
                                                  FileMode, 0);
             }
@@ -134,7 +134,7 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
             FileInfo = LibFileInfo(gLogHandle);
             if ((FileInfo != NULL) && (FileInfo->FileSize > 0)) {
                 if (!Restart) {
-                    Status = refit_call1_wrapper(gLogHandle->Delete, gLogHandle);
+                    Status = boot_call1_wrapper(gLogHandle->Delete, gLogHandle);
                     StartLogging(FALSE);
                 }
             } else {
@@ -142,12 +142,12 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
                 Utf16[0] = 0xFF;
                 Utf16[1] = 0xFE;
                 BufferSize = 2;
-                refit_call3_wrapper(gLogHandle->Write, gLogHandle, &BufferSize, Utf16);
+                boot_call3_wrapper(gLogHandle->Write, gLogHandle, &BufferSize, Utf16);
                 gLogActive = TRUE;
                 LOG(1, LOG_LINE_SEPARATOR, L"Beginning logging");
             }  
             if (Restart) {
-                refit_call2_wrapper(gLogHandle->SetPosition, gLogHandle, 0xFFFFFFFFFFFFFFFF);
+                boot_call2_wrapper(gLogHandle->SetPosition, gLogHandle, 0xFFFFFFFFFFFFFFFF);
             }
             gLogActive = TRUE;
         }  
@@ -165,7 +165,7 @@ VOID StopLogging(VOID) {
     if (gLogActive)
         BootDiagFlush();
     if (GlobalConfig.LogLevel > 0 && gLogActive)
-        refit_call1_wrapper(gLogHandle->Close, gLogHandle);
+        boot_call1_wrapper(gLogHandle->Close, gLogHandle);
     gLogActive = FALSE;
 }  
 
@@ -201,7 +201,7 @@ VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
 
         if (FinalMessage) {
             BufferSize = StrLen(FinalMessage) * 2;
-            refit_call3_wrapper(gLogHandle->Write, gLogHandle, &BufferSize, FinalMessage);
+            boot_call3_wrapper(gLogHandle->Write, gLogHandle, &BufferSize, FinalMessage);
             /*
              * With startup diagnostics enabled, repeated FAT flushes of
              * thousands of small lines obscure firmware timing. Flush
@@ -211,7 +211,7 @@ VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
             if (!GlobalConfig.StartupDiagnostics ||
                 LogLineType != LOG_LINE_NORMAL ||
                 ++BootDiagPendingWrites >= 64) {
-                refit_call1_wrapper(gLogHandle->Flush, gLogHandle);
+                boot_call1_wrapper(gLogHandle->Flush, gLogHandle);
                 BootDiagPendingWrites = 0;
             }
             FreePool(FinalMessage);
@@ -229,7 +229,7 @@ VOID BootDiagFlush(VOID)
 {
     if (!gLogActive || !gLogHandle)
         return;
-    refit_call1_wrapper(gLogHandle->Flush, gLogHandle);
+    boot_call1_wrapper(gLogHandle->Flush, gLogHandle);
     BootDiagPendingWrites = 0;
 }
 
@@ -243,7 +243,7 @@ UINT64 BootDiagTicks(VOID)
 #else
     EFI_TIME Now;
     EFI_STATUS Status;
-    Status = refit_call2_wrapper(ST->RuntimeServices->GetTime, &Now, NULL);
+    Status = boot_call2_wrapper(ST->RuntimeServices->GetTime, &Now, NULL);
     if (EFI_ERROR(Status))
         return 0;
     return ((UINT64)Now.Hour * 3600000ULL) +
@@ -260,7 +260,7 @@ VOID BootDiagCalibrateClock(VOID)
     if (!GlobalConfig.StartupDiagnostics)
         return;
     Before = BootDiagTicks();
-    refit_call1_wrapper(BS->Stall, 50000);
+    boot_call1_wrapper(BS->Stall, 50000);
     After = BootDiagTicks();
     if (After > Before)
         BootDiagTicksPerMs = (After - Before) / 50;

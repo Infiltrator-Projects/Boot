@@ -102,7 +102,7 @@ These are **unverified regression requirements**, not new test results. The desc
 | `GenerateWaitList` | Unchecked allocation and replacement of an existing global wait-list pointer | Force allocation failure and repeated construction; check event-array lifetime |
 | `WaitForInput` | The zero-timeout path excludes the timer slot yet interprets the last included slot as a timeout | Simulate keyboard and last-pointer events with zero timeout; verify event classification and event creation/close behaviour |
 | `IsSymbolicLink` | Successful Open retains a file handle; failed metadata observation is treated as zero length | Instrument repeated directory scans and injected Open/LibFileInfo failures |
-| `GetFirstOptionsFromFile` | REFIT_FILE wrapper is freed without an explicit free of its data buffer | Trace each returned REFIT_FILE allocation and the release of all associated payload ownership |
+| `GetFirstOptionsFromFile` | BOOT_FILE wrapper is freed without an explicit free of its data buffer | Trace each returned BOOT_FILE allocation and the release of all associated payload ownership |
 | `EfivarGetRaw` | Disk read failure after directory creation does not retry NVRAM | Mock local-variable read failures separately from directory-open failures |
 
 All entries are review observations and proposed regressions, not evidence that those tests exist or pass.
@@ -122,7 +122,7 @@ Documentation should state **what passed**, **what failed**, and **what was not 
 
 The latest source-comment refinement replaces mechanically spaced-out BOOT banners with balanced module introductions, aligns the BOOT-owned C/header and installation-script prologues, and restores concrete rationale where it aids understanding (notably EFI pathname normalisation and Linux initrd candidate matching). The full comment contracts about allocation, firmware boundaries, recovery and limitations remain part of the source.
 
-For acceptance, review representative files in an editor with the same typographic hierarchy and line wrapping, and check whether a reader can locate the module purpose, an operation's rationale, and its failure contract without reading repetitive filler. A comparison with rEFInd is evidence for useful original examples, not a requirement to imitate its entire comment style.
+For acceptance, review representative files in an editor with the same typographic hierarchy and line wrapping, and check whether a reader can locate the module purpose, an operation's rationale, and its failure contract without reading repetitive filler. A comparison with upstream implementation is evidence for useful original examples, not a requirement to imitate its entire comment style.
 
 Each changed source file must be checked against the exact pre-edit file with C comments or shell prologue comments excluded. These checks preserve implementation text only; they do **not** establish runtime safety, bootability or corrected source hazards. The normal build, package, OVMF and firmware validation rules continue to apply.
 
@@ -229,7 +229,7 @@ compiler, ABI, or firmware execution test.
 | `filesystems/fsw_ext4.c` | Extent-leaf/index geometry is untrusted; RECOVER acceptance does not replay journal | Depth/length and out-of-range extent fixtures plus a recovery-required volume policy test |
 | `filesystems/fsw_btrfs.c` | Extent cache key spans tree, inode and range; chunk translation and decompression have separate lifetimes | Two subvolumes with equal inode number, compressed/uncompressed extents, malformed lengths and missing/RAID devices |
 | `boot/scan.c:FindTool` | Directory-name deduplication crosses volume iterations without volume identity | Two distinct readable volumes containing the same tool directory; both eligible tools must be considered |
-| `boot/config.c:GetFirstOptionsFromFile` | `REFIT_FILE` wrapper is freed without a visible release of its `Buffer` allocation | Instrument allocation/free accounting over present, missing, empty and malformed option files |
+| `boot/config.c:GetFirstOptionsFromFile` | `BOOT_FILE` wrapper is freed without a visible release of its `Buffer` allocation | Instrument allocation/free accounting over present, missing, empty and malformed option files |
 
 A known source defect is not an acceptable test result merely because a comment
 describes it. The checks in the final column remain **unexecuted requirements** in
@@ -546,7 +546,7 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `include/egemb_back_selected_big.h` | 0 | Generated/embedded |
 | `include/egemb_back_selected_small.h` | 0 | Generated/embedded |
 | `include/egemb_boot_banner.h` | 0 | Generated/embedded |
-| `include/refit_call_wrapper.h` | 0 | ABI/header |
+| `include/boot_call_wrapper.h` | 0 | ABI/header |
 | `include/syslinux_mbr.h` | 0 | Generated/embedded |
 | `include/tiano_includes.h` | 0 | ABI/header |
 | `include/version.h` | 0 | ABI/header |

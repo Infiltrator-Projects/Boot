@@ -17,7 +17,7 @@
 #include "menu.h"
 #include "mystrings.h"
 #include "log.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 #include "../include/egemb_boot_banner.h"
 
@@ -80,9 +80,9 @@ VOID InitScreen(VOID)
     }
     GraphicsScreenDirty = TRUE;
 
-    refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, FALSE);
+    boot_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, FALSE);
 
-    if (refit_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut,
+    if (boot_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut,
                             ST->ConOut->Mode->Mode, &ConWidth,
                             &ConHeight) != EFI_SUCCESS) {
 
@@ -173,9 +173,9 @@ VOID SetupScreen(VOID)
 VOID SwitchToText(IN BOOLEAN CursorEnabled)
 {
     egSetGraphicsModeEnabled(FALSE);
-    refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, CursorEnabled);
+    boot_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, CursorEnabled);
 
-    if (refit_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut, ST->ConOut->Mode->Mode, &ConWidth, &ConHeight) != EFI_SUCCESS) {
+    if (boot_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut, ST->ConOut->Mode->Mode, &ConWidth, &ConHeight) != EFI_SUCCESS) {
 
         ConWidth = 80;
         ConHeight = 25;
@@ -247,10 +247,10 @@ VOID FinishExternalScreen(VOID)
 VOID TerminateScreen(VOID)
 {
 
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
-    refit_call1_wrapper(ST->ConOut->ClearScreen, ST->ConOut);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
+    boot_call1_wrapper(ST->ConOut->ClearScreen, ST->ConOut);
 
-    refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, TRUE);
+    boot_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, TRUE);
 }
 
 /*
@@ -264,22 +264,22 @@ VOID DrawScreenHeader(IN CHAR16 *Title)
     UINTN y;
 
     egClearScreen(&DarkBackgroundPixel);  
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
-    refit_call1_wrapper(ST->ConOut->ClearScreen, ST->ConOut);  
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
+    boot_call1_wrapper(ST->ConOut->ClearScreen, ST->ConOut);  
 
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BANNER);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BANNER);
     if (BlankLine != NULL) {
         for (y = 0; y < 3; y++) {
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, y);
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, y);
             Print(BlankLine);
         }
     }
 
-    refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, 1);
+    boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, 1);
     Print(L"BOOT - %s", Title);
 
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
-    refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, 4);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
+    boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, 4);
 }
 
 /**
@@ -295,7 +295,7 @@ BOOLEAN ReadAllKeyStrokes(VOID)
 
     GotKeyStrokes = FALSE;
     for (;;) {
-        Status = refit_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
+        Status = boot_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
         if (Status == EFI_SUCCESS) {
             GotKeyStrokes = TRUE;
             continue;
@@ -338,11 +338,11 @@ VOID PauseForKey(VOID)
     PrintUglyText(L"* Hit any key to continue *", BOTTOM);
 
     if (ReadAllKeyStrokes()) {   
-        refit_call1_wrapper(BS->Stall, 5000000);      
+        boot_call1_wrapper(BS->Stall, 5000000);      
         ReadAllKeyStrokes();     
     }
 
-    refit_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &index);
+    boot_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &index);
     ReadAllKeyStrokes();         
 }
 
@@ -352,7 +352,7 @@ VOID PauseForKey(VOID)
  * guarded against overflow for extreme caller-supplied values.
  */
 VOID PauseSeconds(UINTN Seconds) {
-     refit_call1_wrapper(BS->Stall, 1000000 * Seconds);
+     boot_call1_wrapper(BS->Stall, 1000000 * Seconds);
 }  
 
 /**
@@ -366,7 +366,7 @@ VOID EndlessIdleLoop(VOID)
 
     for (;;) {
         ReadAllKeyStrokes();
-        refit_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &index);
+        boot_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &index);
     }
 }
 
@@ -389,9 +389,9 @@ BOOLEAN CheckFatalError(IN EFI_STATUS Status, IN CHAR16 *where)
 #else
     Temp = PoolPrint(L"Fatal Error: %s %s", Status, where);
 #endif
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_ERROR);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_ERROR);
     PrintUglyText(Temp, NEXTLINE);
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
     LOG(1, LOG_LINE_NORMAL, Temp);
     MyFreePool(Temp);
 
@@ -417,9 +417,9 @@ BOOLEAN CheckError(IN EFI_STATUS Status, IN CHAR16 *where)
 #else
     Temp = PoolPrint(L"Error: %r %s", Status, where);
 #endif
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_ERROR);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_ERROR);
     PrintUglyText(Temp, NEXTLINE);
-    refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
+    boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
     LOG(1, LOG_LINE_NORMAL, Temp);
     PauseForKey();
     MyFreePool(Temp);
@@ -453,7 +453,7 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
 
 
     /*
-     * Preserve the rEFInd-style banner precedence: an explicit boot.conf
+     * Preserve the BOOT-style banner precedence: an explicit boot.conf
      * banner always uses the existing image/scale path. Otherwise load the
      * image filenames named by boot.conf's default InfiltratorOS theme.
      * Missing/disabled theme PNGs yield a plain graphical background.

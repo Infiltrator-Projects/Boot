@@ -9,7 +9,7 @@
 #include "global.h"
 #include "screen.h"
 #include "lib.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 /*
  * Moves the logical cursor or shifts the visible viewport when the cursor
@@ -56,8 +56,8 @@ BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
     BOOLEAN enter;
 
     DrawScreenHeader(L"Line Editor");
-    refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, (ConWidth - 71) / 2, ConHeight - 1);
-    refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut,
+    boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, (ConWidth - 71) / 2, ConHeight - 1);
+    boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut,
                         L"Use cursor keys to edit, Esc to exit, Enter to boot with edited options");
 
     if (!line_in)
@@ -68,7 +68,7 @@ BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
     len = StrLen(line);
     print = AllocatePool(x_max * sizeof(CHAR16));
 
-    refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, TRUE);
+    boot_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, TRUE);
 
     first = 0;
     cursor = 0;
@@ -87,12 +87,12 @@ BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
         print[i++] = ' ';
         print[i] = '\0';
 
-        refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, y_pos);
-        refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, print);
-        refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
+        boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, y_pos);
+        boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, print);
+        boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
 
-        refit_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &index);
-        err = refit_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
+        boot_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &index);
+        err = boot_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
         if (EFI_ERROR(err))
             continue;
 
@@ -120,7 +120,7 @@ BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
                 cursor_left(&cursor, &first);
             if (first + cursor != len && first + cursor)
                 cursor_right(&cursor, &first, x_max, len);
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
             continue;
         case SCAN_DOWN:
             while(line[first + cursor] && line[first + cursor] == ' ')
@@ -129,17 +129,17 @@ BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
                 cursor_right(&cursor, &first, x_max, len);
             while(line[first + cursor] && line[first + cursor] == ' ')
                 cursor_right(&cursor, &first, x_max, len);
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
             continue;
         case SCAN_RIGHT:
             if (first + cursor == len)
                 continue;
             cursor_right(&cursor, &first, x_max, len);
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
             continue;
         case SCAN_LEFT:
             cursor_left(&cursor, &first);
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, cursor, y_pos);
             continue;
         case SCAN_DELETE:
             if (len == 0)
@@ -206,7 +206,7 @@ BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max) {
         }
     }
 
-    refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, FALSE);
+    boot_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, FALSE);
     MyFreePool(print);
     MyFreePool(line);
     return enter;

@@ -32,7 +32,7 @@ typedef struct {
     EFI_FILE_HANDLE     DirHandle;
     BOOLEAN             CloseDirHandle;
     EFI_FILE_INFO       *LastFileInfo;
-} REFIT_DIR_ITER;
+} BOOT_DIR_ITER;
 
 #define DISK_KIND_INTERNAL  (0)
 #define DISK_KIND_EXTERNAL  (1)
@@ -54,9 +54,9 @@ extern EFI_GUID gFreedesktopRootGuid;
  * Init borrows the entry image handle and opens firmware-facing volume state.
  * Uninit closes active roots; Reinit restores them if a launched image returns.
  */
-EFI_STATUS InitRefitLib(IN EFI_HANDLE ImageHandle);
-VOID UninitRefitLib(VOID);
-EFI_STATUS ReinitRefitLib(VOID);
+EFI_STATUS InitBootLib(IN EFI_HANDLE ImageHandle);
+VOID UninitBootLib(VOID);
+EFI_STATUS ReinitBootLib(VOID);
 
 /*
  * Success returns a caller-owned EFI pool buffer. The size argument is
@@ -80,7 +80,7 @@ VOID CreateList(OUT VOID ***ListPtr, OUT UINTN *ElementCount, IN UINTN InitialEl
 VOID AddListElement(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID *NewElement);
 VOID FreeList(IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount);
 
-VOID SetVolumeBadgeIcon(REFIT_VOLUME *Volume);
+VOID SetVolumeBadgeIcon(BOOT_VOLUME *Volume);
 /*
  * Rebuild the global Volumes inventory from firmware Block I/O handles and
  * partition metadata. Discovery can produce an unreadable volume record;
@@ -106,9 +106,9 @@ EFI_STATUS DirNextEntry(IN EFI_FILE_PROTOCOL *Directory, IN OUT EFI_FILE_INFO **
  * or clear the field before closing it to prevent a second free. DirIterClose
  * returns the prior enumeration status, not the firmware Close status.
  */
-VOID DirIterOpen(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath OPTIONAL, OUT REFIT_DIR_ITER *DirIter);
-BOOLEAN DirIterNext(IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR16 *FilePattern OPTIONAL, OUT EFI_FILE_INFO **DirEntry);
-EFI_STATUS DirIterClose(IN OUT REFIT_DIR_ITER *DirIter);
+VOID DirIterOpen(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath OPTIONAL, OUT BOOT_DIR_ITER *DirIter);
+BOOLEAN DirIterNext(IN OUT BOOT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR16 *FilePattern OPTIONAL, OUT EFI_FILE_INFO **DirEntry);
+EFI_STATUS DirIterClose(IN OUT BOOT_DIR_ITER *DirIter);
 
 /* Caller owns the independent UTF-16 string returned by Basename. */
 CHAR16 * Basename(IN CHAR16 *Path);
@@ -133,16 +133,16 @@ CHAR16 *FindPath(IN CHAR16* FullPath);
  * to those slots; a borrowed pointer from Volumes must never be passed as
  * *DeviceVolume. Textual device-path matching is not identity validation.
  */
-VOID FindVolumeAndFilename(IN EFI_DEVICE_PATH *loadpath, OUT REFIT_VOLUME **DeviceVolume, OUT CHAR16 **loader);
+VOID FindVolumeAndFilename(IN EFI_DEVICE_PATH *loadpath, OUT BOOT_VOLUME **DeviceVolume, OUT CHAR16 **loader);
 BOOLEAN SplitVolumeAndFilename(IN OUT CHAR16 **Path, OUT CHAR16 **VolName);
 VOID SplitPathName(CHAR16 *InPath, CHAR16 **VolName, CHAR16 **Path, CHAR16 **Filename);
-BOOLEAN FindVolume(REFIT_VOLUME **Volume, CHAR16 *Identifier);
-BOOLEAN VolumeMatchesDescription(REFIT_VOLUME *Volume, CHAR16 *Description);
-BOOLEAN FilenameIn(IN REFIT_VOLUME *Volume, IN CHAR16 *Directory, IN CHAR16 *Filename, IN CHAR16 *List);
+BOOLEAN FindVolume(BOOT_VOLUME **Volume, CHAR16 *Identifier);
+BOOLEAN VolumeMatchesDescription(BOOT_VOLUME *Volume, CHAR16 *Description);
+BOOLEAN FilenameIn(IN BOOT_VOLUME *Volume, IN CHAR16 *Directory, IN CHAR16 *Filename, IN CHAR16 *List);
 VOID MyFreePool(IN OUT VOID *Pointer);
 
 #ifdef __MAKEWITH_GNUEFI
-#define MyCopyMem(Dest, Src, len) refit_call3_wrapper(gBS->CopyMem, Dest, Src, len)
+#define MyCopyMem(Dest, Src, len) boot_call3_wrapper(gBS->CopyMem, Dest, Src, len)
 #else
 #define MyCopyMem(Dest, Src, len) CopyMem(Dest, Src, len)
 #endif

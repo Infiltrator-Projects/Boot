@@ -193,4 +193,4 @@ This file records changes supported by repository commits and existing release q
 
 ## Historical scope
 
-BOOT retains the established rEFInd-derived discovery and EFI loader mechanisms, together with six current EFI filesystem drivers. This record intentionally does not claim that Common V2 module loading or universal real-hardware qualification is complete.
+BOOT retains the inherited discovery and EFI loader mechanisms, together with six current EFI filesystem drivers. This record intentionally does not claim that Common V2 module loading or universal real-hardware qualification is complete.

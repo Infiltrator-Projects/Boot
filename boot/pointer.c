@@ -10,7 +10,7 @@
 #include "global.h"
 #include "screen.h"
 #include "icns.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "../boot/lib.h"
 
 EFI_HANDLE* APointerHandles = NULL;
@@ -45,7 +45,7 @@ VOID pdInitialize() {
     if (!(GlobalConfig.EnableMouse || GlobalConfig.EnableTouch)) return;
 
     UINTN NumPointerHandles = 0;
-    EFI_STATUS handlestatus = refit_call5_wrapper(BS->LocateHandleBuffer, ByProtocol, &APointerGuid, NULL,
+    EFI_STATUS handlestatus = boot_call5_wrapper(BS->LocateHandleBuffer, ByProtocol, &APointerGuid, NULL,
                                                   &NumPointerHandles, &APointerHandles);
 
     if (!EFI_ERROR(handlestatus)) {
@@ -54,7 +54,7 @@ VOID pdInitialize() {
         if (APointerProtocol != NULL) {
             UINTN Index;
             for(Index = 0; Index < NumPointerHandles; Index++) {
-                EFI_STATUS status = refit_call6_wrapper(BS->OpenProtocol, APointerHandles[Index], &APointerGuid,
+                EFI_STATUS status = boot_call6_wrapper(BS->OpenProtocol, APointerHandles[Index], &APointerGuid,
                                                         (VOID **) &APointerProtocol[NumAPointerDevices],
                                                         SelfImageHandle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
                 if (status == EFI_SUCCESS) {
@@ -68,7 +68,7 @@ VOID pdInitialize() {
     }
 
     NumPointerHandles = 0;
-    handlestatus = refit_call5_wrapper(BS->LocateHandleBuffer, ByProtocol, &SPointerGuid, NULL,
+    handlestatus = boot_call5_wrapper(BS->LocateHandleBuffer, ByProtocol, &SPointerGuid, NULL,
                                        &NumPointerHandles, &SPointerHandles);
 
     if(!EFI_ERROR(handlestatus)) {
@@ -77,7 +77,7 @@ VOID pdInitialize() {
         if (SPointerProtocol != NULL) {
             UINTN Index;
             for(Index = 0; Index < NumPointerHandles; Index++) {
-                EFI_STATUS status = refit_call6_wrapper(BS->OpenProtocol, SPointerHandles[Index], &SPointerGuid,
+                EFI_STATUS status = boot_call6_wrapper(BS->OpenProtocol, SPointerHandles[Index], &SPointerGuid,
                                                         (VOID **) &SPointerProtocol[NumSPointerDevices],
                                                         SelfImageHandle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
                 if (status == EFI_SUCCESS) {
@@ -111,7 +111,7 @@ VOID pdCleanup() {
     if(APointerHandles) {
         UINTN Index;
         for(Index = 0; Index < NumAPointerDevices; Index++) {
-            refit_call4_wrapper(BS->CloseProtocol, APointerHandles[Index], &APointerGuid, SelfImageHandle, NULL);
+            boot_call4_wrapper(BS->CloseProtocol, APointerHandles[Index], &APointerGuid, SelfImageHandle, NULL);
         }
         MyFreePool(APointerHandles);
         APointerHandles = NULL;
@@ -123,7 +123,7 @@ VOID pdCleanup() {
     if(SPointerHandles) {
         UINTN Index;
         for(Index = 0; Index < NumSPointerDevices; Index++) {
-            refit_call4_wrapper(BS->CloseProtocol, SPointerHandles[Index], &SPointerGuid, SelfImageHandle, NULL);
+            boot_call4_wrapper(BS->CloseProtocol, SPointerHandles[Index], &SPointerGuid, SelfImageHandle, NULL);
         }
         MyFreePool(SPointerHandles);
         SPointerHandles = NULL;
@@ -202,7 +202,7 @@ EFI_STATUS pdUpdateState() {
 
     UINTN Index;
     for(Index = 0; Index < NumAPointerDevices; Index++) {
-        EFI_STATUS PointerStatus = refit_call2_wrapper(APointerProtocol[Index]->GetState, APointerProtocol[Index], &APointerState);
+        EFI_STATUS PointerStatus = boot_call2_wrapper(APointerProtocol[Index]->GetState, APointerProtocol[Index], &APointerState);
 
         if(!EFI_ERROR(PointerStatus) && EFI_ERROR(Status)) {
             Status = EFI_SUCCESS;
@@ -218,7 +218,7 @@ EFI_STATUS pdUpdateState() {
         }
     }
     for(Index = 0; Index < NumSPointerDevices; Index++) {
-        EFI_STATUS PointerStatus = refit_call2_wrapper(SPointerProtocol[Index]->GetState, SPointerProtocol[Index], &SPointerState);
+        EFI_STATUS PointerStatus = boot_call2_wrapper(SPointerProtocol[Index]->GetState, SPointerProtocol[Index], &SPointerState);
 
         if(!EFI_ERROR(PointerStatus) && EFI_ERROR(Status)) {
             Status = EFI_SUCCESS;

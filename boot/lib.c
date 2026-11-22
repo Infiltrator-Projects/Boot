@@ -15,7 +15,7 @@
 #include "lib.h"
 #include "icns.h"
 #include "screen.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "../include/RemovableMedia.h"
 #include "gpt.h"
 #include "config.h"
@@ -68,8 +68,8 @@ EFI_FILE_PROTOCOL  *SelfRootDir;
 EFI_FILE_PROTOCOL  *SelfDir;
 CHAR16             *SelfDirPath;
 
-REFIT_VOLUME       *SelfVolume = NULL;
-REFIT_VOLUME       **Volumes = NULL;
+BOOT_VOLUME       *SelfVolume = NULL;
+BOOT_VOLUME       **Volumes = NULL;
 UINTN              VolumesCount = 0;
 extern EFI_GUID    BootGuid;
 
@@ -159,7 +159,7 @@ CHAR16* SplitDeviceString(IN OUT CHAR16 *InString) {
  * Retain an existing root handle when present; propagate failure if the
  * root or child cannot be opened, leaving SelfDir unusable.
  */
-static EFI_STATUS FinishInitRefitLib(VOID)
+static EFI_STATUS FinishInitBootLib(VOID)
 {
     EFI_STATUS  Status;
 
@@ -171,7 +171,7 @@ static EFI_STATUS FinishInitRefitLib(VOID)
         }
     }
 
-    Status = refit_call5_wrapper(SelfRootDir->Open, SelfRootDir, &SelfDir, SelfDirPath, EFI_FILE_MODE_READ, 0);
+    Status = boot_call5_wrapper(SelfRootDir->Open, SelfRootDir, &SelfDir, SelfDirPath, EFI_FILE_MODE_READ, 0);
     if (CheckFatalError(Status, L"while opening our installation directory"))
         return EFI_LOAD_ERROR;
 
@@ -183,13 +183,13 @@ static EFI_STATUS FinishInitRefitLib(VOID)
  * firmware handle supplied at entry. File/protocol operations elsewhere
  * require successful initialisation and valid owned handles.
  */
-EFI_STATUS InitRefitLib(IN EFI_HANDLE ImageHandle)
+EFI_STATUS InitBootLib(IN EFI_HANDLE ImageHandle)
 {
     EFI_STATUS  Status;
     CHAR16      *DevicePathAsString, *Temp = NULL;
 
     SelfImageHandle = ImageHandle;
-    Status = refit_call3_wrapper(BS->HandleProtocol, SelfImageHandle, &LoadedImageProtocol, (VOID **) &SelfLoadedImage);
+    Status = boot_call3_wrapper(BS->HandleProtocol, SelfImageHandle, &LoadedImageProtocol, (VOID **) &SelfLoadedImage);
     if (CheckFatalError(Status, L"while getting a LoadedImageProtocol handle"))
         return EFI_LOAD_ERROR;
 
@@ -202,7 +202,7 @@ EFI_STATUS InitRefitLib(IN EFI_HANDLE ImageHandle)
     MyFreePool(DevicePathAsString);
     MyFreePool(Temp);
 
-    return FinishInitRefitLib();
+    return FinishInitBootLib();
 }
 
 /*
@@ -213,14 +213,14 @@ EFI_STATUS InitRefitLib(IN EFI_HANDLE ImageHandle)
  */
 static VOID UninitVolumes(VOID)
 {
-    REFIT_VOLUME            *Volume;
+    BOOT_VOLUME            *Volume;
     UINTN                   VolumeIndex;
 
     for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
         Volume = Volumes[VolumeIndex];
 
         if (Volume->RootDir != NULL) {
-            refit_call1_wrapper(Volume->RootDir->Close, Volume->RootDir);
+            boot_call1_wrapper(Volume->RootDir->Close, Volume->RootDir);
             Volume->RootDir = NULL;
         }
 
@@ -239,7 +239,7 @@ static VOID UninitVolumes(VOID)
 VOID ReinitVolumes(VOID)
 {
     EFI_STATUS              Status;
-    REFIT_VOLUME            *Volume;
+    BOOT_VOLUME            *Volume;
     UINTN                   VolumeIndex;
     EFI_DEVICE_PATH         *RemainingDevicePath;
     EFI_HANDLE              DeviceHandle, WholeDiskHandle;
@@ -250,7 +250,7 @@ VOID ReinitVolumes(VOID)
         if (Volume->DevicePath != NULL) {
 
             RemainingDevicePath = Volume->DevicePath;
-            Status = refit_call3_wrapper(BS->LocateDevicePath, &BlockIoProtocol, &RemainingDevicePath, &DeviceHandle);
+            Status = boot_call3_wrapper(BS->LocateDevicePath, &BlockIoProtocol, &RemainingDevicePath, &DeviceHandle);
 
             if (EFI_ERROR(Status)) {
                 CheckError(Status, L"from LocateDevicePath");
@@ -264,11 +264,11 @@ VOID ReinitVolumes(VOID)
         if (Volume->WholeDiskDevicePath != NULL) {
 
             RemainingDevicePath = Volume->WholeDiskDevicePath;
-            Status = refit_call3_wrapper(BS->LocateDevicePath, &BlockIoProtocol, &RemainingDevicePath, &WholeDiskHandle);
+            Status = boot_call3_wrapper(BS->LocateDevicePath, &BlockIoProtocol, &RemainingDevicePath, &WholeDiskHandle);
 
             if (!EFI_ERROR(Status)) {
 
-                Status = refit_call3_wrapper(BS->HandleProtocol, WholeDiskHandle, &BlockIoProtocol,
+                Status = boot_call3_wrapper(BS->HandleProtocol, WholeDiskHandle, &BlockIoProtocol,
                                              (VOID **) &Volume->WholeDiskBlockIO);
                 if (EFI_ERROR(Status)) {
                     Volume->WholeDiskBlockIO = NULL;
@@ -285,7 +285,7 @@ VOID ReinitVolumes(VOID)
  * reset. The corresponding reinitialisation path is needed if control
  * returns rather than leaving the application permanently.
  */
-VOID UninitRefitLib(VOID)
+VOID UninitBootLib(VOID)
 {
 
     if (StrCmp(ST->FirmwareVendor, L"Das U-Boot") != 0) {
@@ -298,12 +298,12 @@ VOID UninitRefitLib(VOID)
     UninitVolumes();
 
     if (SelfDir != NULL) {
-        refit_call1_wrapper(SelfDir->Close, SelfDir);
+        boot_call1_wrapper(SelfDir->Close, SelfDir);
         SelfDir = NULL;
     }
 
     if (SelfRootDir != NULL) {
-       refit_call1_wrapper(SelfRootDir->Close, SelfRootDir);
+       boot_call1_wrapper(SelfRootDir->Close, SelfRootDir);
        SelfRootDir = NULL;
     }
 }  
@@ -313,7 +313,7 @@ VOID UninitRefitLib(VOID)
  * firmware may alias SelfRootDir to SelfVolume's retained root. Restart
  * logging only when the directory is successfully restored.
  */
-EFI_STATUS ReinitRefitLib(VOID)
+EFI_STATUS ReinitBootLib(VOID)
 {
     EFI_STATUS Status;
 
@@ -325,7 +325,7 @@ EFI_STATUS ReinitRefitLib(VOID)
           SelfRootDir = SelfVolume->RootDir;
     }  
 
-    Status = FinishInitRefitLib();
+    Status = FinishInitBootLib();
     if (EFI_ERROR(Status)) {
 
         GlobalConfig.LogLevel = 0;
@@ -347,7 +347,7 @@ EFI_STATUS CreateVarsDir(VOID) {
 
     if (gVarsDir == NULL) {
         LOG(1, LOG_LINE_NORMAL, L"Trying to create a 'vars' directory in which to hold variables");
-        Status = refit_call5_wrapper(SelfDir->Open, SelfDir, &gVarsDir, L"vars",
+        Status = boot_call5_wrapper(SelfDir->Open, SelfDir, &gVarsDir, L"vars",
                                      EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE,
                                      EFI_FILE_DIRECTORY);
         if (EFI_ERROR(Status)) {
@@ -355,7 +355,7 @@ EFI_STATUS CreateVarsDir(VOID) {
             if (Status == EFI_SUCCESS) {
                 LOG(1, LOG_LINE_NORMAL,
                     L"Trying to create a 'boot-vars' directory on the ESP in which to hold variables");
-                Status = refit_call5_wrapper(EspRootDir->Open, EspRootDir, &gVarsDir, L"boot-vars",
+                Status = boot_call5_wrapper(EspRootDir->Open, EspRootDir, &gVarsDir, L"boot-vars",
                                              EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE,
                                              EFI_FILE_DIRECTORY);
             }
@@ -422,7 +422,7 @@ EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer
             *buffer = NULL;
             return EFI_OUT_OF_RESOURCES;
         }
-        Status = refit_call5_wrapper(RT->GetVariable, name, vendor, NULL, &l, buf);
+        Status = boot_call5_wrapper(RT->GetVariable, name, vendor, NULL, &l, buf);
     }
 
     if (EFI_ERROR(Status) == EFI_SUCCESS) {
@@ -472,7 +472,7 @@ EFI_STATUS EfivarSetRaw(EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, 
             if (persistent)
                 flags |= EFI_VARIABLE_NON_VOLATILE;
 
-            Status = refit_call5_wrapper(RT->SetVariable, name, vendor, flags, size, buf);
+            Status = boot_call5_wrapper(RT->SetVariable, name, vendor, flags, size, buf);
         }
     } else {
         LOG(2, LOG_LINE_NORMAL, L"Not writing variable '%s'; it's unchanged", name);
@@ -598,7 +598,7 @@ static CHAR16 *FSTypeName(IN UINT32 TypeCode) {
  * nonempty label is returned. This label is descriptive firmware metadata,
  * not a trustworthy filesystem identity or proof of file readability.
  */
-static VOID SetFilesystemName(REFIT_VOLUME *Volume) {
+static VOID SetFilesystemName(BOOT_VOLUME *Volume) {
     EFI_FILE_SYSTEM_INFO    *FileSystemInfoPtr = NULL;
 
     if ((Volume) && (Volume->RootDir != NULL)) {
@@ -622,7 +622,7 @@ static VOID SetFilesystemName(REFIT_VOLUME *Volume) {
  * descriptive only; it does not mean firmware exposes a readable
  * Simple File System protocol for this volume.
  */
-static VOID SetFilesystemData(IN UINT8 *Buffer, IN UINTN BufferSize, IN OUT REFIT_VOLUME *Volume) {
+static VOID SetFilesystemData(IN UINT8 *Buffer, IN UINTN BufferSize, IN OUT BOOT_VOLUME *Volume) {
     UINT32       *Ext2Incompat, *Ext2Compat;
     UINT16       *Magic16;
     char         *MagicString;
@@ -739,7 +739,7 @@ static VOID SetFilesystemData(IN UINT8 *Buffer, IN UINTN BufferSize, IN OUT REFI
  * Absent media, unsupported geometry and failed reads retain the explicit
  * nonbootable default; signatures are not proof of EFI execution.
  */
-static VOID ScanVolumeBootcode(REFIT_VOLUME *Volume, BOOLEAN *Bootable)
+static VOID ScanVolumeBootcode(BOOT_VOLUME *Volume, BOOLEAN *Bootable)
 {
     EFI_STATUS              Status;
     UINT8                   Buffer[SAMPLE_SIZE];
@@ -755,7 +755,7 @@ static VOID ScanVolumeBootcode(REFIT_VOLUME *Volume, BOOLEAN *Bootable)
     if (Volume->BlockIO->Media->BlockSize > SAMPLE_SIZE)
         return;    
 
-    Status = refit_call5_wrapper(Volume->BlockIO->ReadBlocks,
+    Status = boot_call5_wrapper(Volume->BlockIO->ReadBlocks,
                                  Volume->BlockIO, Volume->BlockIO->Media->MediaId,
                                  Volume->BlockIOOffset, SAMPLE_SIZE, Buffer);
     if (EFI_ERROR(Status)) {
@@ -892,7 +892,7 @@ static VOID ScanVolumeBootcode(REFIT_VOLUME *Volume, BOOLEAN *Bootable)
  * belongs to the volume's presentation lifetime; neither establishes what
  * operating system is installed on that volume.
  */
-VOID SetVolumeBadgeIcon(REFIT_VOLUME *Volume)
+VOID SetVolumeBadgeIcon(BOOT_VOLUME *Volume)
 {
     if (Volume == NULL)
         return;
@@ -947,7 +947,7 @@ static CHAR16 *SizeInIEEEUnits(UINT64 SizeInBytes) {
     return TheValue;
 }  
 
-static CHAR16 *GetVolumeName(REFIT_VOLUME *Volume) {
+static CHAR16 *GetVolumeName(BOOT_VOLUME *Volume) {
     EFI_FILE_SYSTEM_INFO    *FileSystemInfoPtr = NULL;
     CHAR16                  *FoundName = NULL;
     CHAR16                  *SISize, *TypeName;
@@ -994,7 +994,7 @@ static CHAR16 *GetVolumeName(REFIT_VOLUME *Volume) {
  * temporary entry. The architecture's root type is eligible for automatic Linux
  * selection only when the no-automount bit is clear.
  */
-static VOID SetPartGuidAndName(REFIT_VOLUME *Volume, EFI_DEVICE_PATH_PROTOCOL *DevicePath) {
+static VOID SetPartGuidAndName(BOOT_VOLUME *Volume, EFI_DEVICE_PATH_PROTOCOL *DevicePath) {
     HARDDRIVE_DEVICE_PATH    *HdDevicePath;
     GPT_ENTRY                *PartInfo;
 
@@ -1028,7 +1028,7 @@ static VOID SetPartGuidAndName(REFIT_VOLUME *Volume, EFI_DEVICE_PATH_PROTOCOL *D
  * cannot be interpreted as proof of Windows BIOS boot support or even file
  * existence on an inaccessible volume.
  */
-static BOOLEAN HasWindowsBiosBootFiles(REFIT_VOLUME *Volume) {
+static BOOLEAN HasWindowsBiosBootFiles(BOOT_VOLUME *Volume) {
     BOOLEAN FilesFound = TRUE;
 
     if (Volume->RootDir != NULL) {
@@ -1043,7 +1043,7 @@ static BOOLEAN HasWindowsBiosBootFiles(REFIT_VOLUME *Volume) {
  * A missing protocol or a recognised-but-unreadable filesystem is not evidence
  * of a valid OS loader; downstream scanning must require readable RootDir.
  */
-VOID ScanVolume(REFIT_VOLUME *Volume)
+VOID ScanVolume(BOOT_VOLUME *Volume)
 {
     EFI_STATUS              Status;
     EFI_DEVICE_PATH         *DevicePath, *NextDevicePath;
@@ -1058,7 +1058,7 @@ VOID ScanVolume(REFIT_VOLUME *Volume)
 
     Volume->DiskKind = DISK_KIND_INTERNAL;   
 
-    Status = refit_call3_wrapper(BS->HandleProtocol, Volume->DeviceHandle, &BlockIoProtocol, (VOID **) &(Volume->BlockIO));
+    Status = boot_call3_wrapper(BS->HandleProtocol, Volume->DeviceHandle, &BlockIoProtocol, (VOID **) &(Volume->BlockIO));
     if (EFI_ERROR(Status)) {
         Volume->BlockIO = NULL;
         Print(L"Warning: Can't get BlockIO protocol.\n");
@@ -1098,13 +1098,13 @@ VOID ScanVolume(REFIT_VOLUME *Volume)
             MyCopyMem((UINT8 *)DiskDevicePath + PartialLength, EndDevicePath, sizeof(EFI_DEVICE_PATH));
 
             RemainingDevicePath = DiskDevicePath;
-            Status = refit_call3_wrapper(BS->LocateDevicePath, &BlockIoProtocol,
+            Status = boot_call3_wrapper(BS->LocateDevicePath, &BlockIoProtocol,
                                          &RemainingDevicePath, &WholeDiskHandle);
             MyFreePool(DiskDevicePath);
 
             if (!EFI_ERROR(Status)) {
 
-                Status = refit_call3_wrapper(BS->HandleProtocol, WholeDiskHandle,
+                Status = boot_call3_wrapper(BS->HandleProtocol, WholeDiskHandle,
                                              &DevicePathProtocol, (VOID **) &DiskDevicePath);
                 if (EFI_ERROR(Status)) {
                     LOG(1, LOG_LINE_NORMAL, L"Could not get DiskDevicePath for volume");
@@ -1112,7 +1112,7 @@ VOID ScanVolume(REFIT_VOLUME *Volume)
                     Volume->WholeDiskDevicePath = DuplicateDevicePath(DiskDevicePath);
                 }
 
-                Status = refit_call3_wrapper(BS->HandleProtocol, WholeDiskHandle, &BlockIoProtocol,
+                Status = boot_call3_wrapper(BS->HandleProtocol, WholeDiskHandle, &BlockIoProtocol,
                                              (VOID **) &Volume->WholeDiskBlockIO);
                 if (EFI_ERROR(Status)) {
                     LOG(1, LOG_LINE_NORMAL, L"Could not get WholeDiskBlockIO for volume");
@@ -1163,10 +1163,10 @@ VOID ScanVolume(REFIT_VOLUME *Volume)
  * the first extended partition. Each fabricated volume retains the whole-disk
  * Block I/O interface and stores its sector offset explicitly.
  */
-static VOID ScanExtendedPartition(REFIT_VOLUME *WholeDiskVolume, MBR_PARTITION_INFO *MbrEntry)
+static VOID ScanExtendedPartition(BOOT_VOLUME *WholeDiskVolume, MBR_PARTITION_INFO *MbrEntry)
 {
     EFI_STATUS              Status;
-    REFIT_VOLUME            *Volume;
+    BOOT_VOLUME            *Volume;
     UINT32                  ExtBase, ExtCurrent, NextExtCurrent;
     UINTN                   i;
     UINTN                   LogicalPartitionIndex = 4;
@@ -1178,7 +1178,7 @@ static VOID ScanExtendedPartition(REFIT_VOLUME *WholeDiskVolume, MBR_PARTITION_I
 
     for (ExtCurrent = ExtBase; ExtCurrent; ExtCurrent = NextExtCurrent) {
 
-      Status = refit_call5_wrapper(WholeDiskVolume->BlockIO->ReadBlocks,
+      Status = boot_call5_wrapper(WholeDiskVolume->BlockIO->ReadBlocks,
                                    WholeDiskVolume->BlockIO,
                                    WholeDiskVolume->BlockIO->Media->MediaId,
                                    ExtCurrent, 512, SectorBuffer);
@@ -1201,7 +1201,7 @@ static VOID ScanExtendedPartition(REFIT_VOLUME *WholeDiskVolume, MBR_PARTITION_I
                 break;
             } else {
 
-                Volume = AllocateZeroPool(sizeof(REFIT_VOLUME));
+                Volume = AllocateZeroPool(sizeof(BOOT_VOLUME));
                 Volume->DiskKind = WholeDiskVolume->DiskKind;
                 Volume->IsMbrPartition = TRUE;
                 Volume->MbrPartitionIndex = LogicalPartitionIndex++;
@@ -1234,7 +1234,7 @@ VOID ScanVolumes(VOID)
 {
     EFI_STATUS              Status;
     EFI_HANDLE              *Handles;
-    REFIT_VOLUME            *Volume, *WholeDiskVolume;
+    BOOT_VOLUME            *Volume, *WholeDiskVolume;
     MBR_PARTITION_INFO      *MbrTable;
     UINTN                   HandleCount = 0;
     UINTN                   HandleIndex;
@@ -1265,7 +1265,7 @@ VOID ScanVolumes(VOID)
     UuidList = AllocateZeroPool(sizeof(EFI_GUID) * HandleCount);
 
     for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
-        Volume = AllocateZeroPool(sizeof(REFIT_VOLUME));
+        Volume = AllocateZeroPool(sizeof(BOOT_VOLUME));
         Volume->DeviceHandle = Handles[HandleIndex];
         VolumeBegin = BootDiagTicks();
         AddPartitionTable(Volume);
@@ -1330,12 +1330,12 @@ VOID ScanVolumes(VOID)
                 if ((UINT64)(MbrTable[PartitionIndex].Size) != Volume->BlockIO->Media->LastBlock + 1)
                     continue;
 
-                Status = refit_call5_wrapper(Volume->BlockIO->ReadBlocks,
+                Status = boot_call5_wrapper(Volume->BlockIO->ReadBlocks,
                                              Volume->BlockIO, Volume->BlockIO->Media->MediaId,
                                              Volume->BlockIOOffset, 512, SectorBuffer1);
                 if (EFI_ERROR(Status))
                     break;
-                Status = refit_call5_wrapper(Volume->WholeDiskBlockIO->ReadBlocks,
+                Status = boot_call5_wrapper(Volume->WholeDiskBlockIO->ReadBlocks,
                                              Volume->WholeDiskBlockIO, Volume->WholeDiskBlockIO->Media->MediaId,
                                              MbrTable[PartitionIndex].StartLBA, 512, SectorBuffer2);
                 if (EFI_ERROR(Status))
@@ -1371,7 +1371,7 @@ VOID ScanVolumes(VOID)
  */
 VOID SetVolumeIcons(VOID) {
     UINTN        VolumeIndex;
-    REFIT_VOLUME *Volume;
+    BOOT_VOLUME *Volume;
 
     LOG(1, LOG_LINE_NORMAL, L"Setting volume icons....");
     for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
@@ -1399,9 +1399,9 @@ BOOLEAN FileExists(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath)
     EFI_FILE_HANDLE    TestFile;
 
     if (BaseDir != NULL) {
-        Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &TestFile, RelativePath, EFI_FILE_MODE_READ, 0);
+        Status = boot_call5_wrapper(BaseDir->Open, BaseDir, &TestFile, RelativePath, EFI_FILE_MODE_READ, 0);
         if (Status == EFI_SUCCESS) {
-            refit_call1_wrapper(TestFile->Close, TestFile);
+            boot_call1_wrapper(TestFile->Close, TestFile);
             return TRUE;
         }
     }
@@ -1437,7 +1437,7 @@ EFI_STATUS DirNextEntry(IN EFI_FILE_PROTOCOL *Directory, IN OUT EFI_FILE_INFO **
         LastBufferSize = BufferSize = 256;
         Buffer = AllocatePool(BufferSize);
         for (IterCount = 0; ; IterCount++) {
-            Status = refit_call3_wrapper(Directory->Read, Directory, &BufferSize, Buffer);
+            Status = boot_call3_wrapper(Directory->Read, Directory, &BufferSize, Buffer);
             if (Status != EFI_BUFFER_TOO_SMALL || IterCount >= 4)
                 break;
             if (BufferSize <= LastBufferSize) {
@@ -1484,14 +1484,14 @@ EFI_STATUS DirNextEntry(IN EFI_FILE_PROTOCOL *Directory, IN OUT EFI_FILE_INFO **
  * owns only a child successfully opened by firmware. CloseDirHandle records
  * this contract so teardown never closes the caller's parent handle.
  */
-VOID DirIterOpen(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath OPTIONAL, OUT REFIT_DIR_ITER *DirIter)
+VOID DirIterOpen(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath OPTIONAL, OUT BOOT_DIR_ITER *DirIter)
 {
     if (RelativePath == NULL) {
         DirIter->LastStatus = EFI_SUCCESS;
         DirIter->DirHandle = BaseDir;
         DirIter->CloseDirHandle = FALSE;
     } else {
-        DirIter->LastStatus = refit_call5_wrapper(BaseDir->Open, BaseDir, &(DirIter->DirHandle), RelativePath, EFI_FILE_MODE_READ, 0);
+        DirIter->LastStatus = boot_call5_wrapper(BaseDir->Open, BaseDir, &(DirIter->DirHandle), RelativePath, EFI_FILE_MODE_READ, 0);
         DirIter->CloseDirHandle = EFI_ERROR(DirIter->LastStatus) ? FALSE : TRUE;
     }
     DirIter->LastFileInfo = NULL;
@@ -1546,7 +1546,7 @@ MetaiMatch (IN CHAR16 *String, IN CHAR16 *Pattern)
  * ownership of its record. Directories bypass filename wildcard matching after
  * DirNextEntry applies the type filter.
  */
-BOOLEAN DirIterNext(IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR16 *FilePattern OPTIONAL,
+BOOLEAN DirIterNext(IN OUT BOOT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR16 *FilePattern OPTIONAL,
                     OUT EFI_FILE_INFO **DirEntry)
 {
     BOOLEAN KeepGoing = TRUE;
@@ -1590,14 +1590,14 @@ BOOLEAN DirIterNext(IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR
  * directory. The result represents the last enumeration status, not
  * the result of the optional firmware Close call.
  */
-EFI_STATUS DirIterClose(IN OUT REFIT_DIR_ITER *DirIter)
+EFI_STATUS DirIterClose(IN OUT BOOT_DIR_ITER *DirIter)
 {
     if (DirIter->LastFileInfo != NULL) {
         MyFreePool(DirIter->LastFileInfo);
         DirIter->LastFileInfo = NULL;
     }
     if ((DirIter->CloseDirHandle) && (DirIter->DirHandle->Close))
-        refit_call1_wrapper(DirIter->DirHandle->Close, DirIter->DirHandle);
+        boot_call1_wrapper(DirIter->DirHandle->Close, DirIter->DirHandle);
     return DirIter->LastStatus;
 }
 
@@ -1759,7 +1759,7 @@ CHAR16 *FindPath(IN CHAR16* FullPath) {
  * firmware image authentication.
  */
 VOID FindVolumeAndFilename(IN EFI_DEVICE_PATH *loadpath,
-                           OUT REFIT_VOLUME **DeviceVolume,
+                           OUT BOOT_VOLUME **DeviceVolume,
                            OUT CHAR16 **loader) {
     CHAR16 *DeviceString, *VolumeDeviceString, *Temp;
     UINTN i = 0;
@@ -1862,7 +1862,7 @@ VOID SplitPathName(CHAR16 *InPath, CHAR16 **VolName, CHAR16 **Path, CHAR16 **Fil
  * enumeration. Its lifetime ends when volume discovery is rebuilt;
  * false does not imply that no firmware device with that name exists.
  */
-BOOLEAN FindVolume(REFIT_VOLUME **Volume, CHAR16 *Identifier) {
+BOOLEAN FindVolume(BOOT_VOLUME **Volume, CHAR16 *Identifier) {
     UINTN     i = 0;
     BOOLEAN   Found = FALSE;
 
@@ -1881,7 +1881,7 @@ BOOLEAN FindVolume(REFIT_VOLUME **Volume, CHAR16 *Identifier) {
  * partition and filesystem labels. Text labels are not unique across
  * disks, so this predicate must not be used as device authentication.
  */
-BOOLEAN VolumeMatchesDescription(REFIT_VOLUME *Volume, CHAR16 *Description) {
+BOOLEAN VolumeMatchesDescription(BOOT_VOLUME *Volume, CHAR16 *Description) {
     EFI_GUID TargetVolGuid = NULL_GUID_VALUE;
 
     if ((Volume == NULL) || (Description == NULL))
@@ -1902,7 +1902,7 @@ BOOLEAN VolumeMatchesDescription(REFIT_VOLUME *Volume, CHAR16 *Description) {
  * qualified one depends on VolumeMatchesDescription's ambiguous
  * display-name rules.
  */
-BOOLEAN FilenameIn(REFIT_VOLUME *Volume, CHAR16 *Directory, CHAR16 *Filename, CHAR16 *List) {
+BOOLEAN FilenameIn(BOOT_VOLUME *Volume, CHAR16 *Directory, CHAR16 *Filename, CHAR16 *List) {
     UINTN     i = 0;
     BOOLEAN   Found = FALSE;
     CHAR16    *OneElement;
@@ -1951,10 +1951,10 @@ BOOLEAN EjectMedia(VOID) {
 
     for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
         Handle = Handles[HandleIndex];
-        Status = refit_call3_wrapper(BS->HandleProtocol, Handle, &AppleRemovableMediaGuid, (VOID **) &Ejectable);
+        Status = boot_call3_wrapper(BS->HandleProtocol, Handle, &AppleRemovableMediaGuid, (VOID **) &Ejectable);
         if (EFI_ERROR(Status))
             continue;
-        Status = refit_call1_wrapper(Ejectable->Eject, Ejectable);
+        Status = boot_call1_wrapper(Ejectable->Eject, Ejectable);
         if (!EFI_ERROR(Status))
             Ejected++;
     }

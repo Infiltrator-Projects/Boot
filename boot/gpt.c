@@ -11,7 +11,7 @@
 #include "lib.h"
 #include "screen.h"
 #include "crc32.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 #ifdef __MAKEWITH_TIANO
 #define BlockIoProtocol gEfiBlockIoProtocolGuid
@@ -106,7 +106,7 @@ static BOOLEAN GptHeaderValid(GPT_DATA *GptData) {
  * entry_count * 128 expression is evaluated at the width of entry_count before
  * assignment.
  */
-EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
+EFI_STATUS ReadGptData(BOOT_VOLUME *Volume, GPT_DATA **Data) {
     EFI_STATUS Status = EFI_SUCCESS;
     UINT64     BufferSize;
     UINTN      i;
@@ -116,7 +116,7 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
         return EFI_INVALID_PARAMETER;
 
     if ((Status == EFI_SUCCESS) && (Volume->BlockIO == NULL)) {
-        Status = refit_call3_wrapper(BS->HandleProtocol, Volume->DeviceHandle,
+        Status = boot_call3_wrapper(BS->HandleProtocol, Volume->DeviceHandle,
                                      &BlockIoProtocol, (VOID **) &(Volume->BlockIO));
         if (EFI_ERROR(Status)) {
             Volume->BlockIO = NULL;
@@ -137,13 +137,13 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
     }  
 
     if (Status == EFI_SUCCESS) {
-        Status = refit_call5_wrapper(Volume->BlockIO->ReadBlocks, Volume->BlockIO,
+        Status = boot_call5_wrapper(Volume->BlockIO->ReadBlocks, Volume->BlockIO,
                                      Volume->BlockIO->Media->MediaId, 0,
                                      sizeof(MBR_RECORD), (VOID*) GptData->ProtectiveMBR);
     }
 
     if (Status == EFI_SUCCESS) {
-        Status = refit_call5_wrapper(Volume->BlockIO->ReadBlocks, Volume->BlockIO,
+        Status = boot_call5_wrapper(Volume->BlockIO->ReadBlocks, Volume->BlockIO,
                                      Volume->BlockIO->Media->MediaId, 1,
                                      sizeof(GPT_HEADER), GptData->Header);
     }
@@ -162,7 +162,7 @@ EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data) {
                 Status = EFI_OUT_OF_RESOURCES;
 
             if (Status == EFI_SUCCESS)
-                Status = refit_call5_wrapper(Volume->BlockIO->ReadBlocks, Volume->BlockIO,
+                Status = boot_call5_wrapper(Volume->BlockIO->ReadBlocks, Volume->BlockIO,
                                              Volume->BlockIO->Media->MediaId,
                                              GptData->Header->entry_lba, BufferSize,
                                              GptData->Entries);
@@ -241,7 +241,7 @@ VOID ForgetPartitionTables(VOID) {
  * discovery order. The global list is not sorted by partition GUID;
  * a read failure does not invalidate previously cached tables.
  */
-VOID AddPartitionTable(REFIT_VOLUME *Volume) {
+VOID AddPartitionTable(BOOT_VOLUME *Volume) {
     GPT_DATA    *GptData = NULL, *GptList;
     EFI_STATUS  Status;
     UINTN       NumTables = 1;

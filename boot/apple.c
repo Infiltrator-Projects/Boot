@@ -13,7 +13,7 @@
 #include "apple.h"
 #include "log.h"
 #include "mystrings.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 CHAR16 gCsrStatus[512];
 
@@ -134,7 +134,7 @@ EFI_STATUS SetAppleOSInfo() {
     EfiAppleSetOsInterface *SetOs = NULL;
 
     LOG(1, LOG_LINE_NORMAL, L"Setting Apple OS information, if applicable");
-    Status = refit_call3_wrapper(BS->LocateProtocol, &apple_set_os_guid, NULL, (VOID**) &SetOs);
+    Status = boot_call3_wrapper(BS->LocateProtocol, &apple_set_os_guid, NULL, (VOID**) &SetOs);
 
     if ((Status != EFI_SUCCESS) || (!SetOs)) {
         LOG(2, LOG_LINE_NORMAL, L"Not a Mac; not setting Apple OS information");
@@ -149,7 +149,7 @@ EFI_STATUS SetAppleOSInfo() {
             AppleOSVersion8 = AllocateZeroPool((StrLen(AppleOSVersion) + 1) * sizeof(CHAR8));
             UnicodeStrToAsciiStr(AppleOSVersion, AppleOSVersion8);
             if (AppleOSVersion8) {
-                Status = refit_call1_wrapper (SetOs->SetOsVersion, AppleOSVersion8);
+                Status = boot_call1_wrapper (SetOs->SetOsVersion, AppleOSVersion8);
                 if (!EFI_ERROR(Status))
                     Status = EFI_SUCCESS;
                 MyFreePool(AppleOSVersion8);
@@ -158,7 +158,7 @@ EFI_STATUS SetAppleOSInfo() {
                 Print(L"Out of resources in SetAppleOSInfo!\n");
             }
             if ((Status == EFI_SUCCESS) && (SetOs->Version >= 2))
-                Status = refit_call1_wrapper (SetOs->SetOsVendor, (CHAR8 *) "Apple Inc.");
+                Status = boot_call1_wrapper (SetOs->SetOsVendor, (CHAR8 *) "Apple Inc.");
             MyFreePool(AppleOSVersion);
         }  
     }  

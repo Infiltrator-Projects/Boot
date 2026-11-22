@@ -14,11 +14,11 @@
 #include "edk2/ComponentName.h"
 #define gMyEfiSimpleFileSystemProtocolGuid FileSystemProtocol
 #else
-#define REFIND_EFI_DRIVER_BINDING_PROTOCOL EFI_DRIVER_BINDING_PROTOCOL
-#define REFIND_EFI_COMPONENT_NAME_PROTOCOL EFI_COMPONENT_NAME_PROTOCOL
-#define REFIND_EFI_COMPONENT_NAME_PROTOCOL_GUID EFI_COMPONENT_NAME_PROTOCOL_GUID
-#define REFIND_EFI_DRIVER_BINDING_PROTOCOL_GUID EFI_DRIVER_BINDING_PROTOCOL_GUID
-#define REFIND_EFI_DEVICE_PATH_PROTOCOL EFI_DEVICE_PATH_PROTOCOL
+#define BOOT_EFI_DRIVER_BINDING_PROTOCOL EFI_DRIVER_BINDING_PROTOCOL
+#define BOOT_EFI_COMPONENT_NAME_PROTOCOL EFI_COMPONENT_NAME_PROTOCOL
+#define BOOT_EFI_COMPONENT_NAME_PROTOCOL_GUID EFI_COMPONENT_NAME_PROTOCOL_GUID
+#define BOOT_EFI_DRIVER_BINDING_PROTOCOL_GUID EFI_DRIVER_BINDING_PROTOCOL_GUID
+#define BOOT_EFI_DEVICE_PATH_PROTOCOL EFI_DEVICE_PATH_PROTOCOL
 #define EFI_FILE_SYSTEM_VOLUME_LABEL_INFO_ID    \
     { 0xDB47D7D3,0xFE81, 0x11d3, {0x9A, 0x35, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D} }
 #define gMyEfiSimpleFileSystemProtocolGuid gEfiSimpleFileSystemProtocolGuid
@@ -33,10 +33,10 @@
 #define FSTYPE ext2
 #endif
 
-EFI_GUID gMyEfiDriverBindingProtocolGuid = REFIND_EFI_DRIVER_BINDING_PROTOCOL_GUID;
-EFI_GUID gMyEfiComponentNameProtocolGuid = REFIND_EFI_COMPONENT_NAME_PROTOCOL_GUID;
-EFI_GUID gMyEfiDiskIoProtocolGuid = REFIND_EFI_DISK_IO_PROTOCOL_GUID;
-EFI_GUID gMyEfiBlockIoProtocolGuid = REFIND_EFI_BLOCK_IO_PROTOCOL_GUID;
+EFI_GUID gMyEfiDriverBindingProtocolGuid = BOOT_EFI_DRIVER_BINDING_PROTOCOL_GUID;
+EFI_GUID gMyEfiComponentNameProtocolGuid = BOOT_EFI_COMPONENT_NAME_PROTOCOL_GUID;
+EFI_GUID gMyEfiDiskIoProtocolGuid = BOOT_EFI_DISK_IO_PROTOCOL_GUID;
+EFI_GUID gMyEfiBlockIoProtocolGuid = BOOT_EFI_BLOCK_IO_PROTOCOL_GUID;
 EFI_GUID gMyEfiFileInfoGuid = EFI_FILE_INFO_ID;
 EFI_GUID gMyEfiFileSystemInfoGuid = EFI_FILE_SYSTEM_INFO_ID;
 EFI_GUID gMyEfiFileSystemVolumeLabelInfoIdGuid = EFI_FILE_SYSTEM_VOLUME_LABEL_INFO_ID;
@@ -50,27 +50,27 @@ EFI_GUID gMyEfiFileSystemVolumeLabelInfoIdGuid = EFI_FILE_SYSTEM_VOLUME_LABEL_IN
  * successful result establishes protocol accessibility only, not a valid
  * volume signature or a successful driver start.
  */
-EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
+EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN BOOT_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                                   IN EFI_HANDLE                          ControllerHandle,
-                                                  IN REFIND_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath);
+                                                  IN BOOT_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath);
 /*
  * UEFI driver-binding start operation for a filesystem-backed controller.
  * This is a firmware protocol integration layer: the mounted FSW volume
  * becomes visible through EFI Simple File System only when registration
  * completes, and teardown must reverse controller claims and allocations.
  */
-EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
+EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN BOOT_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                               IN EFI_HANDLE                          ControllerHandle,
-                                              IN REFIND_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath);
-EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
+                                              IN BOOT_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath);
+EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN BOOT_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                              IN EFI_HANDLE                          ControllerHandle,
                                              IN UINTN                               NumberOfChildren,
                                              IN EFI_HANDLE                          *ChildHandleBuffer);
 
-EFI_STATUS EFIAPI fsw_efi_ComponentName_GetDriverName(IN  REFIND_EFI_COMPONENT_NAME_PROTOCOL  *This,
+EFI_STATUS EFIAPI fsw_efi_ComponentName_GetDriverName(IN  BOOT_EFI_COMPONENT_NAME_PROTOCOL  *This,
                                                       IN  CHAR8                               *Language,
                                                       OUT CHAR16                              **DriverName);
-EFI_STATUS EFIAPI fsw_efi_ComponentName_GetControllerName(IN  REFIND_EFI_COMPONENT_NAME_PROTOCOL  *This,
+EFI_STATUS EFIAPI fsw_efi_ComponentName_GetControllerName(IN  BOOT_EFI_COMPONENT_NAME_PROTOCOL  *This,
                                                           IN  EFI_HANDLE                          ControllerHandle,
                                                           IN  EFI_HANDLE                          ChildHandle  OPTIONAL,
                                                           IN  CHAR8                               *Language,
@@ -137,7 +137,7 @@ struct cache_data {
 static struct cache_data    Caches[NUM_CACHES];
 static int LastRead = -1;
 
-REFIND_EFI_DRIVER_BINDING_PROTOCOL fsw_efi_DriverBinding_table = {
+BOOT_EFI_DRIVER_BINDING_PROTOCOL fsw_efi_DriverBinding_table = {
     fsw_efi_DriverBinding_Supported,
     fsw_efi_DriverBinding_Start,
     fsw_efi_DriverBinding_Stop,
@@ -146,7 +146,7 @@ REFIND_EFI_DRIVER_BINDING_PROTOCOL fsw_efi_DriverBinding_table = {
     NULL
 };
 
-REFIND_EFI_COMPONENT_NAME_PROTOCOL fsw_efi_ComponentName_table = {
+BOOT_EFI_COMPONENT_NAME_PROTOCOL fsw_efi_ComponentName_table = {
     fsw_efi_ComponentName_GetDriverName,
     fsw_efi_ComponentName_GetControllerName,
     (CHAR8*) "eng"
@@ -202,7 +202,7 @@ EFI_STATUS EFIAPI fsw_efi_main(IN EFI_HANDLE         ImageHandle,
     fsw_efi_DriverBinding_table.ImageHandle          = ImageHandle;
     fsw_efi_DriverBinding_table.DriverBindingHandle  = ImageHandle;
 
-    Status = refit_call4_wrapper(BS->InstallProtocolInterface, &fsw_efi_DriverBinding_table.DriverBindingHandle,
+    Status = boot_call4_wrapper(BS->InstallProtocolInterface, &fsw_efi_DriverBinding_table.DriverBindingHandle,
                                           &gMyEfiDriverBindingProtocolGuid,
                                           EFI_NATIVE_INTERFACE,
                                           &fsw_efi_DriverBinding_table);
@@ -210,7 +210,7 @@ EFI_STATUS EFIAPI fsw_efi_main(IN EFI_HANDLE         ImageHandle,
         return Status;
     }
 
-    Status = refit_call4_wrapper(BS->InstallProtocolInterface, &fsw_efi_DriverBinding_table.DriverBindingHandle,
+    Status = boot_call4_wrapper(BS->InstallProtocolInterface, &fsw_efi_DriverBinding_table.DriverBindingHandle,
                                           &gMyEfiComponentNameProtocolGuid,
                                           EFI_NATIVE_INTERFACE,
                                           &fsw_efi_ComponentName_table);
@@ -225,14 +225,14 @@ EFI_STATUS EFIAPI fsw_efi_main(IN EFI_HANDLE         ImageHandle,
 EFI_DRIVER_ENTRY_POINT(fsw_efi_main)
 #endif
 
-EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
+EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN BOOT_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                                   IN EFI_HANDLE                   ControllerHandle,
-                                                  IN REFIND_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath)
+                                                  IN BOOT_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath)
 {
     EFI_STATUS          Status;
     EFI_DISK_IO         *DiskIo;
 
-    Status = refit_call6_wrapper(BS->OpenProtocol, ControllerHandle,
+    Status = boot_call6_wrapper(BS->OpenProtocol, ControllerHandle,
                               &gMyEfiDiskIoProtocolGuid,
                               (VOID **) &DiskIo,
                               This->DriverBindingHandle,
@@ -241,12 +241,12 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_P
     if (EFI_ERROR(Status))
         return Status;
 
-    refit_call4_wrapper(BS->CloseProtocol, ControllerHandle,
+    boot_call4_wrapper(BS->CloseProtocol, ControllerHandle,
                       &gMyEfiDiskIoProtocolGuid,
                       This->DriverBindingHandle,
                       ControllerHandle);
 
-    Status = refit_call6_wrapper(BS->OpenProtocol, ControllerHandle,
+    Status = boot_call6_wrapper(BS->OpenProtocol, ControllerHandle,
                               &gMyEfiBlockIoProtocolGuid,
                               NULL,
                               This->DriverBindingHandle,
@@ -276,9 +276,9 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_P
  * controller and media IDs may change independently of this retained state;
  * mounting is not evidence that arbitrary filesystem metadata is validated.
  */
-EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
+EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN BOOT_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                               IN EFI_HANDLE                   ControllerHandle,
-                                              IN REFIND_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath)
+                                              IN BOOT_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath)
 {
     EFI_STATUS          Status;
     EFI_BLOCK_IO        *BlockIo;
@@ -289,7 +289,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
     Print(L"fsw_efi_DriverBinding_Start\n");
 #endif
 
-    Status = refit_call6_wrapper(BS->OpenProtocol, ControllerHandle,
+    Status = boot_call6_wrapper(BS->OpenProtocol, ControllerHandle,
                               &gMyEfiBlockIoProtocolGuid,
                               (VOID **) &BlockIo,
                               This->DriverBindingHandle,
@@ -300,7 +300,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
         return Status;
     }
 
-    Status = refit_call6_wrapper(BS->OpenProtocol, ControllerHandle,
+    Status = boot_call6_wrapper(BS->OpenProtocol, ControllerHandle,
                               &gMyEfiDiskIoProtocolGuid,
                               (VOID **) &DiskIo,
                               This->DriverBindingHandle,
@@ -313,7 +313,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
 
     Volume = AllocateZeroPool(sizeof(FSW_VOLUME_DATA));
     if (Volume == NULL) {
-        refit_call4_wrapper(BS->CloseProtocol, ControllerHandle,
+        boot_call4_wrapper(BS->CloseProtocol, ControllerHandle,
                            &gMyEfiDiskIoProtocolGuid,
                            This->DriverBindingHandle, ControllerHandle);
         return EFI_OUT_OF_RESOURCES;
@@ -331,7 +331,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
 
         Volume->FileSystem.Revision     = EFI_FILE_IO_INTERFACE_REVISION;
         Volume->FileSystem.OpenVolume   = fsw_efi_FileSystem_OpenVolume;
-        Status = refit_call4_wrapper(BS->InstallMultipleProtocolInterfaces, &ControllerHandle,
+        Status = boot_call4_wrapper(BS->InstallMultipleProtocolInterfaces, &ControllerHandle,
                                                        &gMyEfiSimpleFileSystemProtocolGuid,
                                                        &Volume->FileSystem,
                                                        NULL);
@@ -345,7 +345,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
             fsw_unmount(Volume->vol);
         FreePool(Volume);
 
-        refit_call4_wrapper(BS->CloseProtocol, ControllerHandle,
+        boot_call4_wrapper(BS->CloseProtocol, ControllerHandle,
                           &gMyEfiDiskIoProtocolGuid,
                           This->DriverBindingHandle,
                           ControllerHandle);
@@ -359,7 +359,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Start(IN REFIND_EFI_DRIVER_BINDING_PROTO
  * while that volume is still live. After detachment, unmount FSW, close Disk
  * I/O and clear the read cache.
  */
-EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
+EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  BOOT_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                              IN  EFI_HANDLE                   ControllerHandle,
                                              IN  UINTN                        NumberOfChildren,
                                              IN  EFI_HANDLE                   *ChildHandleBuffer)
@@ -372,7 +372,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  REFIND_EFI_DRIVER_BINDING_PROTO
     Print(L"fsw_efi_DriverBinding_Stop\n");
 #endif
 
-    Status = refit_call6_wrapper(BS->OpenProtocol, ControllerHandle,
+    Status = boot_call6_wrapper(BS->OpenProtocol, ControllerHandle,
                               &gMyEfiSimpleFileSystemProtocolGuid,
                               (VOID **) &FileSystem,
                               This->DriverBindingHandle,
@@ -383,7 +383,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  REFIND_EFI_DRIVER_BINDING_PROTO
 
     Volume = FSW_VOLUME_FROM_FILE_SYSTEM(FileSystem);
 
-    Status = refit_call4_wrapper(BS->UninstallMultipleProtocolInterfaces, ControllerHandle,
+    Status = boot_call4_wrapper(BS->UninstallMultipleProtocolInterfaces, ControllerHandle,
                                                      &gMyEfiSimpleFileSystemProtocolGuid, &Volume->FileSystem,
                                                      NULL);
     if (EFI_ERROR(Status)) {
@@ -398,7 +398,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  REFIND_EFI_DRIVER_BINDING_PROTO
         fsw_unmount(Volume->vol);
     FreePool(Volume);
 
-    Status = refit_call4_wrapper(BS->CloseProtocol, ControllerHandle,
+    Status = boot_call4_wrapper(BS->CloseProtocol, ControllerHandle,
                                &gMyEfiDiskIoProtocolGuid,
                                This->DriverBindingHandle,
                                ControllerHandle);
@@ -408,7 +408,7 @@ EFI_STATUS EFIAPI fsw_efi_DriverBinding_Stop(IN  REFIND_EFI_DRIVER_BINDING_PROTO
     return Status;
 }
 
-EFI_STATUS EFIAPI fsw_efi_ComponentName_GetDriverName(IN  REFIND_EFI_COMPONENT_NAME_PROTOCOL  *This,
+EFI_STATUS EFIAPI fsw_efi_ComponentName_GetDriverName(IN  BOOT_EFI_COMPONENT_NAME_PROTOCOL  *This,
                                                       IN  CHAR8                        *Language,
                                                       OUT CHAR16                       **DriverName)
 {
@@ -422,7 +422,7 @@ EFI_STATUS EFIAPI fsw_efi_ComponentName_GetDriverName(IN  REFIND_EFI_COMPONENT_N
     return EFI_UNSUPPORTED;
 }
 
-EFI_STATUS EFIAPI fsw_efi_ComponentName_GetControllerName(IN  REFIND_EFI_COMPONENT_NAME_PROTOCOL    *This,
+EFI_STATUS EFIAPI fsw_efi_ComponentName_GetControllerName(IN  BOOT_EFI_COMPONENT_NAME_PROTOCOL    *This,
                                                           IN  EFI_HANDLE                     ControllerHandle,
                                                           IN  EFI_HANDLE                     ChildHandle  OPTIONAL,
                                                           IN  CHAR8                          *Language,
@@ -501,7 +501,7 @@ fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno,
          Caches[ReadCache].Cache = AllocatePool(CACHE_SIZE);
       if (Caches[ReadCache].Cache != NULL) {
 
-         Status = refit_call5_wrapper(Volume->DiskIo->ReadDisk, Volume->DiskIo, Volume->MediaId,
+         Status = boot_call5_wrapper(Volume->DiskIo->ReadDisk, Volume->DiskIo, Volume->MediaId,
                                       StartRead, (UINTN) CACHE_SIZE, (VOID*) Caches[ReadCache].Cache);
          if (!EFI_ERROR(Status)) {
             Caches[ReadCache].CacheStart = StartRead;
@@ -517,7 +517,7 @@ fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno,
    }  
 
    if (Caches[ReadCache].Cache != NULL && Caches[ReadCache].CacheValid == TRUE && vol->phys_blocksize > 0) {
-      refit_call3_wrapper(gBS->CopyMem, buffer,
+      boot_call3_wrapper(gBS->CopyMem, buffer,
                           &Caches[ReadCache].Cache[StartRead - Caches[ReadCache].CacheStart],
                           vol->phys_blocksize);
    } else {
@@ -525,7 +525,7 @@ fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno,
    }
 
    if (ReadOneBlock) {  
-      Status = refit_call5_wrapper(Volume->DiskIo->ReadDisk, Volume->DiskIo, Volume->MediaId,
+      Status = boot_call5_wrapper(Volume->DiskIo->ReadDisk, Volume->DiskIo, Volume->MediaId,
                                    phys_bno * vol->phys_blocksize,
                                    (UINTN) vol->phys_blocksize,
                                    (VOID*) buffer);
@@ -622,7 +622,7 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_Delete(IN EFI_FILE_PROTOCOL *This)
 {
     EFI_STATUS          Status;
 
-    Status = refit_call1_wrapper(This->Close, This);
+    Status = boot_call1_wrapper(This->Close, This);
     if (Status == EFI_SUCCESS) {
 
         Status = EFI_WARN_DELETE_FAILURE;

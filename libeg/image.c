@@ -12,7 +12,7 @@
 #include "../boot/lib.h"
 #include "../boot/screen.h"
 #include "../boot/mystrings.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "lodepng.h"
 #include "libeg.h"
 #include "log.h"
@@ -233,14 +233,14 @@ EFI_STATUS egLoadFile(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, OUT UI
        return EFI_NOT_FOUND;
 
     LOG(3, LOG_LINE_NORMAL, L"Loading file '%s'", FileName);
-    Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
+    Status = boot_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
     if (EFI_ERROR(Status)) {
         return Status;
     }
 
     FileInfo = LibFileInfo(FileHandle);
     if (FileInfo == NULL) {
-        refit_call1_wrapper(FileHandle->Close, FileHandle);
+        boot_call1_wrapper(FileHandle->Close, FileHandle);
         return EFI_NOT_FOUND;
     }
     ReadSize = FileInfo->FileSize;
@@ -251,12 +251,12 @@ EFI_STATUS egLoadFile(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *FileName, OUT UI
     BufferSize = (UINTN)ReadSize;    
     Buffer = (UINT8 *) AllocatePool(BufferSize);
     if (Buffer == NULL) {
-        refit_call1_wrapper(FileHandle->Close, FileHandle);
+        boot_call1_wrapper(FileHandle->Close, FileHandle);
         return EFI_OUT_OF_RESOURCES;
     }
 
-    Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &BufferSize, Buffer);
-    refit_call1_wrapper(FileHandle->Close, FileHandle);
+    Status = boot_call3_wrapper(FileHandle->Read, FileHandle, &BufferSize, Buffer);
+    boot_call1_wrapper(FileHandle->Close, FileHandle);
     if (EFI_ERROR(Status)) {
         MyFreePool(Buffer);
         return Status;
@@ -309,17 +309,17 @@ EFI_STATUS egSaveFile(IN EFI_FILE_PROTOCOL *BaseDir OPTIONAL, IN CHAR16 *FileNam
             return Status;
     }
 
-    Status = refit_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle, FileName,
+    Status = boot_call5_wrapper(BaseDir->Open, BaseDir, &FileHandle, FileName,
                                  EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0);
     if (EFI_ERROR(Status))
         return Status;
 
     if (FileDataLength > 0) {
         BufferSize = FileDataLength;
-        Status = refit_call3_wrapper(FileHandle->Write, FileHandle, &BufferSize, FileData);
-        refit_call1_wrapper(FileHandle->Close, FileHandle);
+        Status = boot_call3_wrapper(FileHandle->Write, FileHandle, &BufferSize, FileData);
+        boot_call1_wrapper(FileHandle->Close, FileHandle);
     } else {
-        Status = refit_call1_wrapper(FileHandle->Delete, FileHandle);
+        Status = boot_call1_wrapper(FileHandle->Delete, FileHandle);
     }  
     return Status;
 }

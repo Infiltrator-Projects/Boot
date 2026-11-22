@@ -15,7 +15,7 @@ gnuefi:
 	+$(MAKE) MAKEWITH=GNUEFI -C gzip
 	+$(MAKE) MAKEWITH=GNUEFI -C EfiLib
 	+$(MAKE) MAKEWITH=GNUEFI -C boot
-	+$(MAKE) MAKEWITH=GNUEFI REFIND_SBAT_CSV=$(BOOT_SBAT_CSV) -C filesystems all_gnuefi
+	+$(MAKE) MAKEWITH=GNUEFI BOOT_SBAT_CSV=$(BOOT_SBAT_CSV) -C filesystems all_gnuefi
 
 clean:
 	+$(MAKE) MAKEWITH=GNUEFI -C filesystems clean

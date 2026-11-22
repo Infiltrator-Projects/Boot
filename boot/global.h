@@ -249,14 +249,14 @@ typedef struct {
    MBR_PARTITION_INFO  *MbrPartitionTable;
    BOOLEAN             IsReadable;
    UINT32              FSType;
-} REFIT_VOLUME;
+} BOOT_VOLUME;
 /*
  * Menu painting and input use this common prefix. Row zero is the scrolling
  * loader row and row one contains tools. A SubScreen is entered on the details
  * action. Choosing an entry returns the existing pointer from the screen's
  * Entries array.
  */
-typedef struct _refit_menu_entry {
+typedef struct _boot_menu_entry {
    CHAR16      *Title;
    UINTN       Tag;
    UINTN       Row;
@@ -264,36 +264,36 @@ typedef struct _refit_menu_entry {
    CHAR16      ShortcutLetter;
    EG_IMAGE    *Image;
    EG_IMAGE    *BadgeImage;
-   struct _refit_menu_screen *SubScreen;
-} REFIT_MENU_ENTRY;
+   struct _boot_menu_screen *SubScreen;
+} BOOT_MENU_ENTRY;
 /*
  * Entries and InfoLines are counted pointer arrays. TimeoutSeconds uses zero for
  * interactive selection, a positive countdown in seconds, and the UINTN
  * representation of -1 for the pending-key shortcut. RunMainMenu disables the
  * initial timeout when returning from a submenu.
  */
-typedef struct _refit_menu_screen {
+typedef struct _boot_menu_screen {
    CHAR16      *Title;  
    EG_IMAGE    *TitleImage;
    UINTN       InfoLineCount;
    CHAR16      **InfoLines;
    UINTN       EntryCount;      
-   REFIT_MENU_ENTRY **Entries;
+   BOOT_MENU_ENTRY **Entries;
    UINTN       TimeoutSeconds;
    CHAR16      *TimeoutText;
    CHAR16      *Hint1;
    CHAR16      *Hint2;
-} REFIT_MENU_SCREEN;
+} BOOT_MENU_SCREEN;
 /*
  * Place the generic menu entry first in a loader or legacy record. Menu code
- * stores a REFIT_MENU_ENTRY pointer. The tag tells dispatch which enclosing
+ * stores a BOOT_MENU_ENTRY pointer. The tag tells dispatch which enclosing
  * record it may recover at that address.
  */
 typedef struct {
-   REFIT_MENU_ENTRY me;
+   BOOT_MENU_ENTRY me;
    CHAR16           *Title;  
    CHAR16           *LoaderPath;
-   REFIT_VOLUME     *Volume;
+   BOOT_VOLUME     *Volume;
    BOOLEAN          UseGraphicsMode;
    BOOLEAN          Enabled;
    CHAR16           *LoadOptions;
@@ -310,8 +310,8 @@ typedef struct {
 } LOADER_ENTRY;
 
 typedef struct {
-   REFIT_MENU_ENTRY  me;
-   REFIT_VOLUME      *Volume;
+   BOOT_MENU_ENTRY  me;
+   BOOT_VOLUME      *Volume;
    BDS_COMMON_OPTION *BdsOption;
    CHAR16            *LoadOptions;
    BOOLEAN           Enabled;
@@ -351,7 +351,7 @@ typedef struct {
    UINTN            IconSizes[4];
    UINTN            BannerScale;
    UINTN            LogLevel;
-   REFIT_VOLUME     *DiscoveredRoot;
+   BOOT_VOLUME     *DiscoveredRoot;
    EFI_DEVICE_PATH  *SelfDevicePath;
    CHAR16           *BannerFileName;
    EG_IMAGE         *ScreenBackground;
@@ -392,7 +392,7 @@ typedef struct {
    CHAR16           *ThemeUnderlineFileName;
    /* One boot.conf-only runtime switch for temporary graphical and timing diagnostics. */
    BOOLEAN          StartupDiagnostics;
-} REFIT_CONFIG;
+} BOOT_CONFIG;
 
 /*
  * Image/volume handles are borrowed from firmware and may become invalid after
@@ -405,11 +405,11 @@ extern EFI_FILE_PROTOCOL  *SelfRootDir;
 extern EFI_FILE_PROTOCOL  *SelfDir;
 extern CHAR16             *SelfDirPath;
 
-extern REFIT_VOLUME     *SelfVolume;
-extern REFIT_VOLUME     **Volumes;
+extern BOOT_VOLUME     *SelfVolume;
+extern BOOT_VOLUME     **Volumes;
 extern UINTN            VolumesCount;
 
-extern REFIT_CONFIG     GlobalConfig;
+extern BOOT_CONFIG     GlobalConfig;
 extern CHAR16           *gHiddenTools;
 
 extern EFI_GUID gEfiLegacyBootProtocolGuid;
@@ -420,8 +420,8 @@ extern BOOLEAN HaveResized;
 extern EFI_GUID GlobalGuid;
 extern EFI_GUID BootGuid;
 
-extern REFIT_MENU_SCREEN MainMenu;
-extern REFIT_MENU_ENTRY MenuEntryReturn;
+extern BOOT_MENU_SCREEN MainMenu;
+extern BOOT_MENU_ENTRY MenuEntryReturn;
 
 /*
  * Boot UI actions operate on the current inventory. RescanAll rebuilds entries

@@ -16,7 +16,7 @@
 #else
 #include "gnuefi-helper.h"
 #endif
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 EFI_STATUS
 /*
@@ -31,7 +31,7 @@ EfiLibLocateProtocol (
 {
   EFI_STATUS  Status;
 
-  Status = refit_call3_wrapper(gBS->LocateProtocol,
+  Status = boot_call3_wrapper(gBS->LocateProtocol,
                   ProtocolGuid,
                   NULL,
                   (VOID **) Interface
@@ -50,7 +50,7 @@ EfiLibOpenRoot (
 
   File = NULL;
 
-  Status = refit_call3_wrapper(gBS->HandleProtocol,
+  Status = boot_call3_wrapper(gBS->HandleProtocol,
                   DeviceHandle,
                   &gEfiSimpleFileSystemProtocolGuid,
                   (VOID **) &Volume

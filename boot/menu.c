@@ -26,7 +26,7 @@
 #include "mystrings.h"
 #include "icns.h"
 #include "scan.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 
 #include "../include/egemb_back_selected_small.h"
 #include "../include/egemb_back_selected_big.h"
@@ -62,9 +62,9 @@ BOOLEAN PointerActive = FALSE;
 BOOLEAN DrawSelection = TRUE;
 
 extern EFI_GUID         BootGuid;
-extern REFIT_MENU_ENTRY MenuEntryReturn;
-static REFIT_MENU_ENTRY MenuEntryYes = { L"Yes", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
-static REFIT_MENU_ENTRY MenuEntryNo = { L"No", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
+extern BOOT_MENU_ENTRY MenuEntryReturn;
+static BOOT_MENU_ENTRY MenuEntryYes = { L"Yes", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
+static BOOT_MENU_ENTRY MenuEntryNo = { L"No", TAG_RETURN, 1, 0, 0, NULL, NULL, NULL };
 
 /*
  * Selection surfaces are cached in SelectionImages for subsequent repaint. An
@@ -291,7 +291,7 @@ static VOID UpdateScroll(IN OUT SCROLL_STATE *State, IN UINTN Movement)
  * temporary strings are unsuitable. The underlying pointer-vector append has
  * no allocation-failure result to report.
  */
-VOID AddMenuInfoLine(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine)
+VOID AddMenuInfoLine(IN BOOT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine)
 {
     LOG(3, LOG_LINE_NORMAL, L"Adding menu info line: '%s'", InfoLine);
     AddListElement((VOID ***) &(Screen->InfoLines), &(Screen->InfoLineCount), InfoLine);
@@ -303,7 +303,7 @@ VOID AddMenuInfoLine(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine)
  * existing ownership rules. A selection pointer taken from this array must
  * not survive a rebuilt inventory.
  */
-VOID AddMenuEntry(IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry)
+VOID AddMenuEntry(IN BOOT_MENU_SCREEN *Screen, IN BOOT_MENU_ENTRY *Entry)
 {
     LOG(3, LOG_LINE_NORMAL, L"Adding menu entry for '%s'", Entry->Title);
     AddListElement((VOID ***) &(Screen->Entries), &(Screen->EntryCount), Entry);
@@ -315,7 +315,7 @@ VOID AddMenuEntry(IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry)
  * each displayed title. Both searches stop at the first match. Return -1 when all
  * preferences are exhausted.
  */
-static INTN FindMenuShortcutEntry(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *Defaults) {
+static INTN FindMenuShortcutEntry(IN BOOT_MENU_SCREEN *Screen, IN CHAR16 *Defaults) {
     UINTN i, j = 0, ShortcutLength;
     CHAR16 *Shortcut;
 
@@ -353,7 +353,7 @@ static INTN FindMenuShortcutEntry(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *Defau
  * adding loaders before tools. Icon mode also caps the visible loader count to
  * the available row-zero items.
  */
-static VOID IdentifyRows(IN SCROLL_STATE *State, IN REFIT_MENU_SCREEN *Screen) {
+static VOID IdentifyRows(IN SCROLL_STATE *State, IN BOOT_MENU_SCREEN *Screen) {
     UINTN i;
 
     State->FinalRow0 = 0;
@@ -396,10 +396,10 @@ static VOID SaveScreen(VOID) {
  * decision using the pending keystroke. A zero timeout takes the ordinary
  * interactive path. Both cases differ from a positive countdown expiring.
  */
-UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
+UINTN RunGenericMenu(IN BOOT_MENU_SCREEN *Screen,
                      IN MENU_STYLE_FUNC StyleFunc,
                      IN OUT INTN *DefaultEntryIndex,
-                     OUT REFIT_MENU_ENTRY **ChosenEntry) {
+                     OUT BOOT_MENU_ENTRY **ChosenEntry) {
     SCROLL_STATE State;
     EFI_STATUS Status;
     EFI_INPUT_KEY key;
@@ -438,7 +438,7 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
     }
 
     if (Screen->TimeoutSeconds == -1) {
-        Status = refit_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
+        Status = boot_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
         if (Status == EFI_SUCCESS) {
             KeyAsString[0] = key.UnicodeChar;
             KeyAsString[1] = 0;
@@ -482,14 +482,14 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
         DiagnosticFirstFrame = TRUE;
 
         if (WaitForRelease) {
-            Status = refit_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
+            Status = boot_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
             if (Status == EFI_SUCCESS) {
 
-                refit_call2_wrapper(ST->ConIn->Reset, ST->ConIn, FALSE);
-                refit_call1_wrapper(BS->Stall, 100000);
+                boot_call2_wrapper(ST->ConIn->Reset, ST->ConIn, FALSE);
+                boot_call1_wrapper(BS->Stall, 100000);
             } else {
                 WaitForRelease = FALSE;
-                refit_call2_wrapper(ST->ConIn->Reset, ST->ConIn, TRUE);
+                boot_call2_wrapper(ST->ConIn->Reset, ST->ConIn, TRUE);
             }
             continue;
         }
@@ -507,7 +507,7 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
         if (PointerEnabled) {
             PointerStatus = pdUpdateState();
         }
-        Status = refit_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
+        Status = boot_call2_wrapper(ST->ConIn->ReadKeyStroke, ST->ConIn, &key);
 
         if (Status == EFI_SUCCESS) {
             PointerActive = FALSE;
@@ -703,15 +703,15 @@ UINTN RunGenericMenu(IN REFIT_MENU_SCREEN *Screen,
  * not independently clip lines to the active console's row/column limits;
  * console protocol errors are not propagated through this VOID interface.
  */
-static VOID ShowTextInfoLines(IN REFIT_MENU_SCREEN *Screen) {
+static VOID ShowTextInfoLines(IN BOOT_MENU_SCREEN *Screen) {
     INTN i;
 
     BeginTextScreen(Screen->Title);
     if (Screen->InfoLineCount > 0) {
-        refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
+        boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
         for (i = 0; i < (INTN)Screen->InfoLineCount; i++) {
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, 4 + i);
-            refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, Screen->InfoLines[i]);
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, 4 + i);
+            boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, Screen->InfoLines[i]);
         }
     }
 }  
@@ -724,7 +724,7 @@ static VOID ShowTextInfoLines(IN REFIT_MENU_SCREEN *Screen) {
  * Several allocations in this path are dereferenced without independent
  * out-of-memory checks; this contract must not be read as fault tolerance.
  */
-VOID TextMenuStyle(IN REFIT_MENU_SCREEN *Screen,
+VOID TextMenuStyle(IN BOOT_MENU_SCREEN *Screen,
                    IN SCROLL_STATE *State,
                    IN UINTN Function,
                    IN CHAR16 *ParamText)
@@ -783,68 +783,68 @@ VOID TextMenuStyle(IN REFIT_MENU_SCREEN *Screen,
             ShowTextInfoLines(Screen);
             for (i = 0; i <= State->MaxIndex; i++) {
                 if (i >= State->FirstVisible && i <= State->LastVisible) {
-                    refit_call3_wrapper(ST->ConOut->SetCursorPosition,
+                    boot_call3_wrapper(ST->ConOut->SetCursorPosition,
                                         ST->ConOut,
                                         2,
                                         MenuPosY + (i - State->FirstVisible));
                     if (i == State->CurrentSelection)
-                       refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_CHOICE_CURRENT);
+                       boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_CHOICE_CURRENT);
                     else
-                       refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_CHOICE_BASIC);
-                    refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, DisplayStrings[i]);
+                       boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_CHOICE_BASIC);
+                    boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, DisplayStrings[i]);
                 }
             }
 
-            refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_SCROLLARROW);
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, MenuPosY);
+            boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_SCROLLARROW);
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, MenuPosY);
             if (State->FirstVisible > 0)
-                refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, ArrowUp);
+                boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, ArrowUp);
             else
-                refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, L" ");
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition,
+                boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, L" ");
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition,
                                 ST->ConOut,
                                 0,
                                 MenuPosY + State->MaxVisible);
             if (State->LastVisible < State->MaxIndex)
-                refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, ArrowDown);
+                boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, ArrowDown);
             else
-                refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, L" ");
+                boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, L" ");
             if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_HINTS)) {
                 if (Screen->Hint1 != NULL) {
-                    refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, ConHeight - 2);
-                    refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, Screen->Hint1);
+                    boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, ConHeight - 2);
+                    boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, Screen->Hint1);
                 }
                 if (Screen->Hint2 != NULL) {
-                    refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, ConHeight - 1);
-                    refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, Screen->Hint2);
+                    boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, ConHeight - 1);
+                    boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, Screen->Hint2);
                 }
             }
             break;
 
         case MENU_FUNCTION_PAINT_SELECTION:
 
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 2,
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 2,
                                 MenuPosY + (State->PreviousSelection - State->FirstVisible));
-            refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_CHOICE_BASIC);
-            refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, DisplayStrings[State->PreviousSelection]);
-            refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 2,
+            boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_CHOICE_BASIC);
+            boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, DisplayStrings[State->PreviousSelection]);
+            boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 2,
                                 MenuPosY + (State->CurrentSelection - State->FirstVisible));
-            refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_CHOICE_CURRENT);
-            refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, DisplayStrings[State->CurrentSelection]);
+            boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_CHOICE_CURRENT);
+            boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, DisplayStrings[State->CurrentSelection]);
             break;
 
         case MENU_FUNCTION_PAINT_TIMEOUT:
             if (ParamText[0] == 0) {
 
-                refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
-                refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, ConHeight - 3);
-                refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, BlankLine + 1);
+                boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_BASIC);
+                boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 0, ConHeight - 3);
+                boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, BlankLine + 1);
             } else {
 
-                refit_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_ERROR);
-                refit_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, ConHeight - 3);
+                boot_call2_wrapper(ST->ConOut->SetAttribute, ST->ConOut, ATTR_ERROR);
+                boot_call3_wrapper(ST->ConOut->SetCursorPosition, ST->ConOut, 3, ConHeight - 3);
                 SPrint(TimeoutMessage, 255, L"%s  ", ParamText);
-                refit_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, TimeoutMessage);
+                boot_call2_wrapper(ST->ConOut->OutputString, ST->ConOut, TimeoutMessage);
             }
             break;
     }
@@ -935,7 +935,7 @@ static VOID DrawTextWithTransparency(IN CHAR16 *Text, IN UINTN XPos, IN UINTN YP
  * for variable-width TrueType fonts: layout can clip or over-allocate space.
  * A successful calculation is not a visual-fit proof on all screen modes.
  */
-static VOID ComputeSubScreenWindowSize(REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
+static VOID ComputeSubScreenWindowSize(BOOT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
                                        UINTN *XPos, UINTN *YPos,
                                        UINTN *Width, UINTN *Height, UINTN *LineWidth) {
     UINTN i, ItemWidth, HintTop, BannerBottomEdge, TitleWidth;
@@ -1004,7 +1004,7 @@ static VOID ComputeSubScreenWindowSize(REFIT_MENU_SCREEN *Screen, IN SCROLL_STAT
  * and selection state. Painting an icon must never be treated as a successful
  * validation or launch of the associated image.
  */
-VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
+VOID GraphicsMenuStyle(IN BOOT_MENU_SCREEN *Screen,
                        IN SCROLL_STATE *State,
                        IN UINTN Function,
                        IN CHAR16 *ParamText)
@@ -1103,7 +1103,7 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
  * inventory; it does not validate a loader or own its referenced icon
  * pixels.
  */
-static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN XPos, UINTN YPos)
+static VOID DrawMainMenuEntry(BOOT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN XPos, UINTN YPos)
 {
     EG_IMAGE *Background, *ScaledIcon = NULL;
     EG_IMAGE *Icon = Entry->Image;
@@ -1153,7 +1153,7 @@ static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN X
  * array. Only row-zero entries within the viewport are drawn. Bounds depend
  * on the current scan inventory and calculated geometry.
  */
-static VOID PaintAll(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN *itemPosX,
+static VOID PaintAll(IN BOOT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN *itemPosX,
                      UINTN row0PosY, UINTN row1PosY, UINTN textPosY) {
     INTN i;
 
@@ -1194,7 +1194,7 @@ static VOID PaintAll(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN
  * subtract FirstVisible while tool-row coordinates use direct item slots.
  * The caller must not reuse State after rebuilding or freeing Screen entries.
  */
-static VOID PaintSelection(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN *itemPosX,
+static VOID PaintSelection(IN BOOT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN *itemPosX,
                            UINTN row0PosY, UINTN row1PosY, UINTN textPosY) {
     UINTN XSelectPrev, XSelectCur, YPosPrev, YPosCur;
 
@@ -1293,7 +1293,7 @@ static VOID PaintArrows(SCROLL_STATE *State, UINTN PosX, UINTN PosY, UINTN row0L
  * Places menu entries and tool rows according to runtime screen geometry;
  * rendering an icon is unrelated to the image's trust or bootability.
  */
-VOID MainMenuStyle(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
+VOID MainMenuStyle(IN BOOT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
                    IN UINTN Function, IN CHAR16 *ParamText)
 {
     INTN i;
@@ -1375,7 +1375,7 @@ VOID MainMenuStyle(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
  * to the left and right of the loader row return arrow sentinels. Tile gaps
  * return POINTER_NO_ITEM.
  */
-UINTN FindMainMenuItem(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN PosX, IN UINTN PosY)
+UINTN FindMainMenuItem(IN BOOT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN PosX, IN UINTN PosY)
 {
     UINTN i;
     static UINTN row0PosX, row0PosXRunning, row1PosY, row0Loaders;
@@ -1490,7 +1490,7 @@ UINTN WaitForInput(UINTN Timeout) {
     EFI_STATUS Status;
 
     LOG(3, LOG_LINE_NORMAL, L"Entering WaitForInput(), Timeout = %d", Timeout);
-    Status = refit_call5_wrapper(BS->CreateEvent, EVT_TIMER, 0, NULL, NULL, &TimerEvent);
+    Status = boot_call5_wrapper(BS->CreateEvent, EVT_TIMER, 0, NULL, NULL, &TimerEvent);
     /*
      * The wait list starts with the keyboard, then pointers, then an optional
      * timer. A zero timeout excludes its final slot. In that case the last
@@ -1501,19 +1501,19 @@ UINTN WaitForInput(UINTN Timeout) {
         Length--;
     } else {
         if(EFI_ERROR(Status)) {
-            refit_call1_wrapper(BS->Stall, 100000);  
+            boot_call1_wrapper(BS->Stall, 100000);  
             return INPUT_TIMER_ERROR;
         } else {
-            Status = refit_call3_wrapper(BS->SetTimer, TimerEvent, TimerRelative, Timeout * 10000);
+            Status = boot_call3_wrapper(BS->SetTimer, TimerEvent, TimerRelative, Timeout * 10000);
             WaitList[Length - 1] = TimerEvent;
         }
     }
 
-    Status = refit_call3_wrapper(BS->WaitForEvent, Length, WaitList, &Index);
-    refit_call1_wrapper(BS->CloseEvent, TimerEvent);
+    Status = boot_call3_wrapper(BS->WaitForEvent, Length, WaitList, &Index);
+    boot_call1_wrapper(BS->CloseEvent, TimerEvent);
 
     if(EFI_ERROR(Status)) {
-        refit_call1_wrapper(BS->Stall, 100000);  
+        boot_call1_wrapper(BS->Stall, 100000);  
         return INPUT_TIMER_ERROR;
     } else if (Index == 0) {
         return INPUT_KEY;
@@ -1537,7 +1537,7 @@ static BOOLEAN EditOptions(LOADER_ENTRY *MenuEntry) {
         return FALSE;
     }
 
-    refit_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut, ST->ConOut->Mode->Mode, &x_max, &y_max);
+    boot_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut, ST->ConOut->Mode->Mode, &x_max, &y_max);
 
     if (!GlobalConfig.TextOnly)
         SwitchToText(TRUE);
@@ -1560,8 +1560,8 @@ static BOOLEAN EditOptions(LOADER_ENTRY *MenuEntry) {
 VOID DisplaySimpleMessage(CHAR16* Title, CHAR16 *Message) {
     MENU_STYLE_FUNC     Style = TextMenuStyle;
     INTN                DefaultEntry = 0;
-    REFIT_MENU_ENTRY    *ChosenOption;
-    REFIT_MENU_SCREEN   HideItemMenu = { NULL, NULL, 0, NULL, 0, NULL, 0, NULL,
+    BOOT_MENU_ENTRY    *ChosenOption;
+    BOOT_MENU_SCREEN   HideItemMenu = { NULL, NULL, 0, NULL, 0, NULL, 0, NULL,
                                          L"Press Enter to return to main menu", L"" };
 
     LOG(3, LOG_LINE_NORMAL, L"Entering DisplaySimpleMessage()");
@@ -1586,7 +1586,7 @@ VOID DisplaySimpleMessage(CHAR16* Title, CHAR16 *Message) {
 static BOOLEAN RemoveInvalidFilenames(CHAR16 *FilenameList, CHAR16 *VarName) {
     UINTN i = 0;
     CHAR16 *Filename, *OneElement, *VolName = NULL;
-    REFIT_VOLUME *Volume;
+    BOOT_VOLUME *Volume;
     EFI_FILE_HANDLE FileHandle;
     BOOLEAN DeleteIt = FALSE, DeletedSomething = FALSE;
     EFI_STATUS Status;
@@ -1597,11 +1597,11 @@ static BOOLEAN RemoveInvalidFilenames(CHAR16 *FilenameList, CHAR16 *VarName) {
         if (SplitVolumeAndFilename(&Filename, &VolName)) {
             DeleteIt = TRUE;
             if (FindVolume(&Volume, VolName) && Volume->RootDir) {
-                Status = refit_call5_wrapper(Volume->RootDir->Open, Volume->RootDir, &FileHandle,
+                Status = boot_call5_wrapper(Volume->RootDir->Open, Volume->RootDir, &FileHandle,
                                              Filename, EFI_FILE_MODE_READ, 0);
                 if (Status == EFI_SUCCESS) {
                     DeleteIt = FALSE;
-                    refit_call1_wrapper(FileHandle->Close, FileHandle);
+                    boot_call1_wrapper(FileHandle->Close, FileHandle);
                 }  
             }  
         }  
@@ -1642,8 +1642,8 @@ VOID ManageHiddenTags(VOID) {
     CHAR16              *HiddenLegacy, *HiddenFirmware, *OneElement = NULL;
     INTN                DefaultEntry = 0;
     MENU_STYLE_FUNC     Style = TextMenuStyle;
-    REFIT_MENU_ENTRY    *ChosenOption, *MenuEntryItem = NULL;
-    REFIT_MENU_SCREEN   HideItemMenu = { L"Manage Hidden Tags Menu", NULL, 0, NULL, 0, NULL, 0, NULL,
+    BOOT_MENU_ENTRY    *ChosenOption, *MenuEntryItem = NULL;
+    BOOT_MENU_SCREEN   HideItemMenu = { L"Manage Hidden Tags Menu", NULL, 0, NULL, 0, NULL, 0, NULL,
                                          L"Select an option and press Enter or",
                                          L"press Esc to return to main menu without changes" };
     UINTN               MenuExit, i = 0;
@@ -1671,7 +1671,7 @@ VOID ManageHiddenTags(VOID) {
     if ((AllTags) && (StrLen(AllTags) > 0)) {
         AddMenuInfoLine(&HideItemMenu, L"Select a tag and press Enter to restore it");
         while ((OneElement = FindCommaDelimited(AllTags, i++)) != NULL) {
-            MenuEntryItem = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));  
+            MenuEntryItem = AllocateZeroPool(sizeof(BOOT_MENU_ENTRY));  
             MenuEntryItem->Title = StrDuplicate(OneElement);
             MenuEntryItem->Tag = TAG_RETURN;
             MenuEntryItem->Row = 1;
@@ -1751,14 +1751,14 @@ static VOID AddToHiddenTags(CHAR16 *VarName, CHAR16 *Pathname) {
  * Persists a BOOT-level exclusion; the EFI executable and any independent
  * firmware boot entry remain on disk and usable outside this UI.
  */
-static BOOLEAN HideEfiTag(LOADER_ENTRY *Loader, REFIT_MENU_SCREEN *HideItemMenu, CHAR16 *VarName) {
-    REFIT_VOLUME       *TestVolume = NULL;
+static BOOLEAN HideEfiTag(LOADER_ENTRY *Loader, BOOT_MENU_SCREEN *HideItemMenu, CHAR16 *VarName) {
+    BOOT_VOLUME       *TestVolume = NULL;
     BOOLEAN            TagHidden = FALSE;
     CHAR16             *FullPath = NULL, *GuidStr = NULL;
     MENU_STYLE_FUNC    Style = TextMenuStyle;
     UINTN              MenuExit;
     INTN               DefaultEntry = 1;
-    REFIT_MENU_ENTRY   *ChosenOption;
+    BOOT_MENU_ENTRY   *ChosenOption;
 
     if ((!Loader) || (!(Loader->Volume)) || (!(Loader->LoaderPath)) || (!HideItemMenu) || (!VarName))
         return FALSE;
@@ -1799,9 +1799,9 @@ static BOOLEAN HideEfiTag(LOADER_ENTRY *Loader, REFIT_MENU_SCREEN *HideItemMenu,
  * store that title under HiddenFirmware. The firmware variable and
  * one-time boot menu remain independent of this display preference.
  */
-static BOOLEAN HideFirmwareTag(LOADER_ENTRY *Loader, REFIT_MENU_SCREEN *HideItemMenu) {
+static BOOLEAN HideFirmwareTag(LOADER_ENTRY *Loader, BOOT_MENU_SCREEN *HideItemMenu) {
     MENU_STYLE_FUNC    Style = TextMenuStyle;
-    REFIT_MENU_ENTRY   *ChosenOption;
+    BOOT_MENU_ENTRY   *ChosenOption;
     INTN               DefaultEntry = 1;
     UINTN              MenuExit;
     BOOLEAN            TagHidden = FALSE;
@@ -1825,9 +1825,9 @@ static BOOLEAN HideFirmwareTag(LOADER_ENTRY *Loader, REFIT_MENU_SCREEN *HideItem
  * before storing it in BOOT's private HiddenLegacy list. The choice
  * affects later scans, not the platform's CSM implementation.
  */
-static BOOLEAN HideLegacyTag(LEGACY_ENTRY *LegacyLoader, REFIT_MENU_SCREEN *HideItemMenu) {
+static BOOLEAN HideLegacyTag(LEGACY_ENTRY *LegacyLoader, BOOT_MENU_SCREEN *HideItemMenu) {
     MENU_STYLE_FUNC    Style = TextMenuStyle;
-    REFIT_MENU_ENTRY   *ChosenOption;
+    BOOT_MENU_ENTRY   *ChosenOption;
     INTN               DefaultEntry = 1;
     UINTN              MenuExit;
     CHAR16             *Name = NULL;
@@ -1860,10 +1860,10 @@ static BOOLEAN HideLegacyTag(LEGACY_ENTRY *LegacyLoader, REFIT_MENU_SCREEN *Hide
  * configuration edit. A successful hide may trigger a full rescan,
  * which invalidates the previously selected entry pointer.
  */
-static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
+static VOID HideTag(BOOT_MENU_ENTRY *ChosenEntry) {
     LOADER_ENTRY       *Loader = (LOADER_ENTRY *) ChosenEntry;
     LEGACY_ENTRY       *LegacyLoader = (LEGACY_ENTRY *) ChosenEntry;
-    REFIT_MENU_SCREEN  HideItemMenu = { NULL, NULL, 0, NULL, 0, NULL, 0, NULL,
+    BOOT_MENU_SCREEN  HideItemMenu = { NULL, NULL, 0, NULL, 0, NULL, 0, NULL,
                                         L"Select an option and press Enter or",
                                         L"press Esc to return to main menu without changes" };
 
@@ -1919,7 +1919,7 @@ static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
  * The returned ChosenEntry is a borrowed pointer into Screen, not a new
  * allocation: a rescan or menu release invalidates the selection pointer.
  */
-UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry)
+UINTN RunMenu(IN BOOT_MENU_SCREEN *Screen, OUT BOOT_MENU_ENTRY **ChosenEntry)
 {
     INTN            DefaultEntry = -1;
     MENU_STYLE_FUNC Style = TextMenuStyle;
@@ -1945,11 +1945,11 @@ UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry)
  * An exit code describes the menu interaction, not the outcome of a firmware
  * image launch.
  */
-UINTN RunMainMenu(REFIT_MENU_SCREEN *Screen, CHAR16** DefaultSelection, REFIT_MENU_ENTRY **ChosenEntry)
+UINTN RunMainMenu(BOOT_MENU_SCREEN *Screen, CHAR16** DefaultSelection, BOOT_MENU_ENTRY **ChosenEntry)
 {
     MENU_STYLE_FUNC Style = TextMenuStyle;
     MENU_STYLE_FUNC MainStyle = TextMenuStyle;
-    REFIT_MENU_ENTRY *TempChosenEntry;
+    BOOT_MENU_ENTRY *TempChosenEntry;
     CHAR16 *MenuTitle;
     UINTN MenuExit = 0;
     INTN DefaultEntryIndex = -1;

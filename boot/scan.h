@@ -20,19 +20,19 @@ LOADER_ENTRY *InitializeLoaderEntry(IN LOADER_ENTRY *Entry);
  * Attach subordinate menu choices to the parent loader. Entries may share
  * volume and image pointers with that parent, and become stale on rescan.
  */
-REFIT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry);
+BOOT_MENU_SCREEN *InitializeSubScreen(IN LOADER_ENTRY *Entry);
 /*
  * Materialise alternate boot options in Entry's submenu. The generated
  * choices share the parent volume/inventory lifetime; GenerateReturn adds a
  * navigation entry. Rebuilding discovery invalidates menu-owned pointers.
  */
-VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN GenerateReturn);
+VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN BOOT_VOLUME *Volume, IN BOOLEAN GenerateReturn);
 /*
  * Derive icons, Linux options and OS labels heuristically from a borrowed
  * path and volume. This does not authenticate an EFI loader. The subsequent
  * scan recreates the menu, invalidating all prior selection pointers.
  */
-VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume);
+VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, IN BOOT_VOLUME *Volume);
 /*
  * Append candidates to MainMenu in GlobalConfig.ScanFor order. Hidden-tag
  * exclusions are temporarily merged and then restored; discovery is not

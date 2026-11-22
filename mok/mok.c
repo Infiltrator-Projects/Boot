@@ -9,7 +9,7 @@
 
 #include "global.h"
 #include "mok.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "../boot/lib.h"
 #include "../boot/screen.h"
 
@@ -49,7 +49,7 @@ BOOLEAN ShimLoaded(void) {
    SHIM_LOCK   *shim_lock;
    EFI_GUID    ShimLockGuid = SHIM_LOCK_GUID;
 
-   return (refit_call3_wrapper(BS->LocateProtocol, &ShimLockGuid, NULL, (VOID**) &shim_lock) == EFI_SUCCESS);
+   return (boot_call3_wrapper(BS->LocateProtocol, &ShimLockGuid, NULL, (VOID**) &shim_lock) == EFI_SUCCESS);
 }  
 
 /*
@@ -63,7 +63,7 @@ BOOLEAN ShimValidate (VOID *data, UINT32 size)
    SHIM_LOCK   *shim_lock;
    EFI_GUID    ShimLockGuid = SHIM_LOCK_GUID;
 
-   if ((data != NULL) && (refit_call3_wrapper(BS->LocateProtocol, &ShimLockGuid, NULL, (VOID**) &shim_lock) == EFI_SUCCESS)) {
+   if ((data != NULL) && (boot_call3_wrapper(BS->LocateProtocol, &ShimLockGuid, NULL, (VOID**) &shim_lock) == EFI_SUCCESS)) {
       if (!shim_lock)
          return FALSE;
 

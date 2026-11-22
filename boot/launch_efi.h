@@ -35,7 +35,7 @@
  * are borrowed for the invocation. A valid header and successful file read
  * are not proof of signature acceptance or OS user-space execution.
  */
-EFI_STATUS StartEFIImage(IN REFIT_VOLUME *Volume,
+EFI_STATUS StartEFIImage(IN BOOT_VOLUME *Volume,
                          IN CHAR16 *Filename,
                          IN CHAR16 *LoadOptions,
                          IN CHAR16 *ImageTitle,

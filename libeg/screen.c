@@ -11,7 +11,7 @@
 #include "../boot/screen.h"
 #include "../boot/lib.h"
 #include "../boot/mystrings.h"
-#include "../include/refit_call_wrapper.h"
+#include "../include/boot_call_wrapper.h"
 #include "libeg.h"
 #include "log.h"
 #include "../include/Handle.h"
@@ -59,7 +59,7 @@ VOID egSetMaxResolution(VOID) {
 
     if (GraphicsOutput == NULL) {
 
-        Status = refit_call5_wrapper(UgaDraw->GetMode,
+        Status = boot_call5_wrapper(UgaDraw->GetMode,
                                      UgaDraw,
                                      &UGAWidth,
                                      &UGAHeight,
@@ -71,7 +71,7 @@ VOID egSetMaxResolution(VOID) {
     }
 
     for (Mode = 0; Mode < GraphicsOutput->Mode->MaxMode; Mode++) {
-        Status = refit_call4_wrapper(GraphicsOutput->QueryMode,
+        Status = boot_call4_wrapper(GraphicsOutput->QueryMode,
                                      GraphicsOutput,
                                      Mode,
                                      &SizeOfInfo,
@@ -120,7 +120,7 @@ static VOID egDetermineScreenSize(VOID) {
         egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
         egHasGraphics = TRUE;
     } else if (UgaDraw != NULL) {
-        Status = refit_call5_wrapper(UgaDraw->GetMode, UgaDraw, &UGAWidth, &UGAHeight, &UGADepth, &UGARefreshRate);
+        Status = boot_call5_wrapper(UgaDraw->GetMode, UgaDraw, &UGAWidth, &UGAHeight, &UGADepth, &UGARefreshRate);
         if (EFI_ERROR(Status)) {
             UgaDraw = NULL;    
         } else {
@@ -180,7 +180,7 @@ BOOLEAN egGetResFromMode(UINTN *ModeWidth, UINTN *Height) {
     EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  *Info = NULL;
 
     if ((ModeWidth != NULL) && (Height != NULL) && GraphicsOutput) {
-        Status = refit_call4_wrapper(GraphicsOutput->QueryMode, GraphicsOutput,
+        Status = boot_call4_wrapper(GraphicsOutput->QueryMode, GraphicsOutput,
                                      *ModeWidth, &Size, &Info);
         if (!EFI_ERROR(Status) && (Info != NULL)) {
             *ModeWidth = Info->HorizontalResolution;
@@ -216,7 +216,7 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
             if (ModeNum == CurrentModeNum) {
                 ModeSet = TRUE;
             } else if (egGetResFromMode(ScreenWidth, ScreenHeight) &&
-                       (refit_call2_wrapper(GraphicsOutput->SetMode,
+                       (boot_call2_wrapper(GraphicsOutput->SetMode,
                                             GraphicsOutput, ModeNum) == EFI_SUCCESS)) {
                 LOG(2, LOG_LINE_NORMAL, L"Setting GOP mode to %d", ModeNum);
                 ModeSet = TRUE;
@@ -225,13 +225,13 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
         } else {
 
             do {
-                Status = refit_call4_wrapper(GraphicsOutput->QueryMode, GraphicsOutput,
+                Status = boot_call4_wrapper(GraphicsOutput->QueryMode, GraphicsOutput,
                                              ModeNum, &Size, &Info);
                 if ((Status == EFI_SUCCESS) && (Size >= sizeof(*Info) && (Info != NULL)) &&
                     (Info->HorizontalResolution == *ScreenWidth) &&
                     (Info->VerticalResolution == *ScreenHeight) &&
                     ((ModeNum == CurrentModeNum) ||
-                     (refit_call2_wrapper(GraphicsOutput->SetMode,
+                     (boot_call2_wrapper(GraphicsOutput->SetMode,
                                           GraphicsOutput, ModeNum) == EFI_SUCCESS))) {
                     LOG(2, LOG_LINE_NORMAL, L"Setting GOP mode to %d (%dx%d)",
                         ModeNum, *ScreenWidth, *ScreenHeight);
@@ -252,7 +252,7 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
             LOG(1, LOG_LINE_NORMAL, L"Available modes are:");
             ModeNum = 0;
             do {
-                Status = refit_call4_wrapper(GraphicsOutput->QueryMode,
+                Status = boot_call4_wrapper(GraphicsOutput->QueryMode,
                                              GraphicsOutput, ModeNum, &Size, &Info);
                 if (!EFI_ERROR(Status) && (Info != NULL)) {
                     Print(L"Mode %d: %d x %d\n", ModeNum,
@@ -271,10 +271,10 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
 
     } else if ((UgaDraw != NULL) && (*ScreenHeight > 0)) {  
 
-        Status = refit_call5_wrapper(UgaDraw->GetMode, UgaDraw, &UGAWidth,
+        Status = boot_call5_wrapper(UgaDraw->GetMode, UgaDraw, &UGAWidth,
                                      &UGAHeight, &UGADepth, &UGARefreshRate);
         LOG(1, LOG_LINE_NORMAL, L"Setting UGA Draw mode to %d x %d", *ScreenWidth, *ScreenHeight);
-        Status = refit_call5_wrapper(UgaDraw->SetMode, UgaDraw, *ScreenWidth,
+        Status = boot_call5_wrapper(UgaDraw->SetMode, UgaDraw, *ScreenWidth,
                                      *ScreenHeight, UGADepth, UGARefreshRate);
         if (!EFI_ERROR(Status)) {
             egScreenWidth = *ScreenWidth;
@@ -304,7 +304,7 @@ BOOLEAN egSetTextMode(UINT32 RequestedMode) {
 
     if ((RequestedMode != DONT_CHANGE_TEXT_MODE) && (RequestedMode != ST->ConOut->Mode->Mode)) {
         LOG(1, LOG_LINE_NORMAL, L"Setting text mode to %d", RequestedMode);
-        Status = refit_call2_wrapper(ST->ConOut->SetMode, ST->ConOut, RequestedMode);
+        Status = boot_call2_wrapper(ST->ConOut->SetMode, ST->ConOut, RequestedMode);
         if (Status == EFI_SUCCESS) {
             ChangedIt = TRUE;
         } else {
@@ -312,7 +312,7 @@ BOOLEAN egSetTextMode(UINT32 RequestedMode) {
             Print(L"\nError setting text mode %d; available modes are:\n", RequestedMode);
             LOG(1, LOG_LINE_NORMAL, L"Error setting text mode %d; available modes are:", RequestedMode);
             do {
-                Status = refit_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut, i, &Width, &Height);
+                Status = boot_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut, i, &Width, &Height);
                 if (Status == EFI_SUCCESS) {
                     Print(L"Mode %d: %d x %d\n", i, Width, Height);
                     LOG(1, LOG_LINE_NORMAL, L"  Mode %d: %d x %d", i, Width, Height);
@@ -367,7 +367,7 @@ BOOLEAN egIsGraphicsModeEnabled(VOID)
     EFI_CONSOLE_CONTROL_SCREEN_MODE CurrentMode;
 
     if (ConsoleControl != NULL) {
-        refit_call4_wrapper(ConsoleControl->GetMode, ConsoleControl, &CurrentMode, NULL, NULL);
+        boot_call4_wrapper(ConsoleControl->GetMode, ConsoleControl, &CurrentMode, NULL, NULL);
         return (CurrentMode == EfiConsoleControlScreenGraphics) ? TRUE : FALSE;
     }
 
@@ -385,12 +385,12 @@ VOID egSetGraphicsModeEnabled(IN BOOLEAN Enable)
     EFI_CONSOLE_CONTROL_SCREEN_MODE NewMode;
 
     if (ConsoleControl != NULL) {
-        refit_call4_wrapper(ConsoleControl->GetMode, ConsoleControl, &CurrentMode, NULL, NULL);
+        boot_call4_wrapper(ConsoleControl->GetMode, ConsoleControl, &CurrentMode, NULL, NULL);
 
         NewMode = Enable ? EfiConsoleControlScreenGraphics
                          : EfiConsoleControlScreenText;
         if (CurrentMode != NewMode)
-            refit_call2_wrapper(ConsoleControl->SetMode, ConsoleControl, NewMode);
+            boot_call2_wrapper(ConsoleControl->SetMode, ConsoleControl, NewMode);
     }
 }
 
@@ -414,10 +414,10 @@ VOID egClearScreen(IN EG_PIXEL *Color)
 
     if (GraphicsOutput != NULL) {
 
-        refit_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)&FillColor, EfiBltVideoFill,
+        boot_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)&FillColor, EfiBltVideoFill,
                              0, 0, 0, 0, egScreenWidth, egScreenHeight, 0);
     } else if (UgaDraw != NULL) {
-        refit_call10_wrapper(UgaDraw->Blt, UgaDraw, &FillColor, EfiUgaVideoFill, 0, 0, 0, 0, egScreenWidth, egScreenHeight, 0);
+        boot_call10_wrapper(UgaDraw->Blt, UgaDraw, &FillColor, EfiUgaVideoFill, 0, 0, 0, 0, egScreenWidth, egScreenHeight, 0);
     }
 }
 
@@ -450,12 +450,12 @@ VOID egDrawImage(IN EG_IMAGE *Image, IN UINTN ScreenPosX, IN UINTN ScreenPosY)
     }
 
     if (GraphicsOutput != NULL) {
-       refit_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput,
+       boot_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput,
                             (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)CompImage->PixelData,
                             EfiBltBufferToVideo, 0, 0, ScreenPosX, ScreenPosY, CompImage->Width,
                             CompImage->Height, 0);
     } else if (UgaDraw != NULL) {
-       refit_call10_wrapper(UgaDraw->Blt, UgaDraw, (EFI_UGA_PIXEL *)CompImage->PixelData,
+       boot_call10_wrapper(UgaDraw->Blt, UgaDraw, (EFI_UGA_PIXEL *)CompImage->PixelData,
                             EfiUgaBltBufferToVideo, 0, 0, ScreenPosX, ScreenPosY,
                             CompImage->Width, CompImage->Height, 0);
     }
@@ -502,11 +502,11 @@ VOID egDrawImageArea(IN EG_IMAGE *Image,
         return;
 
     if (GraphicsOutput != NULL) {
-        refit_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData,
+        boot_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData,
                              EfiBltBufferToVideo, AreaPosX, AreaPosY, ScreenPosX, ScreenPosY, AreaWidth, AreaHeight,
                              Image->Width * 4);
     } else if (UgaDraw != NULL) {
-        refit_call10_wrapper(UgaDraw->Blt, UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData, EfiUgaBltBufferToVideo,
+        boot_call10_wrapper(UgaDraw->Blt, UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData, EfiUgaBltBufferToVideo,
                              AreaPosX, AreaPosY, ScreenPosX, ScreenPosY, AreaWidth, AreaHeight, Image->Width * 4);
     }
 }
@@ -572,12 +572,12 @@ EG_IMAGE * egCopyScreenArea(UINTN XPos, UINTN YPos, UINTN Width, UINTN Height) {
     }
 
     if (GraphicsOutput != NULL) {
-        refit_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput,
+        boot_call10_wrapper(GraphicsOutput->Blt, GraphicsOutput,
                              (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData,
                              EfiBltVideoToBltBuffer, XPos, YPos, 0, 0,
                              Image->Width, Image->Height, 0);
     } else if (UgaDraw != NULL) {
-        refit_call10_wrapper(UgaDraw->Blt, UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData,
+        boot_call10_wrapper(UgaDraw->Blt, UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData,
                              EfiUgaVideoToBltBuffer, XPos, YPos, 0, 0, Image->Width,
                              Image->Height, 0);
     }
@@ -636,5 +636,5 @@ VOID egScreenShot(VOID)
 
 bailout_wait:
     egSetGraphicsModeEnabled(FALSE);
-    refit_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &Index);
+    boot_call3_wrapper(BS->WaitForEvent, 1, &ST->ConIn->WaitForKey, &Index);
 }
