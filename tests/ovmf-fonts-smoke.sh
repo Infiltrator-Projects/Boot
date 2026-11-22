@@ -91,6 +91,22 @@ if ! grep -Fq 'MB/Daimler TrueType inventory validated: 23/23' "$work/log.txt"; 
  grep -E 'TrueType|font|glyph|main loop' "$work/log.txt" >&2 || true
  exit 1
 fi
+# Verify configuration selects the real faces (not bitmap or firmware fallback).
+# The logged role paths come from the same face records used by glyph drawing.
+for role in \
+ '0 rendered using fonts\daimler_cs_regular.ttf' \
+ '1 rendered using fonts\mb_corpo_s_title_cond_bold.ttf' \
+ '2 rendered using fonts\mb_corpo_a_screen_2_cond_regular.ttf'; do
+ if ! grep -Fq "MB TrueType font role $role" "$work/log.txt"; then
+  echo "UEFI font-role selection or rasterisation failed: $role" >&2
+  grep -E 'TrueType|font role|renderer scale' "$work/log.txt" >&2 || true
+  exit 1
+ fi
+done
+if ! grep -Fq 'MB TrueType renderer scale:' "$work/log.txt"; then
+ echo "UEFI renderer did not report its actual GOP-dependent glyph scale" >&2
+ exit 1
+fi
 if ! grep -Fq 'MB TrueType glyph rasterised by EFI renderer' "$work/log.txt"; then
  echo "BOOT native UEFI TrueType rasteriser failed its glyph self-test" >&2
  grep -E 'TrueType|font|glyph|main loop' "$work/log.txt" >&2 || true
