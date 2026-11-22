@@ -15,6 +15,28 @@
 EFI_FILE_HANDLE  gLogHandle;
 CHAR16           *gLogTemp = NULL;
 BOOLEAN          gLogActive = FALSE;
+static UINTN     BootDiagPendingWrites;
+
+/*
+ * BOOT only needs approximate millisecond resolution to distinguish a
+ * 14-second firmware controller call from a 45-second one. On x86 we
+ * calibrate the CPU timestamp counter against UEFI Stall once per boot;
+ * other architectures fall back to firmware time (which may be coarse).
+ * No operating-system timer, Linux service or driver is involved.
+ */
+static UINT64 BootDiagTicksPerMs;
+
+#define BOOT_DIAG_EARLY_VOLUME_CAP 64
+#define BOOT_DIAG_VOLUME_NAME_CAP 72
+typedef struct {
+    UINTN Index, Total;
+    UINT64 Milliseconds;
+    CHAR16 Name[BOOT_DIAG_VOLUME_NAME_CAP];
+} BOOT_EARLY_VOLUME_RECORD;
+static BOOT_EARLY_VOLUME_RECORD BootDiagEarlyVolumes[BOOT_DIAG_EARLY_VOLUME_CAP];
+static UINTN BootDiagEarlyCount;
+static UINTN BootDiagEarlyDropped;
+
 
 /* Open one named EFI file for read/write and invoke Delete on that handle.
  * UEFI Delete consumes the opened handle; unlike Closing, it mutates the
@@ -133,8 +155,10 @@ EFI_STATUS StartLogging(BOOLEAN Restart) {
  * valid across child-image dispatch or protocol reinitialisation.
  */
 VOID StopLogging(VOID) {
-    if (GlobalConfig.LogLevel > 0)
-        refit_call1_wrapper(gLogHandle->Close, gLogHandle);  
+    if (gLogActive)
+        BootDiagFlush();
+    if (GlobalConfig.LogLevel > 0 && gLogActive)
+        refit_call1_wrapper(gLogHandle->Close, gLogHandle);
     gLogActive = FALSE;
 }  
 
@@ -168,7 +192,18 @@ VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
         if (FinalMessage) {
             BufferSize = StrLen(FinalMessage) * 2;
             refit_call3_wrapper(gLogHandle->Write, gLogHandle, &BufferSize, FinalMessage);
-            refit_call1_wrapper(gLogHandle->Flush, gLogHandle);
+            /*
+             * With startup diagnostics enabled, repeated FAT flushes of
+             * thousands of small lines obscure firmware timing. Flush
+             * separators, every 64 records and explicitly before slow EFI
+             * calls instead. When disabled, preserve ordinary log behaviour.
+             */
+            if (!GlobalConfig.StartupDiagnostics ||
+                LogLineType != LOG_LINE_NORMAL ||
+                ++BootDiagPendingWrites >= 64) {
+                refit_call1_wrapper(gLogHandle->Flush, gLogHandle);
+                BootDiagPendingWrites = 0;
+            }
             FreePool(FinalMessage);
         }
     }
@@ -177,3 +212,113 @@ VOID WriteToLog(CHAR16 **Message, UINTN LogLineType) {
         *Message = NULL;
     }
 }  
+
+
+/* A flushed BEGIN marker survives a later stuck firmware controller call. */
+VOID BootDiagFlush(VOID)
+{
+    if (!gLogActive || !gLogHandle)
+        return;
+    refit_call1_wrapper(gLogHandle->Flush, gLogHandle);
+    BootDiagPendingWrites = 0;
+}
+
+/* Raw cycle counter on x86, firmware wall clock otherwise. */
+UINT64 BootDiagTicks(VOID)
+{
+#if defined(EFIX64) || defined(EFI32)
+    UINT32 Lower, Upper;
+    __asm__ __volatile__("rdtsc" : "=a"(Lower), "=d"(Upper));
+    return ((UINT64)Upper << 32) | Lower;
+#else
+    EFI_TIME Now;
+    EFI_STATUS Status;
+    Status = refit_call2_wrapper(ST->RuntimeServices->GetTime, &Now, NULL);
+    if (EFI_ERROR(Status))
+        return 0;
+    return ((UINT64)Now.Hour * 3600000ULL) +
+           ((UINT64)Now.Minute * 60000ULL) +
+           ((UINT64)Now.Second * 1000ULL) +
+           ((UINT64)Now.Nanosecond / 1000000ULL);
+#endif
+}
+
+VOID BootDiagCalibrateClock(VOID)
+{
+#if defined(EFIX64) || defined(EFI32)
+    UINT64 Before, After;
+    if (!GlobalConfig.StartupDiagnostics)
+        return;
+    Before = BootDiagTicks();
+    refit_call1_wrapper(BS->Stall, 50000);
+    After = BootDiagTicks();
+    if (After > Before)
+        BootDiagTicksPerMs = (After - Before) / 50;
+#endif
+}
+
+UINT64 BootDiagElapsedMs(UINT64 Begin)
+{
+    UINT64 End = BootDiagTicks();
+    if (End < Begin)
+        return 0;
+#if defined(EFIX64) || defined(EFI32)
+    if (!BootDiagTicksPerMs)
+        return 0;
+    return (End - Begin) / BootDiagTicksPerMs;
+#else
+    return End - Begin;
+#endif
+}
+
+/*
+ * The first scan precedes creation of boot.log. Keep a bounded snapshot of
+ * individual volume timings and flush it once the configured log is open.
+ * These names are diagnostic labels only and cannot affect volume selection.
+ */
+VOID BootDiagVolumeTiming(UINTN Index, UINTN Total, CHAR16 *VolumeName,
+                          UINT64 Milliseconds)
+{
+    BOOT_EARLY_VOLUME_RECORD *Entry;
+    UINTN i;
+    if (!GlobalConfig.StartupDiagnostics)
+        return;
+    if (gLogActive) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"[DIAG] volume %d/%d name='%s' scan=%lu ms",
+            Index + 1, Total, VolumeName ? VolumeName : L"(unnamed)",
+            Milliseconds);
+        return;
+    }
+    if (BootDiagEarlyCount >= BOOT_DIAG_EARLY_VOLUME_CAP) {
+        BootDiagEarlyDropped++;
+        return;
+    }
+    Entry = &BootDiagEarlyVolumes[BootDiagEarlyCount++];
+    Entry->Index = Index;
+    Entry->Total = Total;
+    Entry->Milliseconds = Milliseconds;
+    if (!VolumeName)
+        VolumeName = L"(unnamed)";
+    for (i = 0; i + 1 < BOOT_DIAG_VOLUME_NAME_CAP && VolumeName[i]; i++)
+        Entry->Name[i] = VolumeName[i];
+    Entry->Name[i] = 0;
+}
+
+VOID BootDiagFlushEarlyVolumes(VOID)
+{
+    UINTN i;
+    if (!GlobalConfig.StartupDiagnostics || !gLogActive)
+        return;
+    LOG(1, LOG_LINE_NORMAL, L"[DIAG] initial volume scan records=%d dropped=%d",
+        BootDiagEarlyCount, BootDiagEarlyDropped);
+    for (i = 0; i < BootDiagEarlyCount; ++i) {
+        BOOT_EARLY_VOLUME_RECORD *Entry = &BootDiagEarlyVolumes[i];
+        LOG(1, LOG_LINE_NORMAL,
+            L"[DIAG] initial volume %d/%d name='%s' scan=%lu ms",
+            Entry->Index + 1, Entry->Total, Entry->Name, Entry->Milliseconds);
+    }
+    BootDiagEarlyCount = 0;
+    BootDiagEarlyDropped = 0;
+    BootDiagFlush();
+}
