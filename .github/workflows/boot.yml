@@ -30,6 +30,8 @@ jobs:
         run: |
 
           if git ls-files | grep -iE '(^|/)(refind|refind-install)(/|$)'; then exit 1; fi
+          test -s themes/boot-logo.png
+          test -s themes/boot-luxury.png
           test -s themes/boot-mark.png
           test -s themes/boot-underline.png
           ! grep -Eqi 'drawTwinSlash|svg' boot/theme.c

@@ -2,7 +2,7 @@
 # hardcoded in the EFI executable. Paths are relative to BOOT's directory.
 # Set an individual asset to 'none' to suppress it. You may substitute your
 # own PNG/JPEG files; no alternative theme package is required.
-theme_background themes/boot-luxury.jpg
+theme_background themes/boot-luxury.png
 theme_logo themes/boot-logo.png
 # Optional custom themes can supply their own PNG/JPEG logo or disable it
 # with theme_logo none; no text substitution is drawn for this default.

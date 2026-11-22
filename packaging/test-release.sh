@@ -62,18 +62,20 @@ bash -n "$work/unpacked/usr/lib/infiltrator-boot/install-generic.sh"
 grep -Fq 'Depends: bash, efibootmgr' <(dpkg-deb -f "$deb")
 bash tests/deb-install-safety.sh "$deb"
 
-test -s themes/boot-luxury.jpg
-for asset in boot-mark.png boot-underline.png; do
+test -s themes/boot-luxury.png
+for asset in boot-luxury.png boot-logo.png boot-mark.png boot-underline.png; do
     test -s "themes/$asset"
     grep -Fq "usr/share/infiltrator-boot/boot/themes/$asset" "$work/package-files.txt"
     test -s "$work/unpacked/usr/share/infiltrator-boot/boot/themes/$asset"
 done
 ! grep -Eq 'drawTwinSlash|[Ss][Vv][Gg]' boot/theme.c
 ! grep -Eq 'boot-luxury|boot-mark|boot-underline' boot/theme.c
-for option in theme_background theme_mark theme_underline; do
+for option in theme_background theme_logo theme_mark theme_underline; do
     grep -Fq "$option themes/" boot.conf-sample
     grep -Fq "L\"$option\"" boot/config.c
 done
+grep -Fq 'theme_background themes/boot-luxury.png' boot.conf-sample
+grep -Fq 'theme_logo themes/boot-logo.png' boot.conf-sample
 grep -Fq 'ThemeBackgroundFileName' boot/theme.c
 grep -Fq 'ThemeMarkFileName' boot/theme.c
 grep -Fq 'ThemeUnderlineFileName' boot/theme.c
