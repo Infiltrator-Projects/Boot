@@ -114,6 +114,10 @@ jobs:
         shell: bash
         run: bash tests/host-source-regressions.sh
 
+      - name: Check wallpaper scaling without stray colour pixels
+        shell: bash
+        run: bash tests/host-image-scaling.sh
+
       - name: Exercise firmware BootOrder with source-isolated host mocks
         shell: bash
         run: bash tests/host-bootorder-regressions.sh
