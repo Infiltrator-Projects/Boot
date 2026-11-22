@@ -149,6 +149,12 @@ struct fsw_host_table   fsw_efi_host_table = {
 
 extern struct fsw_fstype_table   FSW_FSTYPE_TABLE_NAME(FSTYPE);
 
+/*
+ * Release the two process-global read-ahead windows, clearing their volume
+ * identity, start offsets, validity bits and last-use position. Because these
+ * windows are shared rather than owned by a single FSW_VOLUME_DATA, invalidation
+ * is a global cache operation, not a local dnode close or EFI file flush.
+ */
 VOID EFIAPI fsw_efi_clear_cache(VOID) {
    int i;
 
@@ -164,6 +170,13 @@ VOID EFIAPI fsw_efi_clear_cache(VOID) {
    LastRead = -1;
 }  
 
+/*
+ * Register this image's Driver Binding and Component Name protocols with UEFI.
+ * The first InstallProtocolInterface is published before the second call;
+ * a failure of the second returns its status but does not visibly unregister
+ * the first. This is a partial-registration failure path, not an atomic
+ * driver-start transaction. No filesystem volume is mounted by entry alone.
+ */
 EFI_STATUS EFIAPI fsw_efi_main(IN EFI_HANDLE         ImageHandle,
                                IN EFI_SYSTEM_TABLE   *SystemTable)
 {
@@ -550,6 +563,11 @@ EFI_STATUS EFIAPI fsw_efi_FileSystem_OpenVolume(IN EFI_FILE_IO_INTERFACE *This,
     return Status;
 }
 
+/*
+ * Only a directory handle can resolve a relative child in this read-only
+ * filesystem protocol. A regular file handle is not a directory iterator;
+ * it returns EFI_UNSUPPORTED without allocating a child handle.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_Open(IN EFI_FILE_PROTOCOL *This,
                                           OUT EFI_FILE_PROTOCOL **NewHandle,
                                           IN CHAR16 *FileName,
@@ -564,6 +582,11 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_Open(IN EFI_FILE_PROTOCOL *This,
     return EFI_UNSUPPORTED;
 }
 
+/*
+ * Closing an EFI file releases the embedded FSW stream, then its containing
+ * FSW_FILE_DATA allocation. This invalidates This itself: callers must not
+ * access the EFI_FILE_PROTOCOL pointer after a successful close.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_Close(IN EFI_FILE_PROTOCOL *This)
 {
     FSW_FILE_DATA      *File = FSW_FILE_FROM_FILE_HANDLE(This);
@@ -608,6 +631,11 @@ EFI_STATUS EFIAPI fsw_efi_FileHandle_Read(IN EFI_FILE_PROTOCOL *This,
     return EFI_UNSUPPORTED;
 }
 
+/*
+ * Expose the backend as read-only: no data bytes are written and no output
+ * buffer size adjustment is attempted. The error is EFI_WRITE_PROTECTED,
+ * not a successful zero-length write or a writable FSW feature flag.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileHandle_Write(IN EFI_FILE_PROTOCOL *This,
                                            IN OUT UINTN *BufferSize,
                                            IN VOID *Buffer)
