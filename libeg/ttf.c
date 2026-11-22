@@ -11,6 +11,7 @@
  */
 #include "libegint.h"
 #include "../boot/global.h"
+#include <stddef.h>
 
 #define MB_FONT_COUNT 3
 #define MB_FONT_MAX_BYTES (2U * 1024U * 1024U)

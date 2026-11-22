@@ -27,6 +27,9 @@ printf 'unowned\n' > "$boot_dir/arbitrary-file"
 boot_generic_install_files "$esp" "$source_dir"
 cmp "$source_dir/boot_x64.efi" "$boot_dir/BOOTX64.EFI"
 cmp "$source_dir/boot.conf-sample" "$boot_dir/boot.conf"
+for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
+    cmp "$source_dir/fonts/$face" "$boot_dir/fonts/$face"
+done
 test ! -e "$boot_dir/icons/old.png"
 test ! -e "$boot_dir/arbitrary-file"
 test ! -e "$boot_dir/.infiltrator-boot-loader.sha256"
