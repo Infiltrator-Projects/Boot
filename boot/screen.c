@@ -705,6 +705,10 @@ static VOID BootStartupProgressPaint(VOID)
 VOID BootStartupProgressBegin(VOID)
 {
     EG_PIXEL background = { 12, 10, 8, 0 };
+    EG_PIXEL surface = { 25, 23, 19, 0 };
+    EG_PIXEL cyan = { 233, 220, 39, 0 };
+    EG_IMAGE *splash;
+    UINTN width = 0, height = 0;
 
     BootProgressCount = 0;
     BootProgressTick = 0;
@@ -716,6 +720,22 @@ VOID BootStartupProgressBegin(VOID)
         return;
     BootProgressVisible = TRUE;
     egClearScreen(&background);
+
+    /*
+     * Paint a recognisable cyan status stripe before the first font read.
+     * The following report will replace it with labelled progress once
+     * the renderer has parsed the installed font files.
+     */
+    egGetScreenSize(&width, &height);
+    if (width >= 460 && height >= 300) {
+        splash = egCreateFilledImage(360, 62, FALSE, &surface);
+        if (splash != NULL) {
+            egFillImageArea(splash, 12, 12, 336, 5, &cyan);
+            egFillImageArea(splash, 12, 29, 116, 8, &cyan);
+            egDrawImage(splash, (width - 360) / 2, (height - 62) / 2);
+            egFreeImage(splash);
+        }
+    }
     BootStartupProgressReport(L"Graphical diagnostic display initialised",
                               BOOT_PROGRESS_OK);
 }
