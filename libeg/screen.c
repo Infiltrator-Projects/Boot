@@ -459,6 +459,12 @@ VOID egDrawImage(IN EG_IMAGE *Image, IN UINTN ScreenPosX, IN UINTN ScreenPosY)
        egFreeImage(CompImage);
 }  
 
+/*
+ * Crop a private background rectangle before compositing menu icon and badge.
+ * The original ScreenBackground remains shared. A failed crop suppresses
+ * this paint, but the supplied coordinates must already describe a valid
+ * source rectangle; the crop's arithmetic is not independently overflow-safe.
+ */
 VOID egDrawImageWithTransparency(EG_IMAGE *Image, EG_IMAGE *BadgeImage,
                                  UINTN XPos, UINTN YPos, UINTN Width, UINTN Height) {
     EG_IMAGE *Background;
@@ -569,6 +575,13 @@ EG_IMAGE * egCopyScreenArea(UINTN XPos, UINTN YPos, UINTN Width, UINTN Height) {
     return Image;
 }  
 
+/*
+ * Copy the framebuffer, encode BMP and persist it on the selected ESP.
+ * The output image and encoded bytes have separate ownership. If egFindESP
+ * fails, the current early return occurs after encoding without freeing
+ * FileData; that is a potential pool leak, not an intentionally retained
+ * screenshot buffer. Capture is a UI diagnostic, not loader validation.
+ */
 VOID egScreenShot(VOID)
 {
     EFI_STATUS      Status;
