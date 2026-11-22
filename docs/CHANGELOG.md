@@ -2,6 +2,26 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Individual-source engineering commentary review
+
+- Screened the tracked repository inventory by source/configuration versus
+  nontext resource types. Added a per-file correction ledger to Validation.
+- Expanded firmware lifecycle, EFI driver callback, BDS, legacy dispatch,
+  volume identity, UI pointer/selection, font rasterisation, graphics decode,
+  filesystem extent and Secure Boot hook explanations.
+- Inserted function-specific contracts in the menu, TrueType renderer,
+  filesystem EFI adapter, Btrfs, NTFS and graphical image/screen modules.
+- Distinguished documented defects from repaired behaviour, including
+  malformed icon decoding, integer arithmetic, truncated compressed data,
+  protocol registration and pool ownership.
+- Corrected a stale `libeg/text.c` documentation reference to
+  `libeg/ttf.c` and documented the separate font packaging/runtime stages.
+- Each comment-only C edit was compared to its fetched pre-edit source with
+  comments/whitespace excluded. Unrelated commits arrived on `main` during
+  this work and are not included in that equivalence claim.
+- No executable remediation, firmware build or physical-hardware qualification
+  is asserted for these documentation changes.
+
 ## 2026-11-22 — Filesystem and discovery documentation precision
 
 - Clarified EXT2 logical-versus-physical block translation and indirect-block
