@@ -3,6 +3,9 @@
  * Legacy paths are platform-specific and distinct from UEFI image loading.
  * Partition activation and firmware disk hints can affect persistent boot
  * state; this module must not be used to overwrite other EFI loaders.
+ * EBR chains distinguish partition-relative offsets from current-record
+ * positions; the wrong origin can redirect enumeration to unrelated sectors.
+ * A discovered legacy entry remains conditional on firmware CSM support.
  */
 
 #include "global.h"
