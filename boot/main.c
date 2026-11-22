@@ -76,7 +76,7 @@ REFIT_CONFIG GlobalConfig = {   FALSE,
                                                   DEFAULT_BIG_ICON_SIZE,
                                                   DEFAULT_MOUSE_SIZE },
                                 BANNER_NOSCALE,
-                                0,
+                                4, /* LogLevel: diagnostic logging on unless boot.conf overrides it. */
                                 NULL,
                                 NULL,
                                 NULL,
