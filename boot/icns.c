@@ -1,11 +1,6 @@
-/*
- * Icon acquisition and fallback for firmware-visible operating-system entries.
- * Images come from BOOT resources or embedded artwork, not from a proof that
- * a loader is executable. A missing icon must not suppress an otherwise valid
- * candidate: dummy imagery is an explicit graphics fallback.
- * Built-in icon results are cached and shared across menu entries. Their
- * lifetime belongs to the icon cache, not to an individual loader record;
- * callers must not free or mutate shared pixels as though independently owned.
+/* OS icon lookup and graphical fallbacks.
+ * Selects external, embedded or placeholder artwork for discovered entries.
+ * Icon lookup is independent of executable discovery.
  */
 
 #include "global.h"

@@ -1,12 +1,6 @@
-/*
- * UTF-16 string, GUID and comma-delimited-list helpers used throughout
- * firmware scanning and configuration. Several case-insensitive comparisons
- * are ASCII-oriented bit manipulations, not Unicode collation. Caller memory
- * ownership and NULL handling differ between the individual utilities.
- * ASCII-like bit folding can equate nonletter punctuation, so comparison
- * results are unsuitable as Unicode-normalised security identities. In-place
- * mutation and returned borrowed substrings must be distinguished from new
- * caller-owned pool allocations.
+/* UTF-16, GUID and delimited-list helpers.
+ * Callers must distinguish borrowed strings from allocated results.
+ * Case folding is ASCII-oriented rather than Unicode collation.
  */
 
 #include "mystrings.h"

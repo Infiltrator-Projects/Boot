@@ -1,8 +1,6 @@
-/*
- * Driver binding and controller handle classification interface.
- * ConnectFilesystemDriver can affect firmware protocol associations; callers
- * must sequence driver loading before dependent filesystem scans.
- * The handle type flags reflect EFI driver-model relationships.
+/* Driver binding and controller classification interface.
+ * Handle flags describe observed EFI protocol relationships.
+ * Binding can change the handle inventory seen by later scans.
  */
 
 #ifndef _DRIVER_SUPPORT

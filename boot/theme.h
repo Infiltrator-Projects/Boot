@@ -1,8 +1,8 @@
-/* Graphite theme interface. Wallpaper is a module-owned cached image,
- * valid until a later successful resize or graphics teardown. Wordmark draws
- * into a borrowed image and returns its planned lower Y edge. Selection and
- * tile calls allocate images that the caller must release with egFreeImage.
- * None of these functions enumerate or launch operating systems. */
+/* Graphical theme API and image ownership.
+ * The background is borrowed from a cache; selection plates are owned.
+ * Wordmark composition draws onto its caller-supplied image.
+ */
+
 #ifndef INFILTRATOR_BOOT_THEME_H
 #define INFILTRATOR_BOOT_THEME_H
 #include "global.h"

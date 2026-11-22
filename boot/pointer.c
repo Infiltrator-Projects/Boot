@@ -1,14 +1,6 @@
-/*
- * UEFI absolute/simple-pointer protocol enumeration and cursor state.
- * Pointer hardware is optional; keyboard navigation must remain usable.
- * Opened firmware protocols and cached background images have explicit
- * lifetime requirements when graphics modes or pointer handles change.
- * Cursor coordinates, visible image snapshots and firmware input events have
- * separate lifetimes. Repainting a stale captured background after a menu
- * redraw can erase the current highlight; pointer support remains optional.
- * Cursor coordinates, visible image snapshots and firmware input events have
- * separate lifetimes. Repainting a stale captured background after a menu
- * redraw can erase the current highlight; pointer support remains optional.
+/* UEFI pointer input and cursor state.
+ * Enumerates absolute and relative pointer protocols when available.
+ * Keyboard selection remains independent of pointer hardware.
  */
 
 #include "pointer.h"

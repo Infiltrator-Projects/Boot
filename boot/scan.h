@@ -1,7 +1,6 @@
-/*
- * Discovery builds menu entries from a volume and loader pathname. Generated
- * submenus hold alternate options and folded kernels for that entry. Actual
- * firmware image loading is deferred until the menu dispatches a selection.
+/* Loader discovery and submenu construction interface.
+ * Entry records are tied to the current scanned volume inventory.
+ * Rebuilding menus invalidates previous entry pointers.
  */
 
 #ifndef __SCAN_H_

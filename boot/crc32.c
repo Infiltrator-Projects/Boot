@@ -1,10 +1,6 @@
-/*
- * CRC-32 checksum helper used for integrity checks on firmware-visible
- * metadata such as GPT structures. A CRC detects accidental data corruption;
- * it is not a cryptographic signature or a trust decision.
- * The table implements the reflected CRC-32 convention; callers must agree
- * on initial state, byte order and final complement when validating a stored
- * on-disk checksum. Matching CRCs do not establish authentic provenance.
+/* Reflected CRC-32 for firmware-visible metadata.
+ * Uses the standard polynomial and deterministic byte-wise accumulation.
+ * The checksum detects corruption; it is not authentication.
  */
 
 #include "crc32.h"

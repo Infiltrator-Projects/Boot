@@ -1,8 +1,6 @@
-/*
- * Configuration-file structures and defaults consumed by ReadConfig.
- * Default exclusion patterns and scan directories determine menu visibility,
- * not permission to delete EFI executables. Values are compiled for specific
- * EFI target architectures; the sample file can override runtime defaults.
+/* Configuration parser types, defaults and public operations.
+ * Scan exclusions affect menu visibility; parsing allocates strings
+ * that must be released by the documented token helpers.
  */
 
 #ifndef __CONFIG_H_

@@ -1,8 +1,6 @@
-/*
- * Menu entry, scrolling, input event and action-result contract.
- * MENU_EXIT_* results describe UI transitions, not persistent boot-record
- * operations. The screen's selected entry must belong to the current scan;
- * bootloader image validity remains an independent responsibility.
+/* Menu layout, scroll and selection-result interface.
+ * Entry pointers are borrowed; selection results describe UI transitions.
+ * Ownership and selected-entry validity follow the active scan.
  */
 
 #ifndef __BOOT_MENU_H_

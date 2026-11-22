@@ -1,8 +1,6 @@
-/*
- * On-disk GPT and protective-MBR metadata types. Structures describe a
- * partition table supplied by untrusted Block I/O; header and entry-array
- * CRC checking are mandatory before treating the parsed table as coherent.
- * A partition identity is not itself a readable filesystem.
+/* GPT metadata structures and inspection API.
+ * On-disk lengths, UUIDs and table checksums are parsed from raw blocks.
+ * The returned partition records are descriptive, not mounted volumes.
  */
 
 #ifndef __GPT_H_

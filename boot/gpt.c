@@ -1,14 +1,6 @@
-/*
- * Read-only GPT metadata acquisition for identifying partitions.
- * The protective MBR, primary GPT header and entry array originate from
- * untrusted blocks. Header CRC and entries CRC must both be valid before
- * a partition table is treated as coherent; this code does not repair disks.
- * Cached table records and copied partition outputs have different lifetimes.
- * Invalidating the global GPT cache must not leave callers retaining borrowed
- * pointers into it. A checksum is structural consistency, not authentication.
- * Cached table records and copied partition outputs have different lifetimes.
- * Invalidating the global GPT cache must not leave callers retaining borrowed
- * pointers into it. A checksum is structural consistency, not authentication.
+/* Read-only GUID Partition Table inspection.
+ * Validates protective MBR, header and entry-array integrity before use.
+ * Disk metadata is parsed independently of filesystem readability.
  */
 
 #pragma pack(0)

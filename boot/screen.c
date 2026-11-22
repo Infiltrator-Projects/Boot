@@ -1,10 +1,6 @@
-/*
- * Firmware graphics/text mode, output device and screen lifetime management.
- * UEFI GOP/console state must be restored or deliberately transitioned across
- * child-image execution. A renderer failure must not be treated as disk failure.
- * Screen capture, compositing scratch images and cached console rows have
- * independent allocation lifetimes. Changing text/graphics mode can
- * invalidate layout dimensions without affecting loader discovery state.
+/* Screen mode, console state and graphics lifecycle.
+ * Coordinates GOP/text fallback and display restoration after child images.
+ * Screen resources must follow firmware mode changes.
  */
 
 #include "global.h"
