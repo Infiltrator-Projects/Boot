@@ -220,6 +220,17 @@ The parser is deliberately **not an all-or-nothing enumeration**. Malformed or m
 
 `fsw_efi_DriverBinding_Stop` must successfully uninstall Simple File System before freeing its containing volume; otherwise firmware could retain a pointer into freed memory. After uninstall it unmounts, releases the volume, closes Disk I/O and clears the FSW cache. These paths require fault-injected protocol-install/uninstall tests and real metadata-read tests before their failure behaviour can be treated as qualified across firmwares.
 
+## Source-visible hazards outside the current regression envelope
+
+The comments on the following routines now state observed limitations rather than imply safety that the implementation does not establish:
+
+- [`GenerateWaitList`](../boot/menu.c) allocates its global EFI event array without checking the allocation before indexing it. A later invocation may replace the global pointer without releasing the earlier array. Its caller must not interpret the VOID return as evidence of allocation success.
+- [`IsSymbolicLink`](../boot/scan.c) compares EFI directory metadata with a separately opened file's length. It does not prove symbolic-link identity, can classify read failures as mismatches, and does not currently close a successfully opened file handle.
+- [`GetFirstOptionsFromFile`](../boot/config.c) copies the first Linux command-line entry but frees only the `REFIT_FILE` wrapper; the options-file payload's lifetime must be established independently.
+- [`EfivarGetRaw`](../boot/lib.c) may use BOOT's file-backed variable directory for the BOOT vendor GUID; a failed file read after opening that directory does not trigger a firmware-variable retry. Firmware allocation capacity is derived from a pointer-size multiplication rather than a literal maximum byte count.
+
+These are defects or behaviour limits documented from source inspection, **not corrections to execution**. The validation plan must specify corresponding failed-allocation, interrupted-read and repeated-call fixtures before the affected contracts can be declared qualified.
+
 ## Unverified architectural objectives
 
 The desired Common V2-only filesystem module design, universal operating-system compatibility, production-grade security qualification and complete custom InfiltratorOS appearance require explicit future evidence. This document records the implemented BOOT revision and does not silently declare those objectives done. See [Hardware](HARDWARE.md) and [Validation](VALIDATION.md) for observed limits.
