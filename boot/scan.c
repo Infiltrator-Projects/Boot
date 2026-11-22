@@ -1462,7 +1462,10 @@ static BOOLEAN IsValidTool(IN REFIT_VOLUME *BaseVolume, CHAR16 *PathName) {
  * is shared across the outer volume loop: once a directory is marked, the
  * same textual directory can be skipped on later volumes. This
  * deduplication is not equivalent to deduplicating a pathname plus its
- * volume identity.
+ * volume identity. Because the set is updated before testing later volumes,
+ * this is a known multi-volume discovery limitation, not merely a cosmetic
+ * duplicate-suppression policy. Any claim of exhaustive tool discovery needs
+ * two readable volumes with the same candidate directory in its regression.
  */
 VOID FindTool(CHAR16 *Locations, CHAR16 *Names, CHAR16 *Description, UINTN Icon) {
     UINTN j, k, VolumeIndex;
