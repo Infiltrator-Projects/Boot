@@ -94,7 +94,7 @@ static VOID MergeStrings(CHAR16 **target, CHAR16 *extra, CHAR16 separator) {
     s[a+b]=0;
     free(*target);*target=s;
 }
-static VOID MergeWords(CHAR16 **target, CHAR16 *source, CHAR16 sep) {
+static VOID MergeWords(CHAR16 **target, const CHAR16 *source, CHAR16 sep) {
     CHAR16 *s,*p,*begin;
     if(!source)return;
     s=StrDuplicate(source);p=s;begin=s;
