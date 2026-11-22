@@ -21,6 +21,13 @@ This file records changes supported by repository commits and existing release q
 - Updated Architecture and Validation with explicit failure-semantics and unresolved test obligations for short reads, metadata-size conversions, allocation faults, EFI-to-FSW status mismatch and physical-block cache arithmetic.
 - No functionality, build, installer or test fixtures were changed. These source-only observations are **not** evidence that the identified defects have been fixed, that all source files have been exhaustively reviewed or that physical firmware tests were run.
 
+## 2026-11-22 — Interface-contract accuracy follow-up
+
+- Clarified the byte-level BootOrder/Boot#### parsing and partial-result contract in `boot/install.c`.
+- Documented controller rebind outcome visibility in `boot/driver_support.c`, and EFI Simple File System protocol lifetimes in `filesystems/fsw_efi.c`.
+- Recorded source-visible resource and failure limitations in `boot/menu.c`, `boot/config.c`, `boot/lib.c` and `boot/scan.c`: unchecked event-array allocation, Linux options payload ownership, firmware-variable fallback and file-handle retention during link heuristics.
+- Expanded `docs/ARCHITECTURE.md` and `docs/VALIDATION.md` with implementation-specific contracts and explicit missing regression evidence. These documentation-only commits do not repair the cited runtime limitations or establish new firmware test results.
+
 ## 2026-11-22 — Code-comment and documentation-only review
 
 - Added 115 source-level technical function contracts across 28 maintained C implementation files, covering firmware and menu entry lifetimes, file and variable ownership, C/EFI byte and block units, loader discovery, FSW stream mappings, parser assumptions, Unicode limitations and outstanding resource hazards.
