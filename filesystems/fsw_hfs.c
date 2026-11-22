@@ -61,6 +61,11 @@ static fsw_status_t fsw_hfs_dir_read(struct fsw_hfs_volume *vol, struct fsw_hfs_
 static fsw_status_t fsw_hfs_read_dirrec(struct fsw_shandle *shand, struct hfs_dirrec_buffer *dirrec_buffer);
 #endif
 
+/*
+ * This backend does not implement link-target decoding. Returning
+ * FSW_UNSUPPORTED is a capability boundary; a catalog entry identified as a
+ * symlink cannot be resolved by this reader through the generic FSW callback.
+ */
 static fsw_status_t fsw_hfs_readlink(struct fsw_hfs_volume *vol, struct fsw_hfs_dnode *dno,
                                          struct fsw_string *link);
 
@@ -177,6 +182,13 @@ fsw_hfs_read_file (struct fsw_hfs_dnode    * dno,
     return read;
 }
 
+/*
+ * Return the highest set-bit index as a block-size shift. This does not test
+ * that size has exactly one set bit: an invalid, non-power-of-two allocation
+ * block size is silently rounded down to a shift. The mount subsequently
+ * applies that shift to logical block mapping, so malformed geometry needs
+ * an explicit rejection regression rather than documentation-only approval.
+ */
 static fsw_s32
 fsw_hfs_compute_shift(fsw_u32 size)
 {
@@ -398,6 +410,11 @@ static fsw_status_t fsw_hfs_volume_stat(struct fsw_hfs_volume *vol, struct fsw_v
     return FSW_SUCCESS;
 }
 
+/*
+ * No lazy fill is performed for HFS+ dnodes: catalog lookup populates the
+ * data needed for later reads. Returning success does not independently
+ * re-read or validate on-disk catalog metadata at this point.
+ */
 static fsw_status_t fsw_hfs_dnode_fill(struct fsw_hfs_volume *vol, struct fsw_hfs_dnode *dno)
 {
     return FSW_SUCCESS;
@@ -412,6 +429,12 @@ static void fsw_hfs_dnode_free(struct fsw_hfs_volume *vol, struct fsw_hfs_dnode 
 {
 }
 
+/*
+ * Convert seconds since the 1904 Macintosh epoch to seconds since 1970.
+ * Zero stays zero. Nonzero timestamps earlier than 1970 underflow the
+ * unsigned 32-bit subtraction; the reported time is not a validated signed
+ * POSIX timestamp for that historical range.
+ */
 static fsw_u32 mac_to_posix(fsw_u32 mac_time)
 {
 
@@ -672,6 +695,13 @@ typedef struct
     file_info_t             file_info;
 } visitor_parameter_t;
 
+/*
+ * Visit one catalog record within the requested parent directory. The
+ * record's encoded key length determines the type/body pointer, which is
+ * cast to a folder/file record without an independent available-byte count
+ * in this callback. The caller must establish both key and record-body
+ * bounds before permitting untrusted B-tree metadata to reach this visitor.
+ */
 static int
 fsw_hfs_btree_visit_node(BTreeKey *record, void* param)
 {
