@@ -3,6 +3,9 @@
  * Protocol handles, allocation ownership, disk identity and error statuses
  * cross security and lifetime boundaries here. A recognised volume is not
  * necessarily readable, and an EFI file is not automatically executable.
+ * Borrowed firmware handles and owned pool buffers must not be conflated.
+ * Rescanning may invalidate volume records; a device-path representation is
+ * diagnostic text unless a separately bounded binary parser has validated it.
  */
 
 #pragma pack(0)
