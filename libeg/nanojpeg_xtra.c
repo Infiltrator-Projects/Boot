@@ -2,6 +2,10 @@
  * NanoJPEG-to-EG_IMAGE adaptor for BOOT graphics. JPEG data is optional
  * resource content, never a prerequisite for scanning or launching an EFI
  * image. Adapter allocations are independent of loader and firmware handles.
+ * The decoded colour buffer belongs to NanoJPEG and njDone() frees it.
+ * This adapter also frees that pointer before calling njDone(), risking a
+ * double free. Grayscale decoding uses a single byte per pixel but this
+ * adapter assumes interleaved RGB triples without testing njIsColor().
  */
 
 #include "global.h"
@@ -21,7 +25,9 @@ typedef struct _jpeg_color {
  * Allocate at the dimensions returned by NanoJPEG and copy its packed colour
  * values into EG_PIXEL members. Requested alpha is initialised to fully opaque.
  * IconSize does not scale this image here. The normal success path releases the
- * decoded buffer after the copy.
+ * decoded buffer after the copy, then njDone() attempts to free that same
+ * decoder-owned buffer again. This is not valid ownership transfer.
+ * The failure path after njDecode does not explicitly tear down the context.
  */
 EG_IMAGE * egDecodeJPEG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha) {
     EG_IMAGE *NewImage = NULL;
