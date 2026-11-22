@@ -1802,6 +1802,14 @@ UINTN RunMenu(IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry)
  * indices. Disable the initial timeout after the first return. Escaping a
  * subscreen resumes its parent. The returned entry may be a child, while the
  * saved selection title identifies the original top-level choice.
+ *
+ * ChosenEntry is a borrowed pointer to an entry in Screen or a child screen;
+ * this routine does not transfer ownership of the entry or its title. Callers
+ * must consume the selection before freeing/rebuilding the corresponding menu.
+ * The selected title and returned entry can intentionally refer to different
+ * menu levels, so neither should be used as a stable identity across rescans.
+ * An exit code describes the menu interaction, not the outcome of a firmware
+ * image launch.
  */
 UINTN RunMainMenu(REFIT_MENU_SCREEN *Screen, CHAR16** DefaultSelection, REFIT_MENU_ENTRY **ChosenEntry)
 {
