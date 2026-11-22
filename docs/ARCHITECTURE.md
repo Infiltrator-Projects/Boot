@@ -102,6 +102,26 @@ BOOT's native installer distinguishes signing keys from firmware/shim authentica
 
 The separate `boot-sb-healthcheck` script reads trust-database and certificate metadata but also contains interactive paths that replace keys or initiate further administrative actions. It is not a purely observational scanner, and certificate expiry alone is not proof of a Secure Boot failure.
 
+## Cross-boundary contracts requiring explicit qualification
+
+### FSW block I/O and cache geometry
+
+`filesystems/fsw_efi.c:fsw_efi_read_block` receives a logical physical-block index, converts it into a byte offset using `phys_blocksize`, and reads through firmware Disk I/O. The adapter holds two 128 KiB read-ahead windows; a cache hit is meant to be restricted to the same mounted volume and to a window containing the full requested block. When a wide read or cache allocation fails, it falls back to a one-block read. `LastIOStatus` records the resulting firmware status.
+
+This path does **not** currently establish that multiplication of the block index and block size fits the offset width. It also performs endpoint additions in cache-hit checks without explicit overflow proof, and assumes that the caller supplies a buffer large enough for `phys_blocksize`. These requirements are preconditions in practice, not validated properties. The cache must not be treated as an independently trustworthy source of media identity after controller or media changes without corresponding invalidation.
+
+### Fallback-loader equivalence
+
+`boot/scan.c:DuplicatesFallback` opens the candidate and architecture fallback from the same volume. Equal reported file sizes allow it to allocate two buffers, read the contents and compare them. As written, the routine does not impose a file-size cap, does not check a possible NULL from `LibFileInfo`, and does not independently confirm both returned read lengths before `CompareMem`. Its boolean result is a menu-filtering heuristic, **not** a secure equivalence or authenticity assertion. `FALSE` can mean that either file was unavailable or unreadable, an allocation failed, or the bytes differed.
+
+### EFI child-image execution
+
+`boot/launch_efi.c:StartEFIImage` first classifies a candidate loader, then delegates loading to UEFI `LoadImage`. The classifier is not an authenticity check. For gzip input, BOOT rejects compressed files that are empty or larger than `512 MiB / 10`, allocates at most ten times the compressed size, and passes the decoder's actual reported output byte count to `LoadImage` only after successful decompression. A `LoadedImage` options buffer is held across `StartImage`; the size is counted in bytes and includes the CHAR16 terminator. A child image that loads or returns does not establish successful operating-system boot. Driver images deliberately remain resident when needed for installed protocols.
+
+### Evidence distinction
+
+These descriptions are source-inspection findings. They do not imply that fuzzing, hostile filesystem images, fault-injected EFI allocation, firmware authentication matrices, or physical hardware regression runs have occurred. The related unexecuted regression requirements are tracked in [Validation](VALIDATION.md). Documentation changes do not repair the implementation.
+
 ## Unverified architectural objectives
 
 The desired Common V2-only filesystem module design, universal operating-system compatibility, production-grade security qualification and complete custom InfiltratorOS appearance require explicit future evidence. This document records the implemented BOOT revision and does not silently declare those objectives done. See [Hardware](HARDWARE.md) and [Validation](VALIDATION.md) for observed limits.
