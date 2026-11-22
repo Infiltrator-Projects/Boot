@@ -602,3 +602,152 @@ VOID BltImageCompositeBadge(IN EG_IMAGE *BaseImage,
          GraphicsScreenDirty = TRUE;
      }
 }
+
+
+#if BOOT_STARTUP_PROGRESS_ENABLED
+/*
+ * Temporary diagnostic splash, independent of the menu wallpaper and the
+ * filesystem driver path. Graphics must be initialised once by efi_main
+ * before Begin, while BOOT's own SelfDir is still available for the installed
+ * font collection. All history lives in fixed-size records; a failed display
+ * allocation does not alter boot discovery or handoff.
+ *
+ * This is an activity indicator, not an elapsed-time or percent-complete
+ * estimate. It deliberately avoids repainting on a timer during synchronous
+ * firmware calls: the last visible activity identifies a slow stage.
+ */
+#define BOOT_PROGRESS_ROWS 10
+#define BOOT_PROGRESS_CHARS 96
+
+static BOOLEAN BootProgressVisible;
+static UINTN BootProgressCount;
+static UINTN BootProgressTick;
+static CHAR16 BootProgressLines[BOOT_PROGRESS_ROWS][BOOT_PROGRESS_CHARS];
+static UINTN BootProgressResults[BOOT_PROGRESS_ROWS];
+
+/* Repaint a compact console-shaped panel using the already active GOP/UGA. */
+static VOID BootStartupProgressPaint(VOID)
+{
+    UINTN screenWidth = 0, screenHeight = 0;
+    UINTN width, height, index, limit, rowHeight;
+    UINTN trackWidth, segmentWidth, offset;
+    EG_IMAGE *panel;
+    EG_PIXEL background = { 12, 10, 8, 0 };
+    EG_PIXEL surface = { 25, 23, 19, 0 };
+    EG_PIXEL track = { 46, 43, 37, 0 };
+    EG_PIXEL cyan = { 233, 220, 39, 0 };
+    EG_PIXEL green = { 135, 193, 94, 0 };
+    EG_PIXEL red = { 93, 93, 227, 0 };
+    EG_PIXEL muted = { 120, 115, 109, 0 };
+    EG_PIXEL *indicator;
+
+    if (!BootProgressVisible || !AllowGraphicsMode ||
+        !egIsGraphicsModeEnabled())
+        return;
+    egGetScreenSize(&screenWidth, &screenHeight);
+    if (screenWidth < 460 || screenHeight < 300)
+        return;
+
+    width = screenWidth > 1000 ? 940 : screenWidth - 40;
+    height = screenHeight > 510 ? 466 : screenHeight - 32;
+    trackWidth = width - 64;
+    segmentWidth = trackWidth / 6;
+    if (!segmentWidth)
+        return;
+
+    panel = egCreateFilledImage(width, height, FALSE, &surface);
+    if (panel == NULL)
+        return;
+
+    egFillImageArea(panel, 26, 24, width - 52, 2, &cyan);
+    egRenderTextRole(L"BOOT  /  STARTUP DIAGNOSTICS", panel,
+                     32, 35, 0, MB_FONT_BOLD);
+    egRenderTextRole(L"Temporary display - EFI driver acceptance is not a filesystem mount",
+                     panel, 32, 68, 0, MB_FONT_BODY);
+    egFillImageArea(panel, 32, 108, trackWidth, 8, &track);
+    offset = ((BootProgressTick - 1) * 79) % (trackWidth - segmentWidth + 1);
+    egFillImageArea(panel, 32 + offset, 108, segmentWidth, 8, &cyan);
+
+    rowHeight = egGetFontHeight() + 7;
+    if (rowHeight < 24)
+        rowHeight = 24;
+    limit = (height - 142) / rowHeight;
+    if (limit > BootProgressCount)
+        limit = BootProgressCount;
+
+    for (index = 0; index < limit; ++index) {
+        UINTN sourceIndex = BootProgressCount - limit + index;
+        UINTN y = 134 + index * rowHeight;
+        indicator = &muted;
+        if (BootProgressResults[sourceIndex] == BOOT_PROGRESS_ACTIVE)
+            indicator = &cyan;
+        else if (BootProgressResults[sourceIndex] == BOOT_PROGRESS_OK)
+            indicator = &green;
+        else if (BootProgressResults[sourceIndex] == BOOT_PROGRESS_ERROR)
+            indicator = &red;
+
+        egFillImageArea(panel, 33, y + 5, 7, 7, indicator);
+        egRenderTextRole(BootProgressLines[sourceIndex], panel, 49, y,
+                         0, MB_FONT_BODY);
+    }
+
+    egClearScreen(&background);
+    egDrawImage(panel, (screenWidth - width) / 2,
+                (screenHeight - height) / 2);
+    egFreeImage(panel);
+}
+
+/*
+ * Draw an immediate background before any TTF I/O. If font preparation is
+ * slow, the firmware has already switched into graphics mode and displayed
+ * the diagnostic background rather than appearing to hang at a blank screen.
+ */
+VOID BootStartupProgressBegin(VOID)
+{
+    EG_PIXEL background = { 12, 10, 8, 0 };
+
+    BootProgressCount = 0;
+    BootProgressTick = 0;
+    BootProgressVisible = FALSE;
+    if (!AllowGraphicsMode)
+        return;
+    SwitchToGraphics();
+    if (!egIsGraphicsModeEnabled())
+        return;
+    BootProgressVisible = TRUE;
+    egClearScreen(&background);
+    BootStartupProgressReport(L"Graphical diagnostic display initialised",
+                              BOOT_PROGRESS_OK);
+}
+
+/* Copy the caller's transient message before it releases any allocations. */
+VOID BootStartupProgressReport(IN CHAR16 *Message, IN UINTN Result)
+{
+    UINTN i, row;
+    if (!BootProgressVisible || Message == NULL)
+        return;
+
+    if (BootProgressCount == BOOT_PROGRESS_ROWS) {
+        for (row = 1; row < BOOT_PROGRESS_ROWS; ++row) {
+            for (i = 0; i < BOOT_PROGRESS_CHARS; ++i)
+                BootProgressLines[row - 1][i] = BootProgressLines[row][i];
+            BootProgressResults[row - 1] = BootProgressResults[row];
+        }
+        BootProgressCount--;
+    }
+
+    row = BootProgressCount++;
+    for (i = 0; i + 1 < BOOT_PROGRESS_CHARS && Message[i] != 0; ++i)
+        BootProgressLines[row][i] = Message[i];
+    BootProgressLines[row][i] = 0;
+    BootProgressResults[row] = Result;
+    ++BootProgressTick;
+    BootStartupProgressPaint();
+}
+
+/* The regular menu repaint completely replaces this temporary surface. */
+VOID BootStartupProgressEnd(VOID)
+{
+    BootProgressVisible = FALSE;
+}
+#endif /* BOOT_STARTUP_PROGRESS_ENABLED */
