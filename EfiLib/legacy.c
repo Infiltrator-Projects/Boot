@@ -189,6 +189,12 @@ BdsIsLegacyBootOption (
   return Ret;
 }
 
+/*
+ * Walk BootOrder in its current firmware order, decoding Boot#### variables
+ * and comparing BBS device type/name. A variable's existence does not
+ * authenticate or bound its embedded device path and BBS record. The caller
+ * receives a match indication, not a stable firmware device identity.
+ */
 BOOLEAN
 BdsFindLegacyBootOptionByDevTypeAndName (
   IN UINT16                 *BootOrder,
@@ -405,6 +411,12 @@ BdsCreateLegacyBootOption (
   return Status;
 }
 
+/*
+ * Build a BBS device path from firmware-provided table metadata and delegate
+ * Boot#### creation. The appended device path is an owned allocation freed
+ * on return. Variable creation and BootOrder mutation may fail separately:
+ * the operation does not offer transactional rollback across NVRAM writes.
+ */
 EFI_STATUS
 BdsCreateOneLegacyBootOption (
   IN BBS_TABLE              *BbsItem,
@@ -517,6 +529,11 @@ EfiLibGetVariable (
   return BdsLibGetVariableAndSize (Name, VendorGuid, &VarSize);
 }
 
+/*
+ * Delete a firmware variable using the UEFI zero-length SetVariable call.
+ * A prior existence probe allocates a separate buffer that is freed here;
+ * an ASSERT on deletion error is not runtime recovery or proof of deletion.
+ */
 EFI_STATUS
 EfiLibDeleteVariable (
   IN CHAR16   *VarName,
