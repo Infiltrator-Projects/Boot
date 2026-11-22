@@ -3,6 +3,11 @@
  * A superblock's magic/revision/feature bits determine whether this reader
  * can interpret the volume. Inode group tables, direct/indirect addressing,
  * directory records and symlink targets originate from untrusted disk bytes.
+ * Inode block addressing distinguishes file-relative logical indexes from
+ * disk physical blocks: direct, single-, double- and triple-indirect lookups
+ * have different index ranges and intermediate block lifetimes. An EXT2
+ * feature-bit match is a parser eligibility check, not evidence that a later
+ * directory record, indirect pointer or symlink has valid bounds.
  */
 
 #include "fsw_ext2.h"
