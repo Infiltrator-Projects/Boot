@@ -441,6 +441,12 @@ VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
  * returns. A positive count therefore means a directory yielded matching files.
  * It triggers a controller connection and rescan even if firmware rejected a
  * particular driver.
+ *
+ * The counter is incremented before StartEFIImage, and its EFI_STATUS is not
+ * used to decrement the count. It therefore measures candidate filenames,
+ * not successfully bound drivers. In particular, a TRUE return from
+ * LoadDrivers must not be used as evidence that any filesystem became
+ * readable or that a driver passed firmware authentication.
  */
 static UINTN ScanDriverDir(IN CHAR16 *Path)
 {
