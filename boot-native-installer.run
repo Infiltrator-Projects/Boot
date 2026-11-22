@@ -162,6 +162,9 @@ ReadYesNo() {
    fi
 }
 
+# Read the local signing key passphrase without terminal echo. This value
+# is held in a shell variable for signing; it does not establish firmware
+# trust or final key enrollment.
 ReadKeyPassphrase() {
    if [[ $EncryptKeys == 1 ]]  && [ -z "$KeyPassphrase" ]; then
       while true; do
@@ -467,6 +470,8 @@ CopyDrivers() {
    fi
 }
 
+# Copy optional EFI utilities without interpreting their presence as a
+# successful firmware execution or operating-system discovery result.
 CopyTools() {
    if [[ $OSTYPE == darwin* && -f "$BootDir/tools_$1/gptsync_$1.efi" ]] ; then
       cp -f "$BootDir/tools_$1/gptsync_$1.efi" "$InstallDir/$TargetDir/" || {
@@ -643,6 +648,8 @@ MountOSXESP() {
    fi
 }
 
+# Query macOS System Integrity Protection before the host-side bless step.
+# csrutil text is a platform indication, not proof that BOOT later starts.
 CheckForSIP() {
    local OKToInstall
    local RootName
@@ -959,8 +966,9 @@ FindLinuxESP() {
    done
 }
 
-# Resolves a mounted ESP and expected filesystem state. A mount path is
-# does not by itself establish a correct EFI installation destination.
+# Resolve a mounted EFI System Partition using host mount information.
+# Existence of a mount path alone cannot establish the intended device,
+# partition identity or subsequent firmware registration.
 FindMountedESP() {
    mount /boot &> /dev/null
    mount /boot/efi &> /dev/null
@@ -1265,6 +1273,10 @@ case "$OSTYPE" in
 esac
 CreateBootCsvFile
 
+# KNOWN CLEAN-SUCCESS FAILURE: Problems is only set to 1 by error branches.
+# Under set -u, evaluating [[ $Problems ]] when it remains unset aborts the
+# clean-success path. This records existing behaviour, not a repaired exit
+# contract; explicit clean-exit and failure tests are still necessary.
 InstallationFailed=0
 if [[ $Problems ]] ; then
    InstallationFailed=1
