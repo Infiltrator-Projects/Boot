@@ -2,6 +2,9 @@
  * Small EFI Simple File System helpers used during security inspection.
  * Device paths, file handles and read buffers originate from UEFI services;
  * caller ownership and byte-count checks are prerequisites for image parsing.
+ * A successfully opened EFI_FILE_PROTOCOL owns an outstanding Close duty;
+ * the device handle and installed filesystem protocol remain firmware-owned.
+ * A successful open does not validate any subsequently read file contents.
  */
 
 #include <global.h>
