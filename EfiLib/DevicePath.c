@@ -71,6 +71,11 @@ MyCatPrint (
   return Str->Str;
 }
 
+/*
+ * A PCI device-path node supplies device/function numbers relative to its
+ * parent bridge. This formatter does not discover the bus or verify a live
+ * controller. It appends text to the shared POOL_PRINT buffer.
+ */
 VOID
 DevPathPci (
   IN OUT POOL_PRINT       *Str,
@@ -211,6 +216,11 @@ DevPathVendor (
   MyCatPrint (Str, L")");
 }
 
+/*
+ * An ACPI hardware ID is displayed as an EISA PNP number where the encoded
+ * HID matches that convention, otherwise as a hexadecimal HID. The UID is
+ * a firmware path field, not a live ACPI namespace query.
+ */
 VOID
 DevPathAcpi (
   IN OUT POOL_PRINT       *Str,
@@ -460,6 +470,11 @@ DevPathLogicalUnit (
   MyCatPrint (Str, L"Unit(%x)", (UINTN) LogicalUnit->Lun);
 }
 
+/*
+ * A USB class path describes vendor/product IDs and the class, subclass
+ * and protocol matching fields. It may match more than one physical USB
+ * device and cannot serve as a unique port identity.
+ */
 VOID
 DevPathUsbClass (
   IN OUT POOL_PRINT       *Str,
@@ -524,6 +539,11 @@ DevPathI2O (
   MyCatPrint (Str, L"I2O(%x)", (UINTN) I2OPath->Tid);
 }
 
+/*
+ * Network interface type decides whether to show a six-byte Ethernet-style
+ * address or the full EFI_MAC_ADDRESS field. This prints firmware path
+ * bytes and does not resolve active link-layer state.
+ */
 VOID
 DevPathMacAddr (
   IN OUT POOL_PRINT       *Str,
@@ -635,6 +655,11 @@ DevPathInfiniBand (
  * Zero baud or data-bit values represent protocol defaults rather than
  * literal zero-speed hardware. The encoded parity and stop-bit enumerations
  * are mapped to display tokens; no serial port is opened or configured.
+ */
+/*
+ * Map firmware parity, default baud rate/data bits and stop-bit selectors
+ * to a printable UART path. Unrecognised parity/stop-bit values produce an
+ * x marker; this does not configure the serial controller.
  */
 VOID
 DevPathUart (
@@ -749,6 +774,11 @@ DevPathiSCSI (
   MyCatPrint (Str, L"%s)", (IScsi->NetworkProtocol == 0) ? L"TCP" : L"reserved");
 }
 
+/*
+ * Append the encoded VLAN identifier from a network messaging node. The
+ * displayed value does not establish that the physical NIC or network
+ * stack has joined that VLAN.
+ */
 VOID
 DevPathVlan (
   IN OUT POOL_PRINT       *Str,
@@ -834,6 +864,10 @@ DevPathFilePath (
   MyCatPrint (Str, L"%s", Fp->PathName);
 }
 
+/*
+ * Render the media protocol GUID carried by this node. The formatter does
+ * not locate the named protocol on any current firmware handle.
+ */
 VOID
 DevPathMediaProtocol (
   IN OUT POOL_PRINT       *Str,
@@ -958,6 +992,11 @@ DevPathNodeUnknown (
   MyCatPrint (Str, L"?");
 }
 
+/*
+ * Render the firmware-volume GUID as a descriptive device-path element. A
+ * GUID string is not proof that firmware can open or authenticate a file
+ * in that volume.
+ */
 VOID
 DevPathFvPath (
   IN OUT POOL_PRINT       *Str,
