@@ -3,6 +3,9 @@
  * stride and alpha representation control all pixel-buffer accesses; resource
  * files are not trusted merely because they are installed with BOOT.
  * Allocation and free routines own image lifetimes independently of UEFI paths.
+ * Copying an image descriptor is not necessarily a deep copy of its pixel
+ * plane. Blending, scaling and cropping must distinguish borrowed source
+ * pixels from newly allocated output buffers and handle allocation failure.
  */
 
 #include "libegint.h"
