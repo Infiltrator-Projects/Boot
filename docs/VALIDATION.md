@@ -503,4 +503,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `libeg/lodepng.c` | 254 | Bundled decoder |
 | `libeg/lodepng.h` | 0 | ABI/header |
 | `libeg/lodepng_xtra.c` | 8 | Maintained implementation |
+| `libeg/nanojpeg.c` | 31 | Bundled decoder |
+| `libeg/nanojpeg_xtra.c` | 1 | Maintained implementation |
+| `libeg/screen.c` | 19 | Maintained implementation |
+| `libeg/stb_truetype.h` | 151 | Bundled decoder |
+| `libeg/ttf.c` | 34 | Maintained implementation |
+| `mok/guid.c` | 0 | Maintained implementation |
+| `mok/guid.h` | 0 | ABI/header |
+| `mok/mok.c` | 3 | Maintained implementation |
+| `mok/mok.h` | 0 | ABI/header |
+| `mok/security_policy.c` | 4 | Maintained implementation |
+| `mok/security_policy.h` | 0 | ABI/header |
+| `mok/simple_file.c` | 2 | Maintained implementation |
+| `mok/simple_file.h` | 0 | ABI/header |
+| `tests/icon-detection-regressions.c` | 23 | Maintained implementation |
+| `tests/validate-fonts.c` | 2 | Maintained implementation |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
