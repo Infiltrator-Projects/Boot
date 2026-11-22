@@ -74,6 +74,10 @@ void fsw_unmount(struct fsw_volume *vol)
     fsw_free(vol);
 }
 
+/*
+ * Delegate accounting to the mounted backend. Reported free bytes are
+ * metadata estimates, not a claim that the read-only driver can write them.
+ */
 fsw_status_t fsw_volume_stat(struct fsw_volume *vol, struct fsw_volume_stat *sb)
 {
     return vol->fstype_table->volume_stat(vol, sb);
@@ -272,6 +276,10 @@ fsw_status_t fsw_dnode_create_root_with_tree(struct fsw_volume *vol, fsw_u64 tre
     return FSW_SUCCESS;
 }
 
+/*
+ * Compatibility root constructor for the default (tree ID zero) namespace.
+ * The new root is registered with one owned reference on successful return.
+ */
 fsw_status_t fsw_dnode_create_root(struct fsw_volume *vol, fsw_u64 dnode_id, struct fsw_dnode **dno_out)
 {
 	return fsw_dnode_create_root_with_tree( vol, 0, dnode_id, dno_out);
@@ -333,6 +341,10 @@ fsw_status_t fsw_dnode_create(struct fsw_dnode *parent_dno, fsw_u64 dnode_id, in
 	return fsw_dnode_create_with_tree(parent_dno, 0, dnode_id, type, name, dno_out);
 }
 
+/*
+ * Increment a caller-owned node reference. This operation has no integer
+ * overflow guard or concurrency synchronisation and assumes a live dnode.
+ */
 void fsw_dnode_retain(struct fsw_dnode *dno)
 {
     dno->refcount++;
@@ -421,7 +433,10 @@ fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
  * component starts at the volume root. Later empty components and "." preserve
  * the current node. ".." requires a parent. Resolve an intermediate symbolic link
  * before asking the backend to look up its next child. The returned node carries
- * a reference for the caller.
+ * a reference for the caller. When an intermediate node is not a directory,
+ * this implementation returns FSW_UNSUPPORTED before reaching errorexit,
+ * leaving a retained dnode reference outstanding. The following goto is
+ * unreachable: this is a real cleanup defect, not guaranteed error unwinding.
  */
 fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
                                    struct fsw_string *lookup_path, char separator,
