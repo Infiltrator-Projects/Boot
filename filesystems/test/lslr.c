@@ -16,6 +16,12 @@ static struct fsw_fstype_table *fstypes[] = {
     NULL
 };
 
+/*
+ * Open a fresh directory stream for each recursive level, consume each
+ * static dirent before the next read, and build child paths in the current
+ * stack frame. Its recursion demonstrates parser traversal, not an EFI
+ * mount.
+ */
 static int listdir(struct fsw_posix_volume *vol, char *path, int level)
 {
     struct fsw_posix_dir *dir;
@@ -48,6 +54,11 @@ static int listdir(struct fsw_posix_volume *vol, char *path, int level)
     return 0;
 }
 
+/*
+ * Read a named file using the hosted FSW stream and copy its returned bytes
+ * to stdout. This observes read-only parser output; it neither authenticates
+ * nor executes a firmware image.
+ */
 static int catfile(struct fsw_posix_volume *vol, char *path)
 {
     struct fsw_posix_file *file;

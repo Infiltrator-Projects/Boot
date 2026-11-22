@@ -176,6 +176,11 @@ static BOOLEAN FileExists(void *root, CHAR16 *filename) {
     REFIT_VOLUME *v=(REFIT_VOLUME*)root;
     return v && v->release && MyStriCmp(filename,L"etc\\os-release");
 }
+/*
+ * Supply fake etc/os-release data as a newly allocated UTF-16 buffer.
+ * Production classification consumes it through token parsing; no actual EFI
+ * filesystem I/O or firmware variable access occurs.
+ */
 static EFI_STATUS ReadFile(void *root, CHAR16 *filename, REFIT_FILE *file, UINTN *size) {
     REFIT_VOLUME *v=(REFIT_VOLUME*)root;
     if(!v || !v->release || !MyStriCmp(filename,L"etc\\os-release"))return 1;
@@ -232,6 +237,11 @@ static VOID FreeTokenLine(CHAR16 ***tokens, UINTN *count) {
 /* The script inserts the unmodified production function bodies here. */
 #include "icon-detection-production.inc"
 
+/*
+ * Invoke the extracted production SetLoaderDefaults against deterministic
+ * disk and icon metadata. Assert both icon choice and OSType so an
+ * accidental match of a generic title is insufficient.
+ */
 static void expect_icon(const char *name,const CHAR16 *path,const CHAR16 *release,
                         const CHAR16 *expected,char expectedType) {
     REFIT_VOLUME volume={0};
@@ -252,6 +262,11 @@ static void expect_icon(const char *name,const CHAR16 *path,const CHAR16 *releas
     printf("PASS %s\n",name);
     free(entry.LoadOptions);
 }
+/*
+ * Exercise firmware Boot#### label-to-icon hints without a file-backed
+ * loader. The label is untrusted descriptive metadata, not proof that an EFI
+ * executable belongs to the claimed operating system.
+ */
 static void expect_firmware(const CHAR16 *title,const CHAR16 *expected) {
     CHAR16 *hints=NULL;
     EG_IMAGE *icon;
@@ -266,6 +281,11 @@ static void expect_firmware(const CHAR16 *title,const CHAR16 *expected) {
     printf("PASS firmware label\n");
     free(hints);
 }
+/*
+ * Enumerate the regression cases across Linux, Windows, macOS, GRUB and
+ * BOOT. The production functions are included from a source extraction, not
+ * recreated inside this fixture.
+ */
 int main(void) {
     const CHAR16 *mintRelease=
         L"NAME=\"Linux Mint\"\n"

@@ -10,6 +10,11 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "../libeg/stb_truetype.h"
 
+/*
+ * Retain one bounded TrueType source buffer throughout stb_truetype
+ * initialization and glyph painting. Probe representative characters at
+ * multiple sizes; the test owns and frees each grayscale glyph bitmap.
+ */
 static int test_face(const char *path) {
     FILE *in = fopen(path, "rb");
     long size;
@@ -57,6 +62,11 @@ static int test_face(const char *path) {
     printf("TTF parsed and rasterised: %s\n",path);
     free(bytes); return 1;
 }
+/*
+ * Visit the exact font paths supplied by the qualification command. Passing
+ * proves hosted parser/rasteriser behaviour for those inputs, not the
+ * graphical output of UEFI GOP on physical displays.
+ */
 int main(int argc,char **argv) {
     int i;
     if (argc!=24) { fprintf(stderr,"Expected exactly 23 TTF paths, got %d\n",argc-1); return 2; }
