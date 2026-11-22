@@ -86,7 +86,10 @@ EFI_STATUS
  * Classifies the firmware's handle database from installed protocols and
  * OpenProtocolInformation relationships. The returned handle list and
  * classification array are caller-owned allocations. Controller topology
- * may change as drivers bind, so a snapshot must not be reused indefinitely.
+ * may change as drivers bind. A NULL ControllerHandle classifies parent
+ * relationships for all handles in one current snapshot; a specified handle
+ * retains the targeted query semantics. The caller must not reuse the snapshot
+ * across independent discovery phases.
  */
 LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
                        UINT32      *DriverBindingHandleIndex, OPTIONAL
@@ -232,7 +235,8 @@ LibScanHandleDatabase (EFI_HANDLE  DriverBindingHandle, OPTIONAL
               }
             }
 
-            if (DriverBindingHandle == NULL && OpenInfo[OpenInfoIndex].ControllerHandle == ControllerHandle) {
+            if (DriverBindingHandle == NULL &&
+                (ControllerHandle == NULL || OpenInfo[OpenInfoIndex].ControllerHandle == ControllerHandle)) {
               if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
                 for (ChildIndex = 0; ChildIndex < *HandleCount; ChildIndex++) {
                   if ((*HandleBuffer)[ChildIndex] == OpenInfo[OpenInfoIndex].AgentHandle) {
@@ -285,138 +289,93 @@ Error:
  * that snapshot instead of indexing it by the outer iteration. Controller
  * connection can change the handle set between snapshots.
  */
+/*
+ * Take one coherent snapshot of the EFI handle topology to select root
+ * controllers. The previous loop called LibScanHandleDatabase once for every
+ * handle, repeating firmware protocol enumeration hundreds of times.
+ *
+ * Controller classification is firmware-independent: a device-path handle
+ * with no child-controller parent is eligible, unless it is a driver-binding
+ * or loaded-image handle. ConnectController remains recursive so the same
+ * firmware drivers can discover children and their partitions. The caller
+ * rescans volumes after this pass; neither device IDs nor filesystem types
+ * are filtered here.
+ */
 EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 {
-    EFI_STATUS           Status;
-    UINTN                AllHandleCount = 0;
-    EFI_HANDLE           *AllHandleBuffer;
-    UINTN                Index;
-    UINTN                HandleCount;
-    EFI_HANDLE           *HandleBuffer;
-    UINT32               *HandleType;
-    UINTN                HandleIndex;
-    UINT32               ControllerIndex;
-    BOOLEAN              Parent;
-    BOOLEAN              Device;
-    UINTN                ConnectionNumber = 0;
-    UINT64               PassBegin = BootDiagTicks();
-    UINT64               InspectBegin, ConnectBegin;
+    EFI_STATUS Status;
+    EFI_STATUS ConnectStatus;
+    UINTN HandleCount = 0;
+    EFI_HANDLE *HandleBuffer = NULL;
+    UINT32 *HandleType = NULL;
+    UINTN Index;
+    UINTN ConnectionNumber = 0;
+    UINT64 PassBegin = BootDiagTicks();
+    UINT64 InspectBegin, ConnectBegin;
 
-    /*
-     * The event sequence logs both handle-database inspection and actual
-     * recursive controller calls. A flushed BEGIN record identifies the exact
-     * firmware operation still executing if a boot stalls.
-     */
     if (GlobalConfig.StartupDiagnostics) {
         LOG(1, LOG_LINE_NORMAL, L"[DIAG] controller pass BEGIN");
         BootDiagFlush();
     }
+
     InspectBegin = BootDiagTicks();
-    Status = boot_call5_wrapper(gBS->LocateHandleBuffer,
-                                 AllHandles,
-                                 NULL,
-                                 NULL,
-                                 &AllHandleCount,
-                                 &AllHandleBuffer);
+    Status = LibScanHandleDatabase(NULL, NULL, NULL, NULL,
+                                   &HandleCount, &HandleBuffer, &HandleType);
     if (GlobalConfig.StartupDiagnostics) {
         LOG(1, LOG_LINE_NORMAL,
-            L"[DIAG] LocateHandleBuffer count=%d status=%lu elapsed=%lu ms",
-            AllHandleCount, (UINT64)Status, BootDiagElapsedMs(InspectBegin));
+            L"[DIAG] controller topology snapshot handles=%d status=%lu elapsed=%lu ms",
+            HandleCount, (UINT64)Status, BootDiagElapsedMs(InspectBegin));
         BootDiagFlush();
     }
     if (EFI_ERROR(Status))
-        return Status;
+        goto Done;
 
-    for (Index = 0; Index < AllHandleCount; Index++) {
-        InspectBegin = BootDiagTicks();
+    for (Index = 0; Index < HandleCount; ++Index) {
+        /* Parent/child relationships are classified from the same snapshot. */
+        if (!(HandleType[Index] & EFI_HANDLE_TYPE_DEVICE_HANDLE) ||
+            (HandleType[Index] &
+             (EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE |
+              EFI_HANDLE_TYPE_IMAGE_HANDLE |
+              EFI_HANDLE_TYPE_PARENT_HANDLE)))
+            continue;
+
+        ++ConnectionNumber;
         if (GlobalConfig.StartupDiagnostics) {
+            EFI_DEVICE_PATH *HandlePath = DevicePathFromHandle(HandleBuffer[Index]);
+            CHAR16 *PathText = HandlePath ? DevicePathToStr(HandlePath) : NULL;
+            CHAR16 *DisplayText;
+
             LOG(1, LOG_LINE_NORMAL,
-                L"[DIAG] handle %d/%d inspect BEGIN",
-                Index + 1, AllHandleCount);
+                L"[DIAG] controller %d handle=%d/%d path='%s' BEGIN recursive=1",
+                ConnectionNumber, Index + 1, HandleCount,
+                PathText ? PathText : L"(no device path)");
+            DisplayText = PoolPrint(L"Connecting controller %d (handle %d/%d)",
+                                    ConnectionNumber, Index + 1, HandleCount);
+            BootStartupProgressReport(DisplayText, BOOT_PROGRESS_ACTIVE);
+            MyFreePool(DisplayText);
+            MyFreePool(PathText);
             BootDiagFlush();
         }
 
-        Status = LibScanHandleDatabase(NULL,
-                                       NULL,
-                                       AllHandleBuffer[Index],
-                                       &ControllerIndex,
-                                       &HandleCount,
-                                       &HandleBuffer,
-                                       &HandleType);
+        ConnectBegin = BootDiagTicks();
+        ConnectStatus = refit_call4_wrapper(BS->ConnectController,
+                                           HandleBuffer[Index],
+                                           NULL, NULL, TRUE);
         if (GlobalConfig.StartupDiagnostics) {
+            UINT64 ConnectionMs = BootDiagElapsedMs(ConnectBegin);
+            CHAR16 *DisplayText;
+
             LOG(1, LOG_LINE_NORMAL,
-                L"[DIAG] handle %d/%d inspect END status=%lu elapsed=%lu ms",
-                Index + 1, AllHandleCount,
-                (UINT64)Status, BootDiagElapsedMs(InspectBegin));
+                L"[DIAG] controller %d handle=%d/%d END status=%lu elapsed=%lu ms",
+                ConnectionNumber, Index + 1, HandleCount,
+                (UINT64)ConnectStatus, ConnectionMs);
+            DisplayText = PoolPrint(L"Controller %d finished (%lu ms, EFI %lu)",
+                                    ConnectionNumber, ConnectionMs,
+                                    (UINT64)ConnectStatus);
+            BootStartupProgressReport(DisplayText,
+                EFI_ERROR(ConnectStatus) ? BOOT_PROGRESS_ERROR : BOOT_PROGRESS_OK);
+            MyFreePool(DisplayText);
         }
-        if (EFI_ERROR(Status))
-            goto Done;
-
-        if (ControllerIndex == 0xffffffff || ControllerIndex >= HandleCount) {
-            MyFreePool(HandleBuffer);
-            MyFreePool(HandleType);
-            continue;
-        }
-
-        Device = TRUE;
-        if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE)
-            Device = FALSE;
-        if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_IMAGE_HANDLE)
-            Device = FALSE;
-
-        if (Device) {
-            Parent = FALSE;
-            for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
-                if (HandleType[HandleIndex] & EFI_HANDLE_TYPE_PARENT_HANDLE)
-                    Parent = TRUE;
-            }
-
-            if (!Parent) {
-                if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DEVICE_HANDLE) {
-                    ConnectionNumber++;
-                    if (GlobalConfig.StartupDiagnostics) {
-                        EFI_DEVICE_PATH *HandlePath;
-                        CHAR16 *PathText = NULL;
-                        CHAR16 *DisplayText;
-                        HandlePath = DevicePathFromHandle(AllHandleBuffer[Index]);
-                        if (HandlePath)
-                            PathText = DevicePathToStr(HandlePath);
-                        LOG(1, LOG_LINE_NORMAL,
-                            L"[DIAG] controller %d handle=%d/%d path='%s' BEGIN recursive=1",
-                            ConnectionNumber, Index + 1, AllHandleCount,
-                            PathText ? PathText : L"(no device path)");
-                        DisplayText = PoolPrint(L"Connecting controller %d (handle %d/%d)",
-                                                ConnectionNumber, Index + 1, AllHandleCount);
-                        BootStartupProgressReport(DisplayText, BOOT_PROGRESS_ACTIVE);
-                        MyFreePool(DisplayText);
-                        MyFreePool(PathText);
-                        BootDiagFlush();
-                    }
-                    ConnectBegin = BootDiagTicks();
-                    Status = boot_call4_wrapper(BS->ConnectController,
-                                                 AllHandleBuffer[Index],
-                                                 NULL,
-                                                 NULL,
-                                                 TRUE);
-                    if (GlobalConfig.StartupDiagnostics) {
-                        UINT64 ConnectionMs = BootDiagElapsedMs(ConnectBegin);
-                        CHAR16 *DisplayText;
-                        LOG(1, LOG_LINE_NORMAL,
-                            L"[DIAG] controller %d handle=%d/%d END status=%lu elapsed=%lu ms",
-                            ConnectionNumber, Index + 1, AllHandleCount,
-                            (UINT64)Status, ConnectionMs);
-                        DisplayText = PoolPrint(L"Controller %d finished (%lu ms, EFI %lu)",
-                                                ConnectionNumber, ConnectionMs, (UINT64)Status);
-                        BootStartupProgressReport(DisplayText,
-                            EFI_ERROR(Status) ? BOOT_PROGRESS_ERROR : BOOT_PROGRESS_OK);
-                        MyFreePool(DisplayText);
-                    }
-                }
-            }
-        }
-
-        MyFreePool(HandleBuffer);
-        MyFreePool(HandleType);
     }
 
 Done:
@@ -426,9 +385,11 @@ Done:
             ConnectionNumber, BootDiagElapsedMs(PassBegin), (UINT64)Status);
         BootDiagFlush();
     }
-    MyFreePool(AllHandleBuffer);
+    MyFreePool(HandleBuffer);
+    MyFreePool(HandleType);
     return Status;
-}  
+}
+
 #else
 EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
     BdsLibConnectAllDriversToAllControllers();
