@@ -24,6 +24,10 @@
 #define fallthrough
 #endif
 
+/* Return the byte size of the inflate workspace selected by this build.
+ * Its lifetime is supplied by the host adapter, not owned by the decoder;
+ * the caller must allocate enough bytes before zlib_inflateInit2.
+ */
 int zlib_inflate_workspacesize(void)
 {
     return sizeof(struct inflate_workspace);
@@ -95,6 +99,10 @@ int zlib_inflateInit2(z_streamp strm, int windowBits)
     return zlib_inflateReset(strm);
 }
 
+/* Install the compile-time canonical fixed Huffman tables used by DEFLATE
+ * block type 01. These tables are shared immutable definitions, unlike
+ * dynamic trees built from the compressed input into workspace.
+ */
 static void zlib_fixedtables(struct inflate_state *state)
 {
 #   include "inffixed.h"
@@ -142,6 +150,10 @@ static void zlib_updatewindow(z_streamp strm, unsigned out)
     }
 }
 
+/* Accept a packet boundary only when the state machine is positioned at a
+ * valid block header. This is bounded packet-level synchronisation, not a
+ * general ability to recover an arbitrary corrupted gzip byte stream.
+ */
 static int zlib_inflateSyncPacket(z_streamp strm)
 {
     struct inflate_state *state;
@@ -661,6 +673,10 @@ int zlib_inflate(z_streamp strm, int flush)
     return ret;
 }
 
+/* End an inflate session without freeing host-owned workspace allocation.
+ * A missing state yields Z_STREAM_ERROR; the stream needs reinitialisation
+ * before another compressed payload is consumed.
+ */
 int zlib_inflateEnd(z_streamp strm)
 {
     if (strm == NULL || strm->state == NULL)

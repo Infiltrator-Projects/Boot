@@ -16,6 +16,10 @@ union uu {
         unsigned char b[2];
 };
 
+/* Reconstruct a two-byte quantity without issuing an unaligned short load.
+ * The caller must establish that both bytes are readable; this helper does
+ * not check the input buffer's remaining length.
+ */
 static inline unsigned short
 get_unaligned16(const unsigned short *p)
 {
