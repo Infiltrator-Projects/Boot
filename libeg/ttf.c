@@ -102,8 +102,12 @@ static double mbAbs(double x) { return x < 0.0 ? -x : x; }
 #define STBTT_strlen(x) mbLen(x)
 #define STBTT_memcpy mbCopy
 #define STBTT_memset mbSet
+/* Upstream's font-name helper contains two direct memcpy calls rather
+ * than STBTT_memcpy. Bind those to the same firmware-local copy routine. */
+#define memcpy mbCopy
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
+#undef memcpy
 
 typedef struct {
     UINT8 *mask;
