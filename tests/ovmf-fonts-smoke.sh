@@ -4,9 +4,8 @@
 # Checks packaged MB/Daimler TrueType resources and their rasterisation
 # through an isolated EFI graphical session.
 #
-# The test configuration is distinct from the shipped default PNG-logo
-# composition; success does not constitute artistic approval of that
-# composition.
+# Exercises the shipped PNG background and logo in disposable UEFI graphics.
+# Logged image draws verify execution, not on-screen pixel fidelity.
 
 set -euo pipefail
 export LC_ALL=C
@@ -26,11 +25,11 @@ mkfs.fat -F32 "$esp"
 mmd -i "$esp" ::/EFI ::/EFI/BOOT ::/EFI/BOOT/drivers_x64 ::/EFI/BOOT/fonts
 mcopy -i "$esp" fonts/*.ttf ::/EFI/BOOT/fonts/
 mcopy -i "$esp" fonts/SHA256SUMS ::/EFI/BOOT/fonts/
-for asset in boot-luxury.jpg boot-mark.png boot-underline.png; do
+for asset in boot-luxury.png boot-logo.png; do
   test -s "themes/$asset" || exit 1
 done
 mmd -i "$esp" ::/EFI/BOOT/themes
-mcopy -i "$esp" themes/boot-luxury.jpg themes/boot-mark.png themes/boot-underline.png ::/EFI/BOOT/themes/
+mcopy -i "$esp" themes/boot-luxury.png themes/boot-logo.png ::/EFI/BOOT/themes/
 
 mcopy -i "$esp" boot/boot_x64.efi ::/EFI/BOOT/BOOTX64.EFI
 driver=drivers_x64/btrfs_x64.efi
@@ -42,11 +41,9 @@ timeout 3
 log_level 4
 use_nvram false
 textonly false
-# This is the official default theme, selected by boot.conf like other
-# user-supplied PNG/JPEG paths, not embedded filename constants.
-theme_background themes/boot-luxury.jpg
-theme_mark themes/boot-mark.png
-theme_underline themes/boot-underline.png
+# Load the same image paths as the published default boot.conf.
+theme_background themes/boot-luxury.png
+theme_logo themes/boot-logo.png
 font_body daimler_cs_regular.ttf
 font_bold mb_corpo_s_title_cond_bold.ttf
 font_title mb_corpo_a_screen_2_cond_regular.ttf
@@ -103,7 +100,7 @@ if ! grep -Fq 'Entering main loop' "$work/log.txt"; then
 fi
 for theme_marker in \
  'BOOT configured PNG/JPEG background loaded' \
- 'BOOT configured wordmark rendered'; do
+ 'BOOT configured complete PNG logo drawn'; do
  if ! grep -Fq "$theme_marker" "$work/log.txt"; then
   echo "BOOT did not render its boot.conf-selected PNG/JPEG theme: $theme_marker" >&2
   grep -E 'theme|background|wordmark|logo|banner' "$work/log.txt" >&2 || true
