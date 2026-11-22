@@ -1,6 +1,27 @@
-/* UEFI pointer input and cursor state.
- * Enumerates absolute and relative pointer protocols when available.
- * Keyboard selection remains independent of pointer hardware.
+/*
+ * BOOT / Pointer input
+ *
+ * UEFI
+ * pointer
+ * input
+ * and
+ * cursor
+ * state.
+ * Enumerates
+ * absolute
+ * and
+ * relative
+ * pointer
+ * protocols
+ * when
+ * available.
+ * Keyboard
+ * selection
+ * remains
+ * independent
+ * of
+ * pointer
+ * hardware.
  */
 
 #include "pointer.h"

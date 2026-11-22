@@ -1,6 +1,31 @@
-/* Shared BOOT state and menu/volume data structures.
- * Handles, images and menu entries have different ownership lifetimes.
- * A rescan invalidates pointers into the previous entry inventory.
+/*
+ * BOOT / Shared firmware state
+ *
+ * Shared
+ * BOOT
+ * state
+ * and
+ * menu/volume
+ * data
+ * structures.
+ * Handles,
+ * images
+ * and
+ * menu
+ * entries
+ * have
+ * different
+ * ownership
+ * lifetimes.
+ * A
+ * rescan
+ * invalidates
+ * pointers
+ * into
+ * the
+ * previous
+ * entry
+ * inventory.
  */
 
 #ifndef __GLOBAL_H_

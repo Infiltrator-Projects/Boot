@@ -1,6 +1,28 @@
-/* Read-only GUID Partition Table inspection.
- * Validates protective MBR, header and entry-array integrity before use.
- * Disk metadata is parsed independently of filesystem readability.
+/*
+ * BOOT / Partition table inspection
+ *
+ * Read-only
+ * GUID
+ * Partition
+ * Table
+ * inspection.
+ * Validates
+ * protective
+ * MBR,
+ * header
+ * and
+ * entry-array
+ * integrity
+ * before
+ * use.
+ * Disk
+ * metadata
+ * is
+ * parsed
+ * independently
+ * of
+ * filesystem
+ * readability.
  */
 
 #pragma pack(0)

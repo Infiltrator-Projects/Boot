@@ -1,6 +1,27 @@
-/* Interactive UTF-16 boot-option editor.
- * Maintains cursor, viewport and allocated text length under keyboard input.
- * Visual cursor positions differ from string offsets.
+/*
+ * BOOT / Interactive line editor
+ *
+ * Interactive
+ * UTF-16
+ * boot-option
+ * editor.
+ * Maintains
+ * cursor,
+ * viewport
+ * and
+ * allocated
+ * text
+ * length
+ * under
+ * keyboard
+ * input.
+ * Visual
+ * cursor
+ * positions
+ * differ
+ * from
+ * string
+ * offsets.
  */
 
 #include "global.h"

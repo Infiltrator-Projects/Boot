@@ -1,6 +1,27 @@
-/* Reflected CRC-32 for firmware-visible metadata.
- * Uses the standard polynomial and deterministic byte-wise accumulation.
- * The checksum detects corruption; it is not authentication.
+/*
+ * BOOT / Firmware checksum
+ *
+ * Reflected
+ * CRC-32
+ * for
+ * firmware-visible
+ * metadata.
+ * Uses
+ * the
+ * standard
+ * polynomial
+ * and
+ * deterministic
+ * byte-wise
+ * accumulation.
+ * The
+ * checksum
+ * detects
+ * corruption;
+ * it
+ * is
+ * not
+ * authentication.
  */
 
 #include "crc32.h"

@@ -1,6 +1,27 @@
-/* UTF-16, GUID and delimited-list helpers.
- * Callers must distinguish borrowed strings from allocated results.
- * Case folding is ASCII-oriented rather than Unicode collation.
+/*
+ * BOOT / Strings and identifiers
+ *
+ * UTF-16,
+ * GUID
+ * and
+ * delimited-list
+ * helpers.
+ * Callers
+ * must
+ * distinguish
+ * borrowed
+ * strings
+ * from
+ * allocated
+ * results.
+ * Case
+ * folding
+ * is
+ * ASCII-oriented
+ * rather
+ * than
+ * Unicode
+ * collation.
  */
 
 #include "mystrings.h"
