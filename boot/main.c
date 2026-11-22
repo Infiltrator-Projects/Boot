@@ -26,6 +26,7 @@
 #include "mystrings.h"
 #include "security_policy.h"
 #include "driver_support.h"
+#include "lvm2.h"
 #include "launch_efi.h"
 #include "scan.h"
 #include "log.h"
@@ -493,7 +494,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     CHAR16             *SelectionName = NULL;
     EG_PIXEL           BGColor = COLOR_LIGHTBLUE;
     UINT64             ScanBegin = 0, InitialScanMs = 0, StageBegin = 0;
-    BOOLEAN            DriverFilesFound = FALSE;
+    BOOLEAN            DriverFilesFound = FALSE, LvmMapped = FALSE;
 
     InitializeLib(ImageHandle, SystemTable);
     Status = InitBootLib(ImageHandle);
@@ -553,7 +554,19 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
             BootDiagElapsedMs(StageBegin));
         BootDiagFlush();
     }
-    if (DriverFilesFound) {
+    /*
+     * The mapper runs after EFI filesystem drivers are available. Its new
+     * read-only Block/Disk I/O handles are offered to the same drivers as
+     * ordinary partitions; no LVM-specific filesystem fork is required.
+     * A non-LVM HP or Hyper-V host publishes nothing and keeps its normal
+     * EFI discovery path, regardless of Secure Boot state.
+     */
+    LvmMapped = LvmDiscoverVolumes();
+    if (LvmMapped) {
+        LOG(1, LOG_LINE_NORMAL, L"LVM2: connecting newly published logical volumes");
+        ConnectAllDriversToAllControllers();
+    }
+    if (DriverFilesFound || LvmMapped) {
         BootStartupProgressReport(L"Rescanning volumes after driver connection",
                                   BOOT_PROGRESS_ACTIVE);
         StageBegin = BootDiagTicks();
