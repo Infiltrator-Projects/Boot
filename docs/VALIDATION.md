@@ -206,6 +206,29 @@ This establishes **non-comment source equivalence for the touched files**, not b
 
 A complete source-comment review checks each active, high-impact routine for verified preconditions, output and allocation ownership, integer/unit assumptions, error propagation and firmware side effects. Documentation must describe the current call order, including destructive steps, not the safer order intended by its authors. A remaining static hazard is a recorded limitation until its behaviour and regression tests are corrected. Comments must be dense in technical information, not blank-line padding or repetitive function-name paraphrases.
 
+## 22 November 2026 documentation-only contract corrections
+
+This record maps the latest source-comment clarifications to observable behaviours.
+No runtime C statements, tests, packaging, or EFI binaries were changed by
+these corrections. The static source-equivalence check strips C comments and
+compares the remaining non-whitespace text before each update; it is not a
+compiler, ABI, or firmware execution test.
+
+| Source | Precisely documented boundary | Required executable counterexample or acceptance evidence |
+| --- | --- | --- |
+| `filesystems/fsw_ntfs.c:test_idxbmp` | One-based block is decremented; `block > bmpsz` allows a byte index equal to byte length | Bitmap with zero, first, last valid and first invalid block; guard-page/ASan execution against short bitmap |
+| `filesystems/fsw_ext2.c` | File logical indexes and disk physical blocks differ across each indirection level | Reference images that cross direct/single/double/triple-indirect boundaries, include malformed pointers, and compare extracted bytes |
+| `filesystems/fsw_ext4.c` | Extent-leaf/index geometry is untrusted; RECOVER acceptance does not replay journal | Depth/length and out-of-range extent fixtures plus a recovery-required volume policy test |
+| `filesystems/fsw_btrfs.c` | Extent cache key spans tree, inode and range; chunk translation and decompression have separate lifetimes | Two subvolumes with equal inode number, compressed/uncompressed extents, malformed lengths and missing/RAID devices |
+| `boot/scan.c:FindTool` | Directory-name deduplication crosses volume iterations without volume identity | Two distinct readable volumes containing the same tool directory; both eligible tools must be considered |
+| `boot/config.c:GetFirstOptionsFromFile` | `REFIT_FILE` wrapper is freed without a visible release of its `Buffer` allocation | Instrument allocation/free accounting over present, missing, empty and malformed option files |
+
+A known source defect is not an acceptable test result merely because a comment
+describes it. The checks in the final column remain **unexecuted requirements** in
+this documentation-only change, and the first observed failure must remain a
+reported failure until corrected in production code and retested. In particular,
+Common V2 BOOT loading is neither built nor qualified by these comment changes.
+
 ## Commentary review: specific unresolved proof obligations
 
 This section records *review targets*, not newly executed tests or newly repaired runtime defects. Source comments now identify their assumptions so future assessments cannot mistake plausible prose for proven safety.
