@@ -45,6 +45,14 @@
  * is set before reading. A successful EFI Read does not by itself prove the
  * entire advertised file was consumed. UTF-8 detection does not imply UTF-8
  * decoding: ReadLine widens individual bytes for this encoding label.
+ *
+ * Two lengths represent different things after Read: the caller-visible
+ * output size is derived from the file metadata, while the buffer's current
+ * byte count follows EFI Read's in/out parameter. Downstream parsing must
+ * not assume those lengths are equal on a short successful read. A BOM-based
+ * classification is not evidence that the remaining file is well-formed
+ * Unicode. These limitations are source-observed and require regression
+ * fixtures before an encoding or input-size guarantee can be made.
  */
 EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFIT_FILE *File, OUT UINTN *size)
 {
