@@ -777,10 +777,10 @@ InstallOnOSX() {
 # Queries Secure Boot firmware state and interactive signing/shim choices.
 # Observed state and user prompts cannot substitute for firmware validation.
 CheckSecureBoot() {
-   IsSecureBoot="0"
-   if [[ -f /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c ]] ; then
+   IsSecureBoot="${BootSecureBootEnabled:-0}"
+   if [[ -z "${BootSecureBootEnabled+x}" && -f /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c ]] ; then
       IsSecureBoot=$(od -An -t u1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c | awk '{print substr($0,length,1)}')
-   elif [[ -f /sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data ]] ; then
+   elif [[ -z "${BootSecureBootEnabled+x}" && -f /sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data ]] ; then
       IsSecureBoot=$(od -An -t u1 /sys/firmware/efi/vars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c/data | tr -d '[:space:]')
    fi
    if [[ $IsSecureBoot == "1" && "$ShimSource" == "none" ]] ; then
@@ -1089,6 +1089,7 @@ AddBootEntry() {
          return 1
       fi
       BootNum=""
+      BootActive=0
       MatchCount=0
       BootEntryCount=0
       while IFS= read -r CurrentEntry ; do
@@ -1100,6 +1101,7 @@ AddBootEntry() {
                if [[ "$LowerEntry" == *"file(${EfiEntryFilename,,})"* && "$LowerEntry" == *"${InstallPartGuid,,}"* ]] ; then
                   MatchCount=$((MatchCount + 1))
                   BootNum="$CandidateNum"
+                  [[ "$CurrentEntry" =~ ^Boot[[:xdigit:]]{4}\*[[:space:]] ]] && BootActive=1
                fi
             fi
          fi
@@ -1136,10 +1138,14 @@ AddBootEntry() {
    done
 
    BootNum="${BootNum^^}"
-   if ! "$Efibootmgr" -b "$BootNum" -a ; then
-      echo "Could not activate BOOT UEFI entry." >&2
-      Problems=1
-      return 1
+   # A new UEFI boot record is normally already active. Certain firmwares
+   # reject redundantly activating it even when BootNNNN* confirms it active.
+   if [[ "$BootActive" != "1" ]]; then
+      if ! "$Efibootmgr" -b "$BootNum" -a ; then
+         echo "Could not activate an inactive BOOT UEFI entry." >&2
+         Problems=1
+         return 1
+      fi
    fi
    BootOrder=$("$Efibootmgr" | sed -n 's/^BootOrder:[[:space:]]*//p' | head -n1)
    if [[ -z "$BootOrder" ]] ; then
@@ -1244,7 +1250,11 @@ InstallOnLinux() {
          echo "BOOT: Secure Boot requires signed BOOTX64.EFI and trusted Shim." >&2
          return 1
       fi
-      if ! mokutil --test-key "$DerKey" >/dev/null 2>&1; then
+      # Older mokutil may return success while reporting "is not enrolled".
+      # Require a positive verdict as well as a successful exit status.
+      local_key_verdict=""
+      if ! local_key_verdict=$(mokutil --test-key "$DerKey" 2>&1) ||
+         ! grep -Eqi 'is (already )?enrolled' <<< "$local_key_verdict"; then
          echo "BOOT: local signing certificate $DerKey is not yet enrolled as a MOK." >&2
          echo "BOOT: run sudo mokutil --import $DerKey, enroll at reboot, then rerun BOOT." >&2
          echo "BOOT: ESP contents and firmware BootOrder are unchanged." >&2
