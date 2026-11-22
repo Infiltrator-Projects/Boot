@@ -231,6 +231,12 @@ The comments on the following routines now state observed limitations rather tha
 
 These are defects or behaviour limits documented from source inspection, **not corrections to execution**. The validation plan must specify corresponding failed-allocation, interrupted-read and repeated-call fixtures before the affected contracts can be declared qualified.
 
+### Linux loader-option and cache ownership boundaries
+
+[`StoreLoaderName`](../boot/main.c) writes a UTF-16 title for later menu selection but has a VOID result and discards the EFI variable-write status; persistence cannot be asserted from its return. [`AddInitrdToOptions`](../boot/linux.c) returns a separately allocated option string while borrowing its inputs, and presently has an unguarded route to string-search operations when options are NULL but an initrd is supplied.
+
+[`fsw_block_get`](../filesystems/fsw_core.c) gives the caller a pinned, borrowed cache buffer. Its reference count must be released before the containing volume or cache is destroyed. Cache growth uses a doubling strategy without locally checking all integer-size arithmetic; exhaustion and extreme size cases need independently verified behaviour.
+
 ## Unverified architectural objectives
 
 The desired Common V2-only filesystem module design, universal operating-system compatibility, production-grade security qualification and complete custom InfiltratorOS appearance require explicit future evidence. This document records the implemented BOOT revision and does not silently declare those objectives done. See [Hardware](HARDWARE.md) and [Validation](VALIDATION.md) for observed limits.
