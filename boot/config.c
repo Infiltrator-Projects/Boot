@@ -530,6 +530,35 @@ static VOID SetLinuxMatchPatterns(CHAR16 *Prefixes) {
  * far. Resetting those lists for every include would discard the effect of
  * earlier directives.
  */
+/*
+ * Read only the diagnostic flag ahead of the first ScanVolumes call. Full
+ * ReadConfig cannot run yet: other directives can refer to discovered volumes.
+ * Both passes use the exact existing token and Boolean parser, so the setting
+ * has identical semantics regardless of startup phase. An absent directive
+ * preserves the runtime default; the primary boot.conf owns the early switch.
+ */
+VOID ReadStartupDiagnosticsSetting(CHAR16 *FileName)
+{
+    REFIT_FILE File;
+    CHAR16 **Tokens;
+    UINTN Count, Size;
+    EFI_STATUS Status;
+
+    if (!SelfDir || !FileName || !FileExists(SelfDir, FileName))
+        return;
+
+    Status = ReadFile(SelfDir, FileName, &File, &Size);
+    if (EFI_ERROR(Status))
+        return;
+
+    while ((Count = ReadTokenLine(&File, &Tokens)) > 0) {
+        if (MyStriCmp(Tokens[0], L"startup_diagnostics"))
+            GlobalConfig.StartupDiagnostics = HandleBoolean(Tokens, Count);
+        FreeTokenLine(&Tokens, &Count);
+    }
+    MyFreePool(File.Buffer);
+}
+
 VOID ReadConfig(CHAR16 *FileName)
 {
     EFI_STATUS      Status;
@@ -646,6 +675,9 @@ VOID ReadConfig(CHAR16 *FileName)
 
         } else if (MyStriCmp(TokenList[0], L"log_level") && (TokenCount == 2)) {
             HandleInt(TokenList, TokenCount, &(GlobalConfig.LogLevel));
+
+        } else if (MyStriCmp(TokenList[0], L"startup_diagnostics")) {
+            GlobalConfig.StartupDiagnostics = HandleBoolean(TokenList, TokenCount);
 
         } else if (MyStriCmp(TokenList[0], L"also_scan_dirs")) {
              HandleStrings(TokenList, TokenCount, &(GlobalConfig.AlsoScan));
