@@ -236,6 +236,12 @@ typedef struct {
   UINT16                            Reserved2 : 4;       
 } BBS_STATUS_FLAGS;
 
+/*
+ * BBS_TABLE stores one firmware-provided BIOS Boot Specification
+ * candidate. BootPriority orders entries within a firmware snapshot, not a
+ * durable disk ID. Real-mode segment:offset callback and descriptive
+ * string fields require exact packed binary layout.
+ */
 typedef struct {
 
   UINT16                            BootPriority;
@@ -380,6 +386,12 @@ typedef struct {
 #define EFI_TO_LEGACY_MINOR_VERSION 0x00
 #define MAX_IDE_CONTROLLER          8
 
+/*
+ * The EFI-to-16-bit boot table conveys E820, legacy disk and PCI IRQ
+ * information to compatibility firmware. Its 32-bit address fields are
+ * firmware physical addresses, not native-size EFI pointers; modifying
+ * offsets breaks the ABI.
+ */
 typedef struct {
   UINT16                            MajorVersion;                  
   UINT16                            MinorVersion;                  
@@ -536,12 +548,24 @@ typedef struct {
     UINT16  ReservedDX;
 } EFI_BYTE_REGS;
 
+/*
+ * The IA-32 register union overlays byte, word and doubleword access to
+ * one interrupt-call frame. Flags/carry and segment registers must be
+ * interpreted in the selected view; it is not a portable host register
+ * data structure.
+ */
 typedef union {
   EFI_DWORD_REGS  E;
   EFI_WORD_REGS   X;
   EFI_BYTE_REGS   H;
 } EFI_IA32_REGISTER_SET;
 
+/*
+ * The INT86 thunk enters the firmware's compatibility execution
+ * environment. Boolean dispatch completion and the guest register carry
+ * flag are not EFI_STATUS values and do not establish that any operating
+ * system booted.
+ */
 typedef
 BOOLEAN
 (EFIAPI *EFI_LEGACY_BIOS_INT86)(
