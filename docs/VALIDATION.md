@@ -458,4 +458,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `filesystems/zstd/error_private.h` | 0 | Bundled decoder |
 | `filesystems/zstd/fse.h` | 6 | Bundled decoder |
 | `filesystems/zstd/fse_decompress.c` | 6 | Bundled decoder |
+| `filesystems/zstd/huf.h` | 0 | Bundled decoder |
+| `filesystems/zstd/huf_decompress.c` | 22 | Bundled decoder |
+| `filesystems/zstd/mem.h` | 8 | Bundled decoder |
+| `filesystems/zstd/xxhash.h` | 0 | Bundled decoder |
+| `filesystems/zstd/xxhash64.c` | 5 | Bundled decoder |
+| `filesystems/zstd/zstd.h` | 2 | Bundled decoder |
+| `filesystems/zstd/zstd_decompress.c` | 39 | Bundled decoder |
+| `filesystems/zstd/zstd_internal.h` | 3 | Bundled decoder |
+| `gzip/decompress_inflate.c` | 2 | Maintained implementation |
+| `gzip/zlib_inflate/inffast.c` | 2 | Bundled decoder |
+| `gzip/zlib_inflate/inffast.h` | 0 | Bundled decoder |
+| `gzip/zlib_inflate/inffixed.h` | 0 | Bundled decoder |
+| `gzip/zlib_inflate/inflate.c` | 9 | Bundled decoder |
+| `gzip/zlib_inflate/inflate.h` | 0 | Bundled decoder |
+| `gzip/zlib_inflate/inftrees.c` | 1 | Bundled decoder |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
