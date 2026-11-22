@@ -1,6 +1,10 @@
-/* EFI allocation and image adapters for LodePNG.
- * Pool allocations carry a private size prefix for copying and release.
- * The current realloc path retains its old allocation on success.
+/*
+ * BOOT / PNG decoder integration
+ *
+ * EFI allocation and image adapters for LodePNG.
+ *
+ * Pool allocations carry a private size prefix for copying and release. The
+ * current realloc path retains its old allocation on success.
  */
 
 #include "global.h"

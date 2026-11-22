@@ -1,4 +1,8 @@
-/* BMP resource decoding and encoding.
+/*
+ * BOOT / Bitmap decoding
+ *
+ * BMP resource decoding and encoding.
+ *
  * Parses packed headers and padded scanlines before producing EFI pixels.
  * Header lengths, dimensions and data offsets require bounds checks.
  */

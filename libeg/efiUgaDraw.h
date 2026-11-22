@@ -1,8 +1,11 @@
 /*
- * The UGA drawing interface complements GOP on older firmware. Its Blt call
- * takes separate source and destination origins and a byte stride for a
- * memory surface. libeg uses that stride when transferring a subrectangle of
- * a larger image.
+ * BOOT / UGA graphics protocol
+ *
+ * The UGA drawing interface complements GOP on older firmware.
+ *
+ * Its Blt call takes separate source and destination origins and a byte
+ * stride for a memory surface. libeg uses that stride when transferring a
+ * subrectangle of a larger image.
  */
 
 #ifndef __UGA_DRAW_H__

@@ -1,6 +1,10 @@
-/* Firmware GOP selection and framebuffer drawing.
- * Controls graphics mode, blits and saved display regions.
- * Mode changes invalidate cached geometry and must permit text fallback.
+/*
+ * BOOT / Firmware graphics
+ *
+ * Firmware GOP selection and framebuffer drawing.
+ *
+ * Controls graphics mode, blits and saved display regions. Mode changes
+ * invalidate cached geometry and must permit text fallback.
  */
 
 #include "libegint.h"

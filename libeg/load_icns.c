@@ -1,6 +1,10 @@
-/* Apple ICNS decoding and RLE expansion.
- * Selects compatible embedded representations and validates element lengths.
- * Missing or malformed icons do not change loader discovery.
+/*
+ * BOOT / ICNS decoding
+ *
+ * Apple ICNS decoding and RLE expansion.
+ *
+ * Selects compatible embedded representations and validates element
+ * lengths. Missing or malformed icons do not change loader discovery.
  */
 
 #include "libegint.h"

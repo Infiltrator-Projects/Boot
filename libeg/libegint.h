@@ -1,4 +1,8 @@
-/* Internal graphics and decoder interfaces.
+/*
+ * BOOT / Graphics internals
+ *
+ * Internal graphics and decoder interfaces.
+ *
  * Image geometry, palette conversion and allocator lifetimes are shared
  * across PNG, JPEG, BMP and ICNS implementations.
  */

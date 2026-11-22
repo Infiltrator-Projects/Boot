@@ -1,6 +1,10 @@
-/* EFI image allocation, scaling and pixel composition.
- * Image descriptors and pixel planes have separate ownership rules.
- * Bounds, alpha and allocation sizes govern every copy or blend.
+/*
+ * BOOT / Image composition
+ *
+ * EFI image allocation, scaling and pixel composition.
+ *
+ * Image descriptors and pixel planes have separate ownership rules. Bounds,
+ * alpha and allocation sizes govern every copy or blend.
  */
 
 #include "libegint.h"

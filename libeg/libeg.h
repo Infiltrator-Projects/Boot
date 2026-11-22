@@ -1,6 +1,10 @@
-/* Public firmware graphics and image-resource API.
- * Separates image ownership, alpha composition and display state.
- * Decoder results must be released independently of firmware protocols.
+/*
+ * BOOT / Graphics API
+ *
+ * Public firmware graphics and image-resource API.
+ *
+ * Separates image ownership, alpha composition and display state. Decoder
+ * results must be released independently of firmware protocols.
  */
 
 #ifndef __LIBEG_LIBEG_H__

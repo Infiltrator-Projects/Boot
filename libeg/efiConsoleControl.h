@@ -1,7 +1,11 @@
 /*
+ * BOOT / Console control protocol
+ *
  * Console Control selects the firmware console's text or graphics
- * presentation. BOOT uses it alongside GOP or UGA. Changing console mode and
- * writing a rectangle of pixels are separate protocol operations.
+ * presentation.
+ *
+ * BOOT uses it alongside GOP or UGA. Changing console mode and writing a
+ * rectangle of pixels are separate protocol operations.
  */
 
 #ifndef __CONSOLE_CONTROL_H__

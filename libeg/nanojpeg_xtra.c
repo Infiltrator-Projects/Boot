@@ -1,6 +1,10 @@
-/* NanoJPEG-to-EFI image conversion.
- * Decoder pixels remain owned by NanoJPEG until njDone().
- * Both RGB and grayscale inputs are copied into caller-owned images.
+/*
+ * BOOT / JPEG decoder integration
+ *
+ * NanoJPEG-to-EFI image conversion.
+ *
+ * Decoder pixels remain owned by NanoJPEG until njDone(). Both RGB and
+ * grayscale inputs are copied into caller-owned images.
  */
 
 #include "global.h"

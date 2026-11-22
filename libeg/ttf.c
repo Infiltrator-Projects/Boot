@@ -1,6 +1,10 @@
-/* Firmware TrueType rendering from packaged MB/Daimler font faces.
- * Validates font tables, rasterises glyphs and caches scale-dependent masks.
- * Packaging verifies checksums; runtime validation is structural.
+/*
+ * BOOT / TrueType rendering
+ *
+ * Firmware TrueType rendering from packaged MB/Daimler font faces.
+ *
+ * Validates font tables, rasterises glyphs and caches scale-dependent
+ * masks. Packaging verifies checksums; runtime validation is structural.
  */
 
 #include "libegint.h"
