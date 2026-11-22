@@ -49,9 +49,12 @@ cat <<'MAIN'
     return 1; }} while(0)
 static int between(UINT8 out,UINT8 a,UINT8 b,UINT8 c,UINT8 d) {
     UINT8 lo=a,hi=a;
-    if(b<lo)lo=b; if(b>hi)hi=b;
-    if(c<lo)lo=c; if(c>hi)hi=c;
-    if(d<lo)lo=d; if(d>hi)hi=d;
+    if (b < lo) lo = b;
+    if (b > hi) hi = b;
+    if (c < lo) lo = c;
+    if (c > hi) hi = c;
+    if (d < lo) lo = d;
+    if (d > hi) hi = d;
     return out>=lo && out<=hi;
 }
 int main(void) {
