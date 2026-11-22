@@ -101,6 +101,11 @@ CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
  * takes the substitution branch. Otherwise append one initrd= argument only when
  * the options lack that substring. Thus an explicit initrd path in a stanza takes
  * precedence over automatic discovery.
+ * The input Options is borrowed; the returned string (if any) is separately
+ * allocated and belongs to the caller. The implementation tests Options for
+ * NULL only before duplication, not before the later StriSubCmp calls when
+ * InitrdPath is non-NULL. Such a call is not established as safe. Substring
+ * presence does not validate the discovered initrd file's readability.
  */
 CHAR16 *AddInitrdToOptions(CHAR16 *Options, CHAR16 *InitrdPath) {
     CHAR16 *NewOptions = NULL;
