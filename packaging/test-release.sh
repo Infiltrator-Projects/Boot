@@ -67,6 +67,7 @@ for asset in boot-luxury.png boot-logo.png boot-mark.png boot-underline.png; do
     test -s "themes/$asset"
     grep -Fq "usr/share/infiltrator-boot/boot/themes/$asset" "$work/package-files.txt"
     test -s "$work/unpacked/usr/share/infiltrator-boot/boot/themes/$asset"
+    cmp -s "themes/$asset" "$work/unpacked/usr/share/infiltrator-boot/boot/themes/$asset" || { echo "Packaged theme differs from Git source: $asset" >&2; exit 1; }
 done
 ! grep -Eq 'drawTwinSlash|[Ss][Vv][Gg]' boot/theme.c
 ! grep -Eq 'boot-luxury|boot-mark|boot-underline' boot/theme.c

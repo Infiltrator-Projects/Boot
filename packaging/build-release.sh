@@ -23,6 +23,16 @@ command -v dpkg-deb >/dev/null || { echo "dpkg-deb is required" >&2; exit 1; }
 command -v git >/dev/null || { echo "git is required to pin the exact source revision" >&2; exit 1; }
 
 test -s themes/boot-luxury.png || { echo "Missing native BOOT PNG wallpaper" >&2; exit 1; }
+# Pin the approved two-cyan-stroke transparent logo. The installer may still
+# load a user-supplied logo through boot.conf without any code changes.
+printf '%s  %s\n' 'ad9307be3b5c208f1efc8770bd7d25cf689d4de0da5a8ba2936a7e92947ba5c5' themes/boot-logo.png | sha256sum -c - >/dev/null || {
+    echo "BOOT default artwork differs from the approved transparent PNG" >&2
+    exit 1
+}
+[[ $(od -An -tu1 -j25 -N1 themes/boot-logo.png | tr -d "[:space:]") == 6 ]] || {
+    echo "BOOT default logo must be RGBA PNG (not an opaque rectangular image)" >&2
+    exit 1
+}
 for asset in boot-logo.png boot-mark.png boot-underline.png; do
     test -s "themes/$asset" || { echo "Missing BOOT native PNG theme: $asset" >&2; exit 1; }
 done
