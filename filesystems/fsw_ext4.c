@@ -19,6 +19,10 @@ static fsw_status_t fsw_ext4_volume_stat(struct fsw_ext4_volume *vol, struct fsw
 
 static fsw_status_t fsw_ext4_dnode_fill(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno);
 static void         fsw_ext4_dnode_free(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno);
+/* Convert inode block allocation, times and mode into the host FSW stat
+ * callback. The stored i_blocks_lo field and logical EXT4 block size
+ * are combined here; 64-bit/high allocation fields are not accounted for.
+ */
 static fsw_status_t fsw_ext4_dnode_stat(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,
                                         struct fsw_dnode_stat *sb);
 static fsw_status_t fsw_ext4_get_extent(struct fsw_ext4_volume *vol, struct fsw_ext4_dnode *dno,

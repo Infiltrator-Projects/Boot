@@ -16,6 +16,10 @@
 fsw_status_t fsw_posix_open_dno(struct fsw_posix_volume *pvol, const char *path, int required_type,
                                 struct fsw_shandle *shand);
 
+/* FSW block geometry is recorded in the common volume; the host adapter
+ * performs no further changes when notified. The actual read_block callback
+ * uses the current physical block size with the host file's byte origin.
+ */
 void fsw_posix_change_blocksize(struct fsw_volume *vol,
                               fsw_u32 old_phys_blocksize, fsw_u32 old_log_blocksize,
                               fsw_u32 new_phys_blocksize, fsw_u32 new_log_blocksize);
@@ -75,6 +79,10 @@ int fsw_posix_unmount(struct fsw_posix_volume *pvol)
     return 0;
 }
 
+/* Allocate a host-side file wrapper and resolve a regular-file dnode
+ * through FSW path lookup. The path is borrowed; the wrapper owns its
+ * stream handle until fsw_posix_close. flags/mode do not grant write access.
+ */
 struct fsw_posix_file * fsw_posix_open(struct fsw_posix_volume *pvol, const char *path, int flags, mode_t mode)
 {
     fsw_status_t        status;
@@ -95,6 +103,10 @@ struct fsw_posix_file * fsw_posix_open(struct fsw_posix_volume *pvol, const char
     return file;
 }
 
+/* Translate the FSW byte count into POSIX ssize_t. A backend read error
+ * returns -1 and a successful EOF returns zero; the requested size narrows
+ * to fsw_u32, so very large host reads need an independent size contract.
+ */
 ssize_t fsw_posix_read(struct fsw_posix_file *file, void *buf, size_t nbytes)
 {
     fsw_status_t        status;
@@ -107,6 +119,10 @@ ssize_t fsw_posix_read(struct fsw_posix_file *file, void *buf, size_t nbytes)
     return buffer_size;
 }
 
+/* Seek within an FSW stream relative to start, current position or file end.
+ * Negative offsets preceding the start clamp to zero instead of returning
+ * ESPIPE/EINVAL; the returned position is the stored unsigned byte cursor.
+ */
 off_t fsw_posix_lseek(struct fsw_posix_file *file, off_t offset, int whence)
 {
     fsw_u64             base_offset = 0;
@@ -132,6 +148,10 @@ int fsw_posix_close(struct fsw_posix_file *file)
     return 0;
 }
 
+/* Allocate a directory wrapper around an FSW stream, preserving the mounted
+ * volume pointer but not owning it. The wrapper is valid only until its
+ * matching fsw_posix_closedir, independent of the host image descriptor.
+ */
 struct fsw_posix_dir * fsw_posix_opendir(struct fsw_posix_volume *pvol, const char *path)
 {
     fsw_status_t        status;
@@ -152,6 +172,10 @@ struct fsw_posix_dir * fsw_posix_opendir(struct fsw_posix_volume *pvol, const ch
     return dir;
 }
 
+/* Read one directory member into a shared static struct dirent. Callers
+ * must copy the result if it needs to survive the next readdir invocation;
+ * only the FSW dnode reference is released within this function.
+ */
 struct dirent * fsw_posix_readdir(struct fsw_posix_dir *dir)
 {
     fsw_status_t        status;

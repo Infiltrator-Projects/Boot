@@ -366,6 +366,10 @@ static fsw_status_t fsw_iso9660_dnode_fill(struct fsw_iso9660_volume *vol, struc
     return FSW_SUCCESS;
 }
 
+/* ISO directory-record metadata is held directly inside the dnode and
+ * requires no separate backend-private allocation. The generic FSW
+ * destructor remains responsible for the name, parent and node storage.
+ */
 static void fsw_iso9660_dnode_free(struct fsw_iso9660_volume *vol, struct fsw_iso9660_dnode *dno)
 {
 }
