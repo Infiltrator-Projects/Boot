@@ -124,8 +124,8 @@ EG_IMAGE * egCropImage(IN EG_IMAGE *Image, IN UINTN StartX, IN UINTN StartY, IN 
 /**
  * Allocate a destination grid and interpolate four neighbouring source pixels for
  * each output pixel using fixed-point weights. Equal dimensions yield a separate
- * copy. The interpolation uses the right and lower neighbours unconditionally on
- * the resize path, which assumes both source dimensions exceed one.
+ * copy. The fraction is derived from the exact source-coordinate remainder
+ * to prevent unsigned underflow, and edge samples clamp missing neighbours.
  */
 EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeight) {
    EG_IMAGE *NewImage = NULL;
@@ -133,7 +133,7 @@ EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeigh
    UINTN x, y, Index ;
    UINTN i, j;
    UINTN Offset = 0;
-   UINTN x_ratio, y_ratio, x_diff, y_diff;
+   UINTN x_diff, y_diff, scaledX, scaledY, stepX, stepY;
 
    LOG(3, LOG_LINE_NORMAL, L"Scaling image to %d x %d", NewWidth, NewHeight);
    if ((Image == NULL) || (Image->Height == 0) || (Image->Width == 0) || (NewWidth == 0) || (NewHeight == 0)) {
@@ -155,20 +155,28 @@ EG_IMAGE * egScaleImage(IN EG_IMAGE *Image, IN UINTN NewWidth, IN UINTN NewHeigh
     * x_diff and y_diff are fractions in units of FP_MULTIPLIER, so the
     * combined channel weights are normalised by its square.
     */
-   x_ratio = ((Image->Width - 1) * FP_MULTIPLIER) / NewWidth;
-   y_ratio = ((Image->Height - 1) * FP_MULTIPLIER) / NewHeight;
+   /* Form each coordinate from one exact numerator. Multiplying a truncated
+    * fixed-point ratio by the destination index can slip below the integer
+    * source coordinate and underflow UINTN, corrupting RGB interpolation.
+    * Split quotient and remainder before scaling the fractional part. */
 
    for (i = 0; i < NewHeight; i++) {
       for (j = 0; j < NewWidth; j++) {
-         x = (j * (Image->Width - 1)) / NewWidth;
-         y = (i * (Image->Height - 1)) / NewHeight;
-         x_diff = (x_ratio * j) - x * FP_MULTIPLIER;
-         y_diff = (y_ratio * i) - y * FP_MULTIPLIER;
-         Index = ((y * Image->Width) + x);
+         scaledX = j * (Image->Width - 1);
+         scaledY = i * (Image->Height - 1);
+         x = scaledX / NewWidth;
+         y = scaledY / NewHeight;
+         x_diff = ((scaledX % NewWidth) * FP_MULTIPLIER) / NewWidth;
+         y_diff = ((scaledY % NewHeight) * FP_MULTIPLIER) / NewHeight;
+         Index = y * Image->Width + x;
+         /* A one-pixel source axis must sample its sole pixel; there is no
+          * right/bottom neighbour to read. Other axes remain within bounds. */
+         stepX = (x + 1 < Image->Width) ? 1 : 0;
+         stepY = (y + 1 < Image->Height) ? Image->Width : 0;
          a = Image->PixelData[Index];
-         b = Image->PixelData[Index + 1];
-         c = Image->PixelData[Index + Image->Width];
-         d = Image->PixelData[Index + Image->Width + 1];
+         b = Image->PixelData[Index + stepX];
+         c = Image->PixelData[Index + stepY];
+         d = Image->PixelData[Index + stepY + stepX];
 
          NewImage->PixelData[Offset].b = ((a.b) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
                                           (b.b) * (x_diff) * (FP_MULTIPLIER - y_diff) +
