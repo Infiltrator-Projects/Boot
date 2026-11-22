@@ -36,6 +36,10 @@ typedef struct {
 static BOOT_EARLY_VOLUME_RECORD BootDiagEarlyVolumes[BOOT_DIAG_EARLY_VOLUME_CAP];
 static UINTN BootDiagEarlyCount;
 static UINTN BootDiagEarlyDropped;
+static BOOLEAN BootDiagEarlyEnumerationPresent;
+static UINT64 BootDiagEarlyEnumerationMs;
+static UINTN BootDiagEarlyEnumerationCount;
+static EFI_STATUS BootDiagEarlyEnumerationStatus;
 
 
 /* Open one named EFI file for read/write and invoke Delete on that handle.
@@ -276,6 +280,22 @@ UINT64 BootDiagElapsedMs(UINT64 Begin)
  * individual volume timings and flush it once the configured log is open.
  * These names are diagnostic labels only and cannot affect volume selection.
  */
+VOID BootDiagHandleEnumeration(UINT64 Milliseconds, UINTN Count, EFI_STATUS Status)
+{
+    if (!GlobalConfig.StartupDiagnostics)
+        return;
+    if (gLogActive) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"[DIAG] BlockIo handle enumeration count=%d status=%lu elapsed=%lu ms",
+            Count, (UINT64)Status, Milliseconds);
+        return;
+    }
+    BootDiagEarlyEnumerationPresent = TRUE;
+    BootDiagEarlyEnumerationMs = Milliseconds;
+    BootDiagEarlyEnumerationCount = Count;
+    BootDiagEarlyEnumerationStatus = Status;
+}
+
 VOID BootDiagVolumeTiming(UINTN Index, UINTN Total, CHAR16 *VolumeName,
                           UINT64 Milliseconds)
 {
@@ -310,6 +330,13 @@ VOID BootDiagFlushEarlyVolumes(VOID)
     UINTN i;
     if (!GlobalConfig.StartupDiagnostics || !gLogActive)
         return;
+    if (BootDiagEarlyEnumerationPresent) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"[DIAG] initial BlockIo handle enumeration count=%d status=%lu elapsed=%lu ms",
+            BootDiagEarlyEnumerationCount, (UINT64)BootDiagEarlyEnumerationStatus,
+            BootDiagEarlyEnumerationMs);
+        BootDiagEarlyEnumerationPresent = FALSE;
+    }
     LOG(1, LOG_LINE_NORMAL, L"[DIAG] initial volume scan records=%d dropped=%d",
         BootDiagEarlyCount, BootDiagEarlyDropped);
     for (i = 0; i < BootDiagEarlyCount; ++i) {
