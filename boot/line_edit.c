@@ -2,6 +2,9 @@
  * Interactive firmware console editing of a boot-option line.
  * The input is a mutable UTF-16 string; cursor offset, viewport origin and
  * allocated output size must remain consistent under every keystroke.
+ * A cursor position is not the same as a rendered viewport offset. Editing
+ * must keep both bounded by the active line and available console columns;
+ * the caller must distinguish accepted edits from cancellation.
  */
 
 #include "global.h"
