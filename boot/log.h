@@ -48,6 +48,7 @@ VOID BootDiagCalibrateClock(VOID);
 UINT64 BootDiagTicks(VOID);
 UINT64 BootDiagElapsedMs(UINT64 Begin);
 VOID BootDiagFlush(VOID);
+VOID BootDiagHandleEnumeration(UINT64 Milliseconds, UINTN Count, EFI_STATUS Status);
 VOID BootDiagVolumeTiming(UINTN Index, UINTN Total, CHAR16 *VolumeName, UINT64 Milliseconds);
 VOID BootDiagFlushEarlyVolumes(VOID);
 
