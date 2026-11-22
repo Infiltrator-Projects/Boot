@@ -1044,7 +1044,7 @@ FindMountedESP() {
 AddBootEntry() {
    local InstallPart InstallDisk="" PartNum="" Name InstallPartGuid
    local EntryFilename EfiEntryFilename ExistingEntry BootNum BootOrder NewOrder Candidate
-   local RealBootBinary Efibootmgr
+   local RealBootBinary Efibootmgr ShimOptionsFile ShimChar ShimIndex ShimStatus
    local -a OrderEntries=()
    Efibootmgr="$(command -v efibootmgr 2> /dev/null)"
    if [[ -z "$Efibootmgr" ]] ; then
@@ -1110,12 +1110,14 @@ AddBootEntry() {
       done <<< "$FirmwareEntries"
       if [[ "$MatchCount" == 1 && "$BootEntryCount" == 1 ]] ; then
          # Older BOOT entries passed "shimx64.efi BOOTX64.EFI" as
-         # unterminated UTF-16 optional data. Shim 15.8 parses the shim
-         # filename but cannot parse the final second-stage filename,
-         # then falls back to searching for grubx64.efi. Our canonical
-         # argument is "BOOTX64.EFI " (final delimiter intentional).
-         # A stale entry must be replaced; -o only changes BootOrder.
-         if [[ "$KeepName" == 1 && "${MatchedEntry,,}" != *"file(.${TargetX64,,} "* ]] ; then
+         # unterminated UTF-16 optional data. Shim 15.8 then falls
+         # back to searching for grubx64.efi. New BOOT entries supply
+         # a single, NUL-terminated UTF-16 second-stage filename.
+         # Replace only an obsolete BOOT record; -o changes order,
+         # not the Boot#### load-option payload.
+         if [[ "$KeepName" == 1 &&
+               "${MatchedEntry,,}" != *"file(.${TargetX64,,})"* &&
+               "${MatchedEntry,,}" != *"file(.${TargetX64,,} "* ]] ; then
             echo "BOOT: replacing obsolete Shim handoff options in Boot${BootNum}."
             if ! "$Efibootmgr" -b "$BootNum" -B ; then
                echo "Cannot repair BOOT NVRAM entry; preserving other boot entries." >&2
@@ -1147,15 +1149,32 @@ AddBootEntry() {
             return 1
          }
       else
-         # efibootmgr writes exactly the bytes supplied to -u, without a
-         # UTF-16 terminator. The trailing space is the separator Shim's
-         # split_load_options() requires to accept the last filename.
-         # Passing the shim filename as arg0 is unnecessary and, without
-         # this separator, leaves Shim attempting grubx64.efi instead.
-         "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" -p "$PartNum" -u "$TargetX64 " || {
+         # -u does not reliably append a UCS-2 NUL terminator. Give
+         # efibootmgr -@ a binary optional-data file instead: ASCII
+         # BOOT filename encoded as UTF-16LE with a final 0x0000.
+         # Shim's split_load_options() can then parse BOOTX64.EFI
+         # directly without requiring any grubx64.efi name or copy.
+         if [[ ! "$TargetX64" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "Invalid BOOT second-stage filename." >&2
+            Problems=1
+            return 1
+         fi
+         ShimOptionsFile=$(mktemp) || {
             Problems=1
             return 1
          }
+         for ((ShimIndex=0; ShimIndex<${#TargetX64}; ShimIndex++)); do
+            ShimChar="${TargetX64:ShimIndex:1}"
+            printf '%s\\0' "$ShimChar" >> "$ShimOptionsFile"
+         done
+         printf '\\0\\0' >> "$ShimOptionsFile"
+         "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" -p "$PartNum" -@ "$ShimOptionsFile"
+         ShimStatus=$?
+         rm -f -- "$ShimOptionsFile"
+         if [[ "$ShimStatus" != 0 ]]; then
+            Problems=1
+            return 1
+         fi
       fi
    done
 
