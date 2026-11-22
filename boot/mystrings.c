@@ -3,6 +3,10 @@
  * firmware scanning and configuration. Several case-insensitive comparisons
  * are ASCII-oriented bit manipulations, not Unicode collation. Caller memory
  * ownership and NULL handling differ between the individual utilities.
+ * ASCII-like bit folding can equate nonletter punctuation, so comparison
+ * results are unsuitable as Unicode-normalised security identities. In-place
+ * mutation and returned borrowed substrings must be distinguished from new
+ * caller-owned pool allocations.
  */
 
 #include "mystrings.h"
