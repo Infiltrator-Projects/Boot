@@ -21,6 +21,8 @@ BOOT belongs to InfiltratorOS but must preserve independent operating systems an
 
 Documentation changes alone do not authorise runtime, installer, build-system or boot-order changes.
 
+Source commentary now follows the [ELEGANCE editorial standard](PHILOSOPHY.md#source-comment-editorial-standard): one composed module introduction, practical engineering examples and preserved technical contracts. Third-party and generated source remain distinct from BOOT-owned commentary. This is a presentation standard, not evidence of corrected firmware behaviour.
+
 ## Review status and scope
 
 The source includes technical comments, but documentation completeness is evaluated by correctness and traceability rather than number of comment lines. The Architecture document records present-day call sequences and source-visible hazards; Validation distinguishes existing executable checks from missing regressions; Hardware separates emulation and observed hardware from unsupported claims. The documents are not a certification that every high-impact routine is fully documented or every known issue is fixed.

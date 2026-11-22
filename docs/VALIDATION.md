@@ -118,6 +118,14 @@ Failed CI stops the current release pipeline and must be investigated from the f
 Documentation should state **what passed**, **what failed**, and **what was not tested**. It must not infer success merely because a tag, artifact, EFI image or filesystem source file exists.
 
 
+## Commentary presentation review — 22 November 2026
+
+The latest source-comment refinement replaces mechanically spaced-out BOOT banners with balanced module introductions, aligns the BOOT-owned C/header and installation-script prologues, and restores concrete rationale where it aids understanding (notably EFI pathname normalisation and Linux initrd candidate matching). The full comment contracts about allocation, firmware boundaries, recovery and limitations remain part of the source.
+
+For acceptance, review representative files in an editor with the same typographic hierarchy and line wrapping, and check whether a reader can locate the module purpose, an operation's rationale, and its failure contract without reading repetitive filler. A comparison with rEFInd is evidence for useful original examples, not a requirement to imitate its entire comment style.
+
+Each changed source file must be checked against the exact pre-edit file with C comments or shell prologue comments excluded. These checks preserve implementation text only; they do **not** establish runtime safety, bootability or corrected source hazards. The normal build, package, OVMF and firmware validation rules continue to apply.
+
 ## Source-comment review: reproducible acceptance criteria
 
 This documentation correction is **not** an execution of the regressions below. It records the exact observations necessary to qualify the corresponding source contracts; it does not promote source inspection to test evidence.
