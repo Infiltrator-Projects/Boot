@@ -75,6 +75,14 @@ static VOID WarnSecureBootError(CHAR16 *Name, BOOLEAN Verbose) {
  * Caller-provided names and file records must therefore not be described as
  * memory-safe or fully validated solely by this classifier. Neither an EFI
  * signature match nor a gzip magic match authenticates the image.
+ *
+ * Error semantics are asymmetric: a NULL RootDir/FileName currently returns
+ * LOADER_TYPE_EFI without opening an image, while an Open failure returns
+ * LOADER_TYPE_INVALID. The former is a classification result, not evidence
+ * that a file was opened, checked or found. The 0x3c PE-offset read requires
+ * at least 0x40 initialised bytes independently of the later 4096-byte test.
+ * These are observed contracts and defects, not approved input-validation
+ * behaviour; callers must not use this routine as an authentication gate.
  */
 UINTN IsValidLoader(EFI_FILE_PROTOCOL *RootDir, CHAR16 *FileName) {
     UINTN           LoaderType = LOADER_TYPE_EFI;
