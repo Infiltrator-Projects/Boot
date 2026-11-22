@@ -103,6 +103,18 @@ This documentation correction is **not** an execution of the regressions below. 
 
 Review requirements for the **remaining** code are independent of these cases: document firmware-owned versus project-owned allocations, input units and widths, integer overflow assumptions, stable-versus-borrowed pointers, protocol-open/close balance and whether an error code distinguishes absent input from an I/O failure. High comment density alone is not acceptance evidence. A complete postgraduate-level certification would require this examination across every relevant active source file plus executed tests of nontrivial contracts.
 
+## Failure-semantics matrix: predicates must not overclaim
+
+| Routine | Positive or success-like result | Ambiguity or known defect | Evidence still absent |
+| --- | --- | --- | --- |
+| `IsValidLoader` | EFI-looking header, gzip magic, or the current NULL-argument EFI default | NULL-input path returns EFI classification without a file read; early probe-buffer leaks; PE offset is accessed after potentially short read | Short read, NULL-input, failed-Open and allocator fault injection with leak checks |
+| `DuplicatesFallback` | Reported byte comparison against a separately opened fallback | Actual byte counts are not independently checked, and metadata/allocations depend on mutable disk state | Two independently shortened reads, huge EFI_FILE_INFO sizes, mutation between opens and allocation failures |
+| `ScanDriverDir` | A driver candidate was found in a directory | Does not establish `StartEFIImage`, driver binding or a readable filesystem | Driver load/bind failures and actual post-rescan file access |
+| `fsw_efi_read_block` | Directly returned EFI status in an FSW-declared return type | Status namespaces are not proven equivalent; arithmetic and cache spans are not bounded | Overflow, cache revalidation, firmware read failure and status mapping fixtures |
+
+This matrix documents source-observable behaviour and explicit test obligations;
+no row is evidence that its proposed fault-injection test has executed.
+
 ## Specific verification gaps exposed by source review
 
 The following are **not tests already passed**. They are distinct
