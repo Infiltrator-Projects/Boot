@@ -762,6 +762,14 @@ VOID BootStartupProgressReport(IN CHAR16 *Message, IN UINTN Result)
 /* The regular menu repaint completely replaces this temporary surface. */
 VOID BootStartupProgressEnd(VOID)
 {
+    BOOLEAN WasVisible = BootProgressVisible;
     BootProgressVisible = FALSE;
+    /*
+     * SetupScreen may have selected text-only output from boot.conf while
+     * the temporary diagnostic surface was still repainting in graphics.
+     * Restore that user-selected text mode before the regular menu begins.
+     */
+    if (WasVisible && GlobalConfig.TextOnly)
+        SwitchToText(FALSE);
 }
 
