@@ -117,7 +117,11 @@ BdsLibConnectDevicePath (
  * terminated CHAR16 description and optional trailing data. Copy these fields
  * into BDS-owned storage before dropping the variable buffer. Only active options
  * are appended to the caller's list. This legacy decoder expects a structurally
- * valid variable.
+ * valid variable. The implementation does not independently bound its
+ * descriptive UTF-16 terminator, embedded device path or allocated fields
+ * before using StrSize/GetDevicePathSize. The resulting arithmetic can
+ * underflow if a malformed FilePathSize advances beyond VariableSize.
+ * These are input-validation omissions, not benign firmware assumptions.
  */
 /*
  * Decodes a firmware load-option variable; the data is externally supplied
@@ -217,6 +221,9 @@ VOID *
 /*
  * Retrieves a variable from EFI Runtime Services with a caller-owned result.
  * The returned size and status, not the variable name, determine validity.
+ * On a second GetVariable failure, this helper sets the returned size to
+ * zero but may return its still-allocated buffer; callers must not treat a
+ * non-NULL pointer alone as evidence of a successful firmware read.
  */
 BdsLibGetVariableAndSize (
   IN  CHAR16              *Name,
