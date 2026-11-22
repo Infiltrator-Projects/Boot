@@ -3,6 +3,10 @@
  * Backend fstype tables supply mount, extent and directory operations while
  * the host table supplies block I/O and allocation. Cached block references
  * and dnode refcounts are explicit lifetime contracts across both layers.
+ * A stream's byte position is independent from a shared volume block cache.
+ * Backend extent descriptors use file-logical and physical block units that
+ * must not be mixed; a successful short read is not permission to advance
+ * beyond the bytes actually reported to the caller.
  */
 
 #include "fsw_core.h"
