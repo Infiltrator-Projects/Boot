@@ -2,6 +2,16 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Targeted documentation-contract corrections
+
+- Replaced duplicated commentary on firmware boot-option menu construction with one explicit ownership, output and failure contract.
+- Documented the unguarded offset arithmetic and cache-range assumptions in the EFI filesystem block adapter without suggesting those defects were fixed.
+- Documented fallback-loader comparison limits: unchecked file-information results, unbounded file-sized allocations and independently unchecked read lengths.
+- Distinguished format recognition, firmware authentication, gzip size limits and successful operating-system boot at the EFI launch boundary.
+- Added source-specific cross-boundary contracts to Architecture and executable regression acceptance criteria to Validation.
+- All changes in this entry are comments or Markdown only; **no firmware code, scripts, packaged drivers, tests or executable behaviours were modified**. No new build, firmware or physical-system test result is claimed.
+- This is a targeted correction, **not** a completed every-file postgraduate-level certification.
+
 ## 2026-11-22 — Code-comment and documentation-only review
 
 - Added 115 source-level technical function contracts across 28 maintained C implementation files, covering firmware and menu entry lifetimes, file and variable ownership, C/EFI byte and block units, loader discovery, FSW stream mappings, parser assumptions, Unicode limitations and outstanding resource hazards.
