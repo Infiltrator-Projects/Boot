@@ -350,6 +350,55 @@ This section records *review targets*, not newly executed tests or newly repaire
 
 **Source-only change check.** For an engineering-comments commit, compare the changed C and header files with comments removed and whitespace normalised; the remaining tokens must match the parent revision. Also review every added assertion against its implementing routine. This equivalence test excludes documentation itself and is not a substitute for firmware compilation, host unit tests, QEMU execution, or a physical-hardware boot test.
 
+## Decoder and firmware integration: source-visible failure analysis
+
+The following findings came from inspecting BOOT's own call sites against the
+bundled or firmware-side routines they invoke. They describe **unrepaired**
+code paths in the reviewed revision. A comment explaining a defect does not
+close it. Do not mark a row as passed until the production behaviour is
+corrected or its existing safe behaviour is demonstrated by executable
+evidence.
+
+| Component and exact boundary | Source-visible mechanism | Required qualification evidence |
+| --- | --- | --- |
+| `libeg/nanojpeg_xtra.c:egDecodeJPEG` with `nanojpeg.c:njDone` | Adapter frees `njGetImage()` and then `njDone()` frees the same decoder-managed allocation; grayscale output is one-byte pixels but the adapter casts it to RGB triples | EFI-allocator/ASan tests of grayscale and RGB JPEGs, decoder failure, repeated decoding, and exactly-once deallocation |
+| `libeg/lodepng_xtra.c:lodepng_realloc` and `egDecodePNG` | Replacement retains the original allocation; PNG decoded buffer is not freed on image-allocation or post-decode dimension failures; `size+sizeof(size_t)` has no overflow guard | Allocator-traced growth, forced image-allocation failure, malformed dimensions and maximum-sized allocation requests |
+| `filesystems/fsw_btrfs_zstd.h:zstd_decompress` | Early `goto finish` can reach a zero-fill using `out_buf.pos` before that field is initialised; short completed decode is zero-padded and reported as full requested length | Workspace-allocation failure, truncated frame, sparse/short-output cases with exact byte counts and absence of writes on failure |
+| `filesystems/fsw_btrfs.c:grub_btrfs_lzo_decompress` | Compressed-page size words and skipped segments are not bounded at every dereference/advance by remaining input length | Truncated headers, overdeclared blocks, page-alignment padding and extent-offset fuzz fixtures |
+| `gzip/decompress_inflate.c:gunzip` | Wrapper handles fixed gzip header and FNAME but not all other RFC 1952 optional fields before raw DEFLATE | Complete combinations of FEXTRA, FCOMMENT, FHCRC, FNAME and truncated/invalid wrappers, checking decoded-length publication |
+| `filesystems/mk_fsw_strfunc.py` / `fsw_strfunc.h` | Generated UTF-8 continuation-byte reads use only an encoded-unit count rather than source-byte limits; malformed/truncated UTF-8 can advance past input | Generate from the canonical producer, compare generated output and test malformed sequences with redzones/ASan |
+| `filesystems/fsw_core.c:fsw_dnode_lookup_path` | An intermediate non-directory returns before the retained node reaches the common cleanup path | Fault-injected directory traversal with reference accounting before/after error |
+| `filesystems/scandisk.c:scan_disks` | `LocateHandleBuffer` allocation is not visibly freed after enumerating handles | Repeated probe scans under a counted EFI pool, including zero and failed enumerations |
+| `EfiLib/BdsTianoCore.c:BdsLibVariableToOption` | Boot#### UTF-16 text and embedded device-path size are read before complete variable bounds validation; malformed sizes may underflow derived lengths | Malformed NVRAM load-option fixtures, unterminated descriptions, zero/oversized FilePathSize, allocation faults |
+| `EfiLib/BmLib.c:EfiLibFileInfo` and `EfiLibFileSystemInfo` | Two-call GetInfo paths can retain an allocated buffer on failed second query; pool allocation failure is not fully checked | EFI mock returning BUFFER_TOO_SMALL then failure and out-of-resources; verify ownership/callback arguments |
+| `EfiLib/gnuefi-helper.c:UnicodeStrToAsciiStr` | Destination capacity and representability are debug ASSERT assumptions; no explicit capacity argument | Small destination, non-ASCII code unit and unterminated source, with explicit release-build rejection contract |
+| `boot-native-installer.run` final `Problems` test | With `set -u`, `Problems` may be unset on a clean install, so `[[ $Problems ]]` may abort before returning a success status | Source-isolated no-error installer fixture that reaches final exit zero, plus failed-copy and failed-NVRAM cases |
+| `packaging/install-generic.sh` firmware registration | Activation and BootOrder promotion are separate irreversible firmware steps; re-reading the order does not make them atomic | Disposable NVRAM partial-write and rollback/error-reporting fixtures, preserving independent vendor entries |
+| `filesystems/fsw_hfs.c` | Block-size shift accepts non-power-of-two metadata, 1904-to-1970 time translation wraps on early dates, catalog callback trusts record body length | Disk images with illegal allocation block size, historical timestamps and truncated catalog records |
+| `filesystems/fsw_ext4.c:test_root` | Multiplication of a fixed-width accumulator can wrap while testing sparse-group powers | Largest-group boundary cases and overflow-aware reference comparison |
+
+### Review boundary and reproducibility
+
+The 162 C/header rows below count **function-like definitions**, not
+verified individual function behaviours. Some large upstream implementations
+(e.g. LodePNG and stb_truetype) contain hundreds of internal helpers whose
+behaviour was **not exhaustively established by static inspection**. Their
+source and headers have been examined at call and allocator boundaries, but
+their full input-space correctness requires independent corpus testing,
+sanitizers and firmware-specific tests. Generated code requires a
+source-generator reproducibility check before equivalence can be asserted.
+
+Each BOOT-owned C file changed in this pass was locally checked against the
+content fetched immediately before its write after stripping C block
+comments and insignificant whitespace; shell scripts were similarly compared
+after excluding comment-only lines. This is a **comment-only source check**,
+not a reproduced binary comparison. Other sessions may commit to `main`
+concurrently; the inventory's pinned revision and each write's pre-image
+must be distinguished when interpreting a live branch diff.
+
+No build, OVMF boot, physical-device test, sanitizer run or full malformed
+image regression is claimed for this comment-only pass.
+
 ## Source-function inventory and inspection boundary — 22 November 2026
 
 Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is a **static function-definition inventory** of every tracked C/header file, including generated and bundled code. A function count is determined from source-like definitions (and can include conditional build alternatives or miss unusual macro signatures); it is *not* a test-pass count. Files are classified by code ownership to separate direct review of BOOT-owned logic from upstream decoder and ABI/derived-data integration review. Source commentary changes do not certify behaviour. Specific uncorrected defects are recorded in the proof-obligation tables above.
