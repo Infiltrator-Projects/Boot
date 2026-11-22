@@ -1304,6 +1304,9 @@ REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume
  * explicitly release File->Buffer; the ownership/lifetime of that payload
  * therefore requires a separate audit. A non-NULL command line is an options
  * selection, not evidence that the nominated root or initrd can be mounted.
+ * The absence of an explicit File->Buffer release is a possible ownership
+ * leak, not an intentional transfer to the caller. Verify this against the
+ * file-reader allocation contract before claiming the entire path leak-free.
  */
 CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     UINTN        TokenCount;
