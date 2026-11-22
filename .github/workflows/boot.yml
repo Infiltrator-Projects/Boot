@@ -37,7 +37,8 @@ jobs:
           ! grep -Eqi 'drawTwinSlash|svg' boot/theme.c
           test -s filesystems/fsw_ext4.c
           test -s filesystems/Make.gnuefi
-          grep -Fq 'if (LoadDrivers())' boot/main.c
+          grep -Eq 'DriverFilesFound[[:space:]]*=[[:space:]]*LoadDrivers\(\);' boot/main.c
+          grep -Eq 'if[[:space:]]*\(DriverFilesFound\)' boot/main.c
           grep -Fq 'ConnectFilesystemDriver(ChildImageHandle);' boot/launch_efi.c
           grep -Fq 'set -- --alldrivers' boot-native-installer.run
           if [[ -d gptsync || -e BootPkg.dsc ]]; then
