@@ -1,0 +1,35 @@
+name: BOOT operating-system icon identification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'boot/scan.c'
+      - 'boot/linux.c'
+      - 'tests/host-icon-detection.sh'
+      - 'tests/icon-detection-regressions.c'
+      - '.github/workflows/icon-detection.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: boot-icon-detection-main
+  cancel-in-progress: false
+
+jobs:
+  host-regression:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Mint, Windows, Linux, BOOT and firmware icon resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          for image in os_linuxmint os_linux os_win8 os_win os_boot os_ubuntu; do
+            test -s "icons/${image}.png"
+          done
+      - name: Compile and test real BOOT classifier functions
+        shell: bash
+        run: bash tests/host-icon-detection.sh

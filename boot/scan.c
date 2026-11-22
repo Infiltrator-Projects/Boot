@@ -422,7 +422,8 @@ VOID GenerateSubScreen(LOADER_ENTRY *Entry, IN REFIT_VOLUME *Volume, IN BOOLEAN 
  * inventory.
  */
 VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Volume) {
-    CHAR16      *NameClues, *PathOnly, *NoExtension, *OSIconName = NULL, *Temp;
+    CHAR16      *NameClues, *PathOnly, *NoExtension, *OSIconName = NULL;
+    CHAR16      *WeakIconClues = NULL, *Temp;
     CHAR16      ShortcutLetter = 0;
 
     NameClues = Basename(LoaderPath);
@@ -443,19 +444,24 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
             Entry->me.Image = egCopyImage(Volume->VolIconImage);
         }
 
-        LOG(4, LOG_LINE_NORMAL, L"Creating icon hint based on loader path '%s'", LoaderPath);
+        /*
+         * Directory/volume labels are presentation hints, not OS identities.
+         * In particular, EFI\\Microsoft\\Boot and boot\\vmlinuz both have
+         * a generic "boot" directory. It must never select os_boot.png in
+         * preference to an identified Windows or Linux distribution.
+         * Preserve meaningful vendor directory and volume labels, but try
+         * them only after the loader's positive OS evidence.
+         */
+        LOG(4, LOG_LINE_NORMAL, L"Collecting low-priority icon hints for '%s'", LoaderPath);
         Temp = FindLastDirName(LoaderPath);
-        MergeStrings(&OSIconName, Temp, L',');
+        if (Temp && !MyStriCmp(Temp, L"boot")) {
+            MergeStrings(&WeakIconClues, Temp, L',');
+            ShortcutLetter = Temp[0];
+        }
         MyFreePool(Temp);
         Temp = NULL;
-        if (OSIconName != NULL) {
-            ShortcutLetter = OSIconName[0];
-        }
-
-        LOG(4, LOG_LINE_NORMAL, L"Merging hints based on filesystem name ('%s')", Volume->FsName);
-        MergeWords(&OSIconName, Volume->FsName, L',');
-        LOG(4, LOG_LINE_NORMAL, L"Merging hints based on partition name ('%s')", Volume->PartName);
-        MergeWords(&OSIconName, Volume->PartName, L',');
+        MergeWords(&WeakIconClues, Volume->FsName, L',');
+        MergeWords(&WeakIconClues, Volume->PartName, L',');
     }  
 
     LOG(4, LOG_LINE_NORMAL, L"Adding hints based on specific loaders");
@@ -474,7 +480,9 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
         MergeStrings(&OSIconName, L"refit", L',');
         Entry->OSType = 'R';
         ShortcutLetter = 'R';
-    } else if (StriSubCmp(L"boot", LoaderPath)) {
+    } else if (MyStriCmp(NameClues, L"BOOTX64.EFI") &&
+               StriSubCmp(L"InfiltratorOS\\BOOT\\BOOTX64.EFI", LoaderPath)) {
+        /* Identify our manager by its own EFI path, not the generic word boot. */
         MergeStrings(&OSIconName, L"boot", L',');
         Entry->OSType = 'R';
         ShortcutLetter = 'R';
@@ -516,6 +524,12 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
         MergeStrings(&OSIconName, L"network", L',');
     }
 
+    /* Explicit loader identities and /etc/os-release precede generic
+     * vendor, filesystem and partition-name hints when choosing an icon. */
+    if (WeakIconClues) {
+        MergeStrings(&OSIconName, WeakIconClues, L',');
+        MyFreePool(WeakIconClues);
+    }
     if ((ShortcutLetter >= 'a') && (ShortcutLetter <= 'z'))
         ShortcutLetter = ShortcutLetter - 'a' + 'A';  
     Entry->me.ShortcutLetter = ShortcutLetter;
@@ -528,6 +542,19 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, REFIT_VOLUME *Vo
     MyFreePool(NoExtension);
     MyFreePool(NameClues);
 }  
+
+/*
+ * Firmware Boot#### entries have a textual label but no file path to pass
+ * through SetLoaderDefaults(). Prefer recognisable OS labels to the generic
+ * word "Boot" in "Windows Boot Manager" or "Linux Mint Boot Manager".
+ */
+static VOID AppendFirmwareOSIconHints(CHAR16 **OSIconName, CHAR16 *LoaderTitle) {
+    if (LoaderTitle && StriSubCmp(L"Windows", LoaderTitle))
+        MergeStrings(OSIconName, L"win8,win", L',');
+    else if (LoaderTitle && (StriSubCmp(L"Linux Mint", LoaderTitle) ||
+                             StriSubCmp(L"LinuxMint", LoaderTitle)))
+        MergeStrings(OSIconName, L"linuxmint", L',');
+}
 
 /**
  * Represent a firmware option using TAG_FIRMWARE_LOADER, a duplicate device path
@@ -559,6 +586,12 @@ static LOADER_ENTRY * AddEfiLoaderEntry(IN EFI_DEVICE_PATH *EfiLoaderPath,
         LOG(2, LOG_LINE_NORMAL, L"EFI loader path = '%s'", TempStr);
         MyFreePool(TempStr);
         Entry->EfiBootNum = EfiBootNum;
+        /*
+         * UEFI Boot#### labels are a separate discovery path from EFI file
+         * scanning. "Windows Boot Manager" otherwise matches os_boot.png
+         * before any Windows artwork, because os_windows.png does not exist.
+         */
+        AppendFirmwareOSIconHints(&OSIconName, LoaderTitle);
         MergeWords(&OSIconName, Entry->me.Title, L',');
         MergeStrings(&OSIconName, L"unknown", L',');
         if (Icon) {

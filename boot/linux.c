@@ -156,29 +156,51 @@ CHAR16 * GetMainLinuxOptions(IN CHAR16 * LoaderPath, IN REFIT_VOLUME *Volume) {
  * to refine menu artwork. These labels are heuristic presentation metadata,
  * not executable provenance or operating-system identity attestation.
  */
+/*
+ * Consume all fields of os-release/lsb-release. FreeTokenLine() resets
+ * TokenCount, so the loop condition must read a NEW line before deciding to
+ * stop. Distribution IDs outrank generic NAME and ID_LIKE tokens: otherwise
+ * Mint's NAME="Linux Mint" produces os_linux before ID=linuxmint can win.
+ *
+ * ReadTokenLine owns its tokens, while the merged icon-hint strings own copies.
+ * The release file is informational; a malformed/missing file must not prevent
+ * fallback to the generic Linux icon or affect loader execution.
+ */
 static VOID ParseReleaseFile(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *FileName) {
     UINTN       FileSize = 0;
     REFIT_FILE  File;
-    CHAR16      **TokenList;
-    UINTN       TokenCount = 0;
+    CHAR16      **TokenList = NULL;
+    UINTN       TokenCount;
+    CHAR16      *SimilarIDs = NULL, *DisplayNames = NULL;
 
-    if ((Volume == NULL) || (FileName == NULL) || (OSIconName == NULL) || (*OSIconName == NULL))
+    if (!Volume || !Volume->RootDir || !FileName || !OSIconName)
         return;
 
     if (FileExists(Volume->RootDir, FileName) &&
         (ReadFile(Volume->RootDir, FileName, &File, &FileSize) == EFI_SUCCESS)) {
-        do {
-            TokenCount = ReadTokenLine(&File, &TokenList);
-            if ((TokenCount > 1) && (MyStriCmp(TokenList[0], L"ID") ||
-                                     MyStriCmp(TokenList[0], L"NAME") ||
-                                     MyStriCmp(TokenList[0], L"DISTRIB_ID"))) {
-                MergeWords(OSIconName, TokenList[1], L',');
-            }  
+        while ((TokenCount = ReadTokenLine(&File, &TokenList)) > 0) {
+            if (TokenCount > 1) {
+                if (MyStriCmp(TokenList[0], L"ID") ||
+                    MyStriCmp(TokenList[0], L"DISTRIB_ID")) {
+                    MergeWords(OSIconName, TokenList[1], L',');
+                } else if (MyStriCmp(TokenList[0], L"ID_LIKE")) {
+                    MergeWords(&SimilarIDs, TokenList[1], L',');
+                } else if (MyStriCmp(TokenList[0], L"NAME")) {
+                    MergeWords(&DisplayNames, TokenList[1], L',');
+                }
+            }
             FreeTokenLine(&TokenList, &TokenCount);
-        } while (TokenCount > 0);
+        }
+        /* ID_LIKE is more specific than the word "Linux" in NAME. */
+        if (SimilarIDs)
+            MergeStrings(OSIconName, SimilarIDs, L',');
+        if (DisplayNames)
+            MergeStrings(OSIconName, DisplayNames, L',');
+        MyFreePool(SimilarIDs);
+        MyFreePool(DisplayNames);
         MyFreePool(File.Buffer);
-    }  
-}  
+    }
+}
 
 /*
  * Merge os-release/lsb-release and kernel-filename hints into icon labels.
