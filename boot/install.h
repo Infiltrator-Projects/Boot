@@ -35,9 +35,20 @@ typedef struct _boot_entry_list {
     struct _boot_entry_list  *NextBootEntry;
 } BOOT_ENTRY_LIST;
 
+/*
+ * BackupOldFile renames a writable EFI directory entry to its '-old' sibling.
+ * Existing backup names are not overwritten; the opened handle is closed.
+ */
 EFI_STATUS BackupOldFile(IN EFI_FILE_PROTOCOL *BaseDir, CHAR16 *FileName);
+/*
+ * Returns a caller-owned list of copied UTF-16 labels and device paths.
+ * Invalid firmware records are omitted. NULL means an empty or unreadable list,
+ * not an authenticated claim that no Boot#### records exist.
+ * DeleteBootOrderEntries releases the list, not the EFI variables.
+ */
 BOOT_ENTRY_LIST * FindBootOrderEntries(VOID);
 VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries);
+/* May change persistent Boot#### and BootOrder; errors appear in the EFI UI. */
 VOID ManageBootorder(VOID);
 
 #endif

@@ -64,25 +64,36 @@ finished:
 }
 
 /**
- * Promote a Boot#### number in the UINT16 BootOrder array. Prepend it once, omit
- * every matching old occurrence and preserve the order of the other entries. If
- * it already heads the list, return immediately. For example, promoting 7 in
- * [2,7,4,7] writes [7,2,4].
+ * Promote a 16-bit boot option while preserving the relative order of other
+ * entries. Remove later duplicates even if the selected entry was already
+ * first. A unique first entry needs no NVRAM rewrite.
+ *
+ * Preconditions: BootNum fits UINT16; BootOrder is nonempty and consists of
+ * complete UINT16 records. Both buffers are owned until the firmware write
+ * finishes. A failed SetVariable status propagates to the caller without
+ * changing any of the buffers retained by this function.
+ * Promoting 7 in [2,7,4,7] produces [7,2,4].
  */
 static EFI_STATUS SetBootDefault(UINTN BootNum) {
-    UINTN Status, VarSize = 0, ListSize, i, j;
+    EFI_STATUS Status;
+    UINTN VarSize = 0, ListSize, i, j, Matches = 0;
     UINT16 *BootOrder = NULL, *NewBootOrder = NULL;
-    BOOLEAN AlreadyFirst = FALSE;
 
+    if (BootNum > 0xffff)
+        return EFI_INVALID_PARAMETER;
     Status = EfivarGetRaw(&GlobalGuid, L"BootOrder", (CHAR8 **)&BootOrder, &VarSize);
     if (EFI_ERROR(Status) || !BootOrder ||
         (VarSize % sizeof(UINT16)) || VarSize == 0) {
         MyFreePool(BootOrder);
         return EFI_COMPROMISED_DATA;
     }
+
     ListSize = VarSize / sizeof(UINT16);
-    AlreadyFirst = (BootOrder[0] == BootNum);
-    if (AlreadyFirst) {
+    for (i = 0; i < ListSize; ++i) {
+        if (BootOrder[i] == (UINT16)BootNum)
+            ++Matches;
+    }
+    if (BootOrder[0] == (UINT16)BootNum && Matches == 1) {
         MyFreePool(BootOrder);
         return EFI_SUCCESS;
     }
@@ -95,15 +106,10 @@ static EFI_STATUS SetBootDefault(UINTN BootNum) {
         MyFreePool(BootOrder);
         return EFI_OUT_OF_RESOURCES;
     }
-    /*
-     * Prepending the selected number and copying all other numbers in order
-     * preserves the relative priority of other entries. Use j for the output
-     * length because existing occurrences of BootNum are omitted.
-     */
     NewBootOrder[0] = (UINT16)BootNum;
     j = 1;
     for (i = 0; i < ListSize; ++i) {
-        if (BootOrder[i] != BootNum)
+        if (BootOrder[i] != (UINT16)BootNum)
             NewBootOrder[j++] = BootOrder[i];
     }
     Status = EfivarSetRaw(&GlobalGuid, L"BootOrder", (CHAR8 *)NewBootOrder,
@@ -304,61 +310,110 @@ static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOr
     return Operation;
 }  
 
+/*
+ * Prune stale BootOrder numbers after a Boot#### deletion. Only EFI_NOT_FOUND
+ * means an option is absent: a read failure must not be interpreted as a
+ * missing entry. Build a replacement entirely in memory and publish it only
+ * after inspecting every record. Leave BootOrder intact on failure, including
+ * the case where no remaining referenced option could be read.
+ */
 static EFI_STATUS DeleteInvalidBootEntries(VOID) {
-    UINTN    Status, VarSize, ListSize, i, j = 0;
-    UINT16   *BootOrder, *NewBootOrder;
-    CHAR8    *Contents;
-    CHAR16   *VarName;
+    EFI_STATUS Status;
+    UINTN OrderBytes = 0, EntryBytes = 0, ListSize, i, j = 0;
+    UINT16 *BootOrder = NULL, *NewBootOrder = NULL;
+    CHAR8 *Contents = NULL;
+    CHAR16 *VarName = NULL;
 
-    LOG(1, LOG_LINE_NORMAL, L"Deleting invalid boot entries from internal BootOrder list");
-    Status = EfivarGetRaw(&GlobalGuid, L"BootOrder", (CHAR8**) &BootOrder, &VarSize);
-    if (Status == EFI_SUCCESS) {
-        ListSize = VarSize / sizeof(UINT16);
-        NewBootOrder = AllocateZeroPool(VarSize);
-        for (i = 0; i < ListSize; i++) {
-            VarName = PoolPrint(L"Boot%04x", BootOrder[i]);
-            Status = EfivarGetRaw(&GlobalGuid, VarName, &Contents, &VarSize);
-            MyFreePool(VarName);
-            if (Status == EFI_SUCCESS) {
-                NewBootOrder[j++] = BootOrder[i];
-                MyFreePool(Contents);
-            }
-        }
-        Status = EfivarSetRaw(&GlobalGuid, L"BootOrder", (CHAR8*) NewBootOrder,
-                              j * sizeof(UINT16), TRUE);
-        MyFreePool(NewBootOrder);
+    Status = EfivarGetRaw(&GlobalGuid, L"BootOrder",
+                          (CHAR8 **)&BootOrder, &OrderBytes);
+    if (EFI_ERROR(Status))
+        return Status;
+    if (!BootOrder || OrderBytes == 0 || (OrderBytes % sizeof(UINT16))) {
         MyFreePool(BootOrder);
+        return EFI_COMPROMISED_DATA;
     }
-
+    ListSize = OrderBytes / sizeof(UINT16);
+    NewBootOrder = AllocateZeroPool(OrderBytes);
+    if (!NewBootOrder) {
+        MyFreePool(BootOrder);
+        return EFI_OUT_OF_RESOURCES;
+    }
+    for (i = 0; i < ListSize; ++i) {
+        VarName = PoolPrint(L"Boot%04x", BootOrder[i]);
+        if (!VarName) {
+            Status = EFI_OUT_OF_RESOURCES;
+            goto Done;
+        }
+        Contents = NULL;
+        EntryBytes = 0;
+        Status = EfivarGetRaw(&GlobalGuid, VarName, &Contents, &EntryBytes);
+        MyFreePool(VarName);
+        VarName = NULL;
+        MyFreePool(Contents);
+        Contents = NULL;
+        if (Status == EFI_NOT_FOUND)
+            continue;
+        if (EFI_ERROR(Status))
+            goto Done;
+        NewBootOrder[j++] = BootOrder[i];
+    }
+    Status = EFI_SUCCESS;
+    if (j == 0)
+        Status = EFI_COMPROMISED_DATA;
+    else if (j != ListSize)
+        Status = EfivarSetRaw(&GlobalGuid, L"BootOrder",
+                             (CHAR8 *)NewBootOrder, j * sizeof(UINT16), TRUE);
+Done:
+    MyFreePool(Contents);
+    MyFreePool(VarName);
+    MyFreePool(NewBootOrder);
+    MyFreePool(BootOrder);
     return Status;
 }
 
 /*
- * Separates user selection from the persistent NVRAM mutation. Only the
- * MAKE_DEFAULT result invokes SetBootDefault; parsed entries are freed
- * regardless of selection, and SetVariable failures are shown to the user.
+ * Apply a selected firmware-variable mutation after the menu returns. A
+ * Boot#### delete can succeed even if subsequent BootOrder cleanup fails;
+ * report those outcomes separately. Never label a failed SetVariable write
+ * as successful. The parsed options are borrowed for display, then freed.
  */
 VOID ManageBootorder(VOID) {
     BOOT_ENTRY_LIST *Entries;
-    UINTN           BootNum = 0, Operation;
-    CHAR16          *Name, *Message;
+    UINTN BootNum = 0, Operation;
+    EFI_STATUS Status, CleanupStatus;
+    CHAR16 *Name = NULL, *Message = NULL;
 
     LOG(1, LOG_LINE_NORMAL, L"Managing boot order list");
     Entries = FindBootOrderEntries();
     Operation = PickOneBootOption(Entries, &BootNum);
     if (Operation == EFI_BOOT_OPTION_DELETE) {
         Name = PoolPrint(L"Boot%04x", BootNum);
-        EfivarSetRaw(&GlobalGuid, Name, NULL, 0, TRUE);
-        DeleteInvalidBootEntries();
-        Message = PoolPrint(L"Boot%04x has been deleted.", BootNum);
-        DisplaySimpleMessage(L"Information", Message);
+        Status = Name ? EfivarSetRaw(&GlobalGuid, Name, NULL, 0, TRUE)
+                      : EFI_OUT_OF_RESOURCES;
+        if (EFI_ERROR(Status)) {
+            Message = PoolPrint(L"Boot%04x could not be deleted (EFI status %lx).",
+                                BootNum, (UINTN)Status);
+        } else {
+            CleanupStatus = DeleteInvalidBootEntries();
+            if (EFI_ERROR(CleanupStatus))
+                Message = PoolPrint(L"Boot%04x deleted, but BootOrder cleanup failed (EFI status %lx).",
+                                    BootNum, (UINTN)CleanupStatus);
+            else
+                Message = PoolPrint(L"Boot%04x has been deleted.", BootNum);
+        }
+        DisplaySimpleMessage(L"Information",
+                             Message ? Message : L"BOOT could not report the firmware operation.");
         MyFreePool(Name);
         MyFreePool(Message);
-    }
-    if (Operation == EFI_BOOT_OPTION_MAKE_DEFAULT) {
-        SetBootDefault(BootNum);
-        Message = PoolPrint(L"Boot%04x is now the default EFI boot option.", BootNum);
-        DisplaySimpleMessage(L"Information", Message);
+    } else if (Operation == EFI_BOOT_OPTION_MAKE_DEFAULT) {
+        Status = SetBootDefault(BootNum);
+        if (EFI_ERROR(Status))
+            Message = PoolPrint(L"Boot%04x could not be selected (EFI status %lx).",
+                                BootNum, (UINTN)Status);
+        else
+            Message = PoolPrint(L"Boot%04x is now the default EFI boot option.", BootNum);
+        DisplaySimpleMessage(L"Information",
+                             Message ? Message : L"BOOT could not report the firmware operation.");
         MyFreePool(Message);
     }
     DeleteBootOrderEntries(Entries);
