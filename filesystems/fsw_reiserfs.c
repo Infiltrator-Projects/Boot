@@ -1,11 +1,6 @@
-/*
- * ReiserFS firmware reader using tree keys, stat items and directory entries.
- * On-disk B-tree node contents, item boundaries and key ordering are untrusted.
- * The reader exposes file/dir operations to FSW; the mount must reject
- * unrecognised superblocks rather than displaying invented file contents.
- * Tree item bodies are bounded by their enclosing node and leaf-item
- * descriptors; independently validating a key does not validate its stored
- * offset or length. Reader traversal is read-only and cannot repair a tree.
+/* ReiserFS key, stat-item and directory-tree reader.
+ * Validates on-disk tree-item boundaries before exposing file content.
+ * Readability depends on recognised superblocks and ordered keys.
  */
 
 #include "fsw_reiserfs.h"

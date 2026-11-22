@@ -1,9 +1,6 @@
-/*
- * Bundled minimal LZO compressor/decompressor implementation.
- * The freestanding configuration and many compile-time branches select
- * platform-dependent integer and alignment behavior. Firmware callers must
- * never equate compressed length with safe output capacity; decoder errors
- * and the destination size are part of the on-disk trust boundary.
+/* Bundled LZO1X compression and decompression.
+ * Compile-time variants select alignment, integer width and bounds checks.
+ * Filesystem reads must respect the destination capacity and error status.
  */
 
 #define __LZO_IN_MINILZO 1
@@ -3040,6 +3037,9 @@ DVAL_ASSERT(lzo_xint dv, const lzo_bytep p)
 #define LZO_DETERMINISTIC !(LZO_DICT_USE_PTR)
 
 #ifndef DO_COMPRESS
+/* Instantiate the LZO1X compressor under the selected dictionary model.
+ * Its output size must be checked by the caller.
+ */
 #define DO_COMPRESS     lzo1x_1_compress
 #endif
 
@@ -3464,6 +3464,9 @@ DO_COMPRESS      ( const lzo_bytep in , lzo_uint  in_len,
 
 #undef LZO_TEST_OVERRUN
 #undef DO_DECOMPRESS
+/* Instantiate the fast decoder without the safe variant's overrun checks.
+ * Untrusted filesystem data must use the bounded decoder below.
+ */
 #define DO_DECOMPRESS       lzo1x_decompress
 
 #if !defined(MINILZO_CFG_SKIP_LZO1X_DECOMPRESS)

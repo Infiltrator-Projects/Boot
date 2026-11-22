@@ -1,8 +1,6 @@
-/*
- * Generated string coercion and equality routines for ISO-8859-1, UTF-8
- * and UTF-16 endian variants. This file is produced by mk_fsw_strfunc.py;
- * modify the generator rather than applying a nonrepeatable manual change.
- * Invalid encodings and output capacity are relevant parser boundaries.
+/* Generated filesystem string conversion/equality routines.
+ * Supports ISO-8859-1, UTF-8 and UTF-16 endianness combinations.
+ * Regenerate from the source generator rather than editing logic here.
  */
 
 static int fsw_streq_ISO88591_UTF8(void *s1data, void *s2data, int len)

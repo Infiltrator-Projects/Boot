@@ -1,12 +1,6 @@
-/*
- * Allocation and string conversion helpers for the FSW library. Strings
- * carry explicit encoding, length and allocation ownership; a byte length is
- * not automatically a character count. Caller-provided destination capacity
- * and invalid-encoding behaviour are critical when reading filesystem names.
- * The generated conversion/equality functions do not receive source byte
- * bounds for each UTF-8 codepoint, and their continuation loads are not a
- * malformed-UTF-8 validation layer. Callers must not present unbounded
- * on-disk names as safe Unicode merely because coercion returns success.
+/* Filesystem reader support for allocation and string operations.
+ * Implements shared utilities used by the freestanding backend layers.
+ * Allocation and conversion failure must propagate to the caller.
  */
 
 #include "fsw_core.h"

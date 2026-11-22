@@ -1,8 +1,6 @@
-/*
- * NTFS-format reader code present as an additional filesystem target.
- * Current release builds require only six EFI drivers and do not install an
- * NTFS driver by default. MFT attribute decoding, runlists, sparse/compressed
- * file extents and directory index records are untrusted on-disk data.
+/* NTFS record, runlist and directory-index reader.
+ * MFT attributes and sparse/compressed extents require bounded decoding.
+ * The current release does not install an NTFS EFI driver by default.
  */
 
 #include "fsw_core.h"

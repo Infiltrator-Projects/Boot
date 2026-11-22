@@ -1,12 +1,6 @@
-/*
- * Filesystem-neutral block cache, dnode tree and file-handle read engine.
- * Backend fstype tables supply mount, extent and directory operations while
- * the host table supplies block I/O and allocation. Cached block references
- * and dnode refcounts are explicit lifetime contracts across both layers.
- * A stream's byte position is independent from a shared volume block cache.
- * Backend extent descriptors use file-logical and physical block units that
- * must not be mixed; a successful short read is not permission to advance
- * beyond the bytes actually reported to the caller.
+/* Filesystem-neutral stream, block-cache and inode management.
+ * Backends provide extent and directory operations; host callbacks supply I/O.
+ * Dnode references and cache entries have independent lifetimes.
  */
 
 #include "fsw_core.h"
@@ -335,6 +329,9 @@ fsw_status_t fsw_dnode_create_with_tree(struct fsw_dnode *parent_dno, fsw_u64 tr
     return FSW_SUCCESS;
 }
 
+/* Create a child inode in the default tree (tree ID zero).
+ * Ownership and allocation failure follow fsw_dnode_create_with_tree.
+ */
 fsw_status_t fsw_dnode_create(struct fsw_dnode *parent_dno, fsw_u64 dnode_id, int type,
                               struct fsw_string *name, struct fsw_dnode **dno_out)
 {

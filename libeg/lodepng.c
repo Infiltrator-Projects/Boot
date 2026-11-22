@@ -1,8 +1,6 @@
-/*
- * Bundled PNG chunk, zlib, filtering and pixel conversion implementation.
- * Chunk lengths, IHDR dimensions, palettes and compressed scanlines are
- * untrusted resource data. Decode errors and overflow checks must be preserved
- * when replacing artwork; display assets are not part of boot trust.
+/* Bundled PNG chunk parsing, inflate and pixel conversion.
+ * Resource dimensions, chunk lengths and filtered scanlines are untrusted.
+ * Decoder errors and output capacity determine valid image buffers.
  */
 
 #include "lodepng.h"
@@ -1846,6 +1844,9 @@ static unsigned adler32(const unsigned char* data, unsigned len) {
 
 #ifdef LODEPNG_COMPILE_DECODER
 
+/* Decode a zlib stream into a growing byte vector.
+ * The wrapper validates the zlib header and Adler checksum when configured.
+ */
 static unsigned lodepng_zlib_decompressv(ucvector* out,
                                          const unsigned char* in, size_t insize,
                                          const LodePNGDecompressSettings* settings) {

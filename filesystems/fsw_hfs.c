@@ -1,12 +1,6 @@
-/*
- * Apple HFS Plus/HFSX firmware reader backed by allocation and catalog
- * B-trees. Native plain HFS is not implemented as a general readable path:
- * recognising an HFS wrapper/signature is separate from mounting HFS+ data.
- * B-tree key ordering, node offsets and extent chains are untrusted bytes.
- * A successful catalog lookup depends on ordered keys and node-record
- * offsets remaining within their containing allocation. HFS metadata names
- * and fork extents must not be treated as null-terminated host buffers
- * without verifying their encoded lengths.
+/* HFS+ and HFSX catalog and extent-tree reader.
+ * Recognising an HFS wrapper is not equivalent to supporting plain HFS.
+ * B-tree keys, offsets and overflow extents require validation.
  */
 
 #include "fsw_hfs.h"
