@@ -128,10 +128,9 @@ done
 # Screen resolution and font cache scale can be set before BOOT.log is
 # available. The actual UEFI font-role and glyph checks above/below prove
 # the configured TrueType renderer ran; the early diagnostic is optional.
-if ! grep -Fq 'MB TrueType glyph rasterised by EFI renderer' "$work/log.txt"; then
- echo "BOOT native UEFI TrueType rasteriser failed its glyph self-test" >&2
- grep -E 'TrueType|font|glyph|main loop' "$work/log.txt" >&2 || true
- exit 1
-fi
+# Each "font role ... rendered" marker above is emitted only after
+# egFontReady has successfully rasterised real glyph pixels for that role.
+# Do not also require the one-time glyph message: the first glyph may render
+# before BOOT.log is available and that event is intentionally not repeated.
 echo "All 23 native fonts parsed; configured font roles rasterised a real glyph using UEFI firmware code"
 
