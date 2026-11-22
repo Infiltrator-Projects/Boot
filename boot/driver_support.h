@@ -1,29 +1,9 @@
 /*
  * BOOT / Driver-binding interface
  *
- * Driver
- * binding
- * and
- * controller
- * classification
- * interface.
- * Handle
- * flags
- * describe
- * observed
- * EFI
- * protocol
- * relationships.
- * Binding
- * can
- * change
- * the
- * handle
- * inventory
- * seen
- * by
- * later
- * scans.
+ * Driver binding and controller classification interface. Handle flags
+ * describe observed EFI protocol relationships. Binding can change the
+ * handle inventory seen by later scans.
  */
 
 #ifndef _DRIVER_SUPPORT

@@ -1,26 +1,9 @@
 /*
  * BOOT / Apple firmware interoperability
  *
- * Apple-specific
- * firmware
- * interoperability.
- * Inspects
- * vendor
- * protocols
- * and
- * CSR/SIP
- * state
- * where
- * firmware
- * provides
- * them.
- * These
- * interfaces
- * are
- * optional
- * outside
- * Apple
- * platforms.
+ * Apple-specific firmware interoperability. Inspects vendor protocols and
+ * CSR/SIP state where firmware provides them. These interfaces are optional
+ * outside Apple platforms.
  */
 
 #include "global.h"

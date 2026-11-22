@@ -1,28 +1,9 @@
 /*
  * BOOT / Icon resolution
  *
- * OS
- * icon
- * lookup
- * and
- * graphical
- * fallbacks.
- * Selects
- * external,
- * embedded
- * or
- * placeholder
- * artwork
- * for
- * discovered
- * entries.
- * Icon
- * lookup
- * is
- * independent
- * of
- * executable
- * discovery.
+ * OS icon lookup and graphical fallbacks. Selects external, embedded or
+ * placeholder artwork for discovered entries. Icon lookup is independent of
+ * executable discovery.
  */
 
 #include "global.h"

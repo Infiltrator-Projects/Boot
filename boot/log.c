@@ -1,32 +1,9 @@
 /*
  * BOOT / Diagnostics and logging
  *
- * UEFI
- * diagnostic
- * logging
- * and
- * file
- * rotation.
- * Files
- * are
- * opened
- * through
- * firmware
- * protocols;
- * log
- * I/O
- * is
- * best-effort
- * and
- * never
- * substitutes
- * for
- * the
- * EFI_STATUS
- * of
- * the
- * logged
- * operation.
+ * UEFI diagnostic logging and file rotation. Files are opened through
+ * firmware protocols; log I/O is best-effort and never substitutes for the
+ * EFI_STATUS of the logged operation.
  */
 
 #include "log.h"

@@ -1,30 +1,9 @@
 /*
  * BOOT / Configuration interface
  *
- * Configuration
- * parser
- * types,
- * defaults
- * and
- * public
- * operations.
- * Scan
- * exclusions
- * affect
- * menu
- * visibility;
- * parsing
- * allocates
- * strings
- * that
- * must
- * be
- * released
- * by
- * the
- * documented
- * token
- * helpers.
+ * Configuration parser types, defaults and public operations. Scan
+ * exclusions affect menu visibility; parsing allocates strings that must be
+ * released by the documented token helpers.
  */
 
 #ifndef __CONFIG_H_
