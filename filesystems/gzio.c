@@ -151,6 +151,12 @@ static ush mask_bits[] =
 #define NEEDBITS(n) do {while(k<(n)){b|=((ulg)get_byte(gzio))<<k;k+=8;}} while (0)
 #define DUMPBITS(n) do {b>>=(n);k-=(n);} while (0)
 
+/*
+ * Take one compressed byte from the in-memory input cursor. On exhaustion
+ * this routine supplies zero without setting an error, so a caller must
+ * not infer that the DEFLATE stream was fully present from a syntactically
+ * accepted padding byte.
+ */
 static int
 get_byte (grub_gzio_t gzio)
 {
@@ -159,6 +165,11 @@ get_byte (grub_gzio_t gzio)
       return 0;
 }
 
+/*
+ * Set the compressed-input byte cursor if off does not exceed the
+ * available input. An out-of-range seek sets the sticky decoder error
+ * rather than moving the cursor.
+ */
 static void
 gzio_seek (grub_gzio_t gzio, grub_off_t off)
 {
@@ -173,6 +184,12 @@ static int huft_build (unsigned *, unsigned, unsigned, ush *, ush *,
 static int huft_free (struct huft *);
 static int inflate_codes_in_window (grub_gzio_t);
 
+/*
+ * Build a multi-level canonical Huffman decoding table from symbol code
+ * lengths. The allocated tables are linked through a header preceding each
+ * block and must be released by huft_free; error results mean the
+ * requested prefix tree is not usable.
+ */
 static int
 huft_build (unsigned *b,         
             unsigned n,          
@@ -347,6 +364,12 @@ huft_build (unsigned *b,
   return y != 0 && g != 1;
 }
 
+/*
+ * Release a chain of Huffman decode-table allocations in reverse linked
+ * order. Each table pointer refers just past its allocation header;
+ * decrement before reading its link and passing the original pointer to
+ * EFI FreePool.
+ */
 static int
 huft_free (struct huft *t)
 {
@@ -362,6 +385,12 @@ huft_free (struct huft *t)
   return 0;
 }
 
+/*
+ * Advance literal/length and distance decoding in the fixed-size output
+ * window. The bit reservoir, pending match distance/length and cursor are
+ * copied from decoder state and stored back before returning; callers
+ * continue with that state after the window fills.
+ */
 static int
 inflate_codes_in_window (grub_gzio_t gzio)
 {
@@ -487,6 +516,11 @@ inflate_codes_in_window (grub_gzio_t gzio)
   return ! gzio->block_len;
 }
 
+/*
+ * Discard residual bits to align a stored DEFLATE block at a byte
+ * boundary, then read LEN and its one's complement NLEN. A mismatch marks
+ * the decoder error; both length words come from untrusted input bytes.
+ */
 static void
 init_stored_block (grub_gzio_t gzio)
 {
@@ -510,6 +544,11 @@ init_stored_block (grub_gzio_t gzio)
   gzio->bk = k;
 }
 
+/*
+ * Build the RFC 1951 fixed literal/length and distance Huffman trees.
+ * Table allocations belong to the decoder state and must be released at a
+ * block transition, including if constructing the second tree fails.
+ */
 static void
 init_fixed_block (grub_gzio_t gzio)
 {
@@ -546,6 +585,12 @@ init_fixed_block (grub_gzio_t gzio)
   gzio->block_len++;
 }
 
+/*
+ * Parse dynamic Huffman table sizes and code-length repeats from the
+ * bitstream. The declared literal/length and distance counts determine
+ * stack-array use; malformed counts or invalid trees set the decoder error
+ * before output interpretation.
+ */
 static void
 init_dynamic_block (grub_gzio_t gzio)
 {
@@ -676,6 +721,12 @@ init_dynamic_block (grub_gzio_t gzio)
   gzio->block_len++;
 }
 
+/*
+ * Consume BFINAL and BTYPE from the bit reservoir and choose stored, fixed
+ * or dynamic decoding. This routine prepares the next block; the window
+ * driver checks unsupported block types and the sticky error before
+ * consuming payload bytes.
+ */
 static void
 get_new_block (grub_gzio_t gzio)
 {
@@ -712,6 +763,12 @@ get_new_block (grub_gzio_t gzio)
     }
 }
 
+/*
+ * Produce up to WSIZE uncompressed bytes, continuing across DEFLATE block
+ * boundaries. A stored block copies input bytes directly; compressed
+ * blocks use Huffman tables. The saved_offset identifies the emitted
+ * window's logical position.
+ */
 static void
 inflate_window (grub_gzio_t gzio)
 {
@@ -762,6 +819,11 @@ inflate_window (grub_gzio_t gzio)
 
 }
 
+/*
+ * Reset bit reservoir, compressed byte cursor and block state to the first
+ * deflate payload byte. Huffman tables from the previous decoding attempt
+ * are released so a backward seek can re-inflate from the beginning.
+ */
 static void
 initialize_tables (grub_gzio_t gzio)
 {
@@ -865,6 +927,12 @@ grub_gzio_read_real (grub_gzio_t gzio, grub_off_t offset,
   return ret;
 }
 
+/*
+ * Adapt a compressed filesystem extent to the in-memory zlib reader.
+ * Allocate decoder state, check the two-byte zlib wrapper, read the
+ * requested uncompressed offset and release the state. Negative return
+ * indicates failure, not a valid short read.
+ */
 grub_ssize_t
 grub_zlib_decompress (char *inbuf, grub_size_t insize, grub_off_t off,
                       char *outbuf, grub_size_t outsize)
