@@ -33,3 +33,14 @@ jobs:
       - name: Compile and test real BOOT classifier functions
         shell: bash
         run: bash tests/host-icon-detection.sh
+      - name: Install the UEFI development toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends gnu-efi binutils
+      - name: Compile BOOT with GNU-EFI and link the actual firmware application
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,0.0.1,https://github.com/Infiltrator-Projects/Boot\n' > boot-sbat-release.csv
+          make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -fno-strict-aliasing -fno-tree-loop-distribute-patterns -fno-stack-protector -fshort-wchar -Wall" gnuefi
+          file boot/boot_x64.efi | grep -F 'PE32+'
