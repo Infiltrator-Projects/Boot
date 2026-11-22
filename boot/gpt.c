@@ -6,6 +6,9 @@
  * Cached table records and copied partition outputs have different lifetimes.
  * Invalidating the global GPT cache must not leave callers retaining borrowed
  * pointers into it. A checksum is structural consistency, not authentication.
+ * Cached table records and copied partition outputs have different lifetimes.
+ * Invalidating the global GPT cache must not leave callers retaining borrowed
+ * pointers into it. A checksum is structural consistency, not authentication.
  */
 
 #pragma pack(0)
