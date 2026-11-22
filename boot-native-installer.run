@@ -1318,7 +1318,10 @@ case "$OSTYPE" in
         InstallOnOSX "$1"
         ;;
    linux*)
-        InstallOnLinux
+        if ! InstallOnLinux; then
+           echo "BOOT installation failed; firmware boot order was not promoted by this attempt." >&2
+           exit 1
+        fi
         ;;
    *)
         echo "Running on unknown OS; aborting!"
