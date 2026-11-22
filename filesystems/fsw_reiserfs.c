@@ -23,6 +23,12 @@ static fsw_status_t fsw_reiserfs_volume_stat(struct fsw_reiserfs_volume *vol, st
  */
 static fsw_status_t fsw_reiserfs_dnode_fill(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno);
 static void         fsw_reiserfs_dnode_free(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno);
+/*
+ * Report ReiserFS v1/v2 stat-data fields using the version present on this
+ * node. Used bytes are derived from on-disk block counts and mounted logical
+ * block size, not a physical audit. With neither stat-data representation,
+ * this routine still returns success without populating sb fields.
+ */
 static fsw_status_t fsw_reiserfs_dnode_stat(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno,
                                         struct fsw_dnode_stat *sb);
 static fsw_status_t fsw_reiserfs_get_extent(struct fsw_reiserfs_volume *vol, struct fsw_reiserfs_dnode *dno,
