@@ -1624,8 +1624,13 @@ static inline void set_shand_pos( struct fsw_shandle *shand, int block, int off)
 /*
  * Map a one-based index-block number to the allocation bitmap. A missing
  * bitmap is treated as fully allocated. The current comparison allows the
- * calculated byte index equal to bmpsz; last-byte boundary behaviour needs
- * malformed-image testing and must not be presumed safe.
+ * calculated byte index equal to bmpsz; this is one byte past the allocated
+ * bitmap when bmpsz is its byte length. In addition, the one-based block
+ * argument is decremented before computing byte/bit coordinates. A zero or
+ * negative block therefore requires independent caller exclusion. This
+ * function does not prove those prerequisites: a boundary regression must
+ * exercise absent bitmap, zero block, first and last bits, and the first
+ * out-of-range bit. This comment records a defect, not an implemented guard.
  */
 static inline int test_idxbmp(struct fsw_ntfs_dnode *dno, int block)
 {
