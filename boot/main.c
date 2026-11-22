@@ -522,7 +522,7 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
      * font must not leave an unreadable graphical boot selection screen. */
     if (!egFontReady()) {
         GlobalConfig.TextOnly = TRUE;
-        LOG(1, LOG_LINE_NORMAL, L"MB/Daimler TrueType inventory incomplete: %d/23; firmware text mode selected", egGetFontLoadedCount());
+        LOG(1, LOG_LINE_NORMAL, L"MB/Daimler TrueType renderer unavailable: %d/23 fonts loaded; firmware text mode selected", egGetFontLoadedCount());
     } else {
         LOG(1, LOG_LINE_NORMAL, L"MB/Daimler TrueType inventory validated: 23/23");
     }
