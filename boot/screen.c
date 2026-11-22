@@ -1,6 +1,11 @@
-/* Screen mode, console state and graphics lifecycle.
- * Coordinates GOP/text fallback and display restoration after child images.
- * Screen resources must follow firmware mode changes.
+/*
+ * BOOT / Screen and console
+ *
+ * Coordinates firmware graphics mode, text-console fallback and display
+ * restoration when a launched EFI image returns.
+ *
+ * GOP or UGA mode changes invalidate cached display geometry and image
+ * state; rendering must never become a prerequisite for boot selection.
  */
 
 #include "global.h"

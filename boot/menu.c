@@ -1,15 +1,16 @@
 /*
- *  B O O T    /    MENU & NAVIGATION
- *  ----------------------------------------------------------------------
+ * BOOT / Menu and navigation
  *
- *  Firmware console/UI rendering, input and entry-selection state.
- *  Rows, selection highlights, hidden-tag records and the default
- *  match control menu presentation, not physical installation or EFI
- *  BootOrder. The graphics fallback must never compromise a viable
- *  boot choice. Menu entry pointers and selection indices belong to
- *  the current inventory. A rescan invalidates assumptions about
- *  stable ordering; painting a cached selection or tool icon must
- *  never be interpreted as an image trust check.
+ * Firmware console rendering, pointer and keyboard input, and the selection
+ * state belong to the current scanned inventory.
+ *
+ * Rows, selection highlights, hidden tags and defaults govern presentation,
+ * not installed systems or firmware BootOrder. Graphics failure must never
+ * invalidate a viable boot choice.
+ *
+ * Rescanning invalidates entry pointers and selection indices. Painting a
+ * cached icon or selection is never evidence that the associated EFI image
+ * is trusted.
  */
 
 #include "global.h"

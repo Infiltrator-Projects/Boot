@@ -1,6 +1,11 @@
-/* PNG/JPEG theme rendering controlled by boot.conf.
- * The background cache is module-owned; returned menu plates are caller-owned.
- * Absent assets fall back to the configured or plain display path.
+/*
+ * BOOT / Theme rendering
+ *
+ * Composes the images selected by boot.conf using PNG/JPEG decoders. Missing
+ * image assets must leave a usable plain or configured fallback.
+ *
+ * The background cache is module-owned and borrowed by its callers;
+ * selection plates and temporary composition surfaces are caller-owned.
  */
 
 #include "global.h"

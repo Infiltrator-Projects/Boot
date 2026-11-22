@@ -1,6 +1,12 @@
-/* Legacy BIOS/CSM boot dispatch and discovery.
- * Firmware-specific device mappings and partition hints are not UEFI
- * application paths; changing an active partition can persist to disk.
+/*
+ * BOOT / Legacy handoff
+ *
+ * Discovers and dispatches BIOS/CSM boot options through firmware-specific
+ * device mappings and partition hints.
+ *
+ * Legacy boot records are not UEFI application paths. Changing an active
+ * partition can persist to disk; the code must distinguish observation from
+ * mutation.
  */
 
 #include "global.h"

@@ -1,12 +1,12 @@
 /*
- *  B O O T    /    DISCOVERY
- *  ----------------------------------------------------------------------
+ * BOOT / Loader discovery
  *
- *  Dynamic volume and EFI loader discovery. Readable firmware volumes,
- *  exclusions, loader header checks and fallback de-duplication
- *  determine which choices are displayed. Hidden menu entries are not
- *  deleted from disk. Every supported installation should remain
- *  discoverable, not a fixed pair.
+ * Readable firmware volumes, configured exclusions, loader-header checks and
+ * fallback de-duplication determine which choices are presented.
+ *
+ * Hiding a loader from the menu does not delete its executable. Discovery
+ * remains open to every supported installation rather than a predetermined
+ * pair.
  */
 
 #include "global.h"

@@ -1,12 +1,12 @@
 /*
- *  B O O T    /    CONFIGURATION
- *  ----------------------------------------------------------------------
+ * BOOT / Configuration
  *
- *  Untrusted, volume-resident configuration is parsed into runtime
- *  scanning and presentation state. Tokens must be handled as
- *  settings, not as verified filesystem paths or authorisation to
- *  launch a payload. BOOT-owned variable storage is separate from
- *  firmware global BootOrder.
+ * Volume-resident configuration is untrusted input. It determines scanning
+ * and presentation policy; its tokens are neither validated filesystem paths
+ * nor authorisation to launch a payload.
+ *
+ * BOOT-owned variable storage remains distinct from firmware's global
+ * BootOrder.
  */
 
 #include "global.h"

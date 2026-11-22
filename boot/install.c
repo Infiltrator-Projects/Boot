@@ -1,6 +1,12 @@
-/* Firmware boot-option inspection and ordering.
- * Parses Boot#### records and updates EFI variables where requested.
- * This is separate from host-side installation onto the ESP.
+/*
+ * BOOT / Firmware boot options
+ *
+ * Inspects and updates firmware Boot#### records, their metadata and
+ * selection order. Parsing, changing and persisting a boot option are
+ * distinct responsibilities.
+ *
+ * These firmware-side operations are separate from host-side installation
+ * onto the EFI System Partition.
  */
 
 #include "global.h"

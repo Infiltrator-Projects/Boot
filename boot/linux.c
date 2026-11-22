@@ -1,6 +1,12 @@
-/* Linux EFI-stub discovery and option construction.
- * Kernel versions, distribution labels and initrd matches are heuristics.
- * The selected volume and command line are resolved at dispatch.
+/*
+ * BOOT / Linux EFI-stub discovery
+ *
+ * Finds Linux EFI-stub candidates, extracts kernel versions and constructs
+ * loader options. Distribution names and matching initrd filenames are
+ * heuristics, not guaranteed operating-system identity.
+ *
+ * The selected volume and final command line are resolved for the actual
+ * dispatch.
  */
 
 #include "global.h"
@@ -13,11 +19,19 @@
 #include "scan.h"
 
 /**
- * Search the kernel's directory for init* and booster* names with the same
- * extracted version, allowing two unversioned names to match. With multiple
- * candidates, compare their common prefix starting at the version substring and
- * prefer the shorter full path on a tie. A caller owns the returned path, which
- * survives deletion of the temporary candidate list.
+ * Locate an initrd or initramfs beside the selected EFI-stub kernel.
+ *
+ * For example, a kernel named bzImage-3.3.0.efi can match
+ * initramfs-3.3.0.img, but not initramfs-3.3.0-rc7.img or
+ * initramfs-13.3.0.img. The search also recognises booster* names and
+ * two unversioned forms.
+ *
+ * When several candidates match, prefer the longest common substring
+ * starting at the extracted kernel version; use the shorter filename
+ * to break a tie. No match returns NULL.
+ *
+ * The result is separately allocated and belongs to the caller; it
+ * survives the disposal of the temporary candidate list.
  */
 CHAR16 * FindInitrd(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume) {
     CHAR16              *InitrdName = NULL, *FileName, *KernelVersion, *InitrdVersion, *Path;

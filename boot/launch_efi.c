@@ -1,6 +1,12 @@
-/* UEFI executable loading and child-image handoff.
- * Header inspection, firmware authentication and StartImage are distinct stages.
- * Returning children may alter protocol bindings and display state.
+/*
+ * BOOT / EFI image handoff
+ *
+ * Classifying a loader's file header, authenticating its executable and
+ * starting the EFI child are separate operations.
+ *
+ * A child image may return after changing protocol bindings, variables or
+ * the display. BOOT must preserve its caller-owned resources and restore its
+ * presentation before resuming selection.
  */
 
 #include "global.h"

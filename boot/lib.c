@@ -1,15 +1,13 @@
 /*
- *  B O O T    /    FIRMWARE SERVICES
- *  ----------------------------------------------------------------------
+ * BOOT / Firmware services
  *
- *  Firmware-wide services: volumes, device paths, files and EFI
- *  variables. Protocol handles, allocation ownership, disk identity
- *  and error statuses cross security and lifetime boundaries here. A
- *  recognised volume is not necessarily readable, and an EFI file is
- *  not automatically executable. Borrowed firmware handles and owned
- *  pool buffers must not be conflated. Rescanning may invalidate
- *  volume records; a device-path representation is diagnostic text
- *  unless a separately bounded binary parser has validated it.
+ * Shared services manage volumes, device paths, files and EFI variables.
+ * These cross ownership, allocation, disk-identity and firmware-status
+ * boundaries.
+ *
+ * Recognising a volume does not establish that its contents are readable;
+ * recognising an EFI file does not establish that it is executable. Borrowed
+ * protocol handles and owned pool buffers must retain distinct lifetimes.
  */
 
 #pragma pack(0)
@@ -77,14 +75,24 @@ extern EFI_GUID    BootGuid;
 
 EFI_FILE_PROTOCOL  *gVarsDir = NULL;
 
+/* The device probe can read sectors up to 4096 bytes. */
 #define SECTOR_SIZE 4096
 
+/* Read 68 KiB: a ReiserFS superblock begins at the 64 KiB boundary.
+ * This sample informs filesystem detection, not successful mounting. */
 #define SAMPLE_SIZE 69632  
 
-/*
- * Normalise mixed separators in place, remove repeated separators and
- * discard a trailing slash. The empty result is converted to a single
- * root backslash, so this is not a lossless path-text transformation.
+/**
+ * Normalise an EFI pathname in place.
+ *
+ * Firmware sometimes supplies mixed or repeated separators (including
+ * the malformed \\/ form). User-entered paths may do the same. Replace
+ * forward slashes with backslashes and discard duplicates so directory
+ * comparisons use one representation.
+ *
+ * Leading and trailing separators are removed except for the root path,
+ * which becomes a single backslash. Some firmware requires that explicit
+ * root representation. This is intentionally not a lossless operation.
  */
 VOID CleanUpPathNameSlashes(IN OUT CHAR16 *PathName) {
     UINTN Source = 0, Dest = 0;
