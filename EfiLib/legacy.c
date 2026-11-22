@@ -668,6 +668,9 @@ BdsAddNonExistingLegacyBootOptions (
  * Removes a selected firmware boot option from the managed order data.
  * This concerns persistent boot configuration, not the display-only
  * hiding of a menu entry; callers must propagate firmware write failures.
+ * This implementation deletes Boot#### before removing the number from its
+ * in-memory BootOrder array; failures may leave order and option out of sync.
+ * A successful result here is not an atomic firmware-variable transaction.
  */
 EFI_STATUS
 BdsDeleteBootOption (
