@@ -3,6 +3,9 @@
  * The protective MBR, primary GPT header and entry array originate from
  * untrusted blocks. Header CRC and entries CRC must both be valid before
  * a partition table is treated as coherent; this code does not repair disks.
+ * Cached table records and copied partition outputs have different lifetimes.
+ * Invalidating the global GPT cache must not leave callers retaining borrowed
+ * pointers into it. A checksum is structural consistency, not authentication.
  */
 
 #pragma pack(0)
