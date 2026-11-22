@@ -423,6 +423,16 @@ void EFIAPI fsw_efi_change_blocksize(struct fsw_volume *vol,
  * either condition before DiskIo.ReadDisk/CopyMem. A stale cache window is also
  * observable if cache invalidation is missed during controller/media changes.
  * These are limitations of this implementation, not validation guarantees.
+ *
+ * Important status mismatch: this callback is declared to return fsw_status_t
+ * but returns EFI_STATUS values directly (including the direct NULL-buffer
+ * error and the firmware ReadDisk status). The FSW status namespace cannot
+ * be assumed to match EFI_STATUS numerically. LastIOStatus is only updated
+ * after the read/cache decision, not for the initial NULL-buffer return.
+ * The cache is indexed using Volume and byte positions; the code does not
+ * prove that a cache hit is safe following changed media geometry. These
+ * facts must be tested and corrected in implementation before documenting a
+ * stable public read/error contract.
  */
 fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno, void *buffer) {
    int              i, ReadCache = -1;
