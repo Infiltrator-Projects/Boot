@@ -103,6 +103,23 @@ This documentation correction is **not** an execution of the regressions below. 
 
 Review requirements for the **remaining** code are independent of these cases: document firmware-owned versus project-owned allocations, input units and widths, integer overflow assumptions, stable-versus-borrowed pointers, protocol-open/close balance and whether an error code distinguishes absent input from an I/O failure. High comment density alone is not acceptance evidence. A complete postgraduate-level certification would require this examination across every relevant active source file plus executed tests of nontrivial contracts.
 
+## Specific verification gaps exposed by source review
+
+The following are **not tests already passed**. They are distinct
+verification obligations derived from observed control flow:
+
+| Source | Observable issue or contract | Missing executable proof |
+| --- | --- | --- |
+| `boot/launch_efi.c:IsValidLoader` | Early return after probe-buffer allocation on missing arguments or failed file open | Allocation-count/leak assertion for each early exit |
+| `boot/launch_efi.c:IsValidLoader` | PE offset examined before establishing full read length | Short-read and malformed-offset tests with initialisation checking |
+| `boot/install.c:FindBootOrderEntries` | Malformed records are skipped; allocation failure can return a valid prefix | EFI-variable fixture matrix distinguishing partial result from complete enumeration |
+| `boot/install.c:DeleteInvalidBootEntries` | BootOrder rewrite follows inspection of entries; failures other than NOT_FOUND abort | Fault injection before and after individual Boot#### reads, plus post-write state inspection |
+| `filesystems/fsw_efi.c:fsw_efi_DriverBinding_Start/Stop` | Claimed protocol and mount resources have different teardown obligations | EFI protocol-mock failure injection at mount, interface install, uninstall and close |
+
+A comment-only revision does not resolve these implementation risks.
+Source-level explanations provide a reviewable contract; passing a build or
+a previous OVMF menu smoke test does not satisfy the above fault injections.
+
 ## Source-to-evidence traceability and outstanding regressions
 
 The table distinguishes *existing fixture coverage* from *missing tests*. It does not claim these proposed assertions ran in CI.
