@@ -29,6 +29,10 @@ boot_generic_payload_check() {
         echo "BOOT generic package font integrity check failed." >&2
         return 1
     }
+    [[ -s "$source/themes/boot-luxury.png" ]] || {
+        echo "BOOT generic package is missing its luxury background." >&2
+        return 1
+    }
     for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
         [[ -s "$source/drivers_x64/${filesystem}_x64.efi" ]] || {
             echo "BOOT generic package is missing the $filesystem EFI driver." >&2

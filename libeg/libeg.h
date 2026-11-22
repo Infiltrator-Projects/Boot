@@ -104,6 +104,11 @@ BOOLEAN egSelectFontRole(IN UINTN Role, IN CHAR16 *Filename);
 BOOLEAN egFontReady(VOID);
 UINTN egGetFontLoadedCount(VOID);
 UINTN egComputeTextWidthRole(IN CHAR16 *Text, IN UINTN Role);
+/* TrueType at an explicit pixel height for the smooth display wordmark. */
+UINTN egComputeTextWidthAtPixelHeight(IN CHAR16 *Text, IN UINTN Role, IN UINTN Pixels);
+VOID egRenderTextAtPixelHeight(IN CHAR16 *Text, IN OUT EG_IMAGE *Image,
+                              IN UINTN X, IN UINTN Y, IN UINT8 BGBrightness,
+                              IN UINTN Role, IN UINTN Pixels);
 VOID egRenderTextRole(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage,
                       IN UINTN PosX, IN UINTN PosY, IN UINT8 BGBrightness,
                       IN UINTN Role);

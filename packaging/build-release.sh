@@ -19,6 +19,7 @@ test -s boot/boot_x64.efi || { echo "Missing compiled boot/boot_x64.efi" >&2; ex
 command -v dpkg-deb >/dev/null || { echo "dpkg-deb is required" >&2; exit 1; }
 command -v git >/dev/null || { echo "git is required to pin the exact source revision" >&2; exit 1; }
 
+bash themes/render.sh
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 work="$(mktemp -d)"

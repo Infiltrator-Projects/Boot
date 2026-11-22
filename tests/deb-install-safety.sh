@@ -31,6 +31,7 @@ while read -r digest face; do
     cmp "$source_dir/fonts/$face" "$boot_dir/fonts/$face"
 done < "$source_dir/fonts/SHA256SUMS"
 ( cd "$boot_dir/fonts" && sha256sum -c SHA256SUMS >/dev/null )
+cmp "$source_dir/themes/boot-luxury.png" "$boot_dir/themes/boot-luxury.png"
 test ! -e "$boot_dir/icons/old.png"
 test ! -e "$boot_dir/arbitrary-file"
 test ! -e "$boot_dir/.infiltrator-boot-loader.sha256"
@@ -42,6 +43,13 @@ for fs in ext2 ext4 reiserfs iso9660 hfs btrfs; do
 done
 
 # Failure to validate the staged image must not delete a working installation.
+cp -a "$source_dir" "$work/no-theme"
+rm -f "$work/no-theme/themes/boot-luxury.png"
+if boot_generic_install_files "$esp" "$work/no-theme"; then
+    echo "Generic installer accepted an incomplete graphical theme." >&2
+    exit 1
+fi
+cmp "$source_dir/boot_x64.efi" "$boot_dir/BOOTX64.EFI"
 cp -a "$source_dir" "$work/incomplete"
 rm -f "$work/incomplete/drivers_x64/ext4_x64.efi"
 if boot_generic_install_files "$esp" "$work/incomplete"; then

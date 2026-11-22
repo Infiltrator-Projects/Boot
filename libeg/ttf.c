@@ -511,3 +511,48 @@ VOID egRenderText(IN CHAR16 *text, IN OUT EG_IMAGE *image,
                   IN UINTN px, IN UINTN py, IN UINT8 brightness) {
     egRenderTextRole(text,image,px,py,brightness,MB_FONT_BODY);
 }
+
+/*
+ * Large product identity uses the same verified Type2 rasteriser as body text.
+ * Scale is temporarily increased; ASCII cache masks belong to one size only,
+ * so they are always cleared on entry and restoration. BOOT is single-threaded
+ * while constructing its graphical menu and callers cannot interleave draws.
+ */
+static VOID mbClearFaceCache(MB_FACE *face) {
+    UINTN i;
+    for(i=0;i<MB_GLYPH_ASCII_CACHE;++i) {
+        mbFree(face->ascii[i].mask);
+        mbSet(&face->ascii[i],0,sizeof(face->ascii[i]));
+    }
+}
+UINTN egComputeTextWidthAtPixelHeight(IN CHAR16 *text, IN UINTN role,
+                                       IN UINTN pixels) {
+    MB_FACE *face;
+    float prior;
+    UINTN width;
+    if(!text || pixels<8 || pixels>160)return 0;
+    mbPrepare();
+    face=mbFace(role);
+    if(!face)return 0;
+    prior=face->scale;
+    face->scale=stbtt_ScaleForPixelHeight(&face->font,(float)pixels);
+    width=egComputeTextWidthRole(text,role);
+    face->scale=prior;
+    return width;
+}
+VOID egRenderTextAtPixelHeight(IN CHAR16 *text, IN OUT EG_IMAGE *image,
+                               IN UINTN x, IN UINTN y, IN UINT8 brightness,
+                               IN UINTN role, IN UINTN pixels) {
+    MB_FACE *face;
+    float prior;
+    if(!text || !image || pixels<8 || pixels>160)return;
+    mbPrepare();
+    face=mbFace(role);
+    if(!face)return;
+    prior=face->scale;
+    mbClearFaceCache(face);
+    face->scale=stbtt_ScaleForPixelHeight(&face->font,(float)pixels);
+    egRenderTextRole(text,image,x,y,brightness,role);
+    mbClearFaceCache(face);
+    face->scale=prior;
+}

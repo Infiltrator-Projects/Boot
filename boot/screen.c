@@ -9,6 +9,7 @@
 
 #include "global.h"
 #include "screen.h"
+#include "theme.h"
 #include "config.h"
 #include "libegint.h"
 #include "lib.h"
@@ -443,6 +444,31 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
     INTN BannerPosX, BannerPosY;
     EG_PIXEL Black = { 0x0, 0x0, 0x0, 0 };
 
+
+    /*
+     * A bundled, pre-rasterised luxury background is the default presentation.
+     * User-requested custom banners retain their old behaviour; if the image
+     * is missing, BOOT falls back to the existing banner rather than suppress
+     * boot controls. Background and live UI never share a baked-in OS identity.
+     */
+    if (ShowBanner && !GlobalConfig.BannerFileName &&
+        GlobalConfig.ScreensaverTime != -1) {
+        EG_IMAGE *ThemeBackground=BootThemeBackground(UGAWidth,UGAHeight);
+        if (ThemeBackground) {
+            MenuBackgroundPixel.b=8;
+            MenuBackgroundPixel.g=11;
+            MenuBackgroundPixel.r=5;
+            MenuBackgroundPixel.a=0;
+            egDrawImage(ThemeBackground,0,0);
+            GlobalConfig.BannerBottomEdge=0;
+            if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_BANNER))
+                GlobalConfig.BannerBottomEdge=BootThemeDrawWordmark(ThemeBackground);
+            GraphicsScreenDirty=FALSE;
+            egFreeImage(GlobalConfig.ScreenBackground);
+            GlobalConfig.ScreenBackground=egCopyScreen();
+            return;
+        }
+    }
     if (ShowBanner && !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_BANNER)) {
 
         if (Banner == NULL) {

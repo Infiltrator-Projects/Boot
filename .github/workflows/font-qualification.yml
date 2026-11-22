@@ -32,7 +32,7 @@ jobs:
       - name: Install UEFI toolchain and OVMF
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends build-essential binutils gnu-efi dpkg-dev file qemu-system-x86 ovmf dosfstools mtools gdisk
+          sudo apt-get install -y --no-install-recommends build-essential binutils gnu-efi dpkg-dev file qemu-system-x86 ovmf dosfstools mtools gdisk librsvg2-bin
 
       - name: Verify every InfiltratorOS font binary and rasterise sample glyphs
         shell: bash
@@ -52,6 +52,8 @@ jobs:
           make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -fno-strict-aliasing -fno-tree-loop-distribute-patterns -fno-stack-protector -fshort-wchar -Wall" gnuefi
           file boot/boot_x64.efi | grep -F 'PE32+'
 
+      - name: Build and validate the branded graphical backdrop
+        run: bash themes/render.sh
       - name: Boot the graphical font renderer under isolated UEFI firmware
         run: bash tests/ovmf-fonts-smoke.sh
 

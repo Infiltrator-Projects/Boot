@@ -52,7 +52,7 @@ jobs:
       - name: Install firmware and packaging dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential binutils gnu-efi file dpkg-dev
+          sudo apt-get install -y build-essential binutils gnu-efi file dpkg-dev librsvg2-bin
 
       - name: Install disposable OVMF test tools
         run: sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf dosfstools mtools gdisk

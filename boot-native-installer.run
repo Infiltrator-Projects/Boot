@@ -22,7 +22,7 @@ if ((EUID != 0)); then
     exec sudo bash "$0"
 fi
 
-required=(git make gcc ld objcopy tar mktemp efibootmgr findmnt lsblk blkid realpath od)
+required=(git make gcc ld objcopy tar mktemp efibootmgr findmnt lsblk blkid realpath od rsvg-convert)
 missing=()
 for program in "${required[@]}"; do
     command -v "$program" >/dev/null 2>&1 || missing+=("$program")
@@ -35,11 +35,11 @@ if ((${#missing[@]})) || [[ ! -f /usr/include/efi/efi.h ]]; then
     fi
     if ((EUID == 0)); then
         apt-get -o DPkg::Lock::Timeout=300 update
-        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils
+        apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils librsvg2-bin
     else
         command -v sudo >/dev/null || { echo "sudo is required to install build dependencies" >&2; exit 1; }
         sudo apt-get -o DPkg::Lock::Timeout=300 update
-        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils
+        sudo apt-get -o DPkg::Lock::Timeout=300 install -y --no-install-recommends build-essential binutils git gnu-efi efibootmgr util-linux coreutils librsvg2-bin
     fi
 fi
 for program in "${required[@]}"; do
@@ -67,6 +67,10 @@ cd "$source_dir"
     echo "Downloaded BOOT build source is incomplete" >&2; exit 1;
 }
 echo "Building BOOT natively from source commit $SOURCE_SHA..."
+bash themes/render.sh
+[[ -s themes/boot-luxury.png ]] || {
+    echo "BOOT native theme build failed." >&2; exit 1;
+}
 
 printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$RELEASE_VERSION" > boot-sbat-release.csv
 make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$RELEASE_VERSION\"'" gnuefi
@@ -318,6 +322,11 @@ CheckForFiles() {
       echo "Native BOOT font checksum verification failed" >&2; exit 1;
    }
 
+   ThemesDir="$ThisDir/themes"
+   [[ -s "$ThemesDir/boot-luxury.png" ]] || {
+       echo "BOOT luxury background missing from native installation." >&2; exit 1;
+   }
+
    echo "ShimSource is $ShimSource"
    if [[ "$ShimSource" != "none" ]] ; then
       if [[ -f "$ShimSource" ]] ; then
@@ -555,6 +564,10 @@ CopyBootFiles() {
    # Verified 23-face TrueType collection for BOOT's native UEFI rasteriser.
    rm -rf -- "$InstallDir/$TargetDir/fonts"
    if ! cp -r "$FontsDir" "$InstallDir/$TargetDir" ; then
+      Problems=1
+   fi
+   rm -rf -- "$InstallDir/$TargetDir/themes"
+   if ! cp -r "$ThemesDir" "$InstallDir/$TargetDir"; then
       Problems=1
    fi
    mkdir -p "$InstallDir/$TargetDir/keys"

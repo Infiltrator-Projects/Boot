@@ -13,6 +13,7 @@
 #include "lib.h"
 #include "log.h"
 #include "menu.h"
+#include "theme.h"
 #include "config.h"
 #include "libeg.h"
 #include "libegint.h"
@@ -45,6 +46,7 @@ static UINTN TileSizes[2] = { 144, 64 };
 #define TILE_YSPACING (16)
 
 static EG_IMAGE *SelectionImages[2] = { NULL, NULL };
+static EG_IMAGE *NormalImages[2] = { NULL, NULL };
 static EG_PIXEL SelectionBackgroundPixel = { 0xff, 0xff, 0xff, 0 };
 
 EFI_EVENT* WaitList = NULL;
@@ -75,6 +77,27 @@ static VOID InitSelection(VOID)
         return;
     if (SelectionImages[0] != NULL)
         return;
+
+    /* The default Night selection uses smoked graphite and a fine cyan rim.
+     * Existing user-specified selection PNGs still override this artwork. */
+    if (!GlobalConfig.SelectionSmallFileName &&
+        !GlobalConfig.SelectionBigFileName) {
+        EG_IMAGE *large=BootThemeSelection(TileSizes[0]);
+        EG_IMAGE *small=BootThemeSelection(TileSizes[1]);
+        EG_IMAGE *baseLarge=BootThemeTile(TileSizes[0]);
+        EG_IMAGE *baseSmall=BootThemeTile(TileSizes[1]);
+        if(large && small && baseLarge && baseSmall) {
+            SelectionImages[0]=large;
+            SelectionImages[1]=small;
+            NormalImages[0]=baseLarge;
+            NormalImages[1]=baseSmall;
+            return;
+        }
+        egFreeImage(large);
+        egFreeImage(small);
+        egFreeImage(baseLarge);
+        egFreeImage(baseSmall);
+    }
 
     if (GlobalConfig.SelectionSmallFileName != NULL) {
         TempSmallImage = egLoadImage(SelfDir, GlobalConfig.SelectionSmallFileName, TRUE);
@@ -1057,10 +1080,18 @@ static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN X
             BltImageCompositeBadge(Background, Entry->Image, Entry->BadgeImage, XPos, YPos);
             egFreeImage(Background);
         }  
-    } else {  
+    } else if (NormalImages[Entry->Row] && DrawSelection) {
+        Background=egCropImage(GlobalConfig.ScreenBackground,XPos,YPos,
+                               NormalImages[Entry->Row]->Width,NormalImages[Entry->Row]->Height);
+        if(Background) {
+            egComposeImage(Background,NormalImages[Entry->Row],0,0);
+            BltImageCompositeBadge(Background,Entry->Image,Entry->BadgeImage,XPos,YPos);
+            egFreeImage(Background);
+        }
+    } else {
         egDrawImageWithTransparency(Entry->Image, Entry->BadgeImage, XPos, YPos,
                                     SelectionImages[Entry->Row]->Width, SelectionImages[Entry->Row]->Height);
-    }  
+    }
 }  
 
 /*
