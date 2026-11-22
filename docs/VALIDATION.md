@@ -229,6 +229,80 @@ this documentation-only change, and the first observed failure must remain a
 reported failure until corrected in production code and retested. In particular,
 Common V2 BOOT loading is neither built nor qualified by these comment changes.
 
+## Source-file documentation review ledger — 22 November 2026
+
+This is a deliberately bounded record, not a claim that every tracked
+repository object now meets a master's-level documentation standard. The
+repository inventory at the start of this pass contained **363 actual files**
+(208 text/source/configuration files and 155 binary or other resource files).
+The 155 nontext assets require asset provenance and integrity inspection,
+rather than artificial inline source comments. The text-file inventory was
+screened for role, existing top-level commentary and build/data ownership;
+screening is not a full proof of each function or decoder. The files below
+received source-comment corrections after inspection of their existing
+contracts. Some other source files were inspected and left unchanged because
+their current interface documentation already explained their purpose or
+because they are derived/vendor-owned implementation data.
+
+| File changed | Contract clarified | Evidence boundary |
+| --- | --- | --- |
+| `boot/apple.c` | CSR read/display/write boundaries | Comment-only change; runtime regression not executed |
+| `boot/gpt.c` | CRC versus trust; cache and copied partition lifetime | Comment-only change; runtime regression not executed |
+| `boot/launch_legacy.c` | EBR offset origins and CSM-dependent launch | Comment-only change; runtime regression not executed |
+| `boot/log.c` | Persistent logging side effects | Comment-only change; runtime regression not executed |
+| `boot/pointer.c` | Pointer, cursor snapshot and redraw lifetimes | Comment-only change; runtime regression not executed |
+| `boot/line_edit.c` | Cursor versus viewport coordinate contract | Comment-only change; runtime regression not executed |
+| `boot/crc32.c` | CRC convention versus authenticity | Comment-only change; runtime regression not executed |
+| `boot/icns.c` | Shared icon-cache ownership | Comment-only change; runtime regression not executed |
+| `boot/linux.c` | Kernel/initrd/options selection versus OS startup | Comment-only change; runtime regression not executed |
+| `boot/main.c` | Scan invalidation and returning EFI image lifecycle | Comment-only change; runtime regression not executed |
+| `boot/launch_efi.c` | LoadImage/StartImage/trust-stage separation | Comment-only change; runtime regression not executed |
+| `boot/driver_support.c` | Driver filename count versus successful mount | Comment-only change; runtime regression not executed |
+| `boot/menu.c` | Selection inventory validity and render-only state | Comment-only change; runtime regression not executed |
+| `boot/screen.c` | Scratch surface, mode and console dimension lifetimes | Comment-only change; runtime regression not executed |
+| `boot/lib.c` | Firmware borrowed handles versus owned pool allocations | Comment-only change; runtime regression not executed |
+| `boot/mystrings.c` | ASCII-like folding and string allocation identity | Comment-only change; runtime regression not executed |
+| `filesystems/fsw_core.c` | Physical/logical units and stream/cache independence | Comment-only change; runtime regression not executed |
+| `filesystems/fsw_efi.c` | EFI-to-FSW status mismatch and cache range limits | Comment-only change; runtime regression not executed |
+| `filesystems/fsw_hfs.c` | B-tree node/record bounds and name storage | Comment-only change; runtime regression not executed |
+| `filesystems/fsw_iso9660.c` | SUSP/Rock Ridge continuation bounds | Comment-only change; runtime regression not executed |
+| `filesystems/fsw_reiserfs.c` | Key versus item bounds and read-only traversal | Comment-only change; runtime regression not executed |
+| `EfiLib/BdsConnect.c` | Handle snapshot invalidation on driver dispatch | Comment-only change; runtime regression not executed |
+| `EfiLib/BdsHelper.c` | BBS firmware-dependent execution | Comment-only change; runtime regression not executed |
+| `EfiLib/BdsTianoCore.c` | UEFI in/out byte lengths and ABI compatibility | Comment-only change; runtime regression not executed |
+| `libeg/image.c` | Deep/shallow image data ownership | Comment-only change; runtime regression not executed |
+| `libeg/screen.c` | GOP mode changes versus discovered menu state | Comment-only change; runtime regression not executed |
+| `libeg/ttf.c` | Package checksums versus runtime table checks/rasterisation | Comment-only change; runtime regression not executed |
+| `libeg/load_bmp.c` | BMP stride/origin/length distinction | Comment-only change; runtime regression not executed |
+| `libeg/load_icns.c` | RLE input and output bounds | Comment-only change; runtime regression not executed |
+| `mok/security_policy.c` | Independent Security/Security2 hook restoration | Comment-only change; runtime regression not executed |
+| `mok/simple_file.c` | EFI file handle versus read buffer ownership | Comment-only change; runtime regression not executed |
+| `gzip/decompress_inflate.c` | Gzip recognition/decompression/load distinction | Comment-only change; runtime regression not executed |
+| `EfiLib/BmLib.c` | Nontransactional realloc and lost allocation distinction | Comment-only change; runtime regression not executed |
+| `EfiLib/legacy.c` | BBS snapshot index and firmware variable mutation | Comment-only change; runtime regression not executed |
+
+The source changes above were individually compared with their fetched
+pre-edit text after removing C block comments and whitespace. That check
+preserved the remaining executable text for each file. It is a static
+equivalence check, **not** a GNU-EFI build, binary comparison, EFI protocol
+exercise, malformed-image fuzz test or physical firmware validation.
+
+The accompanying `docs/ARCHITECTURE.md` change corrects a stale reference
+to nonexistent `libeg/text.c` (the actual renderer is `libeg/ttf.c`) and
+separates package-time checksums, runtime TrueType table checks, offscreen
+glyph probes and physical display fidelity. Markdown relative-file links in
+the maintained documentation were checked against the repository tree;
+no broken relative Markdown links were found in that screen.
+
+**Completion criteria still outstanding:** full function-level verification
+of all maintained executable files; reproducible regression evidence for
+the identified safety assumptions; independent qualification of the
+currently shipped binary/asset inventory; and physical firmware results.
+Generated headers, bundled vendor decompression/parser bodies and certificate
+bytes must be assessed at their integration boundaries without adding
+decorative comments or modifying their provenance. This is a **partial**
+file-by-file review, not a completed repository-wide certification.
+
 ## Commentary review: specific unresolved proof obligations
 
 This section records *review targets*, not newly executed tests or newly repaired runtime defects. Source comments now identify their assumptions so future assessments cannot mistake plausible prose for proven safety.
