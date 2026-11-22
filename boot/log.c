@@ -230,7 +230,7 @@ VOID BootDiagFlush(VOID)
 /* Raw cycle counter on x86, firmware wall clock otherwise. */
 UINT64 BootDiagTicks(VOID)
 {
-#if defined(EFIX64) || defined(EFI32)
+#if (defined(EFIX64) || defined(EFI32)) && defined(__GNUC__)
     UINT32 Lower, Upper;
     __asm__ __volatile__("rdtsc" : "=a"(Lower), "=d"(Upper));
     return ((UINT64)Upper << 32) | Lower;
@@ -249,7 +249,7 @@ UINT64 BootDiagTicks(VOID)
 
 VOID BootDiagCalibrateClock(VOID)
 {
-#if defined(EFIX64) || defined(EFI32)
+#if (defined(EFIX64) || defined(EFI32)) && defined(__GNUC__)
     UINT64 Before, After;
     if (!GlobalConfig.StartupDiagnostics)
         return;
@@ -266,7 +266,7 @@ UINT64 BootDiagElapsedMs(UINT64 Begin)
     UINT64 End = BootDiagTicks();
     if (End < Begin)
         return 0;
-#if defined(EFIX64) || defined(EFI32)
+#if (defined(EFIX64) || defined(EFI32)) && defined(__GNUC__)
     if (!BootDiagTicksPerMs)
         return 0;
     return (End - Begin) / BootDiagTicksPerMs;
