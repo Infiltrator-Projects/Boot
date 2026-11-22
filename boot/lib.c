@@ -1236,6 +1236,7 @@ VOID ScanVolumes(VOID)
     UINT8                   *SectorBuffer1, *SectorBuffer2;
     EFI_GUID                *UuidList;
     EFI_GUID                NullUuid = NULL_GUID_VALUE;
+    UINT64                  ProbeBegin, VolumeBegin;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Scanning for volumes");
     MyFreePool(Volumes);
@@ -1243,7 +1244,10 @@ VOID ScanVolumes(VOID)
     VolumesCount = 0;
     ForgetPartitionTables();
 
+    ProbeBegin = BootDiagTicks();
     Status = LibLocateHandle(ByProtocol, &BlockIoProtocol, NULL, &HandleCount, &Handles);
+    if (GlobalConfig.StartupDiagnostics)
+        BootDiagHandleEnumeration(BootDiagElapsedMs(ProbeBegin), HandleCount, Status);
     LOG(2, LOG_LINE_NORMAL, L"Found handles for %d volumes", HandleCount);
     if (Status == EFI_NOT_FOUND) {
         return;   
@@ -1255,8 +1259,12 @@ VOID ScanVolumes(VOID)
     for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
         Volume = AllocateZeroPool(sizeof(REFIT_VOLUME));
         Volume->DeviceHandle = Handles[HandleIndex];
+        VolumeBegin = BootDiagTicks();
         AddPartitionTable(Volume);
         ScanVolume(Volume);
+        if (GlobalConfig.StartupDiagnostics)
+            BootDiagVolumeTiming(HandleIndex, HandleCount, Volume->VolName,
+                                 BootDiagElapsedMs(VolumeBegin));
         LOG(1, LOG_LINE_NORMAL, L"Identified volume '%s', of type%s", Volume->VolName, FSTypeName(Volume->FSType));
         if (UuidList) {
            UuidList[HandleIndex] = Volume->VolUuid;
