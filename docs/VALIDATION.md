@@ -443,4 +443,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `filesystems/fsw_reiserfs_disk.h` | 0 | ABI/header |
 | `filesystems/fsw_strfunc.h` | 15 | ABI/header |
 | `filesystems/gzio.c` | 13 | Bundled decoder |
+| `filesystems/hfs_format.h` | 0 | ABI/header |
+| `filesystems/lzoconf.h` | 0 | ABI/header |
+| `filesystems/lzodefs.h` | 0 | Bundled decoder |
+| `filesystems/minilzo.c` | 11 | Bundled decoder |
+| `filesystems/minilzo.h` | 0 | Bundled decoder |
+| `filesystems/scandisk.c` | 5 | Maintained implementation |
+| `filesystems/test/fsw_posix.c` | 13 | Maintained implementation |
+| `filesystems/test/fsw_posix.h` | 0 | ABI/header |
+| `filesystems/test/fsw_posix_base.h` | 0 | ABI/header |
+| `filesystems/test/lslr.c` | 3 | Maintained implementation |
+| `filesystems/test/lsroot.c` | 1 | Maintained implementation |
+| `filesystems/zstd/bitstream.h` | 12 | Bundled decoder |
+| `filesystems/zstd/error_private.h` | 0 | Bundled decoder |
+| `filesystems/zstd/fse.h` | 6 | Bundled decoder |
+| `filesystems/zstd/fse_decompress.c` | 6 | Bundled decoder |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
