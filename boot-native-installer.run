@@ -184,7 +184,7 @@ GetParams() {
       echo "--encryptkeys requires --localkeys." >&2
       exit 1
    fi
-   EtcKeysDir="$RootDir/etc/boot.d/keys"
+   EtcKeysDir="${RootDir%/}/etc/boot.d/keys"
 }
 
 # Read operator confirmation into global YesNo. The default is selected
@@ -1250,14 +1250,18 @@ InstallOnLinux() {
          echo "BOOT: Secure Boot requires signed BOOTX64.EFI and trusted Shim." >&2
          return 1
       fi
-      # Older mokutil may return success while reporting "is not enrolled".
-      # Require a positive verdict as well as a successful exit status.
-      local_key_verdict=""
-      if ! local_key_verdict=$(mokutil --test-key "$DerKey" 2>&1) ||
-         ! grep -Eqi 'is (already )?enrolled' <<< "$local_key_verdict"; then
-         echo "BOOT: local signing certificate $DerKey is not yet enrolled as a MOK." >&2
-         echo "BOOT: run sudo mokutil --import $DerKey, enroll at reboot, then rerun BOOT." >&2
-         echo "BOOT: ESP contents and firmware BootOrder are unchanged." >&2
+      # mokutil versions differ in their --test-key exit-code semantics.
+      # Accept only an explicit positive enrollment verdict, regardless
+      # of exit status; never treat ambiguous output as enrolled.
+      local_key_verdict="" key_status=0
+      local_key_verdict=$(mokutil --test-key "$DerKey" 2>&1) || key_status=$?
+      if grep -Eqi '(^|[[:space:]])is (already )?enrolled([[:space:]]|$)' <<< "$local_key_verdict" &&
+         ! grep -Eqi 'is not enrolled|in the enrollment request' <<< "$local_key_verdict"; then
+         echo "BOOT: Secure Boot signing certificate confirmed enrolled."
+      else
+         echo "BOOT: local signing certificate $DerKey could not be verified as enrolled." >&2
+         echo "BOOT: mokutil exit $key_status: $local_key_verdict" >&2
+         echo "BOOT: ESP and firmware BootOrder are unchanged by this attempt." >&2
          return 1
       fi
       if ! sbverify --cert "$CertKey" "$BootDir/boot_$Platform.efi" >/dev/null 2>&1; then
