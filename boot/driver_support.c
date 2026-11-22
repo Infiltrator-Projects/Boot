@@ -295,7 +295,6 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
     EFI_HANDLE           *HandleBuffer;
     UINT32               *HandleType;
     UINTN                HandleIndex;
-    UINT32               ControllerIndex;
     BOOLEAN              Parent;
     BOOLEAN              Device;
 
@@ -309,27 +308,23 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
         return Status;
 
     for (Index = 0; Index < AllHandleCount; Index++) {
-
+        //
+        // Scan the handle database
+        //
         Status = LibScanHandleDatabase(NULL,
                                        NULL,
                                        AllHandleBuffer[Index],
-                                       &ControllerIndex,
+                                       NULL,
                                        &HandleCount,
                                        &HandleBuffer,
                                        &HandleType);
         if (EFI_ERROR (Status))
             goto Done;
 
-        if (ControllerIndex == 0xffffffff || ControllerIndex >= HandleCount) {
-            MyFreePool(HandleBuffer);
-            MyFreePool(HandleType);
-            continue;
-        }
-
         Device = TRUE;
-        if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE)
+        if (HandleType[Index] & EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE)
             Device = FALSE;
-        if (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_IMAGE_HANDLE)
+        if (HandleType[Index] & EFI_HANDLE_TYPE_IMAGE_HANDLE)
             Device = FALSE;
 
         if (Device) {
@@ -337,35 +332,15 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
             for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
                 if (HandleType[HandleIndex] & EFI_HANDLE_TYPE_PARENT_HANDLE)
                     Parent = TRUE;
-            }  
+            } // for
 
-            if (!Parent && (HandleType[ControllerIndex] & EFI_HANDLE_TYPE_DEVICE_HANDLE)) {
-                MY_EFI_BLOCK_IO_PROTOCOL *BlockIo = NULL;
-                EFI_STATUS ProbeStatus;
-
-                /*
-                 * The per-driver binding pass already probed accessible
-                 * partition handles. A handle with Block I/O is itself a
-                 * discovered storage controller, not an unbound bus to
-                 * recursively initialise a second time. Reconnecting it
-                 * can repeatedly invoke a filesystem driver that has
-                 * correctly refused unsupported media. Continue connecting
-                 * non-Block-I/O controllers to discover further devices.
-                 */
-                ProbeStatus = refit_call3_wrapper(BS->HandleProtocol,
-                                                  AllHandleBuffer[Index],
-                                                  &gMyEfiBlockIoProtocolGuid,
-                                                  (VOID **)&BlockIo);
-                if (!EFI_ERROR(ProbeStatus) && BlockIo != NULL &&
-                    BlockIo->Media != NULL) {
-                    LOG(3, LOG_LINE_NORMAL,
-                        L"Skipping recursive reconnection of an existing Block I/O device");
-                } else {
-                    Status = refit_call4_wrapper(BS->ConnectController,
-                                                 AllHandleBuffer[Index],
-                                                 NULL,
-                                                 NULL,
-                                                 TRUE);
+            if (!Parent) {
+                if (HandleType[Index] & EFI_HANDLE_TYPE_DEVICE_HANDLE) {
+                   Status = refit_call4_wrapper(BS->ConnectController,
+                                                AllHandleBuffer[Index],
+                                                NULL,
+                                                NULL,
+                                                TRUE);
                 }
             }
         }
@@ -377,7 +352,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 Done:
     MyFreePool (AllHandleBuffer);
     return Status;
-}  
+} /* EFI_STATUS ConnectAllDriversToAllControllers() */
 #else
 EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
     BdsLibConnectAllDriversToAllControllers();
