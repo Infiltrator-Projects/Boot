@@ -398,4 +398,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `boot/line_edit.h` | 0 | ABI/header |
 | `boot/linux.c` | 7 | Maintained implementation |
 | `boot/linux.h` | 0 | ABI/header |
+| `boot/log.c` | 5 | Maintained implementation |
+| `boot/log.h` | 0 | ABI/header |
+| `boot/main.c` | 10 | Maintained implementation |
+| `boot/menu.c` | 43 | Maintained implementation |
+| `boot/menu.h` | 0 | ABI/header |
+| `boot/mystrings.c` | 21 | Maintained implementation |
+| `boot/mystrings.h` | 0 | ABI/header |
+| `boot/pointer.c` | 9 | Maintained implementation |
+| `boot/pointer.h` | 0 | ABI/header |
+| `boot/scan.c` | 31 | Maintained implementation |
+| `boot/scan.h` | 0 | ABI/header |
+| `boot/screen.c` | 22 | Maintained implementation |
+| `boot/screen.h` | 0 | ABI/header |
+| `filesystems/AutoGen.c` | 5 | Generated/embedded |
+| `filesystems/AutoGen.h` | 0 | Generated/embedded |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
