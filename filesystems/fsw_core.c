@@ -104,6 +104,14 @@ void fsw_set_blocksize(struct fsw_volume *vol, fsw_u32 phys_blocksize, fsw_u32 l
  * number only after success. Failed reads can leave reusable storage, but cannot
  * advertise it as valid data for the requested block. Both lookup and victim
  * selection scan the slot array.
+ *
+ * Successful callers own one cache pin, not the returned data buffer; they
+ * must release that pin before unmount or blocksize changes. The block size
+ * and physical block number are supplied by the mounted backend. Cache
+ * expansion doubles a 32-bit slot count and multiplies by the entry size
+ * without a separate overflow check in this routine. The cache also assumes
+ * callers do not invalidate or reconfigure the volume while a block remains
+ * pinned. These are preconditions and limitations, not enforced guarantees.
  */
 fsw_status_t fsw_block_get(struct VOLSTRUCTNAME *vol, fsw_u64 phys_bno, fsw_u32 cache_level, void **buffer_out)
 {
