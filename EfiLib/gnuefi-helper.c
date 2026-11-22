@@ -11,6 +11,12 @@
 
 EFI_GUID gEfiLegacyBiosProtocolGuid = { 0xdb9a1e3d, 0x45cb, 0x4abb, { 0x85, 0x3b, 0xe5, 0x38, 0x7f, 0xdb, 0x2e, 0x2d }};
 
+/*
+ * Narrow a terminated CHAR16 string to one-byte ASCII output. The function
+ * accepts no destination capacity and its ASCII-range/overlap ASSERTs are
+ * not release-build input validation. Each caller must provide sufficient
+ * writable bytes and representable code units before invoking this helper.
+ */
 CHAR8 *
 UnicodeStrToAsciiStr (
   IN      CHAR16              *Source,
