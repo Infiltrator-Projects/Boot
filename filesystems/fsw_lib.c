@@ -24,6 +24,11 @@ fsw_status_t fsw_alloc_zero(int len, void **ptr_out)
     return FSW_SUCCESS;
 }
 
+/*
+ * Duplicate exactly len bytes into a newly allocated FSW buffer. Both src
+ * validity and nonnegative len are caller obligations; no independent
+ * pointer/length validation is performed before the memory copy.
+ */
 fsw_status_t fsw_memdup(void **dest_out, void *src, int len)
 {
     fsw_status_t status;
@@ -92,6 +97,12 @@ int fsw_streq(struct fsw_string *s1, struct fsw_string *s2)
     return 0;
 }
 
+/*
+ * Compare a counted filesystem string against a borrowed NUL-terminated
+ * ISO-8859-1 byte sequence. The scan of s2 has no supplied maximum, so its
+ * caller must guarantee that s2 points to a valid terminated buffer rather
+ * than raw unbounded directory-entry bytes.
+ */
 int fsw_streq_cstr(struct fsw_string *s1, const char *s2)
 {
     struct fsw_string temp_s;
