@@ -19,7 +19,10 @@ BOOT belongs to InfiltratorOS but must preserve independent operating systems an
 
 Documentation changes alone do not authorise runtime, installer, build-system or boot-order changes.
 
-
 ## Review status and scope
 
 The source includes technical comments, but documentation completeness is evaluated by correctness and traceability rather than number of comment lines. The Architecture document records present-day call sequences and source-visible hazards; Validation distinguishes existing executable checks from missing regressions; Hardware separates emulation and observed hardware from unsupported claims. The documents are not a certification that every high-impact routine is fully documented or every known issue is fixed.
+
+The 22 November 2026 source-comment pass covered 28 maintained C implementation files: BOOT lifecycle, configuration, discovery, menu, volume and legacy functions; EFI device paths and BDS; firmware graphics; FSW common/EFI bridges; EXT2, EXT4, NTFS, Btrfs, HFS, ISO 9660 and ReiserFS readers. It added 115 technical function contracts and moved ten comments from between declaration tokens to their proper positions. All changed source files were compared with revision `bf1888a`; with C comments and insignificant whitespace excluded, the remaining code matched. The generated resources, bundled third-party decoders and unrelated files were not rewritten for comment quantity.
+
+The [Architecture](ARCHITECTURE.md) includes a call-boundary cross-reference; [Validation](VALIDATION.md) records the exact automated evidence and unresolved cases. Commentary is a statement of inspected behaviour, not a claim of a new runtime fix, universal compatibility or a completed Common V2 migration.

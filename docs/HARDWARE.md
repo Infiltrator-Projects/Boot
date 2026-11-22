@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document records the native build's firmware and hardware assumptions separately from the architectural intent. It does not claim exhaustive compatibility with every computer or operating system.
+This document records the native build's firmware and hardware assumptions separately from the architectural intent. It does not claim exhaustive compatibility with every computer or operating system. BOOT retains established UEFI discovery and launch mechanisms from its upstream lineage; that history is useful context but not evidence that this exact modified revision works on every machine where the earlier boot manager worked.
 
 ## Host, firmware and CPU
 
@@ -54,7 +54,7 @@ The repository's current firmware access uses EFI filesystem driver binaries and
 
 For any physical qualification claim record: model and board revision; CPU architecture; UEFI manufacturer, version and mode; Secure Boot and key state; storage controller and physical device; partition layout; filesystem revision and incompatibility flags; selected EFI entry; loader pathname; kernel and initrd versions when applicable; the full observed transition (detected, selected, started, entered OS) and any firmware error codes. A link to the exact BOOT commit and installer checksum must accompany the record.
 
-The current documentation does not contain a completed per-device result matrix. Therefore no unlisted OEM model, filesystem feature set, Secure Boot key chain, 32-bit or AArch64 architecture, or multi-OS configuration is declared fully qualified. The GNU-EFI x86-64 build and OVMF smoke are narrower evidence. The Linux EXT4 success mentioned above is one observation without a complete reproducible hardware record.
+The current documentation does not contain a completed per-device result matrix. Therefore no unlisted OEM model, filesystem feature set, Secure Boot key chain, 32-bit or AArch64 architecture, or multi-OS configuration is declared fully qualified. The GNU-EFI x86-64 build and OVMF smoke are narrower evidence. The Linux EXT4 success mentioned above is one observation without a complete reproducible hardware record. The 22 November 2026 comment-only revisions did not change loader discovery, controller connections or filesystem code outside comments, so they cannot either improve or reduce compatibility through a new C runtime statement; they also do not certify the prior runtime changes.
 
 ## Media and read-path considerations
 

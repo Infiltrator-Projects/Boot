@@ -39,7 +39,7 @@ The branch point is visible in the two cases below. [Entry point](../boot/main.c
 | `filesystems/` | The six primary built EFI filesystem drivers and additional source/build targets |
 | `boot-native-installer.run` | Single native build-and-install path for the versioned `.run` release |
 
-The current codebase originated from the established rEFInd implementation. It retains its discovery, menu and EFI filesystem mechanisms; no documentation should claim that those mechanisms were replaced by a new universal boot engine during the recent cleanup.
+The current codebase originated from the established rEFInd implementation. It retains its discovery, menu and EFI filesystem mechanisms; no documentation should claim that those mechanisms were replaced by a new universal boot engine during the recent cleanup. Conversely, the operational history of an upstream boot manager is not transferable hardware certification for BOOT after changes in loader defaults, drivers, build profiles or installer behaviour. The meaningful compatibility claim is limited to the exact paths and environments actually exercised.
 
 ## Volume discovery and filesystem-driver contract
 
@@ -143,6 +143,26 @@ The list API `AddListElement` remains `VOID`: it now avoids dereferencing a fail
 The EXT4 reader currently admits the RECOVER feature bit and does not replay a journal. This is the existing read-only behaviour, not proof that an observed boot has failed; consistency behaviour on recovery-required volumes remains unqualified. Targeted source guards now constrain NTFS attribute-name offsets, index-entry name lengths and ISO SUSP SP marker reads; the existing NTFS compressed/attribute decoder and ISO continuation-area reader still require malformed-image regression evidence. These narrowly scoped changes do **not** establish complete parser safety or boot compatibility.
 
 The obsolete standalone `filesystems/Makefile` installation target has been removed; only the installing native `.run` and generic `.deb` are supported deployment paths. The POSIX filesystem exerciser now defaults to its shipped EXT2 backend instead of referencing the absent XFS source. Hosted parser compilation does not qualify EFI driver binding, Secure Boot or actual volume reads.
+
+## Source-level boundary and ownership cross-reference
+
+The following map identifies non-obvious contracts recorded in the maintained source. These are *descriptions of the implementation*, not assertions that all branches were fault-injected.
+
+| Boundary | Observed contract or implementation limitation | Source |
+| --- | --- | --- |
+| Entry and rescanning | `efi_main` establishes firmware services before discovery; `RescanAll` invalidates selections tied to the previous inventory. `SecureBootUninstall` requests a reset if policy-hook removal fails | `boot/main.c`, `boot/scan.c` |
+| Loader and tool discovery | `ScanEfiFiles` checks each available volume, and `IsValidTool` applies visibility rules; ELF/PE detection and menu publication do not establish image authentication or successful startup | `boot/scan.c`, `boot/launch_efi.c` |
+| Menu ownership | Entries and selected pointers belong to the current scan. Editing load options replaces an allocation only on editor success; hiding a tag persists BOOT-private display preferences | `boot/menu.c`, `boot/line_edit.c` |
+| Firmware variables | `EfivarGetRaw` returns an owned buffer; private BOOT variables can use file storage, while EFI-global `BootOrder` is firmware state. `BootNext` is one-shot, unlike persistent order changes | `boot/lib.c`, `boot/install.c`, `boot/launch_efi.c` |
+| Firmware device paths and BDS | Text printers operate on firmware-supplied node formats without an independently bounded whole-path buffer. Controller reconnection changes firmware handle topology and is not a filesystem read test | `EfiLib/DevicePath.c`, `EfiLib/BdsConnect.c`, `boot/driver_support.c` |
+| Shared filesystem reader | An FSW dnode carries a volume/parent reference; streams own independent byte cursors, while extent mapping and cached physical blocks have distinct units and lifetimes | `filesystems/fsw_core.c`, `filesystems/fsw_efi.c` |
+| EXT2 and EXT4 | An inode is fetched from a block-aligned inode table and copied out of the borrowed cache block. The EXT4 reader's current low-word file-size handling and non-replaying journal policy remain explicit limits | `filesystems/fsw_ext2.c`, `filesystems/fsw_ext4.c` |
+| NTFS and HFS | NTFS `$UpCase` comparisons are not full Unicode normalisation, and its zero free-byte result is unimplemented accounting, not evidence of a full disk. HFS used-space figures rely on volume metadata | `filesystems/fsw_ntfs.c`, `filesystems/fsw_hfs.c` |
+| ISO 9660 and ReiserFS | ISO Rock Ridge name continuations and ReiserFS tree item offsets originate on disk. Directory-entry names borrow record bytes until node construction copies them; untested malformed continuation cases remain | `filesystems/fsw_iso9660.c`, `filesystems/fsw_reiserfs.c` |
+| Btrfs | Tree and inode numbers jointly identify nodes across subvolumes; RAID/parity paths use their own stripe and recovery-cache ownership. Metadata access is not a promise of support for every device topology | `filesystems/fsw_btrfs.c` |
+| Graphics and font handling | Image planes use EFI pool ownership, and UI cursor snapshots must not survive restoration. `egDisplayMessage` currently does not free its temporary rendered image; font getters assume successful/preceding preparation | `libeg/image.c`, `libeg/screen.c`, `libeg/text.c` |
+
+This review deliberately left those runtime and resource-management limitations unchanged. A comment-only change cannot be presented as a repair to an unverified algorithm or a substitute for firmware and malformed-image regressions.
 
 Evidence and remaining regressions are listed in [Validation](VALIDATION.md).
 

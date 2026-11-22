@@ -2,6 +2,13 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Code-comment and documentation-only review
+
+- Added 115 source-level technical function contracts across 28 maintained C implementation files, covering firmware and menu entry lifetimes, file and variable ownership, C/EFI byte and block units, loader discovery, FSW stream mappings, parser assumptions, Unicode limitations and outstanding resource hazards.
+- Relocated ten existing comment blocks from between return types and function names to proper declaration positions without rewriting the underlying declarations.
+- Compared every touched C file with the pre-comment revision `bf1888a` after excluding comments and insignificant whitespace: no executable statements or expressions changed in this documentation task.
+- Updated Architecture, Hardware, Validation and project documentation to distinguish inherited boot-manager design, currently observed automation, unresolved issues and unverified hardware compatibility. The earlier 22 November CI run passed firmware compilation, installer tests, host regressions and OVMF smoke testing but failed at prerelease publication; no success claim is made for that step.
+
 ## 2026-11-22 — Firmware variable and menu ownership follow-up
 
 - Made the optional EfivarGetRaw output-size pointer work on both firmware and file-backed paths, zeroing outputs and rejecting invalid mandatory inputs.

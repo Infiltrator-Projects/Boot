@@ -2,7 +2,7 @@
 
 ## Authority and scope
 
-The authoritative automated verification path is [`.github/workflows/boot.yml`](../.github/workflows/boot.yml). It builds and tests the exact pushed revision and, on successful completion, publishes an AMD64 GitHub prerelease. A passed workflow is evidence for the named automated contracts, **not** certification for every physical firmware or operating system.
+The authoritative automated verification path is [`.github/workflows/boot.yml`](../.github/workflows/boot.yml). It builds and tests the exact pushed revision and, if the release-publication step also succeeds, publishes an AMD64 GitHub prerelease. A passed workflow is evidence for the named automated contracts, **not** certification for every physical firmware or operating system.
 
 This repository does not use System Monitor's `make check` contract. Here, compilation is provided by `make gnuefi` and the dedicated executable regression scripts live in `tests/`. Test names should be read alongside their fixtures and assertions, not as broader promises.
 
@@ -17,6 +17,12 @@ This repository does not use System Monitor's `make check` contract. Here, compi
 | Disposable installation | `tests/install-safety.sh` | Fixed destination, six drivers, symlink rejection and preservation of Windows/GRUB/fallback | Every real partition layout or firmware behaviour |
 | Firmware entry handling | `tests/nvram-safety.sh` | BOOT preference and refusal of duplicate/ambiguous records, including repeated install checks | Every OEM NVRAM implementation |
 | UEFI launch smoke | `tests/ovmf-smoke.sh` | OVMF boots BOOT, which logs the full decoded byte count for its gzipped Btrfs driver, launches that driver and enters its main menu | Reading a Btrfs volume, starting a kernel or reaching OS userspace |
+
+## Recorded workflow evidence: 22 November 2026
+
+[Run 44965981441](https://github.com/Infiltrator-Projects/Boot/actions/runs/44965981441) tested commit `bf1888a`. The GNU-EFI compilation, EFI binary check, native CPU build, `.run` and `.deb` package tests, source-isolated host regressions, disposable ESP installation, repeated firmware-entry ordering, OVMF main-menu smoke test and artifact upload all passed. **The workflow's overall conclusion was failure** because its **Publish GitHub prerelease** step failed. The prior passing checks must not be relabelled as a completed release.
+
+The subsequent comment-only source revisions do not themselves supply additional physical hardware evidence, and a successful build cannot prove the behaviour of the millions of possible firmware/board/storage combinations. A regression run performed after these revisions is a new observation with its own commit SHA; do not reuse the earlier run as proof of a newly built artifact.
 
 ## Test setup and mechanics
 
@@ -89,7 +95,7 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 | Contract or risk | Existing evidence | Missing regression evidence |
 | --- | --- | --- |
 | Fixed installation destination and preservation of other EFI vendors | `tests/install-safety.sh` exercises Linux reinstall against a disposable ESP and verifies three separate vendor files remain unchanged | Interrupted installation and real firmware recovery |
-| Reinstallation without an ownership marker | `tests/install-safety.sh`, `tests/deb-install-safety.sh` | Both installers replace BOOT's fixed directory and reject symlink traversal without requiring old-file proof |
+| Reinstallation without an ownership marker | `tests/install-safety.sh`, `tests/deb-install-safety.sh` verify fixed-directory replacement and symlink rejection without previous-file proof | Interrupted replacement between deletion and reinstall on a real ESP |
 | Duplicate and ambiguous firmware entries | `tests/nvram-safety.sh`, workflow repeat-install checks, source-isolated `tests/host-bootorder-regressions.sh` | Physical firmware variable-write failure and partial-update recovery across different OEMs |
 | Hosted FSW adapter resources | The test-only POSIX adapter closes its image descriptor on unmount or mount failure, releases directory dnodes and checks host `dirent` name capacity | Fault-injected allocation, malformed directory names and repeated mount/iteration leak checks |
 | Pointer enumeration and screen allocation failure | Pointer protocol and handle arrays now compact together; missing protocol-array allocations disable that category; freed cursor images are nulled and the console header tolerates failed blank-row allocation | Firmware protocol mock with failed opens, pool-failure injection, repeated cleanup, and text-only boot under allocation pressure |
@@ -115,6 +121,12 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 From the repository root, `bash tests/host-source-regressions.sh`, `bash tests/host-bootorder-regressions.sh`, `bash tests/install-safety.sh`, `bash tests/nvram-safety.sh`, `bash tests/deb-install-safety.sh` (with a built `.deb`), `bash packaging/test-release.sh` (with its expected release artifacts) and `bash tests/ovmf-smoke.sh` (with its QEMU, OVMF and prebuilt-image prerequisites) are the maintained entry points. `make gnuefi` compiles the firmware targets using the installed GNU-EFI toolchain. Some tests require setup or artifacts and should not be interpreted as executable on an arbitrary clean host without inspection of their scripts.
 
 A review of source text is not a fresh execution of those commands. For a meaningful claim, record the tested commit SHA, environment, command, exit status, fixture inputs and observed artifact or log. Link each claim to the relevant executable assertion rather than relying on a passing badge or a file's existence.
+
+### Comment-only source equivalence
+
+The documentation-only pass used `bf1888aae0f2f575a4997470a1745c39aee86da2` as its comparison base and examined the 28 changed maintained C files. A source comparison excluded C block/line comments outside string and character literals and normalised insignificant whitespace; the remaining code was identical for each modified implementation file. Comments were inserted at function boundaries or repositioned out of split declarations; no production expressions, preprocessor directives, installer logic, test assertions or ABI declarations were intentionally altered.
+
+This establishes **non-comment source equivalence for the touched files**, not bit-for-bit equality of compiler outputs or completed validation on physical UEFI firmware. The inherited EFI drivers, additional source-only readers, vendor decoders, generated data and the entire filesystem module architecture retain their existing runtime behaviour.
 
 ### Comment-quality audit acceptance
 

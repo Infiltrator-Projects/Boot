@@ -49,7 +49,9 @@ The generic AMD64 `.deb` supplies the prebuilt EFI executable, six drivers and r
 
 ## Verification and limits
 
-`.github/workflows/boot.yml` compiles the EFI executable and drivers, verifies the release files, exercises installation and firmware-entry safeguards on disposable fixtures, and starts BOOT in QEMU/OVMF to confirm that the main menu can be reached. These checks do not prove compatibility with every real firmware, operating system, filesystem variant, Secure Boot configuration or direct-kernel boot path.
+`.github/workflows/boot.yml` compiles the EFI executable and drivers, verifies the release files, exercises installation and firmware-entry safeguards on disposable fixtures, and starts BOOT in QEMU/OVMF to confirm that the main menu can be reached. These checks do not prove compatibility with every real firmware, operating system, filesystem variant, Secure Boot configuration or direct-kernel boot path. The maintained loader-discovery and firmware interfaces descend from an established UEFI boot-manager implementation, but BOOT's current build, configuration, packaging and local modifications need their own qualification; inherited history is not evidence that this revision has been tested on an arbitrary number of computers.
+
+A 22 November 2026 source-comment and documentation pass added technical contracts without changing executable C statements, firmware-variable behaviour, installer scripts or filesystem ABIs. See [Validation](docs/VALIDATION.md) for the exact comparison and automated-run evidence.
 
 The definitive contracts, hardware coverage and precise test boundaries are maintained in [Architecture](docs/ARCHITECTURE.md), [Hardware](docs/HARDWARE.md) and [Validation](docs/VALIDATION.md). See the [documentation index](docs/README.md) and [Changelog](docs/CHANGELOG.md).
 
