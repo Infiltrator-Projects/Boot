@@ -89,6 +89,15 @@ if ! grep -Fq 'Entering main loop' "$work/log.txt"; then
  tail -n 65 "$work/log.txt" >&2 || true
  exit 1
 fi
+for theme_marker in \
+ 'BOOT luxury graphite background loaded at' \
+ 'BOOT twin-cyan-slash MB Corpo wordmark rasterised'; do
+ if ! grep -Fq "$theme_marker" "$work/log.txt"; then
+  echo "Missing graphical theme and two-slash wordmark marker: $theme_marker" >&2
+  grep -E 'luxury|graphite|wordmark|banner' "$work/log.txt" >&2 || true
+  exit 1
+ fi
+done
 if ! grep -Fq 'MB/Daimler TrueType inventory validated: 23/23' "$work/log.txt"; then
  echo "UEFI renderer did not validate all 23 MB/Daimler font faces" >&2
  grep -E 'TrueType|font|glyph|main loop' "$work/log.txt" >&2 || true
