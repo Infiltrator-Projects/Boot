@@ -3,6 +3,9 @@
  * Inflate uses bounded input/output lengths; an apparent gzip header does
  * not validate an EFI executable. Output size must be verified before passing
  * the buffer to LoadImage, and allocation belongs to EFI pool services.
+ * Header recognition, successful inflate, complete output and valid PE/COFF
+ * image loading are distinct proof obligations. The temporary workspace and
+ * output allocation have independent cleanup responsibilities on failure.
  */
 
 #include "../boot/lib.h"
