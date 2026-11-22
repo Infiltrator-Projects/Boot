@@ -154,6 +154,13 @@ static BOOLEAN BootDevicePathValid(const CHAR8 *Path, UINTN PathBytes) {
  * A malformed or missing option skips only that number. Allocation failure ends
  * enumeration and returns the valid prefix accumulated so far.
  * DeleteBootOrderEntries releases that list.
+ *
+ * This is intentionally a partial-result API: NULL may mean no usable
+ * entries, malformed BootOrder, or allocation/read failure. A non-NULL list
+ * does not prove all Boot#### entries were inspected successfully. Consumers
+ * must not interpret a shortened list as authoritative firmware state.
+ * BootDevicePathValid checks the bounded node structure, not the semantic
+ * validity of a loader or that firmware can launch its target.
  */
 BOOT_ENTRY_LIST * FindBootOrderEntries(VOID) {
     UINTN Status, VarSize, OrderBytes = 0, i, charCount, pathOffset;
