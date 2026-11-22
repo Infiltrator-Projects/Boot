@@ -115,6 +115,10 @@ jobs:
         shell: bash
         run: bash tests/host-source-regressions.sh
 
+      - name: Test native LVM2 metadata parsing and validated linear mappings
+        shell: bash
+        run: bash tests/host-lvm2-regressions.sh
+
       - name: Check wallpaper scaling without stray colour pixels
         shell: bash
         run: bash tests/host-image-scaling.sh
