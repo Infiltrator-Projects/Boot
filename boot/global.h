@@ -387,6 +387,8 @@ typedef struct {
    CHAR16           *ThemeLogoFileName;
    CHAR16           *ThemeMarkFileName;
    CHAR16           *ThemeUnderlineFileName;
+   /* One boot.conf-only runtime switch for temporary graphical and timing diagnostics. */
+   BOOLEAN          StartupDiagnostics;
 } REFIT_CONFIG;
 
 /*
