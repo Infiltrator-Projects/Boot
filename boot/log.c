@@ -5,6 +5,9 @@
  * Rotation and deletion can alter persistent disk state before a new session
  * begins; successful diagnostic output must never be a required prerequisite
  * for finding or launching an independently valid operating system.
+ * Rotation and deletion can alter persistent disk state before a new session
+ * begins; successful diagnostic output must never be a required prerequisite
+ * for finding or launching an independently valid operating system.
  */
 
 #include "log.h"
