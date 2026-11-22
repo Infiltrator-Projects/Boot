@@ -15,6 +15,7 @@ font_bold mb_corpo_s_text_bold.ttf
 font_title mb_corpo_a_title_regular.ttf
 # Reference layout: 144px OS icons on native 162px selection plates.
 big_icon_size 144
+small_icon_size 64
 
 # BOOT runtime menu defaults and disabled example manual boot entries.
 # timeout is a UI delay. use_nvram false applies to BOOT-managed runtime
