@@ -366,7 +366,13 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
  * System. For each driver-open record, disconnect its agent and, only on success,
  * offer the newly started driver to ConnectController. Existing readable
  * partition handles are skipped. Each OpenProtocolInformation array belongs to
- * one enumeration iteration.
+ * one enumeration iteration and is freed after that handle is processed.
+ * This routine has no result channel: neither DisconnectController nor
+ * ConnectController failure propagates to its caller. Disconnecting an existing
+ * driver can affect access to the volume; a subsequent rescan is needed to
+ * observe which Simple File System protocols remain available. This is a
+ * controller rebinding operation, not evidence that a newly loaded filesystem
+ * driver successfully mounted a volume.
  */
 VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
     EFI_STATUS                            Status;
