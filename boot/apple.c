@@ -2,6 +2,9 @@
  * Apple firmware interoperability, including CSR/SIP-related state and OS
  * information protocols. These interfaces are vendor-specific and must not
  * be assumed present on non-Apple UEFI platforms.
+ * CSR state observation, human-readable reporting and variable mutation are
+ * separate operations: a display label cannot establish the firmware's
+ * enforcement policy or prove that an attempted NVRAM write persisted.
  */
 
 #include "global.h"
