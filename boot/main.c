@@ -259,6 +259,12 @@ static BOOLEAN SecureBootSetup(VOID) {
     return Success;
 }  
 
+/*
+ * Remove the security-policy hooks during shutdown when secure mode
+ * is active. A failed uninstall is treated as unsafe for continuing
+ * to a normal handoff and triggers a reset request after reporting it.
+ * The return flag reflects hook cleanup, not OS signature acceptance.
+ */
 static BOOLEAN SecureBootUninstall(VOID) {
     EFI_STATUS Status;
     BOOLEAN    Success = TRUE;

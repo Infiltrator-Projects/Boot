@@ -423,6 +423,11 @@ static UINTN HandleTime(IN CHAR16 *TimeString) {
     return (Hour * 60 + Minute);
 }  
 
+/*
+ * Absent arguments default to true. The literal values 0, false and off
+ * select false using BOOT's ASCII-oriented comparison; this is a directive
+ * convention, not a general Boolean parser with strict token validation.
+ */
 static BOOLEAN HandleBoolean(IN CHAR16 **TokenList, IN UINTN TokenCount) {
     BOOLEAN TruthValue = TRUE;
 
@@ -476,6 +481,11 @@ static VOID SetDefaultByTime(IN CHAR16 **TokenList, OUT CHAR16 **Default) {
     }  
 }  
 
+/*
+ * Publish the prepared entry pointer directly into the global menu.
+ * No deep copy or allocation-success result is provided by AddMenuEntry:
+ * the caller retains the lifetime constraints of the menu inventory.
+ */
 static LOADER_ENTRY * AddPreparedLoaderEntry(LOADER_ENTRY *Entry) {
     AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
 

@@ -74,6 +74,11 @@ EFI_FILE_PROTOCOL  *gVarsDir = NULL;
 
 #define SAMPLE_SIZE 69632  
 
+/*
+ * Normalise mixed separators in place, remove repeated separators and
+ * discard a trailing slash. The empty result is converted to a single
+ * root backslash, so this is not a lossless path-text transformation.
+ */
 VOID CleanUpPathNameSlashes(IN OUT CHAR16 *PathName) {
     UINTN Source = 0, Dest = 0;
 
@@ -106,6 +111,12 @@ VOID CleanUpPathNameSlashes(IN OUT CHAR16 *PathName) {
     }
 }  
 
+/*
+ * Split the printable device-path prefix at its final closing
+ * parenthesis, returning an independently allocated normalised
+ * file/path tail. The original string is shortened in place when
+ * a device-path prefix is present.
+ */
 CHAR16* SplitDeviceString(IN OUT CHAR16 *InString) {
     INTN i;
     CHAR16 *FileName = NULL;
@@ -309,6 +320,12 @@ EFI_STATUS ReinitRefitLib(VOID)
     return Status;
 }
 
+/*
+ * Open a writable private variables directory under BOOT, falling
+ * back to the ESP's boot-vars directory. Failure changes the global
+ * UseNvram policy; this side effect determines where later BOOT-guid
+ * variables are written, not where EFI-global BootOrder is stored.
+ */
 EFI_STATUS CreateVarsDir(VOID) {
     EFI_STATUS       Status = EFI_SUCCESS;
     EFI_FILE_HANDLE  EspRootDir;
@@ -577,6 +594,12 @@ static VOID SetFilesystemName(REFIT_VOLUME *Volume) {
     MyFreePool(FileSystemInfoPtr);
 }  
 
+/*
+ * Classify a sampled block buffer by recognised on-disk signatures
+ * and selected feature bits. A detected filesystem name or UUID is
+ * descriptive only; it does not mean firmware exposes a readable
+ * Simple File System protocol for this volume.
+ */
 static VOID SetFilesystemData(IN UINT8 *Buffer, IN UINTN BufferSize, IN OUT REFIT_VOLUME *Volume) {
     UINT32       *Ext2Incompat, *Ext2Compat;
     UINT16       *Magic16;
@@ -1698,6 +1721,12 @@ VOID FindVolumeAndFilename(IN EFI_DEVICE_PATH *loadpath,
     MyFreePool(DeviceString);
 }  
 
+/*
+ * Split a mutable volume-qualified path at the first colon. On success
+ * the old allocation becomes the owned VolName string, while Path is
+ * replaced by a separately allocated tail. The caller must release
+ * both outputs and must not retain aliases to the old Path pointer.
+ */
 BOOLEAN SplitVolumeAndFilename(IN OUT CHAR16 **Path, OUT CHAR16 **VolName) {
     UINTN i = 0, Length;
     CHAR16 *Filename;
@@ -1726,6 +1755,12 @@ BOOLEAN SplitVolumeAndFilename(IN OUT CHAR16 **Path, OUT CHAR16 **VolName) {
     }
 }  
 
+/*
+ * Replace three existing output strings with freshly parsed volume,
+ * directory and basename components. The routine consumes any previous
+ * output allocations and uses the same colon/ASCII path conventions as
+ * SplitVolumeAndFilename; each resulting string is separately owned.
+ */
 VOID SplitPathName(CHAR16 *InPath, CHAR16 **VolName, CHAR16 **Path, CHAR16 **Filename) {
     CHAR16 *Temp = NULL;
 
@@ -1750,6 +1785,11 @@ VOID SplitPathName(CHAR16 *InPath, CHAR16 **VolName, CHAR16 **Path, CHAR16 **Fil
     MyFreePool(Temp);
 }  
 
+/*
+ * Return the first matching borrowed volume pointer from the current
+ * enumeration. Its lifetime ends when volume discovery is rebuilt;
+ * false does not imply that no firmware device with that name exists.
+ */
 BOOLEAN FindVolume(REFIT_VOLUME **Volume, CHAR16 *Identifier) {
     UINTN     i = 0;
     BOOLEAN   Found = FALSE;
@@ -1764,6 +1804,11 @@ BOOLEAN FindVolume(REFIT_VOLUME **Volume, CHAR16 *Identifier) {
     return (Found);
 }  
 
+/*
+ * Match a candidate by partition GUID or by human-readable volume,
+ * partition and filesystem labels. Text labels are not unique across
+ * disks, so this predicate must not be used as device authentication.
+ */
 BOOLEAN VolumeMatchesDescription(REFIT_VOLUME *Volume, CHAR16 *Description) {
     EFI_GUID TargetVolGuid = NULL_GUID_VALUE;
 
@@ -1779,6 +1824,12 @@ BOOLEAN VolumeMatchesDescription(REFIT_VOLUME *Volume, CHAR16 *Description) {
     }
 }  
 
+/*
+ * Compare a candidate path against volume-optional, comma-delimited
+ * exclusions. An unqualified filename can match across volumes; a
+ * qualified one depends on VolumeMatchesDescription's ambiguous
+ * display-name rules.
+ */
 BOOLEAN FilenameIn(REFIT_VOLUME *Volume, CHAR16 *Directory, CHAR16 *Filename, CHAR16 *List) {
     UINTN     i = 0;
     BOOLEAN   Found = FALSE;

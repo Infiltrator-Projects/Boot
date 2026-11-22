@@ -540,6 +540,12 @@ static LEGACY_ENTRY * AddLegacyEntryUEFI(BDS_COMMON_OPTION *BdsOption, IN UINT16
     return Entry;
 }  
 
+/*
+ * Enumerate BIOS/CSM boot options through firmware legacy protocols
+ * and BBS categories. USB requests use hard-disk BBS classification,
+ * then apply an additional USB filter. Visible entries do not imply
+ * that the platform supports a successful legacy handoff.
+ */
 static VOID ScanLegacyUEFI(IN UINTN DiskType)
 {
     EFI_STATUS                Status;
@@ -634,6 +640,11 @@ static VOID ScanLegacyVolume(REFIT_VOLUME *Volume, UINTN VolumeIndex) {
 }  
 #endif
 
+/*
+ * Select the Apple per-volume or UEFI BBS enumeration path for
+ * optical media. Unsupported firmware exposes no legacy candidates
+ * even when an optical EFI loader remains discoverable.
+ */
 VOID ScanLegacyDisc(VOID)
 {
 #if defined(EFI32) || defined(EFIX64)
@@ -653,6 +664,11 @@ VOID ScanLegacyDisc(VOID)
 #endif
 }  
 
+/*
+ * Select the legacy-scan mechanism for internal media based on the
+ * firmware's identified legacy mode. This is separate from scanning
+ * EFI executable paths on the same volume.
+ */
 VOID ScanLegacyInternal(VOID)
 {
 #if defined(EFI32) || defined(EFIX64)
@@ -673,6 +689,11 @@ VOID ScanLegacyInternal(VOID)
 #endif
 }  
 
+/*
+ * Use Apple per-volume or UEFI BBS legacy enumeration for external
+ * media. A displayed legacy entry is independent of USB EFI driver
+ * and filesystem readability for direct EFI-image loading.
+ */
 VOID ScanLegacyExternal(VOID)
 {
 #if defined(EFI32) || defined(EFIX64)
@@ -716,6 +737,11 @@ VOID FindLegacyBootType(VOID) {
 #endif
 }  
 
+/*
+ * Warn only when the configuration requests a legacy scan but the
+ * detected platform exposes no usable legacy type. This is a
+ * diagnostic check; it cannot enable missing CSM support.
+ */
 VOID WarnIfLegacyProblems(VOID) {
     BOOLEAN  found = FALSE;
     UINTN    i = 0;

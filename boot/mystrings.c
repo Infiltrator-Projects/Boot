@@ -10,6 +10,11 @@
 #include "screen.h"
 #include "../include/refit_call_wrapper.h"
 
+/*
+ * Search by clearing bit 5 of CHAR16 code units. This reproduces
+ * ASCII case folding for letters but also equates some punctuation
+ * and is not Unicode collation. A NULL input never matches.
+ */
 BOOLEAN StriSubCmp(IN CHAR16 *SmallStr, IN CHAR16 *BigStr) {
     BOOLEAN Found = 0, Terminate = 0;
     UINTN BigIndex = 0, SmallIndex = 0, BigStart = 0;
@@ -57,6 +62,11 @@ BOOLEAN MyStriCmp(IN CONST CHAR16 *FirstString, IN CONST CHAR16 *SecondString) {
     }
 }  
 
+/*
+ * Return a borrowed pointer to the first exact UTF-16 substring
+ * match. The returned location aliases String and becomes invalid
+ * when the original allocation is freed or modified.
+ */
 CHAR16* MyStrStr (IN CHAR16  *String, IN CHAR16  *StrCharSet)
 {
     CHAR16 *Src;
@@ -83,6 +93,11 @@ CHAR16* MyStrStr (IN CHAR16  *String, IN CHAR16  *StrCharSet)
     }
 }  
 
+/*
+ * Change ASCII uppercase code units in place; non-ASCII text is
+ * left unchanged. This is suitable for BOOT's historical ASCII
+ * tokens, not locale-sensitive filesystem-name normalisation.
+ */
 VOID ToLower(CHAR16 * MyString) {
     UINTN i = 0;
 
@@ -130,6 +145,12 @@ VOID MergeStrings(IN OUT CHAR16 **First, IN CHAR16 *Second, CHAR16 AddChar) {
     }  
 }  
 
+/*
+ * Split a temporary duplicate on spaces, colons, underscores and
+ * hyphens, then append each nonempty token to the destination list.
+ * SourceString is borrowed; MergeStrings owns any destination
+ * replacement allocation.
+ */
 VOID MergeWords(CHAR16 **MergeTo, CHAR16 *SourceString, CHAR16 AddChar) {
     CHAR16 *Temp, *Word, *p;
     BOOLEAN LineFinished = FALSE;
@@ -284,6 +305,12 @@ CHAR16 *FindCommaDelimited(IN CHAR16 *InString, IN UINTN Index) {
     return (FoundString);
 }  
 
+/*
+ * Delete the first textual substring matching ToDelete, not
+ * necessarily a complete comma-delimited field. Callers must avoid
+ * ambiguous item names or risk removing part of a larger token;
+ * the supplied list is modified in place.
+ */
 BOOLEAN DeleteItemFromCsvList(CHAR16 *ToDelete, CHAR16 *List) {
     CHAR16 *Found, *Comma;
 
@@ -421,6 +448,12 @@ BOOLEAN IsValidHex(CHAR16 *Input) {
     return IsHex;
 }  
 
+/*
+ * Accumulate up to sixteen hexadecimal digits into UINT64 from
+ * a character offset. Invalid or truncated input can yield a
+ * partial value or zero; callers requiring an exact width must
+ * validate the complete source separately.
+ */
 UINT64 StrToHex(CHAR16 *Input, UINTN Pos, UINTN NumChars) {
     UINT64 retval = 0x00;
     UINTN  NumDone = 0, InputLength;
@@ -485,6 +518,11 @@ BOOLEAN IsGuid(CHAR16 *UnknownString) {
     return retval;
 }  
 
+/*
+ * Format GUID fields as an allocated canonical hex string. The
+ * return value is caller-owned EFI pool storage and does not
+ * borrow any bytes from the source GUID.
+ */
 CHAR16 * GuidAsString(EFI_GUID *GuidData) {
     CHAR16 *TheString;
 
@@ -538,6 +576,11 @@ CHAR16 *GetTimeString(VOID) {
     return TimeStr;
 }  
 
+/*
+ * Release every separately allocated list value and link node.
+ * No caller pointer is reset; keeping an alias after this
+ * operation risks a second free or use-after-free.
+ */
 VOID DeleteStringList(STRING_LIST *StringList) {
     STRING_LIST *Current = StringList, *Previous;
 

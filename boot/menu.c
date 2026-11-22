@@ -1389,6 +1389,11 @@ UINTN WaitForInput(UINTN Timeout) {
     return INPUT_TIMEOUT;
 }  
 
+/*
+ * Temporarily enter the firmware text console to edit an owned UTF-16
+ * loader command line. Replace the previous allocation only when editing
+ * succeeds; cancellation leaves the original options intact.
+ */
 static BOOLEAN EditOptions(LOADER_ENTRY *MenuEntry) {
     UINTN x_max, y_max;
     CHAR16 *EditedOptions;
@@ -1413,6 +1418,11 @@ static BOOLEAN EditOptions(LOADER_ENTRY *MenuEntry) {
     return retval;
 }  
 
+/*
+ * Use a one-choice modal menu to report an operation, not to launch an
+ * EFI image. Its title and message are borrowed for the duration of
+ * RunGenericMenu; the function neither copies nor persists them.
+ */
 VOID DisplaySimpleMessage(CHAR16* Title, CHAR16 *Message) {
     MENU_STYLE_FUNC     Style = TextMenuStyle;
     INTN                DefaultEntry = 0;
@@ -1434,6 +1444,11 @@ VOID DisplaySimpleMessage(CHAR16* Title, CHAR16 *Message) {
     LOG(1, LOG_LINE_NORMAL, L"%s - %s", Title, Message);
 }  
 
+/*
+ * Prune persisted hidden-file selections that no longer correspond to
+ * an accessible volume/path. This changes BOOT's stored exclusion list,
+ * not a loader executable or independent firmware boot entry.
+ */
 static BOOLEAN RemoveInvalidFilenames(CHAR16 *FilenameList, CHAR16 *VarName) {
     UINTN i = 0;
     CHAR16 *Filename, *OneElement, *VolName = NULL;
@@ -1559,6 +1574,12 @@ VOID ManageHiddenTags(VOID) {
     MyFreePool(HiddenFirmware);
 }  
 
+/*
+ * Return the raw BOOT-namespace variable buffer as caller-owned
+ * CHAR16 storage. An empty successful value is released and reported
+ * as NULL. A non-NULL result is a configuration preference, not a
+ * firmware-global BootOrder record.
+ */
 CHAR16* ReadHiddenTags(CHAR16 *VarName) {
     CHAR8       *Buffer = NULL;
     UINTN       Size;
@@ -1574,6 +1595,11 @@ CHAR16* ReadHiddenTags(CHAR16 *VarName) {
     return (CHAR16 *) Buffer;
 }  
 
+/*
+ * Append a UTF-16 path or title to BOOT's private hidden list, then
+ * persist the combined NUL-terminated byte string. This changes menu
+ * visibility only; it does not delete an EFI image or Boot#### option.
+ */
 static VOID AddToHiddenTags(CHAR16 *VarName, CHAR16 *Pathname) {
     CHAR16      *HiddenTags;
     EFI_STATUS  Status;
@@ -1634,6 +1660,11 @@ static BOOLEAN HideEfiTag(LOADER_ENTRY *Loader, REFIT_MENU_SCREEN *HideItemMenu,
     return TagHidden;
 }  
 
+/*
+ * Confirm exclusion of a firmware-option title from BOOT's menu, then
+ * store that title under HiddenFirmware. The firmware variable and
+ * one-time boot menu remain independent of this display preference.
+ */
 static BOOLEAN HideFirmwareTag(LOADER_ENTRY *Loader, REFIT_MENU_SCREEN *HideItemMenu) {
     MENU_STYLE_FUNC    Style = TextMenuStyle;
     REFIT_MENU_ENTRY   *ChosenOption;
@@ -1655,6 +1686,11 @@ static BOOLEAN HideFirmwareTag(LOADER_ENTRY *Loader, REFIT_MENU_SCREEN *HideItem
     return TagHidden;
 }  
 
+/*
+ * Choose the legacy label from Apple or UEFI BDS metadata and ask
+ * before storing it in BOOT's private HiddenLegacy list. The choice
+ * affects later scans, not the platform's CSM implementation.
+ */
 static BOOLEAN HideLegacyTag(LEGACY_ENTRY *LegacyLoader, REFIT_MENU_SCREEN *HideItemMenu) {
     MENU_STYLE_FUNC    Style = TextMenuStyle;
     REFIT_MENU_ENTRY   *ChosenOption;
@@ -1684,6 +1720,12 @@ static BOOLEAN HideLegacyTag(LEGACY_ENTRY *LegacyLoader, REFIT_MENU_SCREEN *Hide
     return TagHidden;
 }  
 
+/*
+ * Dispatch a hide request by entry tag. Automatically discovered EFI
+ * entries can be hidden from BOOT, whereas manual stanzas require a
+ * configuration edit. A successful hide may trigger a full rescan,
+ * which invalidates the previously selected entry pointer.
+ */
 static VOID HideTag(REFIT_MENU_ENTRY *ChosenEntry) {
     LOADER_ENTRY       *Loader = (LOADER_ENTRY *) ChosenEntry;
     LEGACY_ENTRY       *LegacyLoader = (LEGACY_ENTRY *) ChosenEntry;

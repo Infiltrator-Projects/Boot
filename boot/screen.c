@@ -234,6 +234,11 @@ VOID FinishExternalScreen(VOID)
     SetupScreen();
 }
 
+/*
+ * Restore basic console attributes and visible cursor state for
+ * handoff. This is console cleanup, not an EFI image exit or
+ * reconstruction of the prior graphical framebuffer.
+ */
 VOID TerminateScreen(VOID)
 {
 
@@ -243,6 +248,12 @@ VOID TerminateScreen(VOID)
     refit_call2_wrapper(ST->ConOut->EnableCursor, ST->ConOut, TRUE);
 }
 
+/*
+ * Reset graphics and text layers before rendering the title banner.
+ * Firmware console coordinates and pixel coordinates are separate
+ * spaces, so a successful text clear does not imply graphics state
+ * was restored by a preceding EFI application.
+ */
 VOID DrawScreenHeader(IN CHAR16 *Title)
 {
     UINTN y;
@@ -324,6 +335,11 @@ VOID PauseForKey(VOID)
     ReadAllKeyStrokes();         
 }
 
+/*
+ * Convert seconds to the microsecond unit expected by Boot Services
+ * Stall. The multiplication is performed in UINTN and is not
+ * guarded against overflow for extreme caller-supplied values.
+ */
 VOID PauseSeconds(UINTN Seconds) {
      refit_call1_wrapper(BS->Stall, 1000000 * Seconds);
 }  

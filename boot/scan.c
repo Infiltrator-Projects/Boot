@@ -671,6 +671,11 @@ static struct LOADER_LIST * AddLoaderListEntry(struct LOADER_LIST *LoaderList, s
     return (LatestEntry);
 }  
 
+/*
+ * Free the temporary timestamp-ordered scan list and its filename copies.
+ * The published menu entries have their own storage; this list must not
+ * outlive or supply borrowed path pointers to those entries.
+ */
 static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
     struct LOADER_LIST *Temp;
 
@@ -826,6 +831,11 @@ static BOOLEAN IsSymbolicLink(REFIT_VOLUME *Volume, CHAR16 *FullName, EFI_FILE_I
     return (DirEntry->FileSize != FileSize2);
 }  
 
+/*
+ * Log the existing menu inventory without changing its selection state.
+ * Titles are taken from current menu records and are invalid after a
+ * rescan, so this diagnostic should not cache their pointers.
+ */
 static VOID LogMenuEntries(UINTN LogLevel) {
     UINTN i;
 
@@ -991,6 +1001,11 @@ static VOID ScanNetboot() {
     }
 }  
 
+/*
+ * Consider the known macOS path while respecting the configured file
+ * exclusions. The Boolean result controls whether the generic fallback
+ * candidate remains eligible; it is not a success flag for OS startup.
+ */
 static BOOLEAN ScanMacOsLoader(REFIT_VOLUME *Volume, CHAR16* FullFileName) {
     BOOLEAN  ScanFallbackLoader = TRUE;
     CHAR16   *VolName = NULL, *PathName = NULL, *FileName = NULL;
@@ -1128,6 +1143,11 @@ static VOID ScanEfiFiles(REFIT_VOLUME *Volume) {
     }
 }  
 
+/*
+ * Restrict this pass to internally classified volumes in the current
+ * inventory. ScanEfiFiles independently checks readability and exclusions;
+ * classification alone never proves a loader can execute.
+ */
 static VOID ScanInternal(VOID) {
     UINTN                   VolumeIndex;
 
@@ -1139,6 +1159,11 @@ static VOID ScanInternal(VOID) {
     }  
 }  
 
+/*
+ * Use the same EFI file-discovery policy as internal media but only
+ * for externally classified volumes. Firmware handle classification
+ * determines this partition of the scan, not physical-removal testing.
+ */
 static VOID ScanExternal(VOID) {
     UINTN                   VolumeIndex;
 
@@ -1150,6 +1175,11 @@ static VOID ScanExternal(VOID) {
     }  
 }  
 
+/*
+ * Scan the optical subset without special-casing a fixed OS image.
+ * Actual filesystem access still depends on firmware or loaded EFI
+ * filesystem drivers exposing a readable volume.
+ */
 static VOID ScanOptical(VOID) {
     UINTN                   VolumeIndex;
 
@@ -1214,6 +1244,11 @@ static VOID ScanFirmwareDefined(IN UINTN Row, IN CHAR16 *MatchThis, IN EG_IMAGE 
     DeleteBootOrderEntries(BootEntries);
 }  
 
+/*
+ * Translate legacy BBS device categories into BOOT's shared icon
+ * references. The returned image is borrowed from the built-in icon
+ * inventory; callers must not free it as a new allocation.
+ */
 EG_IMAGE * GetDiskBadge(IN UINTN DiskType) {
     EG_IMAGE * Badge = NULL;
 
@@ -1231,6 +1266,11 @@ EG_IMAGE * GetDiskBadge(IN UINTN DiskType) {
     return Badge;
 }  
 
+/*
+ * Build a utility entry with a copied path but borrowed volume and
+ * icon references. It is appended to the global menu; the return value
+ * does not establish successful launch or a firmware trust decision.
+ */
 static LOADER_ENTRY * AddToolEntry(REFIT_VOLUME *Volume,IN CHAR16 *LoaderPath, IN CHAR16 *LoaderTitle,
                                    IN EG_IMAGE *Image, IN CHAR16 ShortcutLetter, IN BOOLEAN UseGraphicsMode)
 {
@@ -1338,6 +1378,11 @@ VOID ScanForBootloaders(BOOLEAN ShowMessage) {
 
 }  
 
+/*
+ * Require an EFI-readable executable candidate, then apply configured
+ * and persisted exclusion rules. A successful test makes the candidate
+ * visible; it does not authenticate its signature or run it.
+ */
 static BOOLEAN IsValidTool(IN REFIT_VOLUME *BaseVolume, CHAR16 *PathName) {
     CHAR16 *DontVolName = NULL, *DontPathName = NULL, *DontFileName = NULL, *DontScanThis = NULL;
     CHAR16 *TestVolName = NULL, *TestPathName = NULL, *TestFileName = NULL, *DontScanTools = NULL;
