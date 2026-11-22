@@ -24,9 +24,11 @@ mkfs.fat -F32 "$esp"
 mmd -i "$esp" ::/EFI ::/EFI/BOOT ::/EFI/BOOT/drivers_x64 ::/EFI/BOOT/fonts
 mcopy -i "$esp" fonts/*.ttf ::/EFI/BOOT/fonts/
 mcopy -i "$esp" fonts/SHA256SUMS ::/EFI/BOOT/fonts/
-test -s themes/boot-luxury.jpg || exit 1
+for asset in boot-luxury.jpg boot-mark.png boot-underline.png; do
+  test -s "themes/$asset" || exit 1
+done
 mmd -i "$esp" ::/EFI/BOOT/themes
-mcopy -i "$esp" themes/boot-luxury.jpg ::/EFI/BOOT/themes/
+mcopy -i "$esp" themes/boot-luxury.jpg themes/boot-mark.png themes/boot-underline.png ::/EFI/BOOT/themes/
 
 mcopy -i "$esp" boot/boot_x64.efi ::/EFI/BOOT/BOOTX64.EFI
 driver=drivers_x64/btrfs_x64.efi
@@ -38,6 +40,11 @@ timeout 3
 log_level 4
 use_nvram false
 textonly false
+# This is the official default theme, selected by boot.conf like other
+# user-supplied PNG/JPEG paths, not embedded filename constants.
+theme_background themes/boot-luxury.jpg
+theme_mark themes/boot-mark.png
+theme_underline themes/boot-underline.png
 font_body daimler_cs_regular.ttf
 font_bold mb_corpo_s_title_cond_bold.ttf
 font_title mb_corpo_a_screen_2_cond_regular.ttf
@@ -93,11 +100,11 @@ if ! grep -Fq 'Entering main loop' "$work/log.txt"; then
  exit 1
 fi
 for theme_marker in \
- 'BOOT luxury graphite background loaded at' \
- 'BOOT twin-cyan-slash MB Corpo wordmark rasterised'; do
+ 'BOOT configured PNG/JPEG background loaded' \
+ 'BOOT configured wordmark rendered'; do
  if ! grep -Fq "$theme_marker" "$work/log.txt"; then
-  echo "Missing graphical theme and two-slash wordmark marker: $theme_marker" >&2
-  grep -E 'luxury|graphite|wordmark|banner' "$work/log.txt" >&2 || true
+  echo "BOOT did not render its boot.conf-selected PNG/JPEG theme: $theme_marker" >&2
+  grep -E 'theme|background|wordmark|logo|banner' "$work/log.txt" >&2 || true
   exit 1
  fi
 done

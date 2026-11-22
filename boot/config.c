@@ -734,6 +734,22 @@ VOID ReadConfig(CHAR16 *FileName)
         } else if (MyStriCmp(TokenList[0], L"support_gzipped_loaders")) {
            GlobalConfig.GzippedLoaders = HandleBoolean(TokenList, TokenCount);
 
+        } else if (MyStriCmp(TokenList[0], L"theme_background")) {
+            HandleString(TokenList, TokenCount, &(GlobalConfig.ThemeBackgroundFileName));
+            CleanUpPathNameSlashes(GlobalConfig.ThemeBackgroundFileName);
+
+        } else if (MyStriCmp(TokenList[0], L"theme_logo")) {
+            HandleString(TokenList, TokenCount, &(GlobalConfig.ThemeLogoFileName));
+            CleanUpPathNameSlashes(GlobalConfig.ThemeLogoFileName);
+
+        } else if (MyStriCmp(TokenList[0], L"theme_mark")) {
+            HandleString(TokenList, TokenCount, &(GlobalConfig.ThemeMarkFileName));
+            CleanUpPathNameSlashes(GlobalConfig.ThemeMarkFileName);
+
+        } else if (MyStriCmp(TokenList[0], L"theme_underline")) {
+            HandleString(TokenList, TokenCount, &(GlobalConfig.ThemeUnderlineFileName));
+            CleanUpPathNameSlashes(GlobalConfig.ThemeUnderlineFileName);
+
         } else if (MyStriCmp(TokenList[0], L"banner")) {
             HandleString(TokenList, TokenCount, &(GlobalConfig.BannerFileName));
 

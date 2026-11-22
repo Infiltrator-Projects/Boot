@@ -67,10 +67,6 @@ cd "$source_dir"
     echo "Downloaded BOOT build source is incomplete" >&2; exit 1;
 }
 echo "Building BOOT natively from source commit $SOURCE_SHA..."
-[[ -s themes/boot-luxury.jpg && -s themes/boot-mark.png && -s themes/boot-underline.png ]] || {
-    echo "BOOT native theme build failed: missing wallpaper or PNG wordmark." >&2; exit 1;
-}
-
 printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$RELEASE_VERSION" > boot-sbat-release.csv
 make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$RELEASE_VERSION\"'" gnuefi
 [[ -s boot/boot_x64.efi ]] || { echo "Native BOOT EFI build failed" >&2; exit 1; }
@@ -322,9 +318,6 @@ CheckForFiles() {
    }
 
    ThemesDir="$ThisDir/themes"
-   [[ -s "$ThemesDir/boot-luxury.jpg" && -s "$ThemesDir/boot-mark.png" && -s "$ThemesDir/boot-underline.png" ]] || {
-       echo "BOOT wallpaper or PNG wordmark assets are missing from native installation." >&2; exit 1;
-   }
 
    echo "ShimSource is $ShimSource"
    if [[ "$ShimSource" != "none" ]] ; then
@@ -566,8 +559,10 @@ CopyBootFiles() {
       Problems=1
    fi
    rm -rf -- "$InstallDir/$TargetDir/themes"
-   if ! cp -r "$ThemesDir" "$InstallDir/$TargetDir"; then
-      Problems=1
+   if [[ -d "$ThemesDir" ]]; then
+      if ! cp -r "$ThemesDir" "$InstallDir/$TargetDir"; then
+         Problems=1
+      fi
    fi
    mkdir -p "$InstallDir/$TargetDir/keys"
    cp -rf "$ThisDir"/keys/*.[cd]er "$InstallDir/$TargetDir/keys/" 2> /dev/null

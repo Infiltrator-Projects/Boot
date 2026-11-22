@@ -69,6 +69,14 @@ for asset in boot-mark.png boot-underline.png; do
     test -s "$work/unpacked/usr/share/infiltrator-boot/boot/themes/$asset"
 done
 ! grep -Eq 'drawTwinSlash|[Ss][Vv][Gg]' boot/theme.c
+! grep -Eq 'boot-luxury|boot-mark|boot-underline' boot/theme.c
+for option in theme_background theme_mark theme_underline; do
+    grep -Fq "$option themes/" boot.conf-sample
+    grep -Fq "L\"$option\"" boot/config.c
+done
+grep -Fq 'ThemeBackgroundFileName' boot/theme.c
+grep -Fq 'ThemeMarkFileName' boot/theme.c
+grep -Fq 'ThemeUnderlineFileName' boot/theme.c
 bash -n "$run"
 bash -n boot-native-installer.run
 test "$(head -n 1 "$run")" = '#!/usr/bin/env bash'

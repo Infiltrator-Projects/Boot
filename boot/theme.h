@@ -13,6 +13,4 @@ UINTN BootThemeDrawWordmark(EG_IMAGE *Background);
 /* Return caller-owned menu plates; NULL indicates invalid size or OOM. */
 EG_IMAGE *BootThemeSelection(UINTN Size);
 EG_IMAGE *BootThemeTile(UINTN Size);
-/* Caller-owned silver/cyan projection of one transparent utility icon. */
-EG_IMAGE *BootThemeTintToolIcon(EG_IMAGE *Original, BOOLEAN Accent);
 #endif

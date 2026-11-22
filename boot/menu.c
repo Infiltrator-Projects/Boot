@@ -1083,18 +1083,11 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
  */
 static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN XPos, UINTN YPos)
 {
-    EG_IMAGE *Background, *ToolTint = NULL, *ScaledIcon = NULL;
+    EG_IMAGE *Background, *ScaledIcon = NULL;
     EG_IMAGE *Icon = Entry->Image;
 
-    /*
-     * Operating systems sit on polished silver-edged plates. Utility glyphs
-     * remain floating and are colour-neutral silver, with the reboot accent
-     * in canonical cyan. Do not recolour the real OS icons or badges.
-     */
-    if (Entry->Row == 1 && BootThemeBackground(UGAWidth, UGAHeight)) {
-        ToolTint = BootThemeTintToolIcon(Icon, selected || Entry->Tag == TAG_REBOOT);
-        if (ToolTint) Icon = ToolTint;
-    }
+    /* Theme PNGs own their own colours, including utility artwork. Do not
+     * apply an InfiltratorOS-only tint to user-configured images. */
     /* Keep OS artwork comfortably inside the 144-pixel plate even when an
      * icon source or a configuration override provides a larger bitmap. */
     if (Entry->Row == 0 && Icon && Icon->Width > 1 && Icon->Height > 1) {
@@ -1130,7 +1123,6 @@ static VOID DrawMainMenuEntry(REFIT_MENU_ENTRY *Entry, BOOLEAN selected, UINTN X
                                     SelectionImages[Entry->Row]->Width, SelectionImages[Entry->Row]->Height);
     }
     egFreeImage(ScaledIcon);
-    egFreeImage(ToolTint);
 }
 
 /*

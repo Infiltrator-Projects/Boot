@@ -452,10 +452,11 @@ VOID BltClearScreen(BOOLEAN ShowBanner)
 
 
     /*
-     * A bundled, pre-rasterised luxury background is the default presentation.
-     * User-requested custom banners retain their old behaviour; if the image
-     * is missing, BOOT falls back to the existing banner rather than suppress
-     * boot controls. Background and live UI never share a baked-in OS identity.
+     * Preserve the rEFInd-style banner precedence: an explicit boot.conf
+     * banner always uses the existing image/scale path. Otherwise load the
+     * image filenames named by boot.conf's default InfiltratorOS theme.
+     * Missing/disabled theme PNGs yield a plain graphical background.
+     * The menu entries themselves remain dynamically painted on top.
      */
     if (ShowBanner && !GlobalConfig.BannerFileName &&
         GlobalConfig.ScreensaverTime != -1) {

@@ -383,7 +383,13 @@ typedef struct {
     * meanings.
     */
    UINTN            ShowTools[NUM_TOOLS];
-   CHAR8            ScanFor[NUM_SCAN_OPTIONS];  
+   CHAR8            ScanFor[NUM_SCAN_OPTIONS];
+   /* Optional PNG/JPEG artwork loaded entirely from boot.conf. The trailing
+    * fields default to NULL in the existing positional GlobalConfig init. */
+   CHAR16           *ThemeBackgroundFileName;
+   CHAR16           *ThemeLogoFileName;
+   CHAR16           *ThemeMarkFileName;
+   CHAR16           *ThemeUnderlineFileName;
 } REFIT_CONFIG;
 
 /*

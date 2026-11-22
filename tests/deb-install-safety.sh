@@ -42,13 +42,12 @@ for fs in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     cmp "$source_dir/drivers_x64/${fs}_x64.efi" "$boot_dir/drivers_x64/${fs}_x64.efi"
 done
 
-# Failure to validate the staged image must not delete a working installation.
+# Optional images are not required for firmware installation; with no theme
+# directory the installed boot.conf can still select the plain UI fallback.
 cp -a "$source_dir" "$work/no-theme"
-rm -f "$work/no-theme/themes/boot-luxury.jpg"
-if boot_generic_install_files "$esp" "$work/no-theme"; then
-    echo "Generic installer accepted an incomplete graphical theme." >&2
-    exit 1
-fi
+rm -rf "$work/no-theme/themes"
+boot_generic_install_files "$esp" "$work/no-theme"
+test ! -e "$boot_dir/themes"
 cmp "$source_dir/boot_x64.efi" "$boot_dir/BOOTX64.EFI"
 cp -a "$source_dir" "$work/incomplete"
 rm -f "$work/incomplete/drivers_x64/ext4_x64.efi"

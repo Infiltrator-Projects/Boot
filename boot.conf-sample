@@ -1,8 +1,16 @@
-# Optional font roles (choose any of the 23 TTF files in fonts/):
-# font_body mb_corpo_s_text_regular.ttf
-# font_bold mb_corpo_s_text_bold.ttf
-# font_title mb_corpo_a_title_cond_regular.ttf
-# These are examples, not the final typography selection.
+# Official InfiltratorOS appearance, selected by boot.conf rather than
+# hardcoded in the EFI executable. Paths are relative to BOOT's directory.
+# Set an individual asset to 'none' to suppress it. You may substitute your
+# own PNG/JPEG files; no alternative theme package is required.
+theme_background themes/boot-luxury.jpg
+theme_mark themes/boot-mark.png
+theme_underline themes/boot-underline.png
+# theme_logo themes/my-complete-logo.png
+# Existing settings banner, banner_scale, icons_dir, selection_big,
+# selection_small, font_body, font_bold and font_title remain supported.
+font_body mb_corpo_s_text_regular.ttf
+font_bold mb_corpo_s_text_bold.ttf
+font_title mb_corpo_a_title_regular.ttf
 
 # BOOT runtime menu defaults and disabled example manual boot entries.
 # timeout is a UI delay. use_nvram false applies to BOOT-managed runtime
