@@ -47,6 +47,11 @@ EFI_GUID gMyEfiFileSystemVolumeLabelInfoIdGuid = EFI_FILE_SYSTEM_VOLUME_LABEL_IN
 
 #define FSW_EFI_DRIVER_NAME(t) L"BOOT " FSW_EFI_STRINGIFY(t) L" File System Driver"
 
+/* Probe controller eligibility without mounting the filesystem. Acquire
+ * Disk I/O with BY_DRIVER, release that claim, then test Block I/O; a
+ * successful result establishes protocol accessibility only, not a valid
+ * volume signature or a successful driver start.
+ */
 EFI_STATUS EFIAPI fsw_efi_DriverBinding_Supported(IN REFIND_EFI_DRIVER_BINDING_PROTOCOL  *This,
                                                   IN EFI_HANDLE                          ControllerHandle,
                                                   IN REFIND_EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath);
@@ -73,6 +78,11 @@ EFI_STATUS EFIAPI fsw_efi_ComponentName_GetControllerName(IN  REFIND_EFI_COMPONE
                                                           IN  CHAR8                               *Language,
                                                           OUT CHAR16                              **ControllerName);
 
+/* Hook invoked when FSW changes its logical or physical geometry. This EFI
+ * adapter currently has no per-volume adjustment here; read-cache geometry
+ * is handled separately, so callers must not infer that block-size changes
+ * automatically invalidate all previously cached bytes.
+ */
 void EFIAPI fsw_efi_change_blocksize(struct fsw_volume *vol,
                               fsw_u32 old_phys_blocksize, fsw_u32 old_log_blocksize,
                               fsw_u32 new_phys_blocksize, fsw_u32 new_log_blocksize);
@@ -80,6 +90,10 @@ fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno,
 
 EFI_STATUS fsw_efi_map_status(fsw_status_t fsw_status, FSW_VOLUME_DATA *Volume);
 
+/* Produce a newly owned EFI_FILE_PROTOCOL root-directory handle from the
+ * backend's mounted root dnode. A fresh open clears the global read cache;
+ * it does not remount the filesystem or transfer ownership of the volume.
+ */
 EFI_STATUS EFIAPI fsw_efi_FileSystem_OpenVolume(IN EFI_FILE_IO_INTERFACE *This,
                                                 OUT EFI_FILE_PROTOCOL **Root);
 EFI_STATUS fsw_efi_dnode_to_FileHandle(IN struct fsw_dnode *dno,
@@ -990,6 +1004,10 @@ EFI_STATUS fsw_efi_dnode_getinfo(IN FSW_FILE_DATA *File,
     return Status;
 }
 
+/* Translate a backend's whole-second time into the corresponding EFI_FILE_INFO
+ * time field. The host_data pointer must designate the currently writable
+ * EFI_FILE_INFO; unrecognised stat selectors leave the structure untouched.
+ */
 void fsw_store_time_posix(struct fsw_dnode_stat *sb, int which, fsw_u32 posix_time)
 {
     EFI_FILE_INFO       *FileInfo = (EFI_FILE_INFO *)sb->host_data;
@@ -1002,6 +1020,10 @@ void fsw_store_time_posix(struct fsw_dnode_stat *sb, int which, fsw_u32 posix_ti
         fsw_efi_decode_time(&FileInfo->LastAccessTime,   posix_time);
 }
 
+/* Project the POSIX owner-write bit into EFI's read-only attribute. This
+ * sets a bit without clearing other attributes and is not a complete mapping
+ * of POSIX permissions, ownership or filesystem access control.
+ */
 void fsw_store_attr_posix(struct fsw_dnode_stat *sb, fsw_u16 posix_mode)
 {
     EFI_FILE_INFO       *FileInfo = (EFI_FILE_INFO *)sb->host_data;
@@ -1010,6 +1032,10 @@ void fsw_store_attr_posix(struct fsw_dnode_stat *sb, fsw_u16 posix_mode)
         FileInfo->Attribute |= EFI_FILE_READ_ONLY;
 }
 
+/* Merge backend-provided EFI attribute bits into the caller's file-info
+ * record; existing bits are preserved. This routine does not authorise
+ * writes through the read-only filesystem protocol.
+ */
 void fsw_store_attr_efi(struct fsw_dnode_stat *sb, fsw_u16 attr)
 {
     EFI_FILE_INFO       *FileInfo = (EFI_FILE_INFO *)sb->host_data;
