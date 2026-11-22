@@ -107,6 +107,10 @@ These are **unverified regression requirements**, not new test results. The desc
 
 All entries are review observations and proposed regressions, not evidence that those tests exist or pass.
 
+### Loader and cache ownership regressions
+
+The source review also establishes **test requirements, not passing tests**, for: a failed `StoreLoaderName` firmware-variable write and its undetectable VOID return; null options combined with a discovered initrd in `AddInitrdToOptions`; repeated cache pin/release and volume teardown with outstanding pins in `fsw_block_get`; and near-overflow cache-size arithmetic on 32-bit widths. A regression should inject each failure at its production boundary rather than infer correctness from an isolated utility test.
+
 ## Failure reporting and documentation changes
 
 Failed CI stops the current release pipeline and must be investigated from the failing step and log. Source-only comment removal previously required an update to a package-size assertion; removal of obsolete `COPYING.txt` later required deleting references from the workflow and release scripts. These are examples of repository-contract changes, not filesystem fixes.
