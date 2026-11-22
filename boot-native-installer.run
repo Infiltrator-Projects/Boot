@@ -1165,9 +1165,9 @@ AddBootEntry() {
          }
          for ((ShimIndex=0; ShimIndex<${#TargetX64}; ShimIndex++)); do
             ShimChar="${TargetX64:ShimIndex:1}"
-            printf '%s\\0' "$ShimChar" >> "$ShimOptionsFile"
+            printf '%s\0' "$ShimChar" >> "$ShimOptionsFile"
          done
-         printf '\\0\\0' >> "$ShimOptionsFile"
+         printf '\0\0' >> "$ShimOptionsFile"
          "$Efibootmgr" -c -l "$EfiEntryFilename" -L "BOOT Boot Manager" -d "$InstallDisk" -p "$PartNum" -@ "$ShimOptionsFile"
          ShimStatus=$?
          rm -f -- "$ShimOptionsFile"
