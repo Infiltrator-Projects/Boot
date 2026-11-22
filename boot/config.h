@@ -60,6 +60,7 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, CHAR16 *FileName, REFIT_FILE *Fi
  * configuration file. Neither call establishes an image's authenticity or
  * a writable EFI partition.
  */
+VOID ReadStartupDiagnosticsSetting(CHAR16 *FileName);
 VOID ReadConfig(CHAR16 *FileName);
 VOID ScanUserConfigured(CHAR16 *FileName);
 UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList);
