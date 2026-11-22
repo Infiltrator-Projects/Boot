@@ -200,6 +200,26 @@ refuses uninstall, Stop returns without freeing the volume. A firmware
 protocol install is an interface registration, not proof that reads from a
 malformed or unsupported volume are safe.
 
+## Interface contracts that require careful interpretation
+
+### Firmware boot-option parsing
+
+`FindBootOrderEntries` consumes `BootOrder` as a sequence of 16-bit option numbers, obtains matching `Boot####` variable records, and constructs a caller-owned linked list. A record is not a valid candidate merely because the variable read succeeded: its fixed header, terminated UTF-16 description, bounded file-path span and terminal device-path node must all be consistent. The parser does not authenticate the executable at that path, establish that it exists, or certify that firmware can launch it. [Implementation](../boot/install.c)
+
+The parser is deliberately **not an all-or-nothing enumeration**. Malformed or missing options are skipped; an allocation failure can return a valid prefix. Consequently, an empty or shortened result is ambiguous: it must not be used as proof that the firmware has no more options. By contrast, `DeleteInvalidBootEntries` reads every referenced option before publishing a replacement `BootOrder`, and treats read errors other than `EFI_NOT_FOUND` as barriers to mutation. Its cleanup is not transactional with the preceding deletion of a `Boot####` variable: deleting the option may succeed while rewriting `BootOrder` fails.
+
+### Controller rebinding and filesystem visibility
+
+`ConnectFilesystemDriver` enumerates Disk I/O handles, ignores non-logical partitions and volumes already exposing Simple File System, then inspects driver-open records. A successful disconnect permits a new `ConnectController` attempt. The routine returns `VOID` and does not propagate the outcome of these firmware calls. Controller reconnection can change the set of accessible volumes, so discovery must be repeated. [Implementation](../boot/driver_support.c)
+
+`LoadDrivers` returns a Boolean derived from matching driver filenames, **not** a count of successfully launched or bound drivers. A positive result authorises a rescan but is not proof of filesystem readability. The installed EFI driver protocol, the filesystem's mount operation and an actual file read are independent evidence stages. This is the current firmware-driver design; it is not the proposed Common V2 `.so` interface.
+
+### Filesystem-driver resource ownership
+
+`fsw_efi_DriverBinding_Start` borrows Block I/O with `GET_PROTOCOL`, acquires Disk I/O with `BY_DRIVER`, allocates a volume record, mounts the filesystem-neutral FSW backend and publishes Simple File System only after mounting succeeds. The installed protocol is embedded in the volume allocation, so the allocation cannot be released while the protocol remains published. Failure cleanup unmounts, frees and closes the driver's Disk I/O acquisition. [Implementation](../filesystems/fsw_efi.c)
+
+`fsw_efi_DriverBinding_Stop` must successfully uninstall Simple File System before freeing its containing volume; otherwise firmware could retain a pointer into freed memory. After uninstall it unmounts, releases the volume, closes Disk I/O and clears the FSW cache. These paths require fault-injected protocol-install/uninstall tests and real metadata-read tests before their failure behaviour can be treated as qualified across firmwares.
+
 ## Unverified architectural objectives
 
 The desired Common V2-only filesystem module design, universal operating-system compatibility, production-grade security qualification and complete custom InfiltratorOS appearance require explicit future evidence. This document records the implemented BOOT revision and does not silently declare those objectives done. See [Hardware](HARDWARE.md) and [Validation](VALIDATION.md) for observed limits.
