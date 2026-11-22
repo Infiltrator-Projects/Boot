@@ -1,6 +1,10 @@
-/* Graphical icon resolution and fallback interface.
- * Embedded and external resources are display metadata only.
- * Missing artwork is handled without suppressing menu entries.
+/*
+ * BOOT / Icon resolution API
+ *
+ * Graphical icon resolution and fallback interface.
+ *
+ * Embedded and external resources are display metadata only. Missing
+ * artwork is handled without suppressing menu entries.
  */
 
 #ifndef __ICNS_H_

@@ -1,4 +1,8 @@
-/* Firmware boot-option and EFI variable interface.
+/*
+ * BOOT / Firmware boot option API
+ *
+ * Firmware boot-option and EFI variable interface.
+ *
  * Provides Boot#### inspection, ordering and related firmware operations.
  * Host-side installation onto the ESP is a separate component.
  */

@@ -1,6 +1,10 @@
-/* Firmware log levels, output and lifecycle declarations.
- * Log operations may fail independently of the action being traced.
- * Callers retain responsibility for EFI_STATUS handling.
+/*
+ * BOOT / Diagnostics API
+ *
+ * Firmware log levels, output and lifecycle declarations.
+ *
+ * Log operations may fail independently of the action being traced. Callers
+ * retain responsibility for EFI_STATUS handling.
  */
 
 #ifndef __LOG_H_

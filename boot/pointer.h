@@ -1,6 +1,10 @@
-/* UEFI pointer device discovery and cursor interface.
- * Absolute and simple pointer devices are optional inputs.
- * Keyboard navigation does not depend on cursor availability.
+/*
+ * BOOT / Pointer input API
+ *
+ * UEFI pointer device discovery and cursor interface.
+ *
+ * Absolute and simple pointer devices are optional inputs. Keyboard
+ * navigation does not depend on cursor availability.
  */
 
 #ifndef __BOOT_POINTERDEVICE_H_

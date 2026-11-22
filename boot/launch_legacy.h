@@ -1,4 +1,8 @@
-/* Legacy BIOS/CSM discovery and handoff interface.
+/*
+ * BOOT / Legacy dispatch API
+ *
+ * Legacy BIOS/CSM discovery and handoff interface.
+ *
  * Platform-dependent boot hints and entries do not use EFI-stub dispatch.
  * Firmware support governs whether legacy boot paths are available.
  */

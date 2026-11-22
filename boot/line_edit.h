@@ -1,4 +1,8 @@
-/* UTF-16 interactive line editor interface.
+/*
+ * BOOT / Line editing API
+ *
+ * UTF-16 interactive line editor interface.
+ *
  * Cursor and viewport bounds are maintained separately from text length.
  * Results are caller-owned edited strings where documented.
  */

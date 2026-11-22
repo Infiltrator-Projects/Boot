@@ -1,6 +1,10 @@
-/* Apple EFI interoperability interface.
- * Vendor protocols and CSR/SIP state are optional platform facilities.
- * No Apple-specific interface is required for ordinary UEFI boot.
+/*
+ * BOOT / Apple firmware API
+ *
+ * Apple EFI interoperability interface.
+ *
+ * Vendor protocols and CSR/SIP state are optional platform facilities. No
+ * Apple-specific interface is required for ordinary UEFI boot.
  */
 
 #ifndef __APPLE_H_

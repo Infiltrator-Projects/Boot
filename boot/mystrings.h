@@ -1,6 +1,10 @@
-/* UTF-16 and device-identifier string utility API.
- * Some comparisons are ASCII-oriented and not locale-aware.
- * Allocated results must be released by their callers.
+/*
+ * BOOT / String utilities API
+ *
+ * UTF-16 and device-identifier string utility API.
+ *
+ * Some comparisons are ASCII-oriented and not locale-aware. Allocated
+ * results must be released by their callers.
  */
 
 #ifndef __MYSTRINGS_H_

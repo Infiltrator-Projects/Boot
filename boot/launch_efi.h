@@ -1,4 +1,8 @@
-/* EFI image loading and child dispatch interface.
+/*
+ * BOOT / EFI dispatch API
+ *
+ * EFI image loading and child dispatch interface.
+ *
  * Separates candidate inspection, loaded-image ownership and StartImage.
  * Returning images may require reopening firmware resources.
  */

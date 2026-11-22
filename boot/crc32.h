@@ -1,6 +1,10 @@
-/* CRC-32 checksum helper interface.
- * Uses the reflected CRC-32 polynomial for binary metadata.
- * A checksum is a corruption check, not executable authentication.
+/*
+ * BOOT / Checksum API
+ *
+ * CRC-32 checksum helper interface.
+ *
+ * Uses the reflected CRC-32 polynomial for binary metadata. A checksum is a
+ * corruption check, not executable authentication.
  */
 
 #ifndef __CRC32_H_

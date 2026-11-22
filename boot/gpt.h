@@ -1,4 +1,8 @@
-/* GPT metadata structures and inspection API.
+/*
+ * BOOT / GPT inspection API
+ *
+ * GPT metadata structures and inspection API.
+ *
  * On-disk lengths, UUIDs and table checksums are parsed from raw blocks.
  * The returned partition records are descriptive, not mounted volumes.
  */
