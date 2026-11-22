@@ -71,6 +71,11 @@ static struct fsw_volume *clone_dummy_volume(struct fsw_volume *vol)
     return create_dummy_volume(Volume->DiskIo, Volume->MediaId);
 }
 
+/*
+ * Release the temporary Disk I/O identity before FSW unmount destroys the
+ * wrapper volume. A hook receiving this probe may not retain vol/host_data
+ * past the current scan iteration without copying the needed information.
+ */
 static void free_dummy_volume(struct fsw_volume *vol)
 {
     fsw_free(vol->host_data);
@@ -80,6 +85,9 @@ static void free_dummy_volume(struct fsw_volume *vol)
 /*
  * Enumerates EFI Disk I/O handles and invokes a supplied hook on temporary
  * volume wrappers. Missing handles do not prove there are no disks elsewhere.
+ * A successful LocateHandleBuffer allocates Handles; this function currently
+ * does not release that buffer on the normal path, so repeated scans can leak
+ * EFI pool allocations. Probe callback success counts are not mount counts.
  */
 static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), struct fsw_volume *master)
 {
