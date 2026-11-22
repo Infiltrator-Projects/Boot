@@ -1,11 +1,6 @@
-/*
- * Firmware-wide services: volumes, device paths, files and EFI variables.
- * Protocol handles, allocation ownership, disk identity and error statuses
- * cross security and lifetime boundaries here. A recognised volume is not
- * necessarily readable, and an EFI file is not automatically executable.
- * Borrowed firmware handles and owned pool buffers must not be conflated.
- * Rescanning may invalidate volume records; a device-path representation is
- * diagnostic text unless a separately bounded binary parser has validated it.
+/* Firmware services for volumes, files, variables and device paths.
+ * Distinguishes owned pool buffers from borrowed protocol handles.
+ * A detected partition may still lack a readable filesystem.
  */
 
 #pragma pack(0)

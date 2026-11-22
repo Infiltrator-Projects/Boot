@@ -1,13 +1,6 @@
-/*
- * BOOT's diagnostic log output and rotation within the EFI file protocol.
- * Logging is a side effect on the writable volume; it is not a substitute
- * for propagation of EFI_STATUS and is not proof of successful OS startup.
- * Rotation and deletion can alter persistent disk state before a new session
- * begins; successful diagnostic output must never be a required prerequisite
- * for finding or launching an independently valid operating system.
- * Rotation and deletion can alter persistent disk state before a new session
- * begins; successful diagnostic output must never be a required prerequisite
- * for finding or launching an independently valid operating system.
+/* UEFI diagnostic logging and file rotation.
+ * Files are opened through firmware protocols; log I/O is best-effort
+ * and never substitutes for the EFI_STATUS of the logged operation.
  */
 
 #include "log.h"

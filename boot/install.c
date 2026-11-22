@@ -1,8 +1,6 @@
-/*
- * Firmware-side EFI boot-option inspection and menu management.
- * Global BootOrder and Boot#### records are external binary input with explicit
- * length and device-path encoding constraints. This code is distinct from
- * the host's boot-native-installer.run installation and ESP write logic.
+/* Firmware boot-option inspection and ordering.
+ * Parses Boot#### records and updates EFI variables where requested.
+ * This is separate from host-side installation onto the ESP.
  */
 
 #include "global.h"

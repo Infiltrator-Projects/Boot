@@ -1,12 +1,6 @@
-/*
- * BOOT's UEFI entry and lifetime coordinator. Firmware tables and protocol
- * handles are initialised before any volume scan or menu operation.
- * A visible menu entry describes a possible handoff, never a confirmed OS boot.
- * The manager must not constrain OS discovery to an assumed installation count.
- * Rescanning can invalidate previously selected menu-entry pointers, and
- * driver connection can change the accessible firmware volume inventory.
- * A dispatched EFI image may return, requiring BOOT's resources and display
- * state to be re-established before accepting further input.
+/* UEFI entry point and application lifecycle.
+ * Initialises services before scanning and coordinates menu dispatch.
+ * A rescan invalidates selections; returning EFI images require state recovery.
  */
 
 #include "global.h"

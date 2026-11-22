@@ -1,14 +1,8 @@
-/*
- * BOOT's UEFI-native graphical theme.
- *
- * The official background and logo assets are configured through boot.conf.
- * Native PNG/JPEG decoding is optional at runtime. The BOOT title uses its
- * configured TrueType font; no vector graphics parser or converter is needed.
- *
- * All images allocated here are owned by this module or returned to a caller
- * that must release them; the cached background is borrowed and never passed
- * to egFreeImage by a caller. Resolution changes invalidate only that cache.
+/* PNG/JPEG theme rendering controlled by boot.conf.
+ * The background cache is module-owned; returned menu plates are caller-owned.
+ * Absent assets fall back to the configured or plain display path.
  */
+
 #include "global.h"
 #include "screen.h"
 #include "theme.h"
@@ -26,6 +20,9 @@ static CHAR16 *themeImage(CHAR16 *configured) {
     return (configured && !MyStriCmp(configured, L"none")) ? configured : NULL;
 }
 
+/* Return a borrowed, resolution-matched background, or NULL for fallback.
+ * Rebuilding the cache invalidates an earlier borrowed image.
+ */
 EG_IMAGE *BootThemeBackground(UINTN width, UINTN height) {
     EG_IMAGE *loaded = NULL, *resized = NULL;
     CHAR16 *path = themeImage(GlobalConfig.ThemeBackgroundFileName);
@@ -269,9 +266,13 @@ static EG_IMAGE *makeThemePlate(UINTN size, BOOLEAN selected) {
     return image;
 }
 
+/* Create a caller-owned selection plate; NULL denotes invalid size or OOM.
+ */
 EG_IMAGE *BootThemeSelection(UINTN size) {
     return makeThemePlate(size,TRUE);
 }
+/* Create a caller-owned unselected plate; NULL denotes invalid size or OOM.
+ */
 EG_IMAGE *BootThemeTile(UINTN size) {
     return makeThemePlate(size,FALSE);
 }

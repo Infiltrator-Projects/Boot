@@ -1,12 +1,6 @@
-/*
- * Loads and binds firmware filesystem drivers through UEFI protocols.
- * Drivers may expose previously unreadable partitions as Simple File System
- * handles, and reconnection may affect pre-existing controller bindings.
- * This is the current EFI-driver path, not a Common V2 hosted .so ABI.
- * Driver filename counts are not successful image-start or mount counts.
- * Controller reconnection changes global firmware protocol topology and may
- * disturb existing bindings; a subsequent volume rescan observes the result
- * rather than proving it from the initial directory enumeration.
+/* EFI driver loading and controller binding.
+ * Starts firmware drivers and reconnects controllers before rescanning.
+ * Candidate counts do not establish successful driver startup or mounting.
  */
 
 #include "driver_support.h"

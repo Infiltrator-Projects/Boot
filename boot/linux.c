@@ -1,11 +1,6 @@
-/*
- * Linux EFI-stub kernel discovery and boot option assembly.
- * Kernel versions, initrd candidate names and distribution hints are
- * heuristics rather than a guarantee of a bootable kernel/initramfs pair.
- * The selected kernel, options and volume must remain consistent.
- * A version-matched initrd and a readable EFI-stub image remain separate
- * observations. Boot arguments are handed to firmware as UTF-16 bytes; a
- * menu candidate is not proof that the kernel can mount its selected root.
+/* Linux EFI-stub discovery and option construction.
+ * Kernel versions, distribution labels and initrd matches are heuristics.
+ * The selected volume and command line are resolved at dispatch.
  */
 
 #include "global.h"

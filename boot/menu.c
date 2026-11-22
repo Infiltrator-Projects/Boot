@@ -1,11 +1,6 @@
-/*
- * Firmware console/UI rendering, input and entry-selection state.
- * Rows, selection highlights, hidden-tag records and the default match
- * control menu presentation, not physical installation or EFI BootOrder.
- * The graphics fallback must never compromise a viable boot choice.
- * Menu entry pointers and selection indices belong to the current inventory.
- * A rescan invalidates assumptions about stable ordering; painting a cached
- * selection or tool icon must never be interpreted as an image trust check.
+/* Menu presentation, navigation and selection state.
+ * Visible entries are views of the current scan; repaint and scroll state
+ * must be rebuilt when that inventory changes.
  */
 
 #include "global.h"
@@ -1210,28 +1205,42 @@ static VOID PaintSelection(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
     }
 }  
 
+/* Resolve a small icon with an external override before embedded art.
+ * The returned image is owned by the caller.
+ */
 static EG_IMAGE * GetIcon(IN EG_EMBEDDED_IMAGE *BuiltInIcon, IN CHAR16 *ExternalFilename){
     EG_IMAGE * Icon = egFindIcon(ExternalFilename, GlobalConfig.IconSizes[ICON_SIZE_SMALL]);
     if(Icon != NULL) return Icon;
     return egPrepareEmbeddedImage(BuiltInIcon, TRUE);
 }
 
+/* Centre the first row vertically using the current tile height.
+ */
 UINTN ComputeRow0PosY(VOID) {
     return ((UGAHeight / 2) - TileSizes[0] / 2);
 }  
 
+/* Repaint a menu region from the cached background.
+ * The crop is temporary; drawing assumes the background is available.
+ */
 static VOID ClearWithBackground(UINTN PosX, UINTN PosY, UINTN Width, UINTN Height){
     EG_IMAGE * TempImage = egCropImage(GlobalConfig.ScreenBackground, PosX, PosY, Width, Height);
     BltImage(TempImage, PosX, PosY);
     egFreeImage(TempImage);
 }
 
+/* Draw a centred navigation arrow or restore the underlying background.
+ * Arrow and its dimensions must be valid on entry.
+ */
 static VOID PaintArrow(EG_IMAGE * Arrow, UINTN PosX, UINTN PosY, BOOLEAN visible) {
     UINTN TopY = PosY - (Arrow->Height / 2);
     if (visible) egDrawImageWithTransparency(Arrow, NULL, PosX, TopY, Arrow->Width, Arrow->Height);
     else ClearWithBackground(PosX, TopY, Arrow->Width, Arrow->Height);
 }
 
+/* Paint only the arrows permitted by the current scroll window.
+ * Each resolved icon is released after drawing.
+ */
 static VOID PaintArrows(SCROLL_STATE *State, UINTN PosX, UINTN PosY, UINTN row0Loaders) {
     BOOLEAN HideFlagArrows = GlobalConfig.HideUIFlags & HIDEUI_FLAG_ARROWS;
     if(!HideFlagArrows){

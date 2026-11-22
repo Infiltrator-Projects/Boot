@@ -1,11 +1,6 @@
-/*
- * Legacy BIOS/CSM and firmware-mediated legacy boot interoperability.
- * Legacy paths are platform-specific and distinct from UEFI image loading.
- * Partition activation and firmware disk hints can affect persistent boot
- * state; this module must not be used to overwrite other EFI loaders.
- * EBR chains distinguish partition-relative offsets from current-record
- * positions; the wrong origin can redirect enumeration to unrelated sectors.
- * A discovered legacy entry remains conditional on firmware CSM support.
+/* Legacy BIOS/CSM boot dispatch and discovery.
+ * Firmware-specific device mappings and partition hints are not UEFI
+ * application paths; changing an active partition can persist to disk.
  */
 
 #include "global.h"
