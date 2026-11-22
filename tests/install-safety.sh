@@ -8,6 +8,11 @@
 # or EFI System Partition.
 
 set -euo pipefail
+# The default configuration must offer firmware-registered operating systems
+# even when Linux filesystem driver discovery is incomplete. BOOT itself must
+# not appear as a recursive selection.
+grep -Eq '^scanfor[[:space:]]+f([,[:space:]]|$)' boot.conf-sample
+grep -Fqx 'dont_scan_firmware "BOOT Boot Manager"' boot.conf-sample
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 awk '/^RootDir=/ {inside=1} /^GetParams "\$@"$/ {exit} inside {print}' boot-native-installer.run > "$work/functions.sh"
