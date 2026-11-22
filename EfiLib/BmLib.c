@@ -79,6 +79,12 @@ EfiStrDuplicate (
   return Dest;
 }
 
+/*
+ * Fetch EFI file metadata with an initial buffer-size negotiation.
+ * A successful return transfers the pool allocation to the caller. If a
+ * later GetInfo call fails, the acquired buffer is not released here;
+ * the status check alone is not a complete resource cleanup path.
+ */
 EFI_FILE_INFO *
 EfiLibFileInfo (
   IN EFI_FILE_HANDLE      FHand
@@ -97,6 +103,13 @@ EfiLibFileInfo (
   return EFI_ERROR(Status)?NULL:FileInfo;
 }
 
+/*
+ * Fetch EFI filesystem metadata using GetInfo's size-probe contract.
+ * The returned allocation is caller-owned. If the second GetInfo fails,
+ * the allocated buffer is not freed before this function returns NULL.
+ * AllocateZeroPool failure is also not checked before its use in GetInfo.
+ * A NULL result does not prove the operation released all resources.
+ */
 EFI_FILE_SYSTEM_INFO *
 EfiLibFileSystemInfo (
                 IN EFI_FILE_HANDLE      FHand
