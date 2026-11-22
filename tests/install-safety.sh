@@ -160,7 +160,7 @@ TargetShim=shimx64.efi
 ReSignBinaries() { :; }
 CheckSecureBoot() { IsSecureBoot=1; }
 AddBootEntry() { echo "Firmware entry fixture" >&2; return 0; }
-mokutil() { return 1; }
+mokutil() { echo "$DerKey is not enrolled"; return 0; }
 sbverify() { return 0; }
 if InstallOnLinux > "$work/secureboot-pending.txt" 2>&1; then
     echo "BOOT accepted Secure Boot with unenrolled local MOK" >&2
@@ -170,7 +170,7 @@ grep -Fq 'is not yet enrolled as a MOK' "$work/secureboot-pending.txt" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf" || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/shimx64.efi")" = protected-ubuntu || exit 1
-mokutil() { return 0; }
+mokutil() { echo "$DerKey is already enrolled"; return 0; }
 if ! InstallOnLinux > "$work/secureboot-enrolled.txt" 2>&1; then
     cat "$work/secureboot-enrolled.txt" >&2
     exit 1
