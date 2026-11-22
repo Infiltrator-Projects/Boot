@@ -370,6 +370,13 @@ static void attribute_get_embeded(fsw_u8 *ptr, int len, fsw_u8 **outp, int *outl
     *outlenp = olen;
 }
 
+/*
+ * Return a borrowed runlist slice beginning at the record's encoded offset.
+ * The helper reads byte 0x20 onward without checking a minimum record length,
+ * and does not reject an offset beyond len. A negative computed outlen is
+ * therefore possible; no caller may treat this helper as independent bounds
+ * validation of an untrusted nonresident attribute record.
+ */
 static void attribute_get_rle(fsw_u8 *ptr, int len, fsw_u8 **outp, int *outlenp)
 {
     int off = GETU16(ptr, 0x20);
@@ -689,6 +696,14 @@ static void add_single_mft_map(struct fsw_ntfs_volume *vol, fsw_u8 *mft)
     }
 }
 
+/*
+ * Construct additional MFT logical-cluster mappings from the attribute list.
+ * The routine appends any readable extent records into shared vol->extmap.
+ * Its VOID result conceals allocation failure for the temporary MFT record,
+ * leaving the caller unable to distinguish a complete mapping from a partial
+ * map. The encoded attribute list and every referenced record remain
+ * untrusted inputs; mapping completeness is not established on return.
+ */
 static void add_mft_map(struct fsw_ntfs_volume *vol, struct ntfs_mft *mft)
 {
     load_atlist(vol, mft);
@@ -1475,6 +1490,13 @@ static int ntfs_filename_cmp(struct fsw_ntfs_volume *vol, fsw_u8 *p1, int s1, fs
     return 0;
 }
 
+/*
+ * Extract MFT reference, type and a UTF-16LE name from a directory index entry
+ * and delegate child allocation to the shared dnode constructor. The input is
+ * a borrowed index buffer. This routine has no record-length parameter and
+ * reads offsets 0x48, 0x50 and 0x52 without independent bounds checks; only
+ * a caller-verified complete directory entry can safely reach this path.
+ */
 static fsw_status_t fsw_ntfs_create_subnode(struct fsw_ntfs_dnode *dno, fsw_u8 *buf, struct fsw_dnode **child_dno)
 {
     fsw_u64 mftno = GETU64(buf, 0) & MFTMASK;
