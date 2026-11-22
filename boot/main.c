@@ -109,11 +109,8 @@ REFIT_CONFIG GlobalConfig = {   FALSE,
                                 { TAG_SHELL, TAG_MEMTEST, TAG_GDISK, TAG_APPLE_RECOVERY, TAG_WINDOWS_RECOVERY,
                                                   TAG_MOK_TOOL, TAG_ABOUT, TAG_HIDDEN, TAG_SHUTDOWN, TAG_REBOOT, TAG_FIRMWARE,
                                                   TAG_FWUPDATE_TOOL, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                                NULL, /* ThemeBackgroundFileName */
-                                NULL, /* ThemeLogoFileName */
-                                NULL, /* ThemeMarkFileName */
-                                NULL, /* ThemeUnderlineFileName */
-                                TRUE  /* StartupDiagnostics: toggle only through boot.conf. */
+                                /* ScanFor and theme pointers retain their zero defaults. */
+                                .StartupDiagnostics = TRUE /* boot.conf is the only toggle. */
                             };
 
 CHAR16 *gHiddenTools = NULL;
