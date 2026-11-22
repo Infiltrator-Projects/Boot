@@ -3,6 +3,9 @@
  * Images come from BOOT resources or embedded artwork, not from a proof that
  * a loader is executable. A missing icon must not suppress an otherwise valid
  * candidate: dummy imagery is an explicit graphics fallback.
+ * Built-in icon results are cached and shared across menu entries. Their
+ * lifetime belongs to the icon cache, not to an individual loader record;
+ * callers must not free or mutate shared pixels as though independently owned.
  */
 
 #include "global.h"
