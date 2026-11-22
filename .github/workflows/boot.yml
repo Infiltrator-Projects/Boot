@@ -37,7 +37,9 @@ jobs:
           test -s filesystems/fsw_ext4.c
           test -s filesystems/Make.gnuefi
           grep -Eq 'DriverFilesFound[[:space:]]*=[[:space:]]*LoadDrivers\(\);' boot/main.c
-          grep -Eq 'if[[:space:]]*\(DriverFilesFound\)' boot/main.c
+          grep -Fq 'LvmMapped = LvmDiscoverVolumes();' boot/main.c
+          grep -Fq 'if (DriverFilesFound || LvmMapped)' boot/main.c
+          grep -Fq 'lvm2.o' boot/Makefile
           grep -Fq 'ConnectFilesystemDriver(ChildImageHandle);' boot/launch_efi.c
           grep -Fq 'set -- --alldrivers' boot-native-installer.run
           if [[ -d gptsync || -e BootPkg.dsc ]]; then
