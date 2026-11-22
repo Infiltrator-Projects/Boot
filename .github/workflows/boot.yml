@@ -108,6 +108,10 @@ jobs:
         shell: bash
         run: bash tests/host-source-regressions.sh
 
+      - name: Exercise firmware BootOrder with source-isolated host mocks
+        shell: bash
+        run: bash tests/host-bootorder-regressions.sh
+
       - name: Verify native installer against disposable ESP
         shell: bash
         run: bash tests/install-safety.sh

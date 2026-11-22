@@ -2,6 +2,13 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Firmware boot-order and documentation correctness
+
+- Eliminated a duplicate BootOrder-number case when the requested entry already headed the list; no-write behaviour remains for a genuinely unique first entry.
+- Stale Boot#### reconciliation now treats EFI_NOT_FOUND separately from firmware read failures, stages changes before writing and does not overwrite BootOrder if every referenced entry is missing.
+- Reported actual firmware write status in the boot-option management menu, distinguishing a completed Boot#### deletion from a subsequent BootOrder cleanup failure.
+- Added source-extracted, host-only regression coverage. No changes were made to the native installer, generic package installation, filesystem ABI or EFI image-loading path.
+
 ## 2026-11-22 — Boot scanning and Btrfs memory-safety follow-up
 
 - Bounded FindMem input lengths and corrected the last valid search offset, with compiled host regression cases.
