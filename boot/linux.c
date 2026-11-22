@@ -180,6 +180,12 @@ static VOID ParseReleaseFile(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *
     }  
 }  
 
+/*
+ * Merge os-release/lsb-release and kernel-filename hints into icon labels.
+ * Fedora/Red Hat suffix recognition is heuristic and can coexist with other
+ * labels; no signature, root filesystem identity or bootability check occurs.
+ * OSIconName is an in/out string allocation managed by the string helpers.
+ */
 VOID GuessLinuxDistribution(CHAR16 **OSIconName, REFIT_VOLUME *Volume, CHAR16 *LoaderPath) {
 
     ParseReleaseFile(OSIconName, Volume, L"etc\\lsb-release");
