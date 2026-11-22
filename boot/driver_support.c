@@ -344,20 +344,22 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
                 EFI_STATUS ProbeStatus;
 
                 /*
-                 * The per-driver connection pass already offered every
-                 * filesystem driver to logical partitions. Recursively
-                 * connecting those same partitions again can restart a
-                 * rejecting driver indefinitely on unsupported media.
-                 * Keep discovery of parent/storage controllers intact.
+                 * The per-driver binding pass already probed accessible
+                 * partition handles. A handle with Block I/O is itself a
+                 * discovered storage controller, not an unbound bus to
+                 * recursively initialise a second time. Reconnecting it
+                 * can repeatedly invoke a filesystem driver that has
+                 * correctly refused unsupported media. Continue connecting
+                 * non-Block-I/O controllers to discover further devices.
                  */
                 ProbeStatus = refit_call3_wrapper(BS->HandleProtocol,
                                                   AllHandleBuffer[Index],
                                                   &gMyEfiBlockIoProtocolGuid,
                                                   (VOID **)&BlockIo);
                 if (!EFI_ERROR(ProbeStatus) && BlockIo != NULL &&
-                    BlockIo->Media != NULL && BlockIo->Media->LogicalPartition) {
+                    BlockIo->Media != NULL) {
                     LOG(3, LOG_LINE_NORMAL,
-                        L"Skipping duplicate filesystem partition connection");
+                        L"Skipping recursive reconnection of an existing Block I/O device");
                 } else {
                     Status = refit_call4_wrapper(BS->ConnectController,
                                                  AllHandleBuffer[Index],
