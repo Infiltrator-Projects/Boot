@@ -759,6 +759,14 @@ static BOOLEAN ShouldScan(REFIT_VOLUME *Volume, CHAR16 *Path) {
  * lengths. Thus a TRUE result is not a proven byte-for-byte equality for
  * adversarial or changing files. FALSE also includes I/O and allocation
  * failures; it does not establish that the images differ.
+ *
+ * The comparison is performed on a snapshot assembled by separate file opens
+ * and reads; the routine does not bind either read to an immutable filesystem
+ * revision. FileSize is EFI UINT64 metadata, whereas allocation/read sizes
+ * are native UINTN; narrowing or excessive sizes require an explicit guard
+ * before this method can be treated as reliable on malformed media. The
+ * return value is a display de-duplication hint, never a cryptographic or
+ * executable-identity assertion.
  */
 static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) {
     CHAR8           *FileContents, *FallbackContents;
