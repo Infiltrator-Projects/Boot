@@ -2,6 +2,12 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Firmware variable and menu ownership follow-up
+
+- Made the optional EfivarGetRaw output-size pointer work on both firmware and file-backed paths, zeroing outputs and rejecting invalid mandatory inputs.
+- Freed temporary boot-option menu entries, owned title buffers and menu pointer arrays after selection; checked allocation and pointer-vector append results before adding choices.
+- Preserved user-visible menu actions, firmware-image loading, filesystem modules and native installation paths. Firmware UI allocation fault-injection remains separate from source inspection.
+
 ## 2026-11-22 — EFI device-path commentary and string lifetime
 
 - Added decoder-specific explanations of vendor, ACPI, network, iSCSI and unknown device-path node formatting, distinguishing display output from validated binary input.

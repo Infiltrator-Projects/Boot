@@ -249,64 +249,86 @@ VOID DeleteBootOrderEntries(BOOT_ENTRY_LIST *Entries) {
  * must not itself write firmware variables. Volume names are descriptive
  * and must not be mistaken for authenticated executable identities.
  */
+/*
+ * Construct one temporary menu entry for each readable Boot#### record.
+ * Titles belong to these menu entries; the entry array and informational
+ * pointer array are owned by this invocation. Free both after the selection
+ * number has been copied, never leaving a borrowed pointer into the menu.
+ * Allocation failure stops the list rather than dereferencing NULL.
+ */
 static UINTN PickOneBootOption(IN BOOT_ENTRY_LIST *Entries, IN OUT UINTN *BootOrderNum) {
     CHAR16              *Temp = NULL, *Filename = NULL;
     REFIT_VOLUME        *Volume = NULL;
     INTN                DefaultEntry = 0, MenuExit = MENU_EXIT_ESCAPE;
     UINTN               Operation = EFI_BOOT_OPTION_DO_NOTHING;
+    UINTN               i, PriorCount;
     MENU_STYLE_FUNC     Style = TextMenuStyle;
-    REFIT_MENU_ENTRY    *ChosenOption, *MenuEntryItem = NULL;
+    REFIT_MENU_ENTRY    *ChosenOption = NULL, *MenuEntryItem = NULL;
     REFIT_MENU_SCREEN   Menu = { L"Manage EFI Boot Order", NULL, 0, NULL, 0, NULL, 0, NULL,
                                  L"Select an option and press Enter to make it the default, press '-' or",
                                  L"Delete to delete it, or Esc to return to main menu without changes" };
+
     if (AllowGraphicsMode)
         Style = GraphicsMenuStyle;
 
     if (Entries) {
         AddMenuInfoLine(&Menu, L"Select an option and press Enter to make it the default or '-' to delete it");
         while (Entries != NULL) {
-            MenuEntryItem = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));
+            MenuEntryItem = AllocateZeroPool(sizeof(*MenuEntryItem));
+            if (!MenuEntryItem)
+                break;
             FindVolumeAndFilename(Entries->BootEntry.DevPath, &Volume, &Filename);
             if ((Filename != NULL) && (StrLen(Filename) > 0)) {
-                if ((Volume != NULL) && (Volume->VolName != NULL)) {
+                if ((Volume != NULL) && (Volume->VolName != NULL))
                     Temp = PoolPrint(L"Boot%04x - %s - %s on %s",
-                                    Entries->BootEntry.BootNum,
-                                    Entries->BootEntry.Label,
-                                    Filename, Volume->VolName);
-                } else {
+                                     Entries->BootEntry.BootNum, Entries->BootEntry.Label,
+                                     Filename, Volume->VolName);
+                else
                     Temp = PoolPrint(L"Boot%04x - %s - %s",
-                                    Entries->BootEntry.BootNum,
-                                    Entries->BootEntry.Label,
-                                    Filename);
-                }
+                                     Entries->BootEntry.BootNum, Entries->BootEntry.Label, Filename);
             } else {
                 Temp = PoolPrint(L"Boot%04x - %s",
-                                 Entries->BootEntry.BootNum,
-                                 Entries->BootEntry.Label);
+                                 Entries->BootEntry.BootNum, Entries->BootEntry.Label);
             }
-
             MyFreePool(Filename);
             Filename = NULL;
             Volume = NULL;
-            MenuEntryItem->Title = StrDuplicate(Temp);
+            if (!Temp) {
+                MyFreePool(MenuEntryItem);
+                break;
+            }
+            MenuEntryItem->Title = Temp;
+            Temp = NULL;
             MenuEntryItem->Row = Entries->BootEntry.BootNum;
+            PriorCount = Menu.EntryCount;
             AddMenuEntry(&Menu, MenuEntryItem);
+            if (Menu.EntryCount == PriorCount) {
+                MyFreePool(MenuEntryItem->Title);
+                MyFreePool(MenuEntryItem);
+                break;
+            }
             Entries = Entries->NextBootEntry;
-            MyFreePool(Temp);
         }
-        MenuExit = RunGenericMenu(&Menu, Style, &DefaultEntry, &ChosenOption);
-        if (MenuExit == MENU_EXIT_ENTER) {
-            Operation = EFI_BOOT_OPTION_MAKE_DEFAULT;
-            *BootOrderNum = ChosenOption->Row;
+        if (Menu.EntryCount != 0) {
+            MenuExit = RunGenericMenu(&Menu, Style, &DefaultEntry, &ChosenOption);
+            if (ChosenOption && MenuExit == MENU_EXIT_ENTER) {
+                Operation = EFI_BOOT_OPTION_MAKE_DEFAULT;
+                *BootOrderNum = ChosenOption->Row;
+            } else if (ChosenOption && MenuExit == MENU_EXIT_HIDE) {
+                Operation = EFI_BOOT_OPTION_DELETE;
+                *BootOrderNum = ChosenOption->Row;
+            }
         }
-        if (MenuExit == MENU_EXIT_HIDE) {
-            Operation = EFI_BOOT_OPTION_DELETE;
-            *BootOrderNum = ChosenOption->Row;
-        }
-        MyFreePool(MenuEntryItem);
     } else {
         DisplaySimpleMessage(L"Information", L"EFI boot order list is unavailable");
     }
+
+    for (i = 0; i < Menu.EntryCount; ++i) {
+        MyFreePool(Menu.Entries[i]->Title);
+        MyFreePool(Menu.Entries[i]);
+    }
+    MyFreePool(Menu.Entries);
+    MyFreePool(Menu.InfoLines);
     return Operation;
 }  
 

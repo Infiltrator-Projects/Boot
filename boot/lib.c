@@ -343,15 +343,24 @@ EFI_STATUS CreateVarsDir(VOID) {
  * missing file is returned as a read failure. GlobalGuid variables such as
  * BootOrder always use firmware.
  *
- * Success transfers a pool buffer to the caller. Although size is declared
- * optional, the error path stores zero through it, so callers must currently
- * provide storage for the size.
+ * Success transfers a pool buffer to the caller. The size output is genuinely
+ * optional: an internal variable receives the byte count when it is omitted.
+ * An error clears the caller's buffer and any supplied size; the firmware
+ * allocation is freed, and the caller never owns a failed result.
  */
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL) {
     UINT8 *buf = NULL;
     UINTN l;
     EFI_STATUS Status;
     BOOLEAN ReadFromNvram = TRUE;
+    UINTN IgnoredSize = 0;
+
+    if (!vendor || !name || !buffer)
+        return EFI_INVALID_PARAMETER;
+    *buffer = NULL;
+    if (!size)
+        size = &IgnoredSize;
+    *size = 0;
 
     if ((GlobalConfig.UseNvram == FALSE) && GuidsAreEqual(vendor, &BootGuid)) {
         ReadFromNvram = FALSE;

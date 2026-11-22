@@ -108,7 +108,7 @@ The table distinguishes *existing fixture coverage* from *missing tests*. It doe
 | Controller reconnect topology | `boot/driver_support.c` now requests the selected controller's index from its own handle snapshot | Synthetic databases with differing enumeration counts and orders to verify correct classification and stale-handle skipping |
 | Secure Boot signing and key maintenance | Installer and healthcheck contain key generation, signing and enrollment operations | Fixture-driven status, passphrase, error and re-enrollment cases; firmware/shim validation on representative physical trust configurations |
 | Common V2 filesystem ABI | No end-to-end BOOT V2 module validation in this revision | Exact V2 ABI conformance, shared implementation, freestanding build, authentication, load and representative read-path tests |
-| Firmware menu boot-order mutation | Source-isolated `tests/host-bootorder-regressions.sh` checks unique-first no-op, duplicate cleanup, promotion, missing options, malformed variables and read/write failures | Real UEFI menu interactions, NVRAM fault injection and partial-update recovery on physical firmware |
+| Firmware menu boot-order mutation | Source-isolated `tests/host-bootorder-regressions.sh` checks unique-first no-op, duplicate cleanup, promotion, missing options, malformed variables and read/write failures | Real UEFI menu interactions, OOM injection into temporary menu allocations, NVRAM fault injection and partial-update recovery on physical firmware |
 
 ### Reproducible checks and their limits
 

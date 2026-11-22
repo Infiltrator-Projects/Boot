@@ -57,10 +57,10 @@ VOID UninitRefitLib(VOID);
 EFI_STATUS ReinitRefitLib(VOID);
 
 /*
- * Success returns a caller-owned EFI pool buffer. Despite the legacy OPTIONAL
- * annotation, EfivarGetRaw can dereference 'size' on failure: always pass a
- * valid UINTN pointer. GlobalGuid variables including BootOrder use firmware
- * NVRAM; BootGuid can be configured to use file-backed storage instead.
+ * Success returns a caller-owned EFI pool buffer. The size argument is
+ * genuinely optional and output is zeroed on failure when provided.
+ * GlobalGuid variables including BootOrder use firmware NVRAM; BootGuid
+ * can be configured to use file-backed storage instead.
  * SetRaw may change persistent state; sizes count bytes, not CHAR16 units.
  */
 EFI_STATUS EfivarGetRaw(IN EFI_GUID *vendor, IN CHAR16 *name, OUT CHAR8 **buffer, OUT UINTN *size OPTIONAL);
