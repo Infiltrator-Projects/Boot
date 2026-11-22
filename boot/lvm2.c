@@ -611,11 +611,11 @@ static BOOLEAN LvmPublish(LVM_LV *Lv) {
     Lv->DevicePath.End.SubType = END_ENTIRE_DEVICE_PATH_SUBTYPE;
     Lv->DevicePath.End.Length[0] = sizeof(EFI_DEVICE_PATH);
     Lv->DevicePath.End.Length[1] = 0;
-    Status = boot_call4_wrapper(BS->InstallMultipleProtocolInterfaces,
+    Status = boot_call10_wrapper(BS->InstallMultipleProtocolInterfaces,
                 &Handle,
                 &gMyEfiDevicePathProtocolGuid, &Lv->DevicePath,
                 &gMyEfiBlockIoProtocolGuid, &Lv->Block,
-                &gMyEfiDiskIoProtocolGuid, &Lv->Disk, NULL);
+                &gMyEfiDiskIoProtocolGuid, &Lv->Disk, NULL, NULL, NULL);
     if (EFI_ERROR(Status)) {
         LOG(1, LOG_LINE_NORMAL, L"LVM2: virtual volume protocol install failed: %lu",
             (UINT64)Status);
