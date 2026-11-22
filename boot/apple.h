@@ -58,9 +58,19 @@
 
 extern CHAR16 gCsrStatus[512];
 
+/*
+ * GetCsrStatus queries Apple's csr-active-config; RecordgCsrStatus formats
+ * an observed value, while RotateCsrValue may write a new NVRAM mask. A
+ * displayed CSR state cannot guarantee SIP enforcement.
+ */
 EFI_STATUS GetCsrStatus(UINT32 *CsrValue);
 VOID RecordgCsrStatus(UINT32 CsrStatus, BOOLEAN DisplayMessage);
 VOID RotateCsrValue(VOID);
+/*
+ * SetAppleOSInfo publishes compatibility metadata through Apple-specific
+ * EFI protocols. Its EFI_STATUS represents that operation, not whether
+ * macOS can boot from a selected disk.
+ */
 EFI_STATUS SetAppleOSInfo();
 
 #endif

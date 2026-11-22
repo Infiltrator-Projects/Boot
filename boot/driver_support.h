@@ -37,6 +37,12 @@
 #define EFI_HANDLE_TYPE_CONTROLLER_HANDLE           0x200
 #define EFI_HANDLE_TYPE_CHILD_HANDLE                0x400
 
+/*
+ * Handle classification returns newly allocated parallel handle and flag
+ * arrays. HandleCount applies to both arrays; the caller releases them
+ * after connection decisions and must not assume every handle is a
+ * controller.
+ */
 EFI_STATUS
 LibScanHandleDatabase (
   EFI_HANDLE  DriverBindingHandle, OPTIONAL
@@ -47,6 +53,12 @@ LibScanHandleDatabase (
   EFI_HANDLE  **HandleBuffer,
   UINT32      **HandleType
   );
+/*
+ * Controller reconnection changes firmware protocol topology and may
+ * invalidate old volume handles. ConnectFilesystemDriver is a best-effort
+ * VOID operation; LoadDrivers indicates filename candidates, not confirmed
+ * mounts.
+ */
 EFI_STATUS ConnectAllDriversToAllControllers(VOID);
 VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle);
 BOOLEAN LoadDrivers(VOID);

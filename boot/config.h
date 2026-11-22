@@ -49,11 +49,29 @@ typedef struct {
 #define DONT_SCAN_VOLUMES L"LRS_ESP"
 #define ALSO_SCAN_DIRS L"boot,@/boot"
 
+/*
+ * ReadFile allocates and fills REFIT_FILE from an EFI file, reporting the
+ * byte length through size. The token parser returns independently
+ * allocated UTF-16 strings; FreeTokenLine releases each string and its
+ * pointer array.
+ */
 EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, CHAR16 *FileName, REFIT_FILE *File, UINTN *size);
+/*
+ * ReadConfig replaces runtime preferences in GlobalConfig;
+ * ScanUserConfigured builds loader candidates from the selected
+ * configuration file. Neither call establishes an image's authenticity or
+ * a writable EFI partition.
+ */
 VOID ReadConfig(CHAR16 *FileName);
 VOID ScanUserConfigured(CHAR16 *FileName);
 UINTN ReadTokenLine(IN REFIT_FILE *File, OUT CHAR16 ***TokenList);
 VOID FreeTokenLine(IN OUT CHAR16 ***TokenList, IN OUT UINTN *TokenCount);
+/*
+ * ReadLinuxOptionsFile and GetFirstOptionsFromFile inspect the adjacent
+ * Linux options file. The resulting REFIT_FILE wrapper and returned
+ * command-line string have different lifetimes; options are borrowed from
+ * the specified volume only during reading.
+ */
 REFIT_FILE * ReadLinuxOptionsFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume);
 CHAR16 * GetFirstOptionsFromFile(IN CHAR16 *LoaderPath, IN REFIT_VOLUME *Volume);
 

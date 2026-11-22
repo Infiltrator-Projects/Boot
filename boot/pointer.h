@@ -29,14 +29,29 @@ typedef struct PointerStateStruct {
     BOOLEAN Holding;
 } POINTER_STATE;
 
+/*
+ * Pointer initialisation discovers firmware device protocols and allocates
+ * cursor assets. pdCleanup releases those resources; the absence of
+ * pointers must not affect keyboard boot-menu input.
+ */
 VOID pdInitialize();
 VOID pdCleanup();
 BOOLEAN pdAvailable();
 UINTN pdCount();
+/*
+ * pdCount limits valid event indices. pdUpdateState normalises hardware
+ * coordinates, and pdGetState returns a snapshot with a release-edge Press
+ * flag; events are firmware-owned.
+ */
 EFI_EVENT pdWaitEvent(IN UINTN Index);
 EFI_STATUS pdUpdateState();
 POINTER_STATE pdGetState();
 
+/*
+ * Pointer painting borrows the current screen background and may cache
+ * covered pixels. Clearing/redrawing the cursor is presentation-only and
+ * must track graphics mode transitions.
+ */
 VOID pdDraw();
 VOID pdClear();
 

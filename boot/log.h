@@ -34,6 +34,12 @@ extern CHAR16           *gLogTemp;
         WriteToLog(&gLogTemp, type); \
     }
 
+/*
+ * StartLogging opens BOOT's own diagnostic file, optionally rotating old
+ * logs. StopLogging closes the session; WriteToLog consumes a mutable
+ * pointer to the shared formatting buffer. Logging errors must not
+ * override image-launch status.
+ */
 EFI_STATUS StartLogging(BOOLEAN Restart);
 VOID StopLogging(VOID);
 VOID WriteToLog(CHAR16 **Message, UINTN LogLineType);

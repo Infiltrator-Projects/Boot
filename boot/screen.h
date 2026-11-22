@@ -48,6 +48,12 @@ extern BOOLEAN AllowGraphicsMode;
 extern EG_PIXEL StdBackgroundPixel;
 extern EG_PIXEL MenuBackgroundPixel;
 
+/*
+ * Screen initialization queries firmware console/GOP and allocates drawing
+ * state. BeginExternalScreen and FinishExternalScreen bracket EFI child
+ * image execution; the graphics mode and cached dimensions may differ
+ * afterward.
+ */
 VOID InitScreen(VOID);
 VOID SetupScreen(VOID);
 VOID BeginTextScreen(IN CHAR16 *Title);
@@ -56,6 +62,11 @@ VOID FinishExternalScreen(VOID);
 VOID TerminateScreen(VOID);
 VOID DrawScreenHeader(IN CHAR16 *Title);
 
+/*
+ * Input and pause helpers operate on ConIn/Boot Services events;
+ * PauseSeconds passes microseconds to Stall, while error prompts consume
+ * fresh input rather than stale keystrokes.
+ */
 VOID EndlessIdleLoop(VOID);
 BOOLEAN ReadAllKeyStrokes(VOID);
 VOID PrintUglyText(IN CHAR16 *Text, UINTN PositionCode);
@@ -65,6 +76,11 @@ VOID PauseSeconds(UINTN Seconds);
 BOOLEAN CheckFatalError(IN EFI_STATUS Status, IN CHAR16 *where);
 BOOLEAN CheckError(IN EFI_STATUS Status, IN CHAR16 *where);
 
+/*
+ * Text/graphics switches mutate firmware presentation state, not menu
+ * entries or filesystem selection. The image blit inputs are borrowed
+ * graphics surfaces; blit status is not exposed through these VOID APIs.
+ */
 VOID SwitchToText(IN BOOLEAN CursorEnabled);
 VOID SwitchToGraphics(VOID);
 

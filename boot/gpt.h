@@ -76,9 +76,19 @@ typedef struct _gpt_data {
 
 #pragma pack(0)
 
+/*
+ * ReadGptData returns metadata from a selected volume after GPT structural
+ * checks. Its allocated header/entry records belong to the GPT_DATA
+ * object; ClearGptData releases that ownership.
+ */
 VOID ClearGptData(GPT_DATA *Data);
 EFI_STATUS ReadGptData(REFIT_VOLUME *Volume, GPT_DATA **Data);
 
+/*
+ * Partition-table discovery and cached GUID lookup have scan-generation
+ * lifetimes. A returned entry pointer must not be kept across
+ * ForgetPartitionTables; checksum validity is not loader authenticity.
+ */
 GPT_ENTRY * FindPartWithGuid(EFI_GUID *Guid);
 VOID ForgetPartitionTables(VOID);
 VOID AddPartitionTable(REFIT_VOLUME *Volume);
