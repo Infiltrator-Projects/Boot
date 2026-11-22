@@ -413,4 +413,19 @@ Baseline revision: `3723692da9de44ab97082e8d6df7197e612a8e76`. The following is 
 | `boot/screen.h` | 0 | ABI/header |
 | `filesystems/AutoGen.c` | 5 | Generated/embedded |
 | `filesystems/AutoGen.h` | 0 | Generated/embedded |
+| `filesystems/crc32c.c` | 1 | Maintained implementation |
+| `filesystems/edk2/ComponentName.h` | 0 | ABI/header |
+| `filesystems/edk2/DriverBinding.h` | 0 | ABI/header |
+| `filesystems/fsw_base.h` | 0 | ABI/header |
+| `filesystems/fsw_btrfs.c` | 39 | Maintained implementation |
+| `filesystems/fsw_btrfs_zstd.h` | 5 | ABI/header |
+| `filesystems/fsw_core.c` | 25 | Maintained implementation |
+| `filesystems/fsw_core.h` | 0 | ABI/header |
+| `filesystems/fsw_efi.c` | 33 | Maintained implementation |
+| `filesystems/fsw_efi.h` | 0 | ABI/header |
+| `filesystems/fsw_efi_base.h` | 0 | ABI/header |
+| `filesystems/fsw_efi_edk2_base.h` | 0 | ABI/header |
+| `filesystems/fsw_efi_lib.c` | 3 | Maintained implementation |
+| `filesystems/fsw_ext2.c` | 11 | Maintained implementation |
+| `filesystems/fsw_ext2.h` | 0 | ABI/header |
 <!-- BOOT_SOURCE_INDEX_NEXT -->
