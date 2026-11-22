@@ -3,6 +3,9 @@
  * Kernel versions, initrd candidate names and distribution hints are
  * heuristics rather than a guarantee of a bootable kernel/initramfs pair.
  * The selected kernel, options and volume must remain consistent.
+ * A version-matched initrd and a readable EFI-stub image remain separate
+ * observations. Boot arguments are handed to firmware as UTF-16 bytes; a
+ * menu candidate is not proof that the kernel can mount its selected root.
  */
 
 #include "global.h"
