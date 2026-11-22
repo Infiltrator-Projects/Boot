@@ -833,6 +833,12 @@ static BOOLEAN DuplicatesFallback(IN REFIT_VOLUME *Volume, IN CHAR16 *FileName) 
  * The EFI directory listing and an open handle can report different lengths
  * for a link and its target. This scan uses that difference as a heuristic. A
  * link and target with equal reported sizes are indistinguishable here.
+ *
+ * The current function does not close FileHandle after a successful Open;
+ * repeated scanning can retain firmware file handles. If Open or LibFileInfo
+ * fails, FileSize2 stays zero and an ordinary nonempty file can be labelled
+ * a symbolic link. This BOOLEAN is a display/scanning heuristic, not a
+ * verified filesystem-level symbolic-link classification.
  */
 static BOOLEAN IsSymbolicLink(REFIT_VOLUME *Volume, CHAR16 *FullName, EFI_FILE_INFO *DirEntry) {
     EFI_FILE_HANDLE FileHandle;
