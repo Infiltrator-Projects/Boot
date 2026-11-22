@@ -2,6 +2,9 @@
  * Legacy boot-option discovery and EFI BDS variable management. BIOS/CSM
  * support is firmware-specific; legacy entries and device ordering can alter
  * boot variables and must not be confused with non-destructive UEFI scanning.
+ * Device-path and BBS indexes are firmware-generated and may be reordered;
+ * mapping tables are snapshots, not durable identities. Variable writes and
+ * legacy handoff need separate success/failure interpretation.
  */
 
 #ifdef __MAKEWITH_GNUEFI
