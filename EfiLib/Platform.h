@@ -1,5 +1,8 @@
 /*
+ * BOOT / Firmware ABI adaptation
+ *
  * EFI build-platform adaptation and related protocol definitions.
+ *
  * Compiler, calling-convention and firmware structure macros constitute a
  * binary ABI, not a source-level convenience that can be changed casually.
  */

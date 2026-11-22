@@ -1,6 +1,10 @@
-/* UEFI device-path parsing and text formatting.
- * Firmware-supplied nodes encode type, subtype and byte length.
- * Display formatting does not substitute for bounded binary validation.
+/*
+ * BOOT / Device-path parsing
+ *
+ * UEFI device-path parsing and text formatting.
+ *
+ * Firmware-supplied nodes encode type, subtype and byte length. Display
+ * formatting does not substitute for bounded binary validation.
  */
 
 #include "Platform.h"

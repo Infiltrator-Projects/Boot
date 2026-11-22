@@ -1,5 +1,8 @@
 /*
+ * BOOT / GNU-EFI bridge API
+ *
  * Bridge EDK-style device-path operations to GNU-EFI.
+ *
  * GetNextDevicePathInstance allocates one terminated instance and advances
  * the caller's input pointer. Keep the original owning pointer separately
  * when walking an allocated path.

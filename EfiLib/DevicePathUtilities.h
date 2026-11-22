@@ -1,5 +1,8 @@
 /*
+ * BOOT / Device-path utility API
+ *
  * EFI device-path helper types and text/string conversion interfaces.
+ *
  * A device path is a packed sequence of length-delimited nodes; callers
  * must not advance through unvalidated data or retain transient buffers.
  */

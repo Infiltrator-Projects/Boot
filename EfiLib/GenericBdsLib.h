@@ -1,6 +1,10 @@
-/* BDS compatibility types and firmware boot-option API.
- * Boot#### data includes attributes, descriptions and device paths.
- * Parsed records have ownership separate from firmware storage.
+/*
+ * BOOT / Boot device selection API
+ *
+ * BDS compatibility types and firmware boot-option API.
+ *
+ * Boot#### data includes attributes, descriptions and device paths. Parsed
+ * records have ownership separate from firmware storage.
  */
 
 #ifndef _GENERIC_BDS_LIB_H_

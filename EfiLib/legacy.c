@@ -1,6 +1,10 @@
-/* Legacy BDS discovery and EFI boot-variable operations.
- * BIOS/CSM metadata and BBS indices are firmware-specific.
- * Variable writes can persist across subsequent boots.
+/*
+ * BOOT / Legacy option dispatch
+ *
+ * Legacy BDS discovery and EFI boot-variable operations.
+ *
+ * BIOS/CSM metadata and BBS indices are firmware-specific. Variable writes
+ * can persist across subsequent boots.
  */
 
 #ifdef __MAKEWITH_GNUEFI

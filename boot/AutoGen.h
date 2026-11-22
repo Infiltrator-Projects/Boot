@@ -1,7 +1,10 @@
 /*
- * Generated EDK application/library linkage declarations. These symbols
- * serve the alternative EDK build model; the maintained AMD64 release
- * qualification currently uses the GNU-EFI path.
+ * BOOT / Generated EFI declarations
+ *
+ * Generated EDK application/library linkage declarations.
+ *
+ * These symbols serve the alternative EDK build model; the maintained AMD64
+ * release qualification currently uses the GNU-EFI path.
  */
 
 #ifndef _AUTOGENH_B8448DD1_B146_41B7_9D66_98B3A0A404D3

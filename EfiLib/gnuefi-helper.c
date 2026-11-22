@@ -1,7 +1,11 @@
 /*
+ * BOOT / GNU-EFI compatibility
+ *
  * GNU-EFI compatibility functions for UEFI text, protocol and device-path
- * operations. Device paths are variable-length firmware records; all offset
- * and instance walks must terminate at a validated end node.
+ * operations.
+ *
+ * Device paths are variable-length firmware records; all offset and
+ * instance walks must terminate at a validated end node.
  */
 
 #include "gnuefi-helper.h"
