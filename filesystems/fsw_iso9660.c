@@ -42,9 +42,9 @@ static fsw_status_t fsw_iso9660_readlink(struct fsw_iso9660_volume *vol, struct 
 /*
  * Locate the Rock Ridge SUSP SP marker inside one ISO directory record. Its
  * signature and 0xBE/0xEF check select the extension mechanism. The record
- * length is taken from media; this byte-scan does not separately prove that
- * every possible candidate leaves enough bytes for the complete SP
- * structure before dereferencing it.
+ * length comes from media and is bounded before inspecting a candidate
+ * as a complete SP structure. Finding SP enables extension interpretation,
+ * not general validation of continuation areas or arbitrary Rock Ridge data.
  */
 static fsw_status_t rr_find_sp(struct iso9660_dirrec *dirrec, struct fsw_rock_ridge_susp_sp **psp);
 static fsw_status_t rr_find_nm(struct fsw_iso9660_volume *vol, struct iso9660_dirrec *dirrec, int off, struct fsw_string *str);
@@ -72,9 +72,13 @@ static fsw_status_t rr_find_sp(struct iso9660_dirrec *dirrec, struct fsw_rock_ri
     fsw_u8 *r;
     int off = 0;
     struct fsw_rock_ridge_susp_sp *sp;
-    r = (fsw_u8 *)((fsw_u8 *)dirrec + sizeof(*dirrec) + dirrec->file_identifier_length);
-    off = (int)(r - (fsw_u8 *)dirrec);
-    while(off < dirrec->dirrec_length)
+    *psp = NULL;
+    off = (int)sizeof(*dirrec) + dirrec->file_identifier_length;
+    if (off > dirrec->dirrec_length ||
+        (int)sizeof(*sp) > dirrec->dirrec_length - off)
+        return FSW_NOT_FOUND;
+    r = (fsw_u8 *)dirrec + off;
+    while (off <= dirrec->dirrec_length - (int)sizeof(*sp))
     {
         if (*r == 'S')
         {

@@ -140,7 +140,7 @@ At commit `a5c680e`, the following source-level failures were corrected: the FSW
 
 The list API `AddListElement` remains `VOID`: it now avoids dereferencing a failed allocation but cannot report a dropped append to its caller. That limitation is not resolved by a comment.
 
-The EXT4 reader currently admits the RECOVER feature bit and does not replay a journal. This is the existing read-only behaviour, not proof that an observed boot has failed; consistency behaviour on recovery-required volumes remains unqualified. Separately, a few older parsing functions have unresolved input-boundary review questions (NTFS attribute names, ISO SUSP metadata and legacy conversion), but those are **not certified defects** without additional validation.
+The EXT4 reader currently admits the RECOVER feature bit and does not replay a journal. This is the existing read-only behaviour, not proof that an observed boot has failed; consistency behaviour on recovery-required volumes remains unqualified. Targeted source guards now constrain NTFS attribute-name offsets, index-entry name lengths and ISO SUSP SP marker reads; the existing NTFS compressed/attribute decoder and ISO continuation-area reader still require malformed-image regression evidence. These narrowly scoped changes do **not** establish complete parser safety or boot compatibility.
 
 The obsolete standalone `filesystems/Makefile` installation target has been removed; only the installing native `.run` and generic `.deb` are supported deployment paths. The POSIX filesystem exerciser now defaults to its shipped EXT2 backend instead of referencing the absent XFS source. Hosted parser compilation does not qualify EFI driver binding, Secure Boot or actual volume reads.
 

@@ -2,6 +2,13 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Parser boundary and configuration-file lifetime corrections
+
+- Bounded NTFS attribute-list name spans, MFT name offsets, directory index entries and compressed-page chunk-header reads before dereferencing on-disk input.
+- Restricted ISO 9660 Rock Ridge SP probing to complete in-record structures.
+- Released the firmware file handle and diagnostics on config allocation failure and released diagnostic text on success; returned output size is now zeroed at entry.
+- These are targeted source corrections, not proof of NTFS/ISO fuzzing, firmware fault injection or filesystem Common V2 compliance.
+
 ## 2026-11-22 — Firmware boot-order and documentation correctness
 
 - Eliminated a duplicate BootOrder-number case when the requested entry already headed the list; no-write behaviour remains for a genuinely unique first entry.

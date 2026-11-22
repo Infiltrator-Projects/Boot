@@ -171,18 +171,22 @@ static fsw_status_t fixup(fsw_u8 *record, char *magic, int sectorsize, int size)
 /*
  * Search attribute records within an MFT record using the used-size and
  * first-attribute offsets. Each record contributes its length to the next
- * iteration; a zero, terminator or short length ends scanning. KNOWN REVIEW
- * POINT: a named attribute's name pointer is formed from an on-record
- * offset without a separate visible bounds check against ns * 2 in this
- * routine.
+ * iteration; zero, terminator or short length ends scanning. The inode's
+ * first attribute offset and each name's byte span must fit the declared
+ * record before a comparison is attempted; a malformed name is skipped.
+ * This does not validate every other NTFS record field or on-disk extent.
  */
 static fsw_status_t find_attribute_direct(fsw_u8 *mft, int mftsize, int type, fsw_u8 **outptr, int *outlen)
 {
     int namelen;
     fsw_u32 n;
 
-    if(GETU32(mft, 0x18) < mftsize)
-	mftsize = GETU32(mft, 0x18);
+    if (mftsize < 0x1c)
+        return FSW_NOT_FOUND;
+    if (GETU32(mft, 0x18) < mftsize)
+        mftsize = GETU32(mft, 0x18);
+    if (GETU16(mft, 0x14) > mftsize)
+        return FSW_NOT_FOUND;
     mftsize -= GETU16(mft, 0x14);
     mft += GETU16(mft, 0x14);
 
@@ -196,7 +200,10 @@ static fsw_status_t find_attribute_direct(fsw_u8 *mft, int mftsize, int type, fs
 	    break;
 
 	fsw_u8 ns = GETU8(mft, 9);
-	fsw_u8 *nm = mft + GETU8(mft, 10);
+	fsw_u8 nameoff = GETU8(mft, 10);
+	if (ns && ((fsw_u32)nameoff > n || (fsw_u32)ns*2 > n - nameoff))
+	    continue;
+	fsw_u8 *nm = mft + nameoff;
 	if(type==t && namelen==ns && (ns==0 || fsw_memeq(NAME_I30, nm, ns*2))) {
 	    if(outptr) *outptr = mft;
 	    if(outlen) *outlen = n;
@@ -206,6 +213,12 @@ static fsw_status_t find_attribute_direct(fsw_u8 *mft, int mftsize, int type, fs
     return FSW_NOT_FOUND;
 }
 
+/*
+ * Scan bounded attribute-list records and advance the caller's byte cursor.
+ * Record lengths and embedded name offsets are untrusted; failure to find a
+ * matching reference must not read beyond atlen. The selected MFT number is
+ * masked to the NTFS 48-bit record-number field.
+ */
 static fsw_status_t find_attrlist_direct(fsw_u8 *atlst, int atlen, int type, fsw_u64 vcn, fsw_u64 *out, int *pos)
 {
     fsw_u64 mftno = BADMFT;
@@ -214,18 +227,22 @@ static fsw_status_t find_attrlist_direct(fsw_u8 *atlst, int atlen, int type, fsw
     namelen = type>>ATTRBITS;
     type &= ATTRMASK;
 
-    while( *pos + 0x18 <= atlen) {
+    while (*pos >= 0 && *pos <= atlen - 0x18) {
 	int off = *pos;
 	fsw_u32 t = GETU32(atlst, off);
 	fsw_u32 n = GETU16(atlst, off+4);
 
-	*pos = off + n;
-	if(t==0 || (t+1)==0 || t==0xffff || n < 0x18 || *pos > atlen)
+	if (t == 0 || (t+1) == 0 || t == 0xffff ||
+	    n < 0x18 || n > (fsw_u32)(atlen - off))
 	    break;
+	*pos = off + (int)n;
 
 	fsw_u8 ns = GETU8(atlst, off+6);
-	fsw_u8 *nm = atlst + off + GETU8(atlst, off+7);
-	if( type == t && namelen==ns && (ns==0 || fsw_memeq(NAME_I30, nm, ns*2))) {
+	fsw_u8 nameoff = GETU8(atlst, off+7);
+	if (ns && ((fsw_u32)nameoff > n || (fsw_u32)ns*2 > n - nameoff))
+	    continue;
+	fsw_u8 *nm = atlst + off + nameoff;
+	if (type == t && namelen == ns && (ns == 0 || fsw_memeq(NAME_I30, nm, ns*2))) {
 	    fsw_u64 avcn = GETU64(atlst, off+8);
 	    if(vcn < avcn) {
 		if(mftno == BADMFT)
@@ -1102,6 +1119,12 @@ static fsw_status_t fsw_ntfs_get_extent_embeded(struct fsw_ntfs_volume *vol, str
     return FSW_SUCCESS;
 }
 
+/*
+ * Decode an NTFS LZNT1 compressed chunk into one 4096-byte page. The low
+ * tag bits choose literals versus backreferences. Backreference distance
+ * depends on current output position; no copy may escape the current page.
+ * A negative result denotes malformed/truncated data, not an empty page.
+ */
 static int ntfs_decomp_1page(fsw_u8 *src, int slen, fsw_u8 *dst) {
     int soff = 0;
     int doff = 0;
@@ -1136,11 +1159,18 @@ static int ntfs_decomp_1page(fsw_u8 *src, int slen, fsw_u8 *dst) {
     return doff;
 }
 
+/*
+ * Read one little-endian chunk header per output page before decoding.
+ * Input bounds include the two-byte header itself. The caller must supply
+ * npage contiguous destination pages; each short decoded page is zero-filled.
+ */
 static int ntfs_decomp(fsw_u8 *src, int slen, fsw_u8 *dst, int npage) {
     fsw_u8 *se = src + slen;
     fsw_u8 *de = dst + (npage<<12);
     int i;
     for(i=0; i<npage; i++) {
+	if (src + 2 > se)
+	    return -1;
 	fsw_u16 slen = GETU16(src, 0);
 	int comp = slen & 0x8000;
 	slen = (slen&0xfff)+1;
@@ -1411,8 +1441,10 @@ static fsw_u8 *fsw_ntfs_read_index_block(struct fsw_ntfs_volume *vol, struct fsw
 }
 
 /*
- * Searches NTFS directory index structures. Index record length and
- * filename collation are not guaranteed by the surrounding EFI protocol.
+ * Walks the root and at most ten nested index blocks. Entry sizes and
+ * embedded file-name spans must fit within the current index buffer before
+ * collation or subtree access. The UTF-16 search-name copy is always released.
+ * This bounded traversal is distinct from full NTFS integrity validation.
  */
 static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnode *dnog, struct fsw_string *lookup_name, struct fsw_dnode **child_dno)
 {
@@ -1450,18 +1482,29 @@ static fsw_status_t fsw_ntfs_dir_lookup(struct fsw_volume *volg, struct fsw_dnod
 	    goto notfound;
 
 	block = 0;
-	while(off + 0x18 <= len) {
+	while(off >= 0 && off <= len - 0x18) {
 	    int flag = GETU8(buf, off+12);
-	    int next = off + GETU16(buf, off+8);
+	    int entrylen = GETU16(buf, off+8);
+	    int next;
 	    int cmp;
+
+	    if (entrylen < 0x18 || entrylen > len - off)
+		goto notfound;
+	    next = off + entrylen;
 
 	    if(flag & 2) {
 
 		cmp = -1;
 		Print(L"depth %d len %x off %x flag %x next %x cmp %d\n", depth, len, off, flag, next, cmp);
 	    } else {
-		int nlen = GETU8(buf, off+0x50);
-		fsw_u8 *name = buf+off+0x52;
+		int nlen;
+		fsw_u8 *name;
+		if (entrylen < 0x52)
+		    goto notfound;
+		nlen = GETU8(buf, off+0x50);
+		if (nlen > (entrylen - 0x52) / 2)
+		    goto notfound;
+		name = buf+off+0x52;
 		cmp = ntfs_filename_cmp(vol, s.data, s.len, name, nlen);
 		Print(L"depth %d len %x off %x flag %x next %x cmp %d name %d[%.*ls]\n", depth, len, off, flag, next, cmp, nlen, nlen, name);
 	    }

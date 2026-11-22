@@ -35,8 +35,9 @@
  *
  * A BOM is considered only when at least four bytes were read. Without one,
  * zeroes in bytes 1 and 3 select UTF-16LE. All other input starts in the
- * single-byte path. The allocation failure path assigns the local size pointer,
- * so callers cannot use *size as an error indication.
+ * single-byte path. On failure the output size is zeroed and the temporary
+ * firmware file handle is closed. A successful call transfers File->Buffer
+ * to the caller; the diagnostic message is not part of that allocation.
  */
 EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFIT_FILE *File, OUT UINTN *size)
 {
@@ -46,6 +47,9 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
     UINT64          ReadSize;
     CHAR16          *Message;
 
+    if (!BaseDir || !FileName || !File || !size)
+        return EFI_INVALID_PARAMETER;
+    *size = 0;
     File->Buffer = NULL;
     File->BufferSize = 0;
 
@@ -58,7 +62,7 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
 
     FileInfo = LibFileInfo(FileHandle);
     if (FileInfo == NULL) {
-
+        MyFreePool(Message);
         refit_call1_wrapper(FileHandle->Close, FileHandle);
         return EFI_LOAD_ERROR;
     }
@@ -68,11 +72,12 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
     File->BufferSize = (UINTN)ReadSize;
     File->Buffer = AllocatePool(File->BufferSize);
     if (File->Buffer == NULL) {
-       size = 0;
-       return EFI_OUT_OF_RESOURCES;
-    } else {
-       *size = File->BufferSize;
-    }  
+        File->BufferSize = 0;
+        MyFreePool(Message);
+        refit_call1_wrapper(FileHandle->Close, FileHandle);
+        return EFI_OUT_OF_RESOURCES;
+    }
+    *size = File->BufferSize;  
     Status = refit_call3_wrapper(FileHandle->Read, FileHandle, &File->BufferSize, File->Buffer);
     if (CheckError(Status, Message)) {
         MyFreePool(File->Buffer);
@@ -104,6 +109,7 @@ EFI_STATUS ReadFile(IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN OUT REFI
 
     }
 
+    MyFreePool(Message);
     return EFI_SUCCESS;
 }
 
