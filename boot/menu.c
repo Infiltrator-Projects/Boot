@@ -341,6 +341,11 @@ static VOID IdentifyRows(IN SCROLL_STATE *State, IN REFIT_MENU_SCREEN *Screen) {
         State->MaxVisible = State->FinalRow0 + 1;
 }  
 
+/*
+ * Restore a neutral display and clear queued key input before returning to
+ * normal menu rendering. This operation touches UI state only: it neither
+ * installs loaders nor changes firmware selection and BootOrder.
+ */
 static VOID SaveScreen(VOID) {
     EG_PIXEL Black = { 0x0, 0x0, 0x0, 0 };
 
@@ -661,6 +666,14 @@ static VOID ShowTextInfoLines(IN REFIT_MENU_SCREEN *Screen) {
     }
 }  
 
+/**
+ * Dispatch text-console menu initialisation, painting, selection and teardown.
+ * DisplayStrings and MenuPosY are static across calls: INIT must precede
+ * redraw and the matching exit path must release the allocated row strings.
+ * Menu widths originate from runtime console dimensions and entry strings.
+ * Several allocations in this path are dereferenced without independent
+ * out-of-memory checks; this contract must not be read as fault tolerance.
+ */
 VOID TextMenuStyle(IN REFIT_MENU_SCREEN *Screen,
                    IN SCROLL_STATE *State,
                    IN UINTN Function,
@@ -857,6 +870,13 @@ static VOID DrawTextWithTransparency(IN CHAR16 *Text, IN UINTN XPos, IN UINTN YP
     egFreeImage(TextBuffer);
 }
 
+/*
+ * Derive submenu geometry from mixed text measurement and cell/grid units.
+ * Title and information line widths use rendered pixels, while entry titles
+ * currently use UTF-16 character counts. This mismatch is especially visible
+ * for variable-width TrueType fonts: layout can clip or over-allocate space.
+ * A successful calculation is not a visual-fit proof on all screen modes.
+ */
 static VOID ComputeSubScreenWindowSize(REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State,
                                        UINTN *XPos, UINTN *YPos,
                                        UINTN *Width, UINTN *Height, UINTN *LineWidth) {
@@ -1084,6 +1104,12 @@ static VOID PaintAll(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN
     }  
 }  
 
+/*
+ * Repaint the old and new selected entries using the current scroll window.
+ * State indices are valid only for this menu inventory; row-zero coordinates
+ * subtract FirstVisible while tool-row coordinates use direct item slots.
+ * The caller must not reuse State after rebuilding or freeing Screen entries.
+ */
 static VOID PaintSelection(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, UINTN *itemPosX,
                            UINTN row0PosY, UINTN row1PosY, UINTN textPosY) {
     UINTN XSelectPrev, XSelectCur, YPosPrev, YPosCur;
