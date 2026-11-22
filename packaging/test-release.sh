@@ -46,7 +46,7 @@ done
 if grep -Eq 'usr/share/infiltrator-boot/(mvboot|boot-mkdefault)( |$)' "$work/package-files.txt"; then
     echo "Obsolete or Python-dependent helper was included" >&2; exit 1
 fi
-if grep -Eq 'usr/share/infiltrator-boot/docs/(LICENSE|CREDITS|NEWS)\.txt' "$work/package-files.txt"; then
+if grep -Eq 'usr/share/infiltrator-boot/docs/[^[:space:]]+\.txt' "$work/package-files.txt"; then
     echo "Obsolete upstream text file was included in the BOOT package" >&2
     exit 1
 fi

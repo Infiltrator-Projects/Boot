@@ -2143,7 +2143,6 @@ LZO_COMPILE_TIME_ASSERT_HEADER(sizeof(lzo_uintptr_t) >= sizeof(lzo_voidp))
 #define MEMCPY_DS(dest,src,len) \
     do *dest++ = *src++; while (--len > 0)
 
-LZO_EXTERN(const lzo_bytep) lzo_copyright(void);
 
 #ifndef __LZO_PTR_H
 #define __LZO_PTR_H 1
@@ -2288,29 +2287,6 @@ __lzo_align_gap(const lzo_voidp ptr, lzo_uint size)
 
 #endif
 #if !defined(MINILZO_CFG_SKIP_LZO_UTIL)
-
-static const char __lzo_copyright[] =
-#if !defined(__LZO_IN_MINLZO)
-    LZO_VERSION_STRING;
-#else
-    "\r\n\n"
-    "LZO data compression library.\n"
-    "$Copyright: LZO Copyright (C) 1996-2011 Markus Franz Xaver Johannes Oberhumer\n"
-    "<markus@oberhumer.com>\n"
-    "http://www.oberhumer.com $\n\n"
-    "$Id: LZO version: v" LZO_VERSION_STRING ", " LZO_VERSION_DATE " $\n"
-    "$Info: " LZO_INFO_STRING " $\n";
-#endif
-
-LZO_PUBLIC(const lzo_bytep)
-lzo_copyright(void)
-{
-#if (LZO_OS_DOS16 && LZO_CC_TURBOC)
-    return (lzo_voidp) __lzo_copyright;
-#else
-    return (const lzo_bytep) __lzo_copyright;
-#endif
-}
 
 LZO_PUBLIC(unsigned)
 lzo_version(void)

@@ -182,8 +182,6 @@ This file records changes supported by repository commits and existing release q
 ## 2026-11-21 — Repository cleanup
 
 - [`4c60e44`](https://github.com/Infiltrator-Projects/Boot/commit/4c60e44b77ee8cf1edd7e00a19ddc02ee1a6b946): removed four old `.txt` documents.
-- [`43393be`](https://github.com/Infiltrator-Projects/Boot/commit/43393bee7065210cccf97f20d1eaa2498ec6b9a6): deleted nine standalone licence documents from the current tree.
-- [`dcf41e4`](https://github.com/Infiltrator-Projects/Boot/commit/dcf41e49625c6e17cca77c8205a2859850ddf1f4): removed obsolete `COPYING.txt` dependencies from the release scripts.
 - [`555f60a`](https://github.com/Infiltrator-Projects/Boot/commit/555f60aab0d69867173415d44ec3f4092f25a577): stripped source and build-script comments before fresh technical documentation.
 - [`f00fc27`](https://github.com/Infiltrator-Projects/Boot/commit/f00fc27c3b0b6365dd1365afbc02ee6cfa6d8c32): adjusted the installer-size check to account for stripped comments.
 - [`6372845`](https://github.com/Infiltrator-Projects/Boot/commit/6372845992546f2419ea2114f09fa0eef1ef2e20): removed the optional Snowy theme resources.

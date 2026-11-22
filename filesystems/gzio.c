@@ -18,7 +18,6 @@
 #include <grub/deflate.h>
 #include <grub/i18n.h>
 
-GRUB_MOD_LICENSE ("GPLv3+");
 #endif
 
 #define WSIZE   0x8000
