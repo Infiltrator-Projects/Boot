@@ -135,4 +135,51 @@ test "$(cat "$InstallDir/EFI/BOOT/BOOTX64.EFI")" = protected-fallback || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-Windows || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/grubx64.efi")" = protected-grub || exit 1
 echo "All destination overrides rejected; dedicated BOOT path enforced"
+
+# Secure Boot must never change ESP files or firmware boot order before the
+# locally signed loader's MOK is enrolled. Model both decisions in a disposable
+# directory, with command stubs instead of real firmware or key mutations.
+InstallDir="$work/secureboot-esp"
+mkdir -p "$InstallDir/EFI/Microsoft/Boot" "$InstallDir/EFI/ubuntu"
+printf 'protected-ubuntu' > "$InstallDir/EFI/ubuntu/shimx64.efi"
+printf 'protected-windows' > "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi"
+ShimSource="$work/shimx64.efi"
+MokManagerSource="$work/mmx64.efi"
+printf 'trusted-shim-fixture' > "$ShimSource"
+printf 'mokmanager-fixture' > "$MokManagerSource"
+EtcKeysDir="$work/empty-keys"
+LocalKeysBase=boot_local
+printf 'local-key-fixture' > "$EtcKeysDir/boot_local.cer"
+printf 'local-cert-fixture' > "$EtcKeysDir/boot_local.crt"
+DerKey="$EtcKeysDir/boot_local.cer"
+CertKey="$EtcKeysDir/boot_local.crt"
+LocalKeys=1
+KeepName=1
+TargetX64=BOOTX64.EFI
+TargetShim=shimx64.efi
+ReSignBinaries() { :; }
+CheckSecureBoot() { IsSecureBoot=1; }
+AddBootEntry() { echo "Firmware entry fixture" >&2; return 0; }
+mokutil() { return 1; }
+sbverify() { return 0; }
+if InstallOnLinux > "$work/secureboot-pending.txt" 2>&1; then
+    echo "BOOT accepted Secure Boot with unenrolled local MOK" >&2
+    exit 1
+fi
+grep -Fq 'has not been enrolled as a MOK' "$work/secureboot-pending.txt" || exit 1
+test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
+test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/boot.conf" || exit 1
+test "$(cat "$InstallDir/EFI/ubuntu/shimx64.efi")" = protected-ubuntu || exit 1
+mokutil() { return 0; }
+if ! InstallOnLinux > "$work/secureboot-enrolled.txt" 2>&1; then
+    cat "$work/secureboot-enrolled.txt" >&2
+    exit 1
+fi
+test -s "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
+test -s "$InstallDir/EFI/InfiltratorOS/BOOT/shimx64.efi" || exit 1
+test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/grubx64.efi" || exit 1
+test "$(cat "$InstallDir/EFI/ubuntu/shimx64.efi")" = protected-ubuntu || exit 1
+test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-windows || exit 1
+echo "Secure Boot MOK gate and one-BOOT-image Shim fixture passed"
+
 echo "Historical BOOT installer: disposable ESP safety checks passed"
