@@ -1493,6 +1493,13 @@ static fsw_status_t fsw_btrfs_volume_stat(struct fsw_volume *volg, struct fsw_vo
     return FSW_SUCCESS;
 }
 
+/*
+ * Resolve an inode using its B-tree identity and object number, then read the
+ * inode body from the returned logical address. A matched key type is necessary
+ * but not sufficient to demonstrate that the tree item's recorded byte span
+ * contains an entire inode: this routine does not compare elemsize against
+ * sizeof(*inode) before requesting the following logical read.
+ */
 static fsw_status_t fsw_btrfs_read_inode (struct fsw_btrfs_volume *vol,
         struct btrfs_inode *inode, uint64_t num,
         uint64_t tree)
@@ -1593,6 +1600,15 @@ static fsw_status_t fsw_btrfs_dnode_stat(struct fsw_volume *volg, struct fsw_dno
     return FSW_SUCCESS;
 }
 
+/*
+ * Decode the Btrfs LZO page-framed representation, skipping complete pages
+ * until the requested decompressed offset and copying the remaining output.
+ * Four-byte little-endian block lengths and page-alignment padding come from
+ * compressed input. The current code dereferences size words and advances
+ * across compressed pages without a complete remaining-input check at each
+ * step: checking only the advertised total size is insufficient. Truncated
+ * or adversarial page headers remain an unqualified input-safety boundary.
+ */
 static fsw_ssize_t grub_btrfs_lzo_decompress(char *ibuf, fsw_size_t isize, grub_off_t off,
         char *obuf, fsw_size_t osize)
 {
@@ -1680,6 +1696,13 @@ static decompressor_t btrfs_decompressor_table[GRUB_BTRFS_COMPRESSION_MAX] = {
 	zstd_decompress,
 };
 
+/*
+ * Compression identifiers are one-based array indexes into zlib, LZO and
+ * Zstandard decoders. This dispatcher does not validate comp before indexing
+ * comp-1; callers must enforce the supported range before reaching it.
+ * A successful decode still requires the outer extent reader to check the
+ * exact number of bytes written before publishing the output buffer.
+ */
 static fsw_ssize_t btrfs_decompress(uint8_t comp,
 	char *ibuf, fsw_size_t isize,
 	grub_off_t off,
