@@ -2,6 +2,9 @@
  * EFI library convenience routines for protocol lookup, file metadata and
  * pool reallocation. Callers must respect differences between an EFI handle,
  * a protocol instance and an allocated copy of firmware-managed structures.
+ * Reallocation is not automatically transactional: callers must distinguish
+ * a returned null pool from a preserved original allocation and check which
+ * buffer is freed on unsuccessful growth.
  */
 
 #ifdef __MAKEWITH_TIANO
