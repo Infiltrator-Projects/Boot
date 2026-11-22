@@ -2,6 +2,22 @@
 
 This file records changes supported by repository commits and existing release qualification. Version labels are assigned by GitHub Actions; a document-only commit does not itself establish a new functional boot capability.
 
+## 2026-11-22 — Filesystem and discovery documentation precision
+
+- Clarified EXT2 logical-versus-physical block translation and indirect-block
+  boundaries, EXT4 extent metadata assumptions and non-replayed journal state.
+- Explicitly identified NTFS index bitmap's one-past-end comparison and its
+  one-based input assumption without claiming they are fixed.
+- Documented Btrfs tree/inode/range extent-cache identity and distinct
+  decompression and multi-device limitations.
+- Identified the cross-volume textual-directory deduplication limitation in
+  BOOT tool scanning and the possible retained file buffer in Linux options.
+- Added source-to-regression acceptance criteria to Validation, distinguishing
+  commentary from executed evidence.
+- **Documentation/comments only:** no executable C statements, ABI declarations,
+  installer logic, tests or release artefacts changed; no new firmware or
+  hardware verification claimed.
+
 ## 2026-11-22 — Targeted documentation-contract corrections
 
 - Replaced duplicated commentary on firmware boot-option menu construction with one explicit ownership, output and failure contract.
