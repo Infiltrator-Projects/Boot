@@ -283,13 +283,6 @@ Error:
 #ifdef __MAKEWITH_GNUEFI
 
 /*
- * Enumerate firmware handles and connect device controllers that lack
- * discovered parents. The classification array comes from a separate
- * handle-database snapshot. Resolve the selected controller's index inside
- * that snapshot instead of indexing it by the outer iteration. Controller
- * connection can change the handle set between snapshots.
- */
-/*
  * Take one coherent snapshot of the EFI handle topology to select root
  * controllers. The previous loop called LibScanHandleDatabase once for every
  * handle, repeating firmware protocol enumeration hundreds of times.
@@ -358,7 +351,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
         }
 
         ConnectBegin = BootDiagTicks();
-        ConnectStatus = refit_call4_wrapper(BS->ConnectController,
+        ConnectStatus = boot_call4_wrapper(BS->ConnectController,
                                            HandleBuffer[Index],
                                            NULL, NULL, TRUE);
         if (GlobalConfig.StartupDiagnostics) {
