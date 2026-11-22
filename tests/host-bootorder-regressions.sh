@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Compile actual firmware BootOrder functions with a host-only mocked variable
-# store. This isolates ordering and error contracts; it does not emulate UEFI
-# callbacks, physical NVRAM persistence or the interactive menu.
+# BOOT / BootOrder regression tests
+#
+# Runs production firmware-ordering routines against a mocked EFI variable
+# store.
+#
+# Success exercises ordering semantics, not persistence across every real
+# firmware implementation.
+
 set -euo pipefail
 cd "$(dirname "$0")/.."
 work=$(mktemp -d)

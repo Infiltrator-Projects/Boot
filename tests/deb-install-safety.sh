@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-# Exercise the actual generic .deb payload and its install functions against
-# disposable ESP and NVRAM fixtures without touching the host firmware.
+# BOOT / Debian installation tests
+#
+# Validates the generic package's actual configure-time installation
+# functions with isolated ESP and firmware-variable fixtures.
+#
+# A successful fixture checks installation rules, not every host filesystem
+# or OEM firmware.
+
 set -euo pipefail
 
 deb="${1:?Usage: tests/deb-install-safety.sh PACKAGE.deb}"

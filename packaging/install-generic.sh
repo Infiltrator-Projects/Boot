@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Generic AMD64 package installer. The dpkg postinst runs this code after the
-# portable EFI image and its resources have been unpacked. This program does
-# not rebuild BOOT or accept an alternate installation location.
+# BOOT / Generic package installation
+#
+# Installs the prebuilt EFI application, filesystem drivers, configuration
+# and artwork during Debian package configuration.
+#
+# The destination is fixed. Copying ESP resources and registering firmware
+# BootOrder remain separate, externally observable operations.
+
 set -euo pipefail
 
 # Check the exact package payload before touching the ESP: a prebuilt EFI

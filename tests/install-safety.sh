@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# Runs extracted native-installer functions against a disposable fake ESP.
-# Fixtures include independent Windows, GRUB and EFI fallback files that must
-# remain intact when BOOT reinstalls its own dedicated directory. Also
-# exercises the sole permitted installation path and symlink rejection.
+# BOOT / Native installation tests
+#
+# Exercises selected native-installer functions against a disposable ESP,
+# preserving independent vendor boot paths.
+#
+# The fixture has no authority to modify the host's real firmware variables
+# or EFI System Partition.
 
 set -euo pipefail
 work=$(mktemp -d)

@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# BOOT's sole published native .run build-and-install program. No user arguments
-# are accepted: successful execution elevates privileges, fetches the pinned
-# source commit, builds x86-64 EFI images, writes the ESP and updates firmware
-# NVRAM. /EFI/InfiltratorOS/BOOT is the only permitted installation target.
-# The generic .deb installs the prebuilt AMD64 image from its postinst.
+# BOOT / Native source installer
+#
+# Fetches one pinned source revision, compiles CPU-native EFI images and
+# invokes the fixed-directory installation flow.
+#
+# This program does not expose a build-only mode or an alternate ESP
+# destination. Firmware registration and installation have effects beyond
+# source compilation.
 
 set -euo pipefail
 

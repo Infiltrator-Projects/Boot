@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Release invariants for both complete installers: generic .deb with its
-# configure-time UEFI installer, and the source-pinned CPU-native .run.
-# Firmware behaviour is exercised with disposable fixtures, not live NVRAM.
+# BOOT / Release contract tests
+#
+# Checks the package contents, pinned installer source and fixed installation
+# rules against staged release artifacts.
+#
+# These checks do not establish physical firmware bootability or the safety
+# of every malformed input.
 
 set -euo pipefail
 

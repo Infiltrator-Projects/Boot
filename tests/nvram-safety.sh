@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Uses mocked efibootmgr, filesystem and firmware reports, not live NVRAM.
-# Tests BOOT entry priority, idempotent registration and rejection of
-# ambiguous/stale records. Passing cannot establish behaviour on every OEM.
+# BOOT / Firmware variable tests
+#
+# Uses mocked firmware and efibootmgr output to check entry identity,
+# ordering and idempotent registration.
+#
+# No test in this harness intentionally mutates the machine's real UEFI
+# variables.
 
 set -euo pipefail
 work=$(mktemp -d)

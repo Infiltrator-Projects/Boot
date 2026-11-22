@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Creates a generic AMD64 .deb that installs the prebuilt EFI binary from
-# its postinst, plus a version-pinned native .run that builds then installs. The released source SHA must
-# match this exact checkout; checksums protect the resulting artifact bytes.
+# BOOT / Release packaging
+#
+# Produces the generic AMD64 Debian package and the source-pinned native .run
+# installer.
+#
+# The generic package installs precompiled EFI images. The native installer
+# builds on its target machine, then installs; published checksums cover the
+# exact artifacts.
 
-# Packaging ties published installer artifacts to a specific source revision.
-# The .deb contains generic prebuilt EFI images; the native .run builds for
-# the host CPU and installs, without an exposed build-only mode.
 set -euo pipefail
 
 version="${1:?Usage: packaging/build-release.sh VERSION [OUTPUT_DIRECTORY]}"

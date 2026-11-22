@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Boots the compiled EFI application in QEMU/OVMF using a disposable FAT32
-# GPT disk and isolated firmware variable image. BOOT must start a gzipped
-# copy of its Btrfs EFI driver and reach the main menu.
+# BOOT / OVMF menu smoke test
+#
+# Starts the EFI executable under disposable QEMU/OVMF firmware and observes
+# its menu-entry path.
+#
+# Reaching the menu is not proof that a selected operating system reaches
+# userspace.
 
 set -euo pipefail
 export LC_ALL=C
