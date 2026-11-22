@@ -298,6 +298,18 @@ CheckForFiles() {
       echo "The icons directory is missing! Aborting installation!"
       exit 1
    fi
+   if [[ -d "$BootDir/fonts" ]] ; then
+      FontsDir="$BootDir/fonts"
+   elif [[ -d "$ThisDir/fonts" ]] ; then
+      FontsDir="$ThisDir/fonts"
+   else
+      echo "Required MB Corpo font directory is missing! Aborting installation!"
+      exit 1
+   fi
+   for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
+      [[ -s "$FontsDir/$face" ]] || { echo "Required MB font missing: $face" >&2; exit 1; }
+   done
+   ( cd "$FontsDir" && sha256sum -c SHA256SUMS ) || exit 1
 
    echo "ShimSource is $ShimSource"
    if [[ "$ShimSource" != "none" ]] ; then
@@ -528,6 +540,12 @@ CopyBootFiles() {
       echo "Notice: Backed up existing icons directory as icons-backup."
    fi
    if ! cp -r "$IconsDir" "$InstallDir/$TargetDir" ; then
+      Problems=1
+   fi
+   # Replace the obsolete bitmap atlas directory with the three native
+   # MB Corpo TrueType resources used by BOOT's UEFI glyph rasteriser.
+   rm -rf -- "$InstallDir/$TargetDir/fonts"
+   if ! cp -r "$FontsDir" "$InstallDir/$TargetDir" ; then
       Problems=1
    fi
    mkdir -p "$InstallDir/$TargetDir/keys"

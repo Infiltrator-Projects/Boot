@@ -10,6 +10,13 @@ boot_generic_payload_check() {
         echo "BOOT generic package is missing the EFI image, configuration or icons." >&2
         return 1
     }
+    local face
+    for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
+        [[ -s "$source/fonts/$face" ]] || {
+            echo "BOOT generic package is missing MB Corpo font $face." >&2
+            return 1
+        }
+    done
     for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
         [[ -s "$source/drivers_x64/${filesystem}_x64.efi" ]] || {
             echo "BOOT generic package is missing the $filesystem EFI driver." >&2

@@ -33,6 +33,13 @@ for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     test -s "$driver" || { echo "Missing EFI filesystem driver $driver" >&2; exit 1; }
     install -m 0644 "$driver" "$root/boot/drivers_x64/"
 done
+for face in mb_corpo_s_text_regular.ttf mb_corpo_s_text_bold.ttf mb_corpo_a_title_cond_regular.ttf; do
+    test -s "fonts/$face" || { echo "Required MB font missing: $face" >&2; exit 1; }
+done
+(
+    cd fonts
+    sha256sum -c SHA256SUMS
+)
 for directory in icons fonts banners themes keys; do
     if [[ -d "$directory" ]]; then cp -a "$directory" "$root/boot/"; fi
 done

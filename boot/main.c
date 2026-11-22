@@ -502,6 +502,12 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
         SetAppleOSInfo();
 
     InitScreen();
+    /* Genuine MB TTF assets live on the same EFI volume as BOOT. A missing
+     * font must not leave an unreadable graphical boot selection screen. */
+    if (!egFontReady()) {
+        GlobalConfig.TextOnly = TRUE;
+        LOG(1, LOG_LINE_NORMAL, L"MB Corpo font resources unavailable; firmware text menu selected");
+    }
     WarnIfLegacyProblems();
     MainMenu.TimeoutSeconds = GlobalConfig.Timeout;
 

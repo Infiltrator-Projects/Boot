@@ -803,8 +803,6 @@ VOID ReadConfig(CHAR16 *FileName)
                 }
             }  
 
-        } else if (MyStriCmp(TokenList[0], L"font") && (TokenCount == 2)) {
-            egLoadFont(TokenList[1]);
 
         } else if (MyStriCmp(TokenList[0], L"scan_all_linux_kernels")) {
             GlobalConfig.ScanAllLinux = HandleBoolean(TokenList, TokenCount);

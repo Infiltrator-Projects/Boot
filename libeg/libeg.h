@@ -96,12 +96,20 @@ VOID egFillImageArea(IN OUT EG_IMAGE *CompImage,
                      IN EG_PIXEL *Color);
 VOID egComposeImage(IN OUT EG_IMAGE *CompImage, IN EG_IMAGE *TopImage, IN UINTN PosX, IN UINTN PosY);
 
+/* Three native MB Corpo font roles; roles share font pixel height. */
+#define MB_FONT_BODY  (0U)
+#define MB_FONT_BOLD  (1U)
+#define MB_FONT_TITLE (2U)
+BOOLEAN egFontReady(VOID);
+UINTN egComputeTextWidthRole(IN CHAR16 *Text, IN UINTN Role);
+VOID egRenderTextRole(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage,
+                      IN UINTN PosX, IN UINTN PosY, IN UINT8 BGBrightness,
+                      IN UINTN Role);
 UINTN egGetFontHeight(VOID);
 UINTN egGetFontCellWidth(VOID);
 UINTN egComputeTextWidth(IN CHAR16 *Text);
 VOID egMeasureText(IN CHAR16 *Text, OUT UINTN *Width, OUT UINTN *Height);
 VOID egRenderText(IN CHAR16 *Text, IN OUT EG_IMAGE *CompImage, IN UINTN PosX, IN UINTN PosY, IN UINT8 BGBrightness);
-VOID egLoadFont(IN CHAR16 *Filename);
 
 VOID egClearScreen(IN EG_PIXEL *Color);
 VOID egDrawImage(IN EG_IMAGE *Image, IN UINTN ScreenPosX, IN UINTN ScreenPosY);

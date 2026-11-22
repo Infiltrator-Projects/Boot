@@ -684,7 +684,7 @@ VOID TextMenuStyle(IN REFIT_MENU_SCREEN *Screen,
 
             MenuWidth = 20;   
             for (i = 0; i <= State->MaxIndex; i++) {
-                ItemWidth = StrLen(Screen->Entries[i]->Title);
+                ItemWidth = egComputeTextWidth(Screen->Entries[i]->Title);
                 if (MenuWidth < ItemWidth)
                     MenuWidth = ItemWidth;
             }
@@ -793,7 +793,7 @@ inline static UINTN TextLineHeight(VOID) {
  * do not modify the cached background. The text is borrowed from the menu
  * entry, and a failed temporary allocation suppresses only this draw.
  */
-static VOID DrawText(IN CHAR16 *Text, IN BOOLEAN Selected, IN UINTN FieldWidth, IN UINTN XPos, IN UINTN YPos)
+static VOID DrawText(IN CHAR16 *Text, IN BOOLEAN Selected, IN UINTN FieldWidth, IN UINTN XPos, IN UINTN YPos, IN UINTN Role)
 {
     EG_IMAGE *TextBuffer;
     EG_PIXEL Bg;
@@ -807,7 +807,7 @@ static VOID DrawText(IN CHAR16 *Text, IN BOOLEAN Selected, IN UINTN FieldWidth, 
             Bg = SelectionBackgroundPixel;
         }
 
-        egRenderText(Text, TextBuffer, egGetFontCellWidth(), TEXT_YMARGIN, (Bg.r + Bg.g + Bg.b) / 3);
+        egRenderTextRole(Text, TextBuffer, egGetFontCellWidth(), TEXT_YMARGIN, (Bg.r + Bg.g + Bg.b) / 3, Role);
         egDrawImageWithTransparency(TextBuffer, NULL, XPos, YPos, TextBuffer->Width, TextBuffer->Height);
         egFreeImage(TextBuffer);
     }
@@ -861,12 +861,12 @@ static VOID ComputeSubScreenWindowSize(REFIT_MENU_SCREEN *Screen, IN SCROLL_STAT
     UINTN FontCellWidth = egGetFontCellWidth();
     UINTN FontCellHeight = egGetFontHeight();
 
-    *Width = 20;
+    *Width = 20 * FontCellWidth;
     *Height = 5;
-    TitleWidth = egComputeTextWidth(Screen->Title);
+    TitleWidth = egComputeTextWidthRole(Screen->Title, MB_FONT_TITLE);
 
     for (i = 0; i < Screen->InfoLineCount; i++) {
-         ItemWidth = StrLen(Screen->InfoLines[i]);
+         ItemWidth = egComputeTextWidth(Screen->InfoLines[i]);
          if (*Width < ItemWidth) {
               *Width = ItemWidth;
          }
@@ -879,7 +879,7 @@ static VOID ComputeSubScreenWindowSize(REFIT_MENU_SCREEN *Screen, IN SCROLL_STAT
          }
          (*Height)++;
     }
-    *Width = (*Width + 2) * FontCellWidth;
+    *Width += 2 * FontCellWidth;
     *LineWidth = *Width;
     if (Screen->TitleImage)
         *Width += (Screen->TitleImage->Width + TITLEICON_SPACING * 2 + FontCellWidth);
@@ -949,7 +949,7 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
                 egDrawImage(Window, EntriesPosX, EntriesPosY);
                 egFreeImage(Window);
             }
-            ItemWidth = egComputeTextWidth(Screen->Title);
+            ItemWidth = egComputeTextWidthRole(Screen->Title, MB_FONT_TITLE);
             if (MenuWidth > ItemWidth) {
                TitlePosX = EntriesPosX + (MenuWidth - ItemWidth) / 2 - CharWidth;
             } else {
@@ -969,8 +969,8 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
         case MENU_FUNCTION_PAINT_ALL:
            ComputeSubScreenWindowSize(Screen, State, &EntriesPosX, &EntriesPosY,
                                       &MenuWidth, &MenuHeight, &LineWidth);
-           DrawText(Screen->Title, FALSE, (StrLen(Screen->Title) + 2) * CharWidth,
-                    TitlePosX, EntriesPosY += TextLineHeight());
+           DrawText(Screen->Title, FALSE, egComputeTextWidthRole(Screen->Title, MB_FONT_TITLE) + 2 * CharWidth,
+                    TitlePosX, EntriesPosY += TextLineHeight(), MB_FONT_TITLE);
            if (Screen->TitleImage) {
               BltImageAlpha(Screen->TitleImage, EntriesPosX + TITLEICON_SPACING,
                             EntriesPosY + TextLineHeight() * 2,
@@ -988,7 +988,7 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
 
            for (i = 0; i <= State->MaxIndex; i++) {
               DrawText(Screen->Entries[i]->Title, (i == State->CurrentSelection), LineWidth, EntriesPosX,
-                       EntriesPosY + i * TextLineHeight());
+                       EntriesPosY + i * TextLineHeight(), (i == State->CurrentSelection) ? MB_FONT_BOLD : MB_FONT_BODY);
            }
            if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_HINTS)) {
               if ((Screen->Hint1 != NULL) && (StrLen(Screen->Hint1) > 0))
@@ -1003,9 +1003,9 @@ VOID GraphicsMenuStyle(IN REFIT_MENU_SCREEN *Screen,
         case MENU_FUNCTION_PAINT_SELECTION:
 
             DrawText(Screen->Entries[State->PreviousSelection]->Title, FALSE, LineWidth,
-                     EntriesPosX, EntriesPosY + State->PreviousSelection * TextLineHeight());
+                     EntriesPosX, EntriesPosY + State->PreviousSelection * TextLineHeight(), MB_FONT_BODY);
             DrawText(Screen->Entries[State->CurrentSelection]->Title, TRUE, LineWidth,
-                     EntriesPosX, EntriesPosY + State->CurrentSelection * TextLineHeight());
+                     EntriesPosX, EntriesPosY + State->CurrentSelection * TextLineHeight(), MB_FONT_BOLD);
             break;
 
         case MENU_FUNCTION_PAINT_TIMEOUT:
