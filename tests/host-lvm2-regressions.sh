@@ -17,6 +17,7 @@ typedef uint32_t UINT32;
 typedef uint64_t UINT64;
 typedef size_t UINTN;
 typedef char CHAR8;
+typedef void VOID;
 typedef int BOOLEAN;
 #define TRUE 1
 #define FALSE 0
