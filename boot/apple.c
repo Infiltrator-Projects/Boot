@@ -5,6 +5,9 @@
  * CSR state observation, human-readable reporting and variable mutation are
  * separate operations: a display label cannot establish the firmware's
  * enforcement policy or prove that an attempted NVRAM write persisted.
+ * CSR state observation, human-readable reporting and variable mutation are
+ * separate operations: a display label cannot establish the firmware's
+ * enforcement policy or prove that an attempted NVRAM write persisted.
  */
 
 #include "global.h"
