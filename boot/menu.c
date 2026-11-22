@@ -1328,6 +1328,13 @@ UINTN FindMainMenuItem(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN 
  * Reserve one slot for the keyboard, one per pointer device, and a final slot for
  * a relative timer. The timer handle is created by each timed wait. A call with
  * no deadline passes one fewer slot to firmware.
+ *
+ * Known limitation: allocation of WaitList is not checked before writing
+ * WaitList[0] and the pointer slots. This function also replaces the global
+ * pointer without freeing any previously allocated wait list. Callers cannot
+ * infer that a non-NULL, adequately sized event array exists merely because
+ * this VOID function returned. This paragraph documents the present code;
+ * it is not an allocation-failure recovery guarantee.
  */
 VOID GenerateWaitList() {
     UINTN PointerCount = pdCount();
