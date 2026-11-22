@@ -193,6 +193,13 @@ VOID StoreLoaderName(IN CHAR16 *Name) {
  * pass and a fresh Volumes array. Without it, the scan reuses the current volume
  * inventory. ReadConfig precedes loader and tool discovery in both cases. A
  * chosen entry from the previous menu cannot be retained as the new selection.
+ *
+ * Reconnect is a request to reconnect controllers, not a guarantee that a
+ * newly usable volume or OS loader will appear. The menu pointer array is
+ * discarded before scanning; the routine does not establish that callers
+ * have released every independently owned resource referenced by its old
+ * entries. Any previously borrowed selection pointer must be considered
+ * invalid after this call. Configuration is parsed afresh on either path.
  */
 VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
     LOG(1, LOG_LINE_NORMAL, L"Re-scanning all boot loaders");
