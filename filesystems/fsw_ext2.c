@@ -1,4 +1,8 @@
-/* EXT2-family read-only inode and block mapping.
+/*
+ * BOOT / EXT2 read path
+ *
+ * EXT2-family read-only inode and block mapping.
+ *
  * Superblock feature bits select support before directory traversal.
  * Indirect pointers and symlink contents originate from disk metadata.
  */

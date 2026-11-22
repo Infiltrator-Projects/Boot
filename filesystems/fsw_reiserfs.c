@@ -1,4 +1,8 @@
-/* ReiserFS key, stat-item and directory-tree reader.
+/*
+ * BOOT / ReiserFS read path
+ *
+ * ReiserFS key, stat-item and directory-tree reader.
+ *
  * Validates on-disk tree-item boundaries before exposing file content.
  * Readability depends on recognised superblocks and ordered keys.
  */

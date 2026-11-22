@@ -1,4 +1,8 @@
-/* Filesystem reader support for allocation and string operations.
+/*
+ * BOOT / Filesystem utility layer
+ *
+ * Filesystem reader support for allocation and string operations.
+ *
  * Implements shared utilities used by the freestanding backend layers.
  * Allocation and conversion failure must propagate to the caller.
  */

@@ -1,6 +1,10 @@
-/* Filesystem-neutral stream, block-cache and inode management.
- * Backends provide extent and directory operations; host callbacks supply I/O.
- * Dnode references and cache entries have independent lifetimes.
+/*
+ * BOOT / Filesystem core
+ *
+ * Filesystem-neutral stream, block-cache and inode management.
+ *
+ * Backends provide extent and directory operations; host callbacks supply
+ * I/O. Dnode references and cache entries have independent lifetimes.
  */
 
 #include "fsw_core.h"

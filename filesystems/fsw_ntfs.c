@@ -1,4 +1,8 @@
-/* NTFS record, runlist and directory-index reader.
+/*
+ * BOOT / NTFS read path
+ *
+ * NTFS record, runlist and directory-index reader.
+ *
  * MFT attributes and sparse/compressed extents require bounded decoding.
  * The current release does not install an NTFS EFI driver by default.
  */

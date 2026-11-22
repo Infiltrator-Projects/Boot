@@ -1,7 +1,11 @@
 /*
+ * BOOT / EFI filesystem utilities
+ *
  * String and timestamp conversion helpers for EFI filesystem protocol
- * metadata. EFI_TIME and CHAR16 fields have fixed public layout and cannot
- * be populated by treating POSIX time or on-disk string encodings as native.
+ * metadata.
+ *
+ * EFI_TIME and CHAR16 fields have fixed public layout and cannot be
+ * populated by treating POSIX time or on-disk string encodings as native.
  */
 
 #include "fsw_efi.h"

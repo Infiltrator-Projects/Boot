@@ -1,4 +1,8 @@
-/* HFS+ and HFSX catalog and extent-tree reader.
+/*
+ * BOOT / HFS catalog and extents
+ *
+ * HFS+ and HFSX catalog and extent-tree reader.
+ *
  * Recognising an HFS wrapper is not equivalent to supporting plain HFS.
  * B-tree keys, offsets and overflow extents require validation.
  */

@@ -1,4 +1,8 @@
-/* EFI protocol adapter for filesystem-neutral readers.
+/*
+ * BOOT / EFI filesystem bridge
+ *
+ * EFI protocol adapter for filesystem-neutral readers.
+ *
  * Bridges Block I/O, Disk I/O, Driver Binding and Simple File System.
  * Published protocols and mounted state require paired teardown.
  */

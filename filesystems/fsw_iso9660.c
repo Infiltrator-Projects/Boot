@@ -1,4 +1,8 @@
-/* Read-only ISO 9660 volume and directory reader.
+/*
+ * BOOT / ISO 9660 read path
+ *
+ * Read-only ISO 9660 volume and directory reader.
+ *
  * Interprets optical-media descriptors, directory extents and SUSP data.
  * Filesystem block geometry is separate from device-sector geometry.
  */

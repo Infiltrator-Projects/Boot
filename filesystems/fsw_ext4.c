@@ -1,6 +1,10 @@
-/* EXT4-format read-only inode and extent mapping.
- * Negotiates superblock features and handles extent or indirect block paths.
- * File-relative block numbers differ from disk block addresses.
+/*
+ * BOOT / EXT4 read path
+ *
+ * EXT4-format read-only inode and extent mapping.
+ *
+ * Negotiates superblock features and handles extent or indirect block
+ * paths. File-relative block numbers differ from disk block addresses.
  */
 
 #include "fsw_ext4.h"

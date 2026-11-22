@@ -1,4 +1,8 @@
-/* Btrfs reader with logical-to-physical address translation.
+/*
+ * BOOT / Btrfs read path
+ *
+ * Btrfs reader with logical-to-physical address translation.
+ *
  * Tree traversal, subvolume identity and extent decoding share cache state.
  * Chunk mappings and supported features constrain readable layouts.
  */
