@@ -55,14 +55,11 @@ LibScanHandleDatabase (
   UINT32      **HandleType
   );
 /*
- * Controller reconnection changes firmware protocol topology and may
- * invalidate old volume handles. ConnectFilesystemDriver is a best-effort
- * VOID operation; LoadDrivers indicates filename candidates, not confirmed
- * mounts.
+ * Bind only a signature-selected filesystem reader, never arbitrary firmware
+ * drivers. LoadDrivers indicates candidate names, not confirmed mounts.
  */
 EFI_STATUS ConnectAllDriversToAllControllers(VOID);
-VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle);
-/* Register a started BOOT filesystem driver for explicit virtual-LVM mounts.
+/* Register a started BOOT EFI reader for physical and virtual volumes.
  * Driver image and its binding remain alive until BOOT exits firmware mode. */
 VOID RegisterBootFilesystemDriver(EFI_HANDLE DriverHandle, CHAR16 *DriverName);
 BOOLEAN LoadDrivers(VOID);
