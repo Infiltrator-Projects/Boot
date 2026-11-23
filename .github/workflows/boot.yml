@@ -131,6 +131,10 @@ jobs:
         shell: bash
         run: bash tests/install-safety.sh
 
+      - name: Verify Secure Boot enrolled signing identity reuse
+        shell: bash
+        run: bash tests/host-secureboot-identity.sh
+
       - name: Test BOOT default priority on fresh and 50 repeated installations
         shell: bash
         run: sudo bash tests/nvram-safety.sh
