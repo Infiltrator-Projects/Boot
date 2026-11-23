@@ -726,7 +726,11 @@ static VOID SetFilesystemData(IN UINT8 *Buffer, IN UINTN BufferSize, IN OUT BOOT
             }  
         }  
 
-        if (Volume->BlockIO->Media->BlockSize == 2048) {
+        /* Optical sector size alone is not an ISO-9660 magic number.
+         * Require the primary volume descriptor identifier at byte 32769. */
+        if (Volume->BlockIO->Media->BlockSize == 2048 &&
+            BufferSize >= 32774 &&
+            CompareMem(Buffer + 32769, "CD001", 5) == 0) {
             LOG(4, LOG_LINE_NORMAL, L"Found ISO-9660");
             Volume->FSType = FS_TYPE_ISO9660;
             return;
