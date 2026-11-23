@@ -22,6 +22,12 @@ small_icon_size 64
 # variables; it does NOT prohibit the native installer modifying BootOrder.
 # dont_scan_files hides matching menu candidates; it does not remove the
 # GRUB or fallback EFI executable or their independently selectable boot paths.
+# dont_scan_volumes applies also to EFI driver connection and repeated raw
+# filesystem probes, preventing stalls on explicitly excluded partitions.
+# Match existing GPT partition labels or UUIDs, separated by commas. Keep
+# this optional; a generic BOOT release must never hardcode test-disk labels.
+# Example for an independently identified, slow removable test volume:
+# dont_scan_volumes TEST_PARTITION_LABEL
 # default_selection vmlinuz prefers a discovered direct Linux kernel; it
 # must not restrict how many supported operating systems are discovered.
 # Manual menuentry examples below are deliberately disabled, not boot probes.
