@@ -167,6 +167,8 @@ KeepName=1
 TargetX64=BOOTX64.EFI
 TargetShim=shimx64.efi
 ReSignBinaries() { :; }
+# This fixture must never inspect the test runner's real certificates.
+DiscoverEnrolledSigningIdentity() { :; }
 CheckSecureBoot() { IsSecureBoot=1; }
 AddBootEntry() { echo "Firmware entry fixture" >&2; return 0; }
 mokutil() { echo "$DerKey is not enrolled"; return 0; }
@@ -190,5 +192,25 @@ test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/grubx64.efi" || exit 1
 test "$(cat "$InstallDir/EFI/ubuntu/shimx64.efi")" = protected-ubuntu || exit 1
 test "$(cat "$InstallDir/EFI/Microsoft/Boot/bootmgfw.efi")" = protected-windows || exit 1
 echo "Secure Boot MOK gate and one-BOOT-image Shim fixture passed"
+
+
+# A successful Secure Boot copy removes its temporary signed source tree.
+# Firmware may be promoted only after verifying the installed bytes against
+# a digest captured before that temporary tree was removed.
+BootDir="$work/staged-signed"
+mkdir -p "$BootDir/drivers_x64"
+printf 'signed-native-efi-image' > "$BootDir/boot_x64.efi"
+for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+    printf 'signed-%s' "$filesystem" > "$BootDir/drivers_x64/\${filesystem}_x64.efi"
+done
+DeleteBootDir=1
+Problems=""
+if ! InstallOnLinux > "$work/secureboot-staged.txt" 2>&1; then
+    cat "$work/secureboot-staged.txt" >&2
+    exit 1
+fi
+test ! -d "$BootDir" || { echo "Temporary signed source was not removed" >&2; exit 1; }
+test "$(cat "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI")" = signed-native-efi-image || exit 1
+echo "Signed-image digest survived temporary source cleanup and permitted promotion"
 
 echo "Historical BOOT installer: disposable ESP safety checks passed"
