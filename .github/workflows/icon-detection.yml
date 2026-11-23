@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for image in os_linuxmint os_linux os_win8 os_win os_boot os_ubuntu; do
+          for image in os_linuxmint os_linux os_win8 os_win os_boot os_ubuntu os_uefi os_network os_unknown; do
             test -s "icons/${image}.png"
           done
       - name: Compile and test real BOOT classifier functions

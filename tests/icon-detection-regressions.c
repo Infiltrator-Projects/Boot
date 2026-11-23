@@ -55,7 +55,7 @@ static struct { UINTN IconSizes[4]; CHAR16 *LinuxPrefixes; UINTN GraphicsFor; } 
 static EG_IMAGE availableIcons[] = {
     {L"linuxmint"}, {L"linux"}, {L"win8"}, {L"win"},
     {L"boot"}, {L"ubuntu"}, {L"fedora"}, {L"mac"},
-    {L"grub"}, {L"unknown"}, {L"custom"}
+    {L"grub"}, {L"unknown"}, {L"custom"}, {L"uefi"}, {L"network"}
 };
 static CHAR16 *copy_n(const CHAR16 *s, size_t n) {
     CHAR16 *p=(CHAR16 *)malloc((n+1)*sizeof(*p));
@@ -307,6 +307,12 @@ int main(void) {
                 NULL,L"win8",'W');
     expect_icon("BOOT's own executable",L"EFI\\InfiltratorOS\\BOOT\\BOOTX64.EFI",
                 NULL,L"boot",'R');
+    expect_icon("Prior BOOT installation",L"EFI\\InfiltratorBoot\\BOOTX64.EFI",
+                NULL,L"boot",'R');
+    expect_icon("Prior BOOT Secure installation",L"EFI\\InfiltratorBootSecure\\BOOTX64.EFI",
+                NULL,L"boot",'R');
+    expect_icon("Unrelated fallback BOOTX64",L"EFI\\OtherVendor\\BOOTX64.EFI",
+                NULL,L"unknown",0);
     expect_icon("macOS boot.efi",L"System\\Library\\CoreServices\\boot.efi",
                 NULL,L"mac",'M');
     expect_icon("GRUB in Ubuntu directory",L"EFI\\ubuntu\\grubx64.efi",
@@ -314,6 +320,13 @@ int main(void) {
     expect_firmware(L"Windows Boot Manager",L"win8");
     expect_firmware(L"Linux Mint Boot Manager",L"linuxmint");
     expect_firmware(L"BOOT Boot Manager",L"boot");
+    expect_firmware(L"EFI SCSI Device",L"uefi");
+    expect_firmware(L"EFI NVMe Device",L"uefi");
+    expect_firmware(L"EFI USB Device",L"uefi");
+    expect_firmware(L"EFI Hard Drive",L"uefi");
+    expect_firmware(L"EFI Network",L"network");
+    expect_firmware(L"PXE Network",L"network");
+    expect_firmware(L"Unrecognised Device",L"unknown");
     puts("Production OS icon autodetection regressions passed");
     return 0;
 }

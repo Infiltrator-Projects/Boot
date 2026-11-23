@@ -481,8 +481,14 @@ VOID SetLoaderDefaults(LOADER_ENTRY *Entry, CHAR16 *LoaderPath, BOOT_VOLUME *Vol
             ShortcutLetter = 'L';
         Entry->UseGraphicsMode = GlobalConfig.GraphicsFor & GRAPHICS_FOR_LINUX;
     } else if (MyStriCmp(NameClues, L"BOOTX64.EFI") &&
-               StriSubCmp(L"InfiltratorOS\\BOOT\\BOOTX64.EFI", LoaderPath)) {
-        /* Identify our manager by its own EFI path, not the generic word boot. */
+               (StriSubCmp(L"InfiltratorOS\\BOOT\\BOOTX64.EFI", LoaderPath) ||
+                StriSubCmp(L"EFI\\InfiltratorBoot\\BOOTX64.EFI", LoaderPath) ||
+                StriSubCmp(L"EFI\\InfiltratorBootSecure\\BOOTX64.EFI", LoaderPath))) {
+        /*
+         * Recognise BOOT's current and historically installed EFI paths.
+         * Restrict the match to its known directories and executable name:
+         * a generic BOOTX64.EFI can belong to an unrelated boot manager.
+         */
         MergeStrings(&OSIconName, L"boot", L',');
         Entry->OSType = 'R';
         ShortcutLetter = 'R';
@@ -554,6 +560,18 @@ static VOID AppendFirmwareOSIconHints(CHAR16 **OSIconName, CHAR16 *LoaderTitle) 
     else if (LoaderTitle && (StriSubCmp(L"Linux Mint", LoaderTitle) ||
                              StriSubCmp(L"LinuxMint", LoaderTitle)))
         MergeStrings(OSIconName, L"linuxmint", L',');
+    else if (LoaderTitle && (StriSubCmp(L"EFI Network", LoaderTitle) ||
+                             StriSubCmp(L"PXE", LoaderTitle)))
+        MergeStrings(OSIconName, L"network", L',');
+    else if (LoaderTitle && (StriSubCmp(L"EFI SCSI Device", LoaderTitle) ||
+                             StriSubCmp(L"EFI NVMe", LoaderTitle) ||
+                             StriSubCmp(L"EFI USB", LoaderTitle) ||
+                             StriSubCmp(L"EFI Hard Drive", LoaderTitle)))
+        /*
+         * Firmware supplies a bootable device category, not an OS identity.
+         * Prefer BOOT's UEFI icon to a misleading OS or unknown icon.
+         */
+        MergeStrings(OSIconName, L"uefi", L',');
 }
 
 /**
