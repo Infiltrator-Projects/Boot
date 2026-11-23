@@ -283,104 +283,106 @@ Error:
 #ifdef __MAKEWITH_GNUEFI
 
 /*
- * Take one coherent snapshot of the EFI handle topology to select root
- * controllers. The previous loop called LibScanHandleDatabase once for every
- * handle, repeating firmware protocol enumeration hundreds of times.
+ * Bind newly loaded filesystem drivers only to EFI storage handles that have
+ * no Simple File System protocol yet. A firmware bus has already published
+ * these Block I/O handles; a nonrecursive connection offers the filesystem
+ * driver to the existing block device without walking unrelated PCI, USB,
+ * networking, graphics or vendor-protocol controllers.
  *
- * Controller classification is firmware-independent: a device-path handle
- * with no child-controller parent is eligible, unless it is a driver-binding
- * or loaded-image handle. ConnectController remains recursive so the same
- * firmware drivers can discover children and their partitions. The caller
- * rescans volumes after this pass; neither device IDs nor filesystem types
- * are filtered here.
+ * A recursive ConnectController on arbitrary device-path handles can enter
+ * firmware-dependent bus discovery without any EFI timeout mechanism. This
+ * caused an observed firmware lockup during a physical-machine boot trial.
+ * Do not replace this bounded storage pass with a topology-wide recursive
+ * traversal. If a newly connected device publishes more Block I/O handles,
+ * a later scan can consider them; existing readable volumes are left intact.
+ *
+ * The function does not know filesystem formats, host device names or disk
+ * counts. LVM2 contributes virtual Block I/O handles through the same protocol.
+ * An individual EFI_NOT_FOUND from ConnectController means that no new driver
+ * bound that block handle; it does not invalidate other handles or volumes.
  */
 EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 {
-    EFI_STATUS Status;
-    EFI_STATUS ConnectStatus;
-    UINTN HandleCount = 0;
-    EFI_HANDLE *HandleBuffer = NULL;
-    UINT32 *HandleType = NULL;
-    UINTN Index;
-    UINTN ConnectionNumber = 0;
-    UINT64 PassBegin = BootDiagTicks();
-    UINT64 InspectBegin, ConnectBegin;
+    EFI_STATUS Status, ConnectStatus;
+    EFI_HANDLE *Handles = NULL;
+    MY_EFI_BLOCK_IO_PROTOCOL *BlockIo;
+    MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *Fs;
+    UINTN Count = 0, Index, Attempted = 0;
+    UINT64 PassBegin = BootDiagTicks(), ConnectBegin;
 
-    if (GlobalConfig.StartupDiagnostics) {
-        LOG(1, LOG_LINE_NORMAL, L"[DIAG] controller pass BEGIN");
-        BootDiagFlush();
-    }
+    Status = boot_call5_wrapper(BS->LocateHandleBuffer, ByProtocol,
+                                &gMyEfiBlockIoProtocolGuid, NULL,
+                                &Count, &Handles);
+    if (Status == EFI_NOT_FOUND)
+        return EFI_SUCCESS;
+    if (EFI_ERROR(Status))
+        return Status;
 
-    InspectBegin = BootDiagTicks();
-    Status = LibScanHandleDatabase(NULL, NULL, NULL, NULL,
-                                   &HandleCount, &HandleBuffer, &HandleType);
     if (GlobalConfig.StartupDiagnostics) {
         LOG(1, LOG_LINE_NORMAL,
-            L"[DIAG] controller topology snapshot handles=%d status=%lu elapsed=%lu ms",
-            HandleCount, (UINT64)Status, BootDiagElapsedMs(InspectBegin));
+            L"[DIAG] storage controller pass BEGIN blockHandles=%d", Count);
         BootDiagFlush();
     }
-    if (EFI_ERROR(Status))
-        goto Done;
 
-    for (Index = 0; Index < HandleCount; ++Index) {
-        /* Parent/child relationships are classified from the same snapshot. */
-        if (!(HandleType[Index] & EFI_HANDLE_TYPE_DEVICE_HANDLE) ||
-            (HandleType[Index] &
-             (EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE |
-              EFI_HANDLE_TYPE_IMAGE_HANDLE |
-              EFI_HANDLE_TYPE_PARENT_HANDLE)))
+    for (Index = 0; Index < Count; ++Index) {
+        Status = boot_call3_wrapper(BS->HandleProtocol, Handles[Index],
+                                   &gMyEfiBlockIoProtocolGuid,
+                                   (VOID **)&BlockIo);
+        if (EFI_ERROR(Status) || !BlockIo || !BlockIo->Media ||
+            !BlockIo->Media->MediaPresent)
             continue;
 
-        ++ConnectionNumber;
+        /* Already readable volumes need no rebinding. */
+        Status = boot_call3_wrapper(BS->HandleProtocol, Handles[Index],
+                                   &gMyEfiSimpleFileSystemProtocolGuid,
+                                   (VOID **)&Fs);
+        if (Status == EFI_SUCCESS)
+            continue;
+
+        ++Attempted;
         if (GlobalConfig.StartupDiagnostics) {
-            EFI_DEVICE_PATH *HandlePath = DevicePathFromHandle(HandleBuffer[Index]);
-            CHAR16 *PathText = HandlePath ? DevicePathToStr(HandlePath) : NULL;
+            EFI_DEVICE_PATH *Path = DevicePathFromHandle(Handles[Index]);
+            CHAR16 *Text = Path ? DevicePathToStr(Path) : NULL;
             CHAR16 *DisplayText;
 
             LOG(1, LOG_LINE_NORMAL,
-                L"[DIAG] controller %d handle=%d/%d path='%s' BEGIN recursive=1",
-                ConnectionNumber, Index + 1, HandleCount,
-                PathText ? PathText : L"(no device path)");
-            DisplayText = PoolPrint(L"Connecting controller %d (handle %d/%d)",
-                                    ConnectionNumber, Index + 1, HandleCount);
+                L"[DIAG] storage controller %d handle=%d/%d path='%s' BEGIN recursive=0",
+                Attempted, Index + 1, Count, Text ? Text : L"(no device path)");
+            DisplayText = PoolPrint(L"Connecting storage controller %d (handle %d/%d)",
+                                    Attempted, Index + 1, Count);
             BootStartupProgressReport(DisplayText, BOOT_PROGRESS_ACTIVE);
             MyFreePool(DisplayText);
-            MyFreePool(PathText);
+            MyFreePool(Text);
             BootDiagFlush();
         }
 
         ConnectBegin = BootDiagTicks();
         ConnectStatus = boot_call4_wrapper(BS->ConnectController,
-                                           HandleBuffer[Index],
-                                           NULL, NULL, TRUE);
+                                           Handles[Index], NULL, NULL, FALSE);
         if (GlobalConfig.StartupDiagnostics) {
             UINT64 ConnectionMs = BootDiagElapsedMs(ConnectBegin);
             CHAR16 *DisplayText;
 
             LOG(1, LOG_LINE_NORMAL,
-                L"[DIAG] controller %d handle=%d/%d END status=%lu elapsed=%lu ms",
-                ConnectionNumber, Index + 1, HandleCount,
+                L"[DIAG] storage controller %d handle=%d/%d END status=%lu elapsed=%lu ms",
+                Attempted, Index + 1, Count,
                 (UINT64)ConnectStatus, ConnectionMs);
-            DisplayText = PoolPrint(L"Controller %d finished (%lu ms, EFI %lu)",
-                                    ConnectionNumber, ConnectionMs,
-                                    (UINT64)ConnectStatus);
+            DisplayText = PoolPrint(L"Storage controller %d finished (%lu ms, EFI %lu)",
+                                    Attempted, ConnectionMs, (UINT64)ConnectStatus);
             BootStartupProgressReport(DisplayText,
                 EFI_ERROR(ConnectStatus) ? BOOT_PROGRESS_ERROR : BOOT_PROGRESS_OK);
             MyFreePool(DisplayText);
         }
     }
 
-Done:
     if (GlobalConfig.StartupDiagnostics) {
         LOG(1, LOG_LINE_NORMAL,
-            L"[DIAG] controller pass END attempts=%d elapsed=%lu ms finalStatus=%lu",
-            ConnectionNumber, BootDiagElapsedMs(PassBegin), (UINT64)Status);
+            L"[DIAG] storage controller pass END attempts=%d elapsed=%lu ms",
+            Attempted, BootDiagElapsedMs(PassBegin));
         BootDiagFlush();
     }
-    MyFreePool(HandleBuffer);
-    MyFreePool(HandleType);
-    return Status;
+    MyFreePool(Handles);
+    return EFI_SUCCESS;
 }
 
 #else
