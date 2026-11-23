@@ -474,8 +474,10 @@ fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno,
    BOOLEAN          ReadOneBlock = FALSE;
    UINT64           StartRead = (UINT64) phys_bno * (UINT64) vol->phys_blocksize;
 
-   if (buffer == NULL)
-      return (fsw_status_t) EFI_BAD_BUFFER_SIZE;
+   if (buffer == NULL) {
+      Volume->LastIOStatus = EFI_BAD_BUFFER_SIZE;
+      return FSW_IO_ERROR;
+   }
 
    if (LastRead < 0) {
       fsw_efi_clear_cache();
@@ -532,7 +534,12 @@ fsw_status_t EFIAPI fsw_efi_read_block(struct fsw_volume *vol, fsw_u64 phys_bno,
    }
    Volume->LastIOStatus = Status;
 
-   return Status;
+   /* EFI_STATUS and fsw_status_t are independent error domains.
+    * Retain the precise underlying Disk I/O error in LastIOStatus, and
+    * propagate only FSW_IO_ERROR across this filesystem-neutral callback.
+    * Passing raw EFI_STATUS caused failures to become EFI_DEVICE_ERROR,
+    * concealing whether a virtual volume read actually failed. */
+   return EFI_ERROR(Status) ? FSW_IO_ERROR : FSW_SUCCESS;
 }  
 
 /*
