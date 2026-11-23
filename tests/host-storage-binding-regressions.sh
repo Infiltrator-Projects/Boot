@@ -30,6 +30,7 @@ typedef struct { int dummy; } EFI_DEVICE_PATH;
 #define EFI_SUCCESS 0
 #define EFI_NOT_FOUND 14
 #define EFI_DEVICE_ERROR 7
+#define EFI_UNSUPPORTED 3
 #define EFI_ERROR(s) ((s)!=EFI_SUCCESS)
 #define ByProtocol 1
 #define BOOT_PROGRESS_ACTIVE 1
@@ -68,8 +69,15 @@ static struct { BOOLEAN StartupDiagnostics; } GlobalConfig = { FALSE };
 
 /* Mirror the production early-volume inventory used by the exclusion gate.
  * The LVM mocks (handles 5/6) are published only AFTER the initial scan. */
+#define FS_TYPE_UNKNOWN 0
+#define FS_TYPE_EXT2 5
+#define FS_TYPE_EXT3 6
 #define FS_TYPE_EXT4 7
+#define FS_TYPE_HFSPLUS 8
+#define FS_TYPE_REISERFS 9
+#define FS_TYPE_BTRFS 10
 #define FS_TYPE_XFS 11
+#define FS_TYPE_ISO9660 13
 typedef struct { EFI_HANDLE DeviceHandle; UINT32 FSType; } BOOT_VOLUME;
 static BOOT_VOLUME recognized_candidate={(EFI_HANDLE)(uintptr_t)2,FS_TYPE_EXT4};
 static BOOT_VOLUME unsupported_candidate={(EFI_HANDLE)(uintptr_t)4,FS_TYPE_XFS};
