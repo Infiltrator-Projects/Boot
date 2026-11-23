@@ -739,6 +739,45 @@ static VOID SetFilesystemData(IN UINT8 *Buffer, IN UINTN BufferSize, IN OUT BOOT
  * Absent media, unsupported geometry and failed reads retain the explicit
  * nonbootable default; signatures are not proof of EFI execution.
  */
+/*
+ * A newly published LVM logical volume is not present in the initial
+ * ScanVolumes inventory. Identify its on-disk filesystem in precisely the
+ * same way as an ordinary volume: one bounded, read-only Block I/O sample.
+ * This is a capability check, not an attempt to mount any filesystem.
+ */
+UINT32 BootProbeFilesystemType(EFI_HANDLE DeviceHandle)
+{
+    EFI_STATUS Status;
+    EFI_BLOCK_IO *BlockIO = NULL;
+    BOOT_VOLUME SampleVolume = {0};
+    UINT8 *Buffer;
+    UINT32 FsType = FS_TYPE_UNKNOWN;
+
+    if (!DeviceHandle)
+        return FsType;
+    Status = boot_call3_wrapper(BS->HandleProtocol, DeviceHandle,
+                               &BlockIoProtocol, (VOID **)&BlockIO);
+    if (EFI_ERROR(Status) || !BlockIO || !BlockIO->Media ||
+        !BlockIO->Media->MediaPresent || !BlockIO->Media->BlockSize ||
+        BlockIO->Media->BlockSize > SAMPLE_SIZE ||
+        SAMPLE_SIZE % BlockIO->Media->BlockSize != 0)
+        return FsType;
+
+    Buffer = AllocatePool(SAMPLE_SIZE);
+    if (!Buffer)
+        return FsType;
+    Status = boot_call5_wrapper(BlockIO->ReadBlocks, BlockIO,
+                                BlockIO->Media->MediaId, 0,
+                                SAMPLE_SIZE, Buffer);
+    if (!EFI_ERROR(Status)) {
+        SampleVolume.BlockIO = BlockIO;
+        SetFilesystemData(Buffer, SAMPLE_SIZE, &SampleVolume);
+        FsType = SampleVolume.FSType;
+    }
+    MyFreePool(Buffer);
+    return FsType;
+}
+
 static VOID ScanVolumeBootcode(BOOT_VOLUME *Volume, BOOLEAN *Bootable)
 {
     EFI_STATUS              Status;
