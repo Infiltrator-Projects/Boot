@@ -16,6 +16,15 @@
 #include "launch_efi.h"
 #include "log.h"
 #include "../include/boot_call_wrapper.h"
+#include "lvm2.h"
+
+/* Use exactly the same EFI Driver Binding ABI as the compiled filesystem
+ * drivers. GNU-EFI keeps the interface in the filesystem bridge header. */
+#ifdef __MAKEWITH_GNUEFI
+#include "../filesystems/edk2/DriverBinding.h"
+#else
+typedef EFI_DRIVER_BINDING_PROTOCOL BOOT_EFI_DRIVER_BINDING_PROTOCOL;
+#endif
 
 #if defined (EFIX64)
 #define DRIVER_DIRS             L"drivers,drivers_x64"
@@ -283,6 +292,125 @@ Error:
 #ifdef __MAKEWITH_GNUEFI
 
 /*
+ * Filesystem drivers installed by BOOT are the only drivers permitted to
+ * manage BOOT's new virtual LVM Block I/O handles. A direct Driver Binding
+ * Supported/Start sequence avoids a firmware-wide ConnectController search,
+ * including platform overrides and unrelated vendor/bus drivers.
+ *
+ * Driver image handles remain valid because BOOT does not unload successfully
+ * started filesystem drivers. The list grows with loaded modules rather than
+ * assuming a hardware model, partition count, filesystem type, or fixed limit.
+ */
+typedef struct BOOT_FS_DRIVER_NODE {
+    struct BOOT_FS_DRIVER_NODE *Next;
+    EFI_HANDLE Image;
+    CHAR16 *Name;
+} BOOT_FS_DRIVER_NODE;
+
+static BOOT_FS_DRIVER_NODE *BootFsDrivers = NULL;
+static BOOT_FS_DRIVER_NODE *BootFsDriversTail = NULL;
+
+VOID RegisterBootFilesystemDriver(EFI_HANDLE DriverHandle, CHAR16 *DriverName)
+{
+    BOOT_EFI_DRIVER_BINDING_PROTOCOL *Binding = NULL;
+    BOOT_FS_DRIVER_NODE *Walk, *Record;
+    EFI_STATUS Status;
+
+    if (!DriverHandle) return;
+    Status = boot_call3_wrapper(BS->HandleProtocol, DriverHandle,
+                                &gMyEfiDriverBindingProtocolGuid,
+                                (VOID **)&Binding);
+    if (EFI_ERROR(Status) || !Binding || !Binding->Supported || !Binding->Start)
+        return;
+
+    for (Walk = BootFsDrivers; Walk; Walk = Walk->Next)
+        if (Walk->Image == DriverHandle) return;
+
+    Record = AllocateZeroPool(sizeof(*Record));
+    if (!Record) {
+        LOG(1, LOG_LINE_NORMAL, L"BOOT: no memory for filesystem driver registry");
+        return;
+    }
+    Record->Image = DriverHandle;
+    Record->Name = DriverName ? StrDuplicate(DriverName) : NULL;
+    if (BootFsDriversTail) BootFsDriversTail->Next = Record;
+    else BootFsDrivers = Record;
+    BootFsDriversTail = Record;
+}
+
+static EFI_STATUS BootBindVirtualFilesystem(EFI_HANDLE VolumeHandle)
+{
+    BOOT_FS_DRIVER_NODE *Record;
+    BOOT_EFI_DRIVER_BINDING_PROTOCOL *Binding = NULL;
+    MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *Fs = NULL;
+    EFI_STATUS Status, VerifyStatus;
+    UINTN DriverNumber = 0;
+
+    if (!BootFsDrivers) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"LVM2: no BOOT filesystem drivers registered for virtual volume");
+        return EFI_NOT_FOUND;
+    }
+
+    for (Record = BootFsDrivers; Record; Record = Record->Next) {
+        ++DriverNumber;
+        Status = boot_call3_wrapper(BS->HandleProtocol, Record->Image,
+                                    &gMyEfiDriverBindingProtocolGuid,
+                                    (VOID **)&Binding);
+        if (EFI_ERROR(Status) || !Binding || !Binding->Supported || !Binding->Start)
+            continue;
+
+        if (GlobalConfig.StartupDiagnostics) {
+            LOG(1, LOG_LINE_NORMAL,
+                L"[DIAG] LVM driver %d '%s' Supported BEGIN",
+                DriverNumber, Record->Name ? Record->Name : L"(unnamed)");
+            BootDiagFlush();
+        }
+
+        Status = boot_call3_wrapper(Binding->Supported, Binding, VolumeHandle, NULL);
+        if (GlobalConfig.StartupDiagnostics) {
+            LOG(1, LOG_LINE_NORMAL,
+                L"[DIAG] LVM driver %d Supported END status=%lu",
+                DriverNumber, (UINT64)Status);
+            BootDiagFlush();
+        }
+        if (EFI_ERROR(Status))
+            continue;
+
+        if (GlobalConfig.StartupDiagnostics) {
+            CHAR16 *DisplayText = PoolPrint(L"Mounting LVM volume with %s",
+                            Record->Name ? Record->Name : L"filesystem driver");
+            LOG(1, LOG_LINE_NORMAL, L"[DIAG] LVM driver %d Start BEGIN",
+                DriverNumber);
+            BootStartupProgressReport(DisplayText, BOOT_PROGRESS_ACTIVE);
+            MyFreePool(DisplayText);
+            BootDiagFlush();
+        }
+
+        Status = boot_call3_wrapper(Binding->Start, Binding, VolumeHandle, NULL);
+        if (GlobalConfig.StartupDiagnostics) {
+            LOG(1, LOG_LINE_NORMAL,
+                L"[DIAG] LVM driver %d Start END status=%lu",
+                DriverNumber, (UINT64)Status);
+            BootDiagFlush();
+        }
+        if (EFI_ERROR(Status))
+            continue;
+
+        VerifyStatus = boot_call3_wrapper(BS->HandleProtocol, VolumeHandle,
+                                          &gMyEfiSimpleFileSystemProtocolGuid,
+                                          (VOID **)&Fs);
+        if (!EFI_ERROR(VerifyStatus) && Fs)
+            return EFI_SUCCESS;
+
+        LOG(1, LOG_LINE_NORMAL,
+            L"LVM2: driver reported start success without Simple File System");
+    }
+
+    return EFI_NOT_FOUND;
+}
+
+/*
  * Bind newly loaded filesystem drivers only to EFI storage handles that have
  * no Simple File System protocol yet. A firmware bus has already published
  * these Block I/O handles; a nonrecursive connection offers the filesystem
@@ -357,8 +485,14 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
         }
 
         ConnectBegin = BootDiagTicks();
-        ConnectStatus = boot_call4_wrapper(BS->ConnectController,
-                                           Handles[Index], NULL, NULL, FALSE);
+        if (LvmIsPublishedHandle(Handles[Index])) {
+            /* Never hand a BOOT-created virtual disk to firmware's generic
+             * driver search: only started BOOT filesystem drivers probe it. */
+            ConnectStatus = BootBindVirtualFilesystem(Handles[Index]);
+        } else {
+            ConnectStatus = boot_call4_wrapper(BS->ConnectController,
+                                               Handles[Index], NULL, NULL, FALSE);
+        }
         if (GlobalConfig.StartupDiagnostics) {
             UINT64 ConnectionMs = BootDiagElapsedMs(ConnectBegin);
             CHAR16 *DisplayText;
