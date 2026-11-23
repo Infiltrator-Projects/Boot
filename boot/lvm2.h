@@ -8,4 +8,6 @@
 #define BOOT_LVM2_H
 #include "global.h"
 BOOLEAN LvmDiscoverVolumes(VOID);
+/* Match only virtual EFI Block I/O handles published by BOOT's LVM mapper. */
+BOOLEAN LvmIsPublishedHandle(EFI_HANDLE Handle);
 #endif
