@@ -90,8 +90,8 @@ fi
 # diagnostic records without changing the EFI driver/boot-path assertions.
 if ! grep -Fq '[DIAG] initial ScanVolumes elapsed=' "$work/log.txt" ||
    ! grep -Fq '[DIAG] initial BlockIo handle enumeration count=' "$work/log.txt" ||
-   ! grep -Fq '[DIAG] controller pass BEGIN' "$work/log.txt" ||
-   ! grep -Fq '[DIAG] controller pass END attempts=' "$work/log.txt" ||
+   ! grep -Fq '[DIAG] storage controller pass BEGIN blockHandles=' "$work/log.txt" ||
+   ! grep -Fq '[DIAG] storage controller pass END attempts=' "$work/log.txt" ||
    ! grep -Fq '[DIAG] menu ' "$work/log.txt"; then
  echo "BOOT runtime startup diagnostics were not recorded under OVMF" >&2
  grep -F '[DIAG]' "$work/log.txt" >&2 || true
