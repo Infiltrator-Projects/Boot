@@ -38,20 +38,6 @@ OBJS            = apple.o config.o crc32.o driver_support.o gpt.o icns.o \
 
 include $(SRCDIR)/../Make.common
 
-# LVM creates callable EFI Block I/O and Disk I/O protocols in the BOOT
-# application image. Unlike ordinary BOOT application functions, those
-# callbacks are invoked from separately loaded EFI filesystem drivers.
-# GNU-EFI's EFI_FUNCTION_WRAPPER routes calls into firmware but does not
-# guarantee that EFIAPI callbacks themselves are compiled with the Microsoft
-# x64 ABI. Filesystem drivers already force this flag in Make.gnuefi.
-# Keep the ABI override limited to the LVM protocol implementation rather
-# than altering BOOT's unrelated menu, firmware and loader interfaces.
-ifeq ($(MAKEWITH),GNUEFI)
-ifeq ($(ARCH),x86_64)
-lvm2.o: LOCAL_GNUEFI_CFLAGS += "-DEFIAPI=__attribute__((ms_abi))"
-endif
-endif
-
 all: $(TARGET)
 # Resolve BOOT's references against the firmware support archives at the ELF
 # link. The objcopy rule below carries the loaded data and relocation sections
