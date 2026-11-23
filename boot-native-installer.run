@@ -428,8 +428,9 @@ CopyShimFiles() {
 CopyKeys() {
    if [[ $LocalKeys == 1 ]] ; then
       mkdir -p "$InstallDir/$TargetDir/keys/"
-      cp "$EtcKeysDir/$LocalKeysBase.cer" "$InstallDir/$TargetDir/keys/"
-      cp "$EtcKeysDir/$LocalKeysBase.crt" "$InstallDir/$TargetDir/keys/"
+      # The ESP receives public certificates, never the signing private key.
+      cp "$DerKey" "$InstallDir/$TargetDir/keys/$LocalKeysBase.cer" || Problems=1
+      cp "$CertKey" "$InstallDir/$TargetDir/keys/$LocalKeysBase.crt" || Problems=1
    fi
 }
 
@@ -836,12 +837,78 @@ CheckSecureBoot() {
 
 }
 
+# Discover already enrolled, matching key/certificate pairs without any
+# computer-specific paths. Reading keys does not change or copy private keys.
+DiscoverEnrolledSigningIdentity() {
+   local root cert key verdict digest
+   local chosen="" chosen_key="" chosen_digest=""
+   local der="$work/boot-candidate.cer"
+   local pem="$work/boot-candidate.pub"
+   local public="$work/boot-candidate-public.der"
+   local keypublic="$work/boot-key-public.der"
+
+   for root in "$@"; do
+      [[ -d "$root" ]] || continue
+      while IFS= read -r -d '' cert; do
+         key="${cert%.*}.key"
+         [[ -f "$key" && -r "$key" ]] || continue
+         if ! openssl x509 -in "$cert" -outform DER -out "$der" 2>/dev/null &&
+            ! openssl x509 -inform DER -in "$cert" -outform DER -out "$der" 2>/dev/null; then
+            continue
+         fi
+         if ! openssl x509 -inform DER -in "$der" -pubkey -noout -out "$pem" 2>/dev/null ||
+            ! openssl pkey -pubin -in "$pem" -outform DER -out "$public" 2>/dev/null ||
+            ! openssl pkey -in "$key" -passin pass: -pubout -outform DER -out "$keypublic" 2>/dev/null ||
+            ! cmp -s "$public" "$keypublic"; then
+            continue
+         fi
+         verdict=$(mokutil --test-key "$der" 2>&1) || :
+         if ! grep -Eqi '(^|[[:space:]])is (already )?enrolled([[:space:]]|$)' <<< "$verdict" ||
+            grep -Eqi 'is not enrolled|in the enrollment request' <<< "$verdict"; then
+            continue
+         fi
+         digest=$(sha256sum "$der" | cut -d ' ' -f1)
+         if [[ -z "$chosen" ]]; then
+            chosen="$cert"
+            chosen_key="$key"
+            chosen_digest="$digest"
+         elif [[ "$digest" != "$chosen_digest" ]]; then
+            echo "BOOT: more than one enrolled signing identity; refusing ambiguous selection." >&2
+            return 1
+         fi
+      done < <(find "$root" -xdev -maxdepth 7 -type f \
+         \( -iname '*.cer' -o -iname '*.crt' -o -iname '*.pem' \) -print0 2>/dev/null)
+   done
+   if [[ -z "$chosen" ]]; then
+      echo "BOOT: no enrolled signing identity found; use new-key MOK enrolment."
+      return 0
+   fi
+   if ! openssl x509 -in "$chosen" -out "$work/boot-selected.crt" 2>/dev/null &&
+      ! openssl x509 -inform DER -in "$chosen" -out "$work/boot-selected.crt" 2>/dev/null; then
+      return 1
+   fi
+   openssl x509 -in "$work/boot-selected.crt" -outform DER \
+      -out "$work/boot-selected.cer" || return 1
+   PrivateKey="$chosen_key"
+   CertKey="$work/boot-selected.crt"
+   DerKey="$work/boot-selected.cer"
+   BOOT_SIGNING_IDENTITY_SELECTED=1
+   echo "BOOT: using an enrolled signing identity; existing files are unchanged."
+}
+
 # Create or reuse local signing material. New private keys and public
 # certificate encodings are written under the host key directory;
 # incomplete pre-existing sets are backed up before regeneration. File
 # permissions limit local access but do not establish enrollment in
 # firmware or MOK databases.
 GenerateKeys() {
+   if [[ "${BOOT_SIGNING_IDENTITY_SELECTED:-0}" == 1 ]]; then
+      [[ -r "$PrivateKey" && -s "$CertKey" && -s "$DerKey" ]] || {
+         echo "BOOT: selected signing identity is no longer readable." >&2
+         return 1
+      }
+      return 0
+   fi
    PrivateKey="$EtcKeysDir/$LocalKeysBase.key"
    CertKey="$EtcKeysDir/$LocalKeysBase.crt"
    DerKey="$EtcKeysDir/$LocalKeysBase.cer"
@@ -1278,7 +1345,8 @@ InstallOnLinux() {
    CheckBootDestination || return 1
 
    if [[ $LocalKeys == 1 ]] ; then
-      ReSignBinaries
+      DiscoverEnrolledSigningIdentity /etc /root || return 1
+      ReSignBinaries || return 1
    fi
 
    CheckSecureBoot
@@ -1303,6 +1371,14 @@ InstallOnLinux() {
          echo "BOOT: local signing certificate $DerKey could not be verified as enrolled." >&2
          echo "BOOT: mokutil exit $key_status: $local_key_verdict" >&2
          echo "BOOT: ESP and firmware BootOrder are unchanged by this attempt." >&2
+         # New certificates require firmware MOK confirmation before EFI
+         # installation. Do not promote an untrusted executable.
+         if [[ -t 0 ]]; then
+            echo "BOOT: requesting MOK enrolment. Complete it on reboot, then rerun."
+            mokutil --import "$DerKey" || echo "BOOT: MOK import cancelled." >&2
+         else
+            echo "BOOT: interactive MOK enrolment required before rerunning." >&2
+         fi
          return 1
       fi
       if ! sbverify --cert "$CertKey" "$BootDir/boot_$Platform.efi" >/dev/null 2>&1; then
