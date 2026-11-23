@@ -36,7 +36,11 @@ typedef struct { int dummy; } EFI_DEVICE_PATH;
 #define BOOT_PROGRESS_OK 2
 #define BOOT_PROGRESS_ERROR 3
 #define LOG_LINE_NORMAL 0
-#define LOG(...) ((void)0)
+/* Evaluate diagnostic arguments in tests, even though no log is emitted. */
+static void MockLog(int level,int category,const CHAR16 *format,...) {
+ (void)level;(void)category;(void)format;
+}
+#define LOG(...) MockLog(__VA_ARGS__)
 typedef struct BOOT_FS_DRIVER_BINDING {
  EFI_STATUS (*Supported)(struct BOOT_FS_DRIVER_BINDING*,EFI_HANDLE,VOID*);
  EFI_STATUS (*Start)(struct BOOT_FS_DRIVER_BINDING*,EFI_HANDLE,VOID*);
