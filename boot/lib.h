@@ -94,6 +94,9 @@ BOOLEAN BootVolumeExcluded(BOOT_VOLUME *Volume);
 /* Capability classification from validated on-disk signatures. EFI drivers
  * may be offered only where an actual compiled reader supports this format. */
 BOOLEAN BootHasFilesystemReader(UINT32 FsType);
+/* Classify a newly published EFI Block I/O handle by a bounded, read-only
+ * on-disk signature sample, without trying any filesystem driver. */
+UINT32 BootProbeFilesystemType(EFI_HANDLE DeviceHandle);
 VOID SetVolumeIcons(VOID);
 
 BOOLEAN FileExists(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath);
