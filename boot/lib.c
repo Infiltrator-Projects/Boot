@@ -1039,6 +1039,33 @@ static BOOLEAN HasWindowsBiosBootFiles(BOOT_VOLUME *Volume) {
 }  
 
 /*
+ * A configured volume exclusion must take effect before connecting EFI
+ * filesystem drivers or reading the same partition again during the volume
+ * rescan. Previously dont_scan_volumes applied only to menu discovery, while
+ * excluded partitions could still cause long synchronous firmware I/O retries.
+ * Match the same three identifiers as ShouldScan: filesystem label, GPT name,
+ * and partition GUID. GPT name/UUID are available without mounting the FS.
+ */
+BOOLEAN BootVolumeExcluded(BOOT_VOLUME *Volume)
+{
+    CHAR16 *GuidText;
+    BOOLEAN Excluded;
+
+    if (!Volume || !GlobalConfig.DontScanVolumes ||
+        GlobalConfig.DontScanVolumes[0] == 0)
+        return FALSE;
+
+    if (IsIn(Volume->FsName, GlobalConfig.DontScanVolumes) ||
+        IsIn(Volume->PartName, GlobalConfig.DontScanVolumes))
+        return TRUE;
+
+    GuidText = GuidAsString(&Volume->PartGuid);
+    Excluded = GuidText && IsIn(GuidText, GlobalConfig.DontScanVolumes);
+    MyFreePool(GuidText);
+    return Excluded;
+}
+
+/*
  * Derives partition/device information from EFI handles and Block I/O.
  * A missing protocol or a recognised-but-unreadable filesystem is not evidence
  * of a valid OS loader; downstream scanning must require readable RootDir.
@@ -1050,7 +1077,7 @@ VOID ScanVolume(BOOT_VOLUME *Volume)
     EFI_DEVICE_PATH         *DiskDevicePath, *RemainingDevicePath;
     EFI_HANDLE              WholeDiskHandle;
     UINTN                   PartialLength;
-    BOOLEAN                 Bootable;
+    BOOLEAN                 Bootable, PathBootable;
 
     LOG(2, LOG_LINE_NORMAL, L"Entering ScanVolume()");
 
@@ -1069,7 +1096,6 @@ VOID ScanVolume(BOOT_VOLUME *Volume)
     }
 
     Bootable = FALSE;
-    ScanVolumeBootcode(Volume, &Bootable);
 
     DevicePath = Volume->DevicePath;
     while (DevicePath != NULL && !IsDevicePathEndType(DevicePath)) {
@@ -1129,7 +1155,28 @@ VOID ScanVolume(BOOT_VOLUME *Volume)
         }
 
         DevicePath = NextDevicePath;
-    }  
+    }
+
+    /*
+     * A don't-scan rule uses the GPT name or partition GUID available from
+     * the device path. Honour it BEFORE any Block I/O signature probe and
+     * before EFI OpenVolume, so excluded controllers cannot trigger the same
+     * long firmware-media timeout a second time during the rescan.
+     */
+    if (BootVolumeExcluded(Volume)) {
+        Volume->RootDir = NULL;
+        Volume->IsReadable = FALSE;
+        Volume->VolName = GetVolumeName(Volume);
+        LOG(1, LOG_LINE_NORMAL,
+            L"Skipping excluded volume '%s' before filesystem probing",
+            Volume->VolName);
+        return;
+    }
+
+    PathBootable = Bootable;
+    ScanVolumeBootcode(Volume, &Bootable);
+    if (PathBootable)
+        Bootable = TRUE;
 
     if (!Bootable) {
         if (Volume->HasBootCode)
