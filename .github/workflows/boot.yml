@@ -40,7 +40,9 @@ jobs:
           grep -Fq 'LvmMapped = LvmDiscoverVolumes();' boot/main.c
           grep -Fq 'if (DriverFilesFound || LvmMapped)' boot/main.c
           grep -Fq 'lvm2.o' boot/Makefile
-          grep -Fq 'ConnectFilesystemDriver(ChildImageHandle);' boot/launch_efi.c
+          ! grep -Fq 'ConnectFilesystemDriver(ChildImageHandle);' boot/launch_efi.c
+          grep -Fq 'BootHasFilesystemReader(Volumes[VolumeIndex]->FSType)' boot/driver_support.c
+          grep -Fq 'ScanVolume(Volume, ProbeFilesystem);' boot/lib.c
           grep -Fq 'set -- --alldrivers' boot-native-installer.run
           if [[ -d gptsync || -e BootPkg.dsc ]]; then
             echo "Obsolete build system remains" >&2
