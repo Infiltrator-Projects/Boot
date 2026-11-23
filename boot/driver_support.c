@@ -338,13 +338,48 @@ VOID RegisterBootFilesystemDriver(EFI_HANDLE DriverHandle, CHAR16 *DriverName)
     BootFsDriversTail = Record;
 }
 
-static EFI_STATUS BootBindVirtualFilesystem(EFI_HANDLE VolumeHandle)
+/* Resolve a recognised filesystem signature to the single bundled reader. */
+static CHAR16 *BootReaderStem(UINT32 FsType)
+{
+    switch (FsType) {
+        case FS_TYPE_EXT2:
+        case FS_TYPE_EXT3:     return L"ext2";
+        case FS_TYPE_EXT4:     return L"ext4";
+        case FS_TYPE_HFSPLUS:  return L"hfs";
+        case FS_TYPE_REISERFS: return L"reiserfs";
+        case FS_TYPE_BTRFS:    return L"btrfs";
+        case FS_TYPE_ISO9660:  return L"iso9660";
+        default:               return NULL;
+    }
+}
+
+/* 'ext4_x64.efi' matches 'ext4'; 'ext4other.efi' does not. */
+static BOOLEAN BootReaderNameMatches(CHAR16 *Name, CHAR16 *Stem)
+{
+    UINTN Index = 0;
+    if (!Name || !Stem)
+        return FALSE;
+    while (Stem[Index]) {
+        if (!Name[Index] ||
+            ((Name[Index] & ~0x20) != (Stem[Index] & ~0x20)))
+            return FALSE;
+        ++Index;
+    }
+    return Name[Index] == 0 || Name[Index] == L'_' || Name[Index] == L'.';
+}
+
+static EFI_STATUS BootBindFilesystem(EFI_HANDLE VolumeHandle, UINT32 FsType)
 {
     BOOT_FS_DRIVER_NODE *Record;
     BOOT_EFI_DRIVER_BINDING_PROTOCOL *Binding = NULL;
     MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *Fs = NULL;
     EFI_STATUS Status, VerifyStatus;
     UINTN DriverNumber = 0;
+    CHAR16 *Stem = BootReaderStem(FsType);
+    CHAR16 *Scope = LvmIsPublishedHandle(VolumeHandle) ? L"LVM" : L"physical";
+
+    if (!Stem)
+        return EFI_UNSUPPORTED;
 
     if (!BootFsDrivers) {
         LOG(1, LOG_LINE_NORMAL,
@@ -354,6 +389,8 @@ static EFI_STATUS BootBindVirtualFilesystem(EFI_HANDLE VolumeHandle)
 
     for (Record = BootFsDrivers; Record; Record = Record->Next) {
         ++DriverNumber;
+        if (!BootReaderNameMatches(Record->Name, Stem))
+            continue;
         Status = boot_call3_wrapper(BS->HandleProtocol, Record->Image,
                                     &gMyEfiDriverBindingProtocolGuid,
                                     (VOID **)&Binding);
@@ -362,26 +399,26 @@ static EFI_STATUS BootBindVirtualFilesystem(EFI_HANDLE VolumeHandle)
 
         if (GlobalConfig.StartupDiagnostics) {
             LOG(1, LOG_LINE_NORMAL,
-                L"[DIAG] LVM driver %d '%s' Supported BEGIN",
-                DriverNumber, Record->Name ? Record->Name : L"(unnamed)");
+                L"[DIAG] %s driver %d '%s' Supported BEGIN",
+                Scope, DriverNumber, Record->Name ? Record->Name : L"(unnamed)");
             BootDiagFlush();
         }
 
         Status = boot_call3_wrapper(Binding->Supported, Binding, VolumeHandle, NULL);
         if (GlobalConfig.StartupDiagnostics) {
             LOG(1, LOG_LINE_NORMAL,
-                L"[DIAG] LVM driver %d Supported END status=%lu",
-                DriverNumber, (UINT64)Status);
+                L"[DIAG] %s driver %d Supported END status=%lu",
+                Scope, DriverNumber, (UINT64)Status);
             BootDiagFlush();
         }
         if (EFI_ERROR(Status))
             continue;
 
         if (GlobalConfig.StartupDiagnostics) {
-            CHAR16 *DisplayText = PoolPrint(L"Mounting LVM volume with %s",
-                            Record->Name ? Record->Name : L"filesystem driver");
-            LOG(1, LOG_LINE_NORMAL, L"[DIAG] LVM driver %d Start BEGIN",
-                DriverNumber);
+            CHAR16 *DisplayText = PoolPrint(L"Mounting %s volume with %s",
+                            Scope, Record->Name ? Record->Name : L"filesystem driver");
+            LOG(1, LOG_LINE_NORMAL, L"[DIAG] %s driver %d Start BEGIN",
+                Scope, DriverNumber);
             BootStartupProgressReport(DisplayText, BOOT_PROGRESS_ACTIVE);
             MyFreePool(DisplayText);
             BootDiagFlush();
@@ -390,8 +427,8 @@ static EFI_STATUS BootBindVirtualFilesystem(EFI_HANDLE VolumeHandle)
         Status = boot_call3_wrapper(Binding->Start, Binding, VolumeHandle, NULL);
         if (GlobalConfig.StartupDiagnostics) {
             LOG(1, LOG_LINE_NORMAL,
-                L"[DIAG] LVM driver %d Start END status=%lu",
-                DriverNumber, (UINT64)Status);
+                L"[DIAG] %s driver %d Start END status=%lu",
+                Scope, DriverNumber, (UINT64)Status);
             BootDiagFlush();
         }
         if (EFI_ERROR(Status))
@@ -404,7 +441,7 @@ static EFI_STATUS BootBindVirtualFilesystem(EFI_HANDLE VolumeHandle)
             return EFI_SUCCESS;
 
         LOG(1, LOG_LINE_NORMAL,
-            L"LVM2: driver reported start success without Simple File System");
+            L"BOOT: driver reported start success without Simple File System");
     }
 
     return EFI_NOT_FOUND;
@@ -437,7 +474,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
     MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *Fs;
     UINTN Count = 0, Index, Attempted = 0, VolumeIndex, Excluded = 0;
     UINTN Unsupported = 0;
-    BOOLEAN Recognized;
+    UINT32 DetectedFsType;
     UINT64 PassBegin = BootDiagTicks(), ConnectBegin;
 
     Status = boot_call5_wrapper(BS->LocateHandleBuffer, ByProtocol,
@@ -499,22 +536,25 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
          * PFS3, unknown and unrelated disk partitions. Newly published LVM
          * volumes are handled by the existing explicit virtual binding path.
          */
-        if (!LvmIsPublishedHandle(Handles[Index])) {
-            Recognized = FALSE;
+        DetectedFsType = FS_TYPE_UNKNOWN;
+        if (LvmIsPublishedHandle(Handles[Index])) {
+            /* Newly mapped LVM volumes were not in the first inventory. */
+            DetectedFsType = BootProbeFilesystemType(Handles[Index]);
+        } else {
             for (VolumeIndex = 0; VolumeIndex < VolumesCount; ++VolumeIndex) {
                 if (Volumes[VolumeIndex] &&
                     Volumes[VolumeIndex]->DeviceHandle == Handles[Index]) {
-                    Recognized = BootHasFilesystemReader(Volumes[VolumeIndex]->FSType);
+                    DetectedFsType = Volumes[VolumeIndex]->FSType;
                     break;
                 }
             }
-            if (!Recognized) {
-                ++Unsupported;
-                LOG(1, LOG_LINE_NORMAL,
-                    L"Skipping EFI driver connection handle=%d/%d: no supported filesystem signature",
-                    Index + 1, Count);
-                continue;
-            }
+        }
+        if (!BootHasFilesystemReader(DetectedFsType)) {
+            ++Unsupported;
+            LOG(1, LOG_LINE_NORMAL,
+                L"Skipping EFI driver connection handle=%d/%d: no supported filesystem signature",
+                Index + 1, Count);
+            continue;
         }
 
         ++Attempted;
@@ -535,14 +575,10 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
         }
 
         ConnectBegin = BootDiagTicks();
-        if (LvmIsPublishedHandle(Handles[Index])) {
-            /* Never hand a BOOT-created virtual disk to firmware's generic
-             * driver search: only started BOOT filesystem drivers probe it. */
-            ConnectStatus = BootBindVirtualFilesystem(Handles[Index]);
-        } else {
-            ConnectStatus = boot_call4_wrapper(BS->ConnectController,
-                                               Handles[Index], NULL, NULL, FALSE);
-        }
+        /* Only the matching, successfully registered BOOT reader is offered,
+         * for physical and virtual disks alike. Never do a generic firmware
+         * search across unrelated EFI drivers. */
+        ConnectStatus = BootBindFilesystem(Handles[Index], DetectedFsType);
         if (GlobalConfig.StartupDiagnostics) {
             UINT64 ConnectionMs = BootDiagElapsedMs(ConnectBegin);
             CHAR16 *DisplayText;
