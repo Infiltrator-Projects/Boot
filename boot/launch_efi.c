@@ -314,7 +314,10 @@ EFI_STATUS StartEFIImage(IN BOOT_VOLUME *Volume,
     CheckError(Status, ErrorInfo);
     MyFreePool(ErrorInfo);
     if (IsDriver) {
-
+        /* Only a successfully started EFI image that installed Driver
+         * Binding may manage BOOT's virtual LVM volumes. */
+        if (!EFI_ERROR(ReturnStatus))
+            RegisterBootFilesystemDriver(ChildImageHandle, ImageTitle);
         ConnectFilesystemDriver(ChildImageHandle);
     }
 
