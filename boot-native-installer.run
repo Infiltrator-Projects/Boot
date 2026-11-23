@@ -1407,13 +1407,23 @@ InstallOnLinux() {
       fi
       echo "Cleared previous BOOT installation at ${InstallDir%/}${TargetDir}"
    fi
+   # The temporary signed EFI source is removed by CopyBootFiles. Save its
+   # digest first and verify the exact installed bytes before touching NVRAM.
+   local ExpectedBootDigest InstalledBootDigest
+   ExpectedBootDigest=$(sha256sum "$BootDir/boot_$Platform.efi" | cut -d ' ' -f1)
+   if [[ ! "$ExpectedBootDigest" =~ ^[0-9a-f]{64}$ ]]; then
+      echo "BOOT: cannot fingerprint the built EFI image; refusing installation." >&2
+      Problems=1
+      return 1
+   fi
    CopyBootFiles
+   InstalledBootDigest=$(sha256sum "$InstallDir/$TargetDir/BOOTX64.EFI" 2>/dev/null | cut -d ' ' -f1)
    # Never promote an incomplete BOOT payload ahead of working OS loaders.
    if [[ "${Problems:-0}" == 1 ]] ||
       [[ ! -s "$InstallDir/$TargetDir/BOOTX64.EFI" ]] ||
       [[ ! -s "$InstallDir/$TargetDir/$Boot" ]] ||
       [[ ! -s "$InstallDir/$TargetDir/boot.conf" ]] ||
-      ! cmp -s "$BootDir/boot_$Platform.efi" "$InstallDir/$TargetDir/BOOTX64.EFI"; then
+      [[ "$InstalledBootDigest" != "$ExpectedBootDigest" ]]; then
       echo "BOOT: copied EFI installation is incomplete; BootOrder unchanged." >&2
       Problems=1
       return 1
