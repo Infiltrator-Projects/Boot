@@ -983,7 +983,7 @@ SignOneBinary() {
 ReSignBinaries() {
    SBSign="$(command -v sbsign 2> /dev/null)"
    echo "Found sbsign at $SBSign"
-   TempDir="/tmp/boot_local"
+   TempDir="$work/boot-signing"
    if [[ ! -x "$SBSign" ]] ; then
       echo "Can't find sbsign, which is required to sign BOOT with your own keys!"
       echo "Aborting!"
