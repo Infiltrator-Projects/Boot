@@ -88,6 +88,9 @@ VOID SetVolumeBadgeIcon(BOOT_VOLUME *Volume);
  * Selections referencing a previous inventory require reconsideration.
  */
 VOID ScanVolumes(VOID);
+/* Check boot.conf's existing dont_scan_volumes selection against a volume's
+ * GPT name, filesystem label and partition GUID. Does not perform disk I/O. */
+BOOLEAN BootVolumeExcluded(BOOT_VOLUME *Volume);
 VOID SetVolumeIcons(VOID);
 
 BOOLEAN FileExists(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath);
