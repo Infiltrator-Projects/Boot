@@ -1407,7 +1407,27 @@ InstallOnLinux() {
       echo "Cleared previous BOOT installation at ${InstallDir%/}${TargetDir}"
    fi
    CopyBootFiles
-   AddBootEntry
+   # Never promote an incomplete BOOT payload ahead of working OS loaders.
+   if [[ "${Problems:-0}" == 1 ]] ||
+      [[ ! -s "$InstallDir/$TargetDir/BOOTX64.EFI" ]] ||
+      [[ ! -s "$InstallDir/$TargetDir/$Boot" ]] ||
+      [[ ! -s "$InstallDir/$TargetDir/boot.conf" ]] ||
+      ! cmp -s "$BootDir/boot_$Platform.efi" "$InstallDir/$TargetDir/BOOTX64.EFI"; then
+      echo "BOOT: copied EFI installation is incomplete; BootOrder unchanged." >&2
+      Problems=1
+      return 1
+   fi
+   if [[ "$InstallDrivers" == all ]]; then
+      local driver
+      for driver in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+         if [[ ! -s "$InstallDir/$TargetDir/drivers_$Platform/${driver}_$Platform.efi" ]]; then
+            echo "BOOT: EFI driver missing after installation: $driver" >&2
+            Problems=1
+            return 1
+         fi
+      done
+   fi
+   AddBootEntry || return 1
 
    if [[ "$IsSecureBoot" == "1" && "$AlwaysYes" == "0" ]] ; then
       InstallSBKey
