@@ -318,7 +318,12 @@ EFI_STATUS StartEFIImage(IN BOOT_VOLUME *Volume,
          * Binding may manage BOOT's virtual LVM volumes. */
         if (!EFI_ERROR(ReturnStatus))
             RegisterBootFilesystemDriver(ChildImageHandle, ImageTitle);
-        ConnectFilesystemDriver(ChildImageHandle);
+        /*
+         * Do not bind a newly loaded driver to every Disk I/O handle here.
+         * LoadDrivers invokes the signature-gated storage connection pass
+         * after registering the drivers. The former eager rebind path could
+         * probe unsupported partitions before their signatures were checked.
+         */
     }
 
     ReinitBootLib();
