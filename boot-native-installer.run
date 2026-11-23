@@ -105,6 +105,7 @@ if [[ "$BootSecureBootEnabled" == "1" ]]; then
         while IFS= read -r -d '' candidate; do
             if [[ -s "$candidate" ]]; then BootShim="$candidate"; break; fi
         done < <(find "$search_root" -maxdepth 3 -type f \
+            ! -path '*/.*' \
             \( -iname shimx64.efi -o -iname shimx64.efi.signed \) -print0 2>/dev/null)
         [[ -n "$BootShim" ]] && break
     done
