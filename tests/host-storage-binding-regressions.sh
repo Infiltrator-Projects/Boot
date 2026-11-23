@@ -50,8 +50,9 @@ typedef struct BOOT_FS_DRIVER_NODE {
     EFI_HANDLE Image;
     CHAR16 *Name;
 } BOOT_FS_DRIVER_NODE;
-static BOOT_FS_DRIVER_NODE fs_driver={NULL,(EFI_HANDLE)(uintptr_t)100,L"ext4"};
-static BOOT_FS_DRIVER_NODE *BootFsDrivers=&fs_driver;
+static BOOT_FS_DRIVER_NODE fs_driver={NULL,(EFI_HANDLE)(uintptr_t)100,L"ext4_x64.efi"};
+static BOOT_FS_DRIVER_NODE unrelated_driver={&fs_driver,(EFI_HANDLE)(uintptr_t)101,L"btrfs_x64.efi"};
+static BOOT_FS_DRIVER_NODE *BootFsDrivers=&unrelated_driver;
 typedef struct {
  EFI_STATUS (*LocateHandleBuffer)(int,EFI_GUID*,VOID*,UINTN*,EFI_HANDLE**);
  EFI_STATUS (*HandleProtocol)(EFI_HANDLE,EFI_GUID*,VOID**);
@@ -88,17 +89,23 @@ static MY_EFI_BLOCK_IO_PROTOCOL block[]={{&media[0]},{&media[1]},
                                          {&media[3]},{&media[4]}};
 static MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL fs;
 static unsigned connects, unsupported, mounts, query_count, probed;
-static BOOLEAN root_mounted=FALSE;
+static BOOLEAN root_mounted=FALSE, physical_mounted=FALSE;
+/* A newly published logical volume must still be classified by its magic. */
+static UINT32 BootProbeFilesystemType(EFI_HANDLE handle) {
+ if ((uintptr_t)handle!=5 && (uintptr_t)handle!=6) abort();
+ return FS_TYPE_EXT4;
+}
 static EFI_STATUS mock_supported(BOOT_EFI_DRIVER_BINDING_PROTOCOL *drv,
                                   EFI_HANDLE handle,VOID *path) {
  (void)drv;(void)path;
- if ((uintptr_t)handle!=5 && (uintptr_t)handle!=6) abort();
+ if ((uintptr_t)handle!=2 && (uintptr_t)handle!=5 && (uintptr_t)handle!=6) abort();
  ++probed;
  return EFI_SUCCESS;
 }
 static EFI_STATUS mock_start(BOOT_EFI_DRIVER_BINDING_PROTOCOL *drv,
                             EFI_HANDLE handle,VOID *path) {
  (void)drv;(void)path;
+ if ((uintptr_t)handle==2) {++mounts;physical_mounted=TRUE;return EFI_SUCCESS;}
  if ((uintptr_t)handle==5) {++mounts;root_mounted=TRUE;return EFI_SUCCESS;}
  if ((uintptr_t)handle==6) {++unsupported;return EFI_NOT_FOUND;}
  abort();
@@ -121,18 +128,21 @@ static EFI_STATUS mock_protocol(EFI_HANDLE handle,EFI_GUID *guid,VOID **out) {
  if (index==100 && guid==&gMyEfiDriverBindingProtocolGuid) {
    *out=&binding; return EFI_SUCCESS;
  }
+ if (index==101 && guid==&gMyEfiDriverBindingProtocolGuid)
+   abort(); /* unrelated driver must never be asked to bind */
  if (!index || index>6) abort();
  if (guid==&gMyEfiBlockIoProtocolGuid) { *out=&block[index-1]; return EFI_SUCCESS; }
  if (guid==&gMyEfiSimpleFileSystemProtocolGuid &&
-     (index==1 || (index==5 && root_mounted))) {
+     (index==1 || (index==2 && physical_mounted) ||
+      (index==5 && root_mounted))) {
    *out=&fs; return EFI_SUCCESS;
  }
  return EFI_NOT_FOUND;
 }
 static EFI_STATUS mock_connect(EFI_HANDLE handle,EFI_HANDLE *drv,
                                VOID *remaining,BOOLEAN recursive) {
- if ((UINTN)(uintptr_t)handle!=2 || drv || remaining || recursive) abort();
- ++connects;
+ (void)handle;(void)drv;(void)remaining;(void)recursive;
+ abort(); /* BOOT must never invoke generic firmware driver search */
  return EFI_NOT_FOUND;
 }
 static BOOLEAN LvmIsPublishedHandle(EFI_HANDLE handle) {
@@ -149,15 +159,17 @@ static EFI_DEVICE_PATH *DevicePathFromHandle(EFI_HANDLE handle) {(void)handle;re
 static CHAR16 *DevicePathToStr(EFI_DEVICE_PATH *path) {(void)path;return NULL;}
 static void MyFreePool(void *p) { free(p); }
 HEAD
-awk '/^static EFI_STATUS BootBindVirtualFilesystem\(EFI_HANDLE VolumeHandle\)/ {on=1} on {print} on && /^}/ {exit}' boot/driver_support.c
+awk '/^static CHAR16 \*BootReaderStem\(UINT32 FsType\)/ {on=1} on {print} on && /^}/ {exit}' boot/driver_support.c
+awk '/^static BOOLEAN BootReaderNameMatches\(CHAR16 \*Name, CHAR16 \*Stem\)/ {on=1} on {print} on && /^}/ {exit}' boot/driver_support.c
+awk '/^static EFI_STATUS BootBindFilesystem\(EFI_HANDLE VolumeHandle, UINT32 FsType\)/ {on=1} on {print} on && /^}/ {exit}' boot/driver_support.c
 awk '/^EFI_STATUS ConnectAllDriversToAllControllers\(VOID\)/ {on=1} on {print} on && /^}/ {exit}' boot/driver_support.c
 cat <<'TEST'
 int main(void) {
  /* Handle 2 is ext4 and eligible; handle 4 is unsupported XFS and
   * must never reach ConnectController. Neither is hardcoded in BOOT. */
  if (ConnectAllDriversToAllControllers()!=EFI_SUCCESS ||
-     query_count!=1 || connects!=1 || probed!=2 || mounts!=1 ||
-     unsupported!=1 || !root_mounted) {
+     query_count!=1 || connects!=0 || probed!=3 || mounts!=2 ||
+     unsupported!=1 || !physical_mounted || !root_mounted) {
    fprintf(stderr,"incorrect storage/LVM binding: queries=%u connects=%u probes=%u mounts=%u unsupported=%u\n",
            query_count,connects,probed,mounts,unsupported);
    return 1;
@@ -167,9 +179,10 @@ int main(void) {
  exclusion_enabled=TRUE;
  query_count=connects=unsupported=mounts=probed=0;
  root_mounted=FALSE;
+ physical_mounted=FALSE;
  if (ConnectAllDriversToAllControllers()!=EFI_SUCCESS ||
      query_count!=1 || connects!=0 || probed!=2 || mounts!=1 ||
-     unsupported!=1 || !root_mounted) {
+     unsupported!=1 || !root_mounted || physical_mounted) {
    fprintf(stderr,"excluded controller was probed or LVM binding regressed: connects=%u probes=%u mounts=%u\n",
            connects,probed,mounts);
    return 1;
@@ -179,7 +192,7 @@ int main(void) {
 }
 TEST
 } > "$work/test.c"
-grep -Fq 'static EFI_STATUS BootBindVirtualFilesystem(EFI_HANDLE VolumeHandle)' "$work/test.c"
+grep -Fq 'static EFI_STATUS BootBindFilesystem(EFI_HANDLE VolumeHandle, UINT32 FsType)' "$work/test.c"
 grep -Fq 'EFI_STATUS ConnectAllDriversToAllControllers(VOID)' "$work/test.c"
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -O1 "$work/test.c" -o "$work/test"
 "$work/test"
