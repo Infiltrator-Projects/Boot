@@ -64,6 +64,17 @@ static EFI_GUID gMyEfiBlockIoProtocolGuid=1;
 static EFI_GUID gMyEfiSimpleFileSystemProtocolGuid=2;
 static EFI_GUID gMyEfiDriverBindingProtocolGuid=3;
 static struct { BOOLEAN StartupDiagnostics; } GlobalConfig = { FALSE };
+
+/* Mirror the production early-volume inventory used by the exclusion gate.
+ * The LVM mocks (handles 5/6) are published only AFTER the initial scan. */
+typedef struct { EFI_HANDLE DeviceHandle; } BOOT_VOLUME;
+static BOOT_VOLUME excluded_candidate={(EFI_HANDLE)(uintptr_t)2};
+static BOOT_VOLUME *Volumes[]={&excluded_candidate};
+static UINTN VolumesCount=1;
+static BOOLEAN exclusion_enabled=FALSE;
+static BOOLEAN BootVolumeExcluded(BOOT_VOLUME *volume) {
+ return exclusion_enabled && volume==&excluded_candidate;
+}
 static EFI_BLOCK_IO_MEDIA media[]={{TRUE},{TRUE},{FALSE},{TRUE},{TRUE}};
 static MY_EFI_BLOCK_IO_PROTOCOL block[]={{&media[0]},{&media[1]},
                                          {&media[2]},{NULL},
@@ -140,6 +151,18 @@ int main(void) {
      unsupported!=1 || !root_mounted) {
    fprintf(stderr,"incorrect storage/LVM binding: queries=%u connects=%u probes=%u mounts=%u unsupported=%u\n",
            query_count,connects,probed,mounts,unsupported);
+   return 1;
+ }
+ /* A configured exclusion must skip a normally probed controller,
+  * without skipping published LVM handles or other usable partitions. */
+ exclusion_enabled=TRUE;
+ query_count=connects=unsupported=mounts=probed=0;
+ root_mounted=FALSE;
+ if (ConnectAllDriversToAllControllers()!=EFI_SUCCESS ||
+     query_count!=1 || connects!=0 || probed!=2 || mounts!=1 ||
+     unsupported!=1 || !root_mounted) {
+   fprintf(stderr,"excluded controller was probed or LVM binding regressed: connects=%u probes=%u mounts=%u\n",
+           connects,probed,mounts);
    return 1;
  }
  puts("EFI storage and explicit virtual-LVM binding regressions passed");
