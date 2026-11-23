@@ -311,8 +311,10 @@ int main(void) {
                 NULL,L"boot",'R');
     expect_icon("Prior BOOT Secure installation",L"EFI\\InfiltratorBootSecure\\BOOTX64.EFI",
                 NULL,L"boot",'R');
+    /* The fixture volume is labelled Linux filesystem, so its weak icon
+     * hint is "linux"; it must never be misidentified as our BOOT manager. */
     expect_icon("Unrelated fallback BOOTX64",L"EFI\\OtherVendor\\BOOTX64.EFI",
-                NULL,L"unknown",0);
+                NULL,L"linux",0);
     expect_icon("macOS boot.efi",L"System\\Library\\CoreServices\\boot.efi",
                 NULL,L"mac",'M');
     expect_icon("GRUB in Ubuntu directory",L"EFI\\ubuntu\\grubx64.efi",
