@@ -91,6 +91,9 @@ VOID ScanVolumes(VOID);
 /* Check boot.conf's existing dont_scan_volumes selection against a volume's
  * GPT name, filesystem label and partition GUID. Does not perform disk I/O. */
 BOOLEAN BootVolumeExcluded(BOOT_VOLUME *Volume);
+/* Capability classification from validated on-disk signatures. EFI drivers
+ * may be offered only where an actual compiled reader supports this format. */
+BOOLEAN BootHasFilesystemReader(UINT32 FsType);
 VOID SetVolumeIcons(VOID);
 
 BOOLEAN FileExists(IN EFI_FILE_PROTOCOL *BaseDir, IN CHAR16 *RelativePath);
