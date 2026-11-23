@@ -659,6 +659,17 @@ static VOID LvmMapGroup(LVM_SPAN Group) {
  * whose checksum, UUID, sector bounds and linear extents all validate can
  * create virtual devices. Multiple metadata copies select highest VG seqno.
  */
+/* Identify owned LVM Block I/O handles by identity, never by a vendor path
+ * string, partition number, filesystem type or machine-specific firmware ID. */
+BOOLEAN LvmIsPublishedHandle(EFI_HANDLE Handle) {
+    UINTN i;
+    if (!Handle) return FALSE;
+    for (i = 0; i < LvmLvCount; ++i)
+        if (LvmLvs[i] && LvmLvs[i]->Handle == Handle)
+            return TRUE;
+    return FALSE;
+}
+
 BOOLEAN LvmDiscoverVolumes(VOID) {
     EFI_HANDLE *Handles = NULL;
     EFI_BLOCK_IO *Block;
