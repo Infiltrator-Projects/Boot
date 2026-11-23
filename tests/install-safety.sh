@@ -17,6 +17,16 @@ grep -Fqx 'dont_scan_firmware "BOOT Boot Manager"' boot.conf-sample
 # In the host parser, the first configured mode is TokenList[1].
 grep -Fq 'GlobalConfig.ScanFor[i] = TokenList[i + 1][0];' boot/config.c
 grep -Fq 'if (i + 1 < TokenCount)' boot/config.c
+
+# Explicitly excluded partitions must never be handed to firmware
+# ConnectController or re-probed for raw bootcode/SimpleFS. This is a source
+# contract check; the real EFI interaction is exercised by native boot tests.
+grep -Fq 'BootVolumeExcluded(Volumes[VolumeIndex])' boot/driver_support.c
+grep -Fq 'BootVolumeExcluded(Volume)' boot/lib.c
+grep -Fq 'BootVolumeExcluded(Volume)' boot/scan.c
+grep -Fq 'Skipping excluded volume' boot/lib.c
+grep -Fq 'dont_scan_volumes TEST_PARTITION_LABEL' boot.conf-sample
+
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 awk '/^RootDir=/ {inside=1} /^GetParams "\$@"$/ {exit} inside {print}' boot-native-installer.run > "$work/functions.sh"
