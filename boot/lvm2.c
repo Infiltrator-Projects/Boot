@@ -551,7 +551,12 @@ static EFI_STATUS EFIAPI LvmBlockRead(EFI_BLOCK_IO *This, UINT32 MediaId,
                                      EFI_LBA Lba, UINTN BufferSize,
                                      VOID *Buffer) {
     LVM_LV *Lv = LVM_OWNER(This, LVM_LV, Block);
-    if (MediaId != Lv->Media.MediaId) return EFI_MEDIA_CHANGED;
+    if (MediaId != Lv->Media.MediaId) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"LVM2: virtual Block I/O media mismatch supplied=%lu expected=%lu",
+            (UINT64)MediaId, (UINT64)Lv->Media.MediaId);
+        return EFI_MEDIA_CHANGED;
+    }
     if (!Buffer || BufferSize % 512) return EFI_BAD_BUFFER_SIZE;
     if (Lba >= Lv->Sectors && BufferSize) return EFI_END_OF_MEDIA;
     return LvmMappedRead(Lv, Lba * 512, BufferSize, Buffer);
@@ -570,7 +575,12 @@ static EFI_STATUS EFIAPI LvmDiskRead(EFI_DISK_IO *This, UINT32 MediaId,
                                     UINT64 Offset, UINTN BufferSize,
                                     VOID *Buffer) {
     LVM_LV *Lv = LVM_OWNER(This, LVM_LV, Disk);
-    if (MediaId != Lv->Media.MediaId) return EFI_MEDIA_CHANGED;
+    if (MediaId != Lv->Media.MediaId) {
+        LOG(1, LOG_LINE_NORMAL,
+            L"LVM2: virtual Disk I/O media mismatch supplied=%lu expected=%lu offset=%lu",
+            (UINT64)MediaId, (UINT64)Lv->Media.MediaId, Offset);
+        return EFI_MEDIA_CHANGED;
+    }
     if (!Buffer && BufferSize) return EFI_INVALID_PARAMETER;
     return LvmMappedRead(Lv, Offset, BufferSize, Buffer);
 }
@@ -632,21 +642,25 @@ static BOOLEAN LvmPublish(LVM_LV *Lv) {
     /*
      * Verify that the virtual Disk I/O mapping can actually read data before
      * a filesystem driver claims this handle. These two read-only probes
-     * exercise the first sector and a later sector through the same mapping
-     * used by filesystem discovery. They do not assume ext4 or LVM layout
+     * exercise the first sector and a later sector through the protocol
+     * callback via the firmware ABI wrapper, exactly as filesystem drivers
+     * will call it. A direct local C call would hide a mismatched EFIAPI ABI.
+     * They do not assume ext4 or LVM layout
      * peculiarities, and neither read modifies any underlying media.
      */
     {
         UINT8 Probe[512];
         EFI_STATUS ProbeStatus;
-        ProbeStatus = LvmDiskRead(&Lv->Disk, Lv->Media.MediaId, 0,
-                                  sizeof(Probe), Probe);
+        ProbeStatus = boot_call5_wrapper(Lv->Disk.ReadDisk, &Lv->Disk,
+                                         Lv->Media.MediaId, 0,
+                                         sizeof(Probe), Probe);
         LOG(1, LOG_LINE_NORMAL,
             L"LVM2: virtual Disk I/O probe offset=0 bytes=512 EFI=%lu",
             (UINT64)ProbeStatus);
         if (Lv->Sectors > 2) {
-            ProbeStatus = LvmDiskRead(&Lv->Disk, Lv->Media.MediaId, 1024,
-                                      sizeof(Probe), Probe);
+            ProbeStatus = boot_call5_wrapper(Lv->Disk.ReadDisk, &Lv->Disk,
+                                             Lv->Media.MediaId, 1024,
+                                             sizeof(Probe), Probe);
             LOG(1, LOG_LINE_NORMAL,
                 L"LVM2: virtual Disk I/O probe offset=1024 bytes=512 EFI=%lu",
                 (UINT64)ProbeStatus);
