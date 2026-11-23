@@ -435,7 +435,7 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
     EFI_HANDLE *Handles = NULL;
     MY_EFI_BLOCK_IO_PROTOCOL *BlockIo;
     MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *Fs;
-    UINTN Count = 0, Index, Attempted = 0;
+    UINTN Count = 0, Index, Attempted = 0, VolumeIndex, Excluded = 0;
     UINT64 PassBegin = BootDiagTicks(), ConnectBegin;
 
     Status = boot_call5_wrapper(BS->LocateHandleBuffer, ByProtocol,
@@ -459,6 +459,28 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
         if (EFI_ERROR(Status) || !BlockIo || !BlockIo->Media ||
             !BlockIo->Media->MediaPresent)
             continue;
+
+        /*
+         * The initial ScanVolumes inventory already contains GPT partition
+         * names for these handles. Apply dont_scan_volumes before invoking
+         * ConnectController, since EFI drivers can otherwise hold up startup
+         * for a firmware-media timeout on volumes that are explicitly excluded
+         * from BOOT discovery. BOOT-created LVM handles were published later
+         * and retain their normal explicit binding path.
+         */
+        for (VolumeIndex = 0; VolumeIndex < VolumesCount; ++VolumeIndex) {
+            if (Volumes[VolumeIndex] &&
+                Volumes[VolumeIndex]->DeviceHandle == Handles[Index] &&
+                BootVolumeExcluded(Volumes[VolumeIndex]))
+                break;
+        }
+        if (VolumeIndex < VolumesCount) {
+            ++Excluded;
+            LOG(1, LOG_LINE_NORMAL,
+                L"Skipping EFI controller handle=%d/%d excluded by dont_scan_volumes",
+                Index + 1, Count);
+            continue;
+        }
 
         /* Already readable volumes need no rebinding. */
         Status = boot_call3_wrapper(BS->HandleProtocol, Handles[Index],
@@ -511,8 +533,8 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 
     if (GlobalConfig.StartupDiagnostics) {
         LOG(1, LOG_LINE_NORMAL,
-            L"[DIAG] storage controller pass END attempts=%d elapsed=%lu ms",
-            Attempted, BootDiagElapsedMs(PassBegin));
+            L"[DIAG] storage controller pass END attempts=%d excluded=%d elapsed=%lu ms",
+            Attempted, Excluded, BootDiagElapsedMs(PassBegin));
         BootDiagFlush();
     }
     MyFreePool(Handles);
