@@ -44,6 +44,10 @@ timeout 20
 # unavailable on its filesystem. BOOT's own firmware entry is hidden to
 # prevent a recursive menu option; Ubuntu, Windows and other OS entries remain.
 scanfor f,i,e,o,m
+# Look for Linux EFI-stub kernels (vmlinuz*, bzImage*, kernel*) on readable
+# volumes, including a discovered read-only LVM filesystem. Listing a kernel
+# does not substitute for its initrd or required root= command line options.
+scan_all_linux_kernels true
 dont_scan_firmware "BOOT Boot Manager"
 
 use_nvram false
