@@ -528,7 +528,14 @@ static EFI_STATUS LvmMappedRead(LVM_LV *Lv, UINT64 Offset, UINTN Bytes,
         Status = LvmReadPv(&LvmPvs[Lv->Segments[i].PvIndex],
                            Lv->Segments[i].Physical * 512 + IntoSegment,
                            Chunk, Out);
-        if (EFI_ERROR(Status)) return Status;
+        if (EFI_ERROR(Status)) {
+            LOG(1, LOG_LINE_NORMAL,
+                L"LVM2: mapped PV read failed EFI=%lu logicalSector=%lu physicalSector=%lu bytes=%lu pv=%d",
+                (UINT64)Status, LogicalSector,
+                Lv->Segments[i].Physical + IntoSegment / 512,
+                (UINT64)Chunk, Lv->Segments[i].PvIndex);
+            return Status;
+        }
         Offset += Chunk;
         Out += Chunk;
         Bytes -= Chunk;
@@ -622,6 +629,29 @@ static BOOLEAN LvmPublish(LVM_LV *Lv) {
     }
     Lv->Handle = Handle;
     LvmLvs[LvmLvCount++] = Lv;
+    /*
+     * Verify that the virtual Disk I/O mapping can actually read data before
+     * a filesystem driver claims this handle. These two read-only probes
+     * exercise the first sector and a later sector through the same mapping
+     * used by filesystem discovery. They do not assume ext4 or LVM layout
+     * peculiarities, and neither read modifies any underlying media.
+     */
+    {
+        UINT8 Probe[512];
+        EFI_STATUS ProbeStatus;
+        ProbeStatus = LvmDiskRead(&Lv->Disk, Lv->Media.MediaId, 0,
+                                  sizeof(Probe), Probe);
+        LOG(1, LOG_LINE_NORMAL,
+            L"LVM2: virtual Disk I/O probe offset=0 bytes=512 EFI=%lu",
+            (UINT64)ProbeStatus);
+        if (Lv->Sectors > 2) {
+            ProbeStatus = LvmDiskRead(&Lv->Disk, Lv->Media.MediaId, 1024,
+                                      sizeof(Probe), Probe);
+            LOG(1, LOG_LINE_NORMAL,
+                L"LVM2: virtual Disk I/O probe offset=1024 bytes=512 EFI=%lu",
+                (UINT64)ProbeStatus);
+        }
+    }
     LOG(1, LOG_LINE_NORMAL, L"LVM2: read-only logical volume published (%lu sectors)",
         Lv->Sectors);
     return TRUE;
