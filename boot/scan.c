@@ -751,19 +751,14 @@ static VOID CleanUpLoaderList(struct LOADER_LIST *LoaderList) {
  * therefore produce different decisions.
  */
 static BOOLEAN ShouldScan(BOOT_VOLUME *Volume, CHAR16 *Path) {
-    CHAR16   *VolName = NULL, *DontScanDir, *PathCopy = NULL, *VolGuid = NULL;
+    CHAR16   *VolName = NULL, *DontScanDir, *PathCopy = NULL;
     UINTN    i = 0;
     BOOLEAN  ScanIt = TRUE;
 
-    VolGuid = GuidAsString(&(Volume->PartGuid));
-    if ((IsIn(Volume->FsName, GlobalConfig.DontScanVolumes)) ||
-        (IsIn(Volume->PartName, GlobalConfig.DontScanVolumes)) ||
-        (IsIn(VolGuid, GlobalConfig.DontScanVolumes))) {
-        MyFreePool(VolGuid);
+    /* The same volume exclusion also gates EFI controller binding and
+     * filesystem probing, not just menu presentation. */
+    if (BootVolumeExcluded(Volume))
         return FALSE;
-    } else {
-        MyFreePool(VolGuid);
-    }  
 
     if (MyStriCmp(Path, SelfDirPath) && (Volume->DeviceHandle == SelfVolume->DeviceHandle))
         return FALSE;
