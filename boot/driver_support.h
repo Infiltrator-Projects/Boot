@@ -62,6 +62,9 @@ LibScanHandleDatabase (
  */
 EFI_STATUS ConnectAllDriversToAllControllers(VOID);
 VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle);
+/* Register a started BOOT filesystem driver for explicit virtual-LVM mounts.
+ * Driver image and its binding remain alive until BOOT exits firmware mode. */
+VOID RegisterBootFilesystemDriver(EFI_HANDLE DriverHandle, CHAR16 *DriverName);
 BOOLEAN LoadDrivers(VOID);
 
 #endif
