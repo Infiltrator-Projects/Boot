@@ -67,17 +67,24 @@ static struct { BOOLEAN StartupDiagnostics; } GlobalConfig = { FALSE };
 
 /* Mirror the production early-volume inventory used by the exclusion gate.
  * The LVM mocks (handles 5/6) are published only AFTER the initial scan. */
-typedef struct { EFI_HANDLE DeviceHandle; } BOOT_VOLUME;
-static BOOT_VOLUME excluded_candidate={(EFI_HANDLE)(uintptr_t)2};
-static BOOT_VOLUME *Volumes[]={&excluded_candidate};
-static UINTN VolumesCount=1;
+#define FS_TYPE_EXT4 7
+#define FS_TYPE_XFS 11
+typedef struct { EFI_HANDLE DeviceHandle; UINT32 FSType; } BOOT_VOLUME;
+static BOOT_VOLUME recognized_candidate={(EFI_HANDLE)(uintptr_t)2,FS_TYPE_EXT4};
+static BOOT_VOLUME unsupported_candidate={(EFI_HANDLE)(uintptr_t)4,FS_TYPE_XFS};
+static BOOT_VOLUME *Volumes[]={&recognized_candidate,&unsupported_candidate};
+static UINTN VolumesCount=2;
 static BOOLEAN exclusion_enabled=FALSE;
 static BOOLEAN BootVolumeExcluded(BOOT_VOLUME *volume) {
- return exclusion_enabled && volume==&excluded_candidate;
+ return exclusion_enabled && volume==&recognized_candidate;
+}
+/* Host mock of the production signature-to-reader capability predicate. */
+static BOOLEAN BootHasFilesystemReader(UINT32 fs) {
+ return fs==FS_TYPE_EXT4;
 }
 static EFI_BLOCK_IO_MEDIA media[]={{TRUE},{TRUE},{FALSE},{TRUE},{TRUE}};
 static MY_EFI_BLOCK_IO_PROTOCOL block[]={{&media[0]},{&media[1]},
-                                         {&media[2]},{NULL},
+                                         {&media[2]},{&media[3]},
                                          {&media[3]},{&media[4]}};
 static MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL fs;
 static unsigned connects, unsupported, mounts, query_count, probed;
@@ -146,6 +153,8 @@ awk '/^static EFI_STATUS BootBindVirtualFilesystem\(EFI_HANDLE VolumeHandle\)/ {
 awk '/^EFI_STATUS ConnectAllDriversToAllControllers\(VOID\)/ {on=1} on {print} on && /^}/ {exit}' boot/driver_support.c
 cat <<'TEST'
 int main(void) {
+ /* Handle 2 is ext4 and eligible; handle 4 is unsupported XFS and
+  * must never reach ConnectController. Neither is hardcoded in BOOT. */
  if (ConnectAllDriversToAllControllers()!=EFI_SUCCESS ||
      query_count!=1 || connects!=1 || probed!=2 || mounts!=1 ||
      unsupported!=1 || !root_mounted) {
