@@ -1233,7 +1233,7 @@ static BOOT_FILE * GenerateOptionsFromEtcFstab(BOOT_VOLUME *Volume) {
                         for (i = 0; i < StrLen(Root); i++)
                             if (Root[i] == '\\')
                                 Root[i] = '/';
-                        Line = PoolPrint(L"\"Boot with normal options\"    \"ro root=%s\"\n", Root);
+                        Line = PoolPrint(L"\"Boot with normal options\"    \"ro root=%s quiet splash\"\n", Root);
                         MergeStrings((CHAR16 **) &(Options->Buffer), Line, 0);
                         MyFreePool(Line);
                         Line = PoolPrint(L"\"Boot into single-user mode\"  \"ro root=%s single\"\n", Root);
@@ -1282,7 +1282,7 @@ static BOOT_FILE * GenerateOptionsFromPartTypes(VOID) {
             WriteStatus = GlobalConfig.DiscoveredRoot->IsMarkedReadOnly ? L"ro" : L"rw";
             ToLower(GuidString);
             if (GuidString) {
-                Line = PoolPrint(L"\"Boot with normal options\"    \"%s root=/dev/disk/by-partuuid/%s\"\n",
+                Line = PoolPrint(L"\"Boot with normal options\"    \"%s root=/dev/disk/by-partuuid/%s quiet splash\"\n",
                                  WriteStatus, GuidString);
                 MergeStrings((CHAR16 **) &(Options->Buffer), Line, 0);
                 MyFreePool(Line);
@@ -1303,6 +1303,12 @@ static BOOT_FILE * GenerateOptionsFromPartTypes(VOID) {
     return Options;
 }  
 
+/*
+ * Synthetic Linux fallback entries use quiet splash for a normal graphical
+ * startup when a distribution has not provided an explicit kernel options
+ * file. Recovery/single-user entries remain verbose. Existing options files
+ * are authoritative and are never rewritten by this fallback.
+ */
 /**
  * Search the kernel's own directory in LINUX_OPTIONS_FILENAMES order and stop on
  * the first successful read. If none opens, try the volume's fstab and then the
