@@ -17,6 +17,26 @@
 #include "driver_support.h"
 #include "../include/boot_call_wrapper.h"
 
+/*
+ * Protocol methods are called from separately loaded EFI drivers through the
+ * firmware's x64 Microsoft ABI. BOOT's GNU-EFI application otherwise compiles
+ * ordinary C functions with the System V ABI and calls firmware through
+ * uefi_call_wrapper. A plain EFIAPI on these methods can therefore be empty.
+ * Explicitly decorate ONLY these published callbacks, not included headers
+ * or BOOT's normal C functions (which have unrelated calling conventions).
+ *
+ * GNU-EFI's Block/Disk I/O typedefs omit the ABI attribute in wrapper mode.
+ * Assign those methods with an explicit pointer-type cast; their callers use
+ * the EFI wrapper, while the method implementations really are ms_abi.
+ */
+#if defined(__MAKEWITH_GNUEFI) && defined(EFIX64)
+#define LVM_PROTOCOL_ABI __attribute__((ms_abi))
+#define LVM_PROTOCOL_FN(Field, Fn) ((__typeof__(Field))(Fn))
+#else
+#define LVM_PROTOCOL_ABI EFIAPI
+#define LVM_PROTOCOL_FN(Field, Fn) (Fn)
+#endif
+
 #define LVM_SECTOR          512U
 #define LVM_PVS_MAX         16U
 #define LVM_LVS_MAX         16U
@@ -542,12 +562,12 @@ static EFI_STATUS LvmMappedRead(LVM_LV *Lv, UINT64 Offset, UINTN Bytes,
     }
     return EFI_SUCCESS;
 }
-static EFI_STATUS EFIAPI LvmBlockReset(EFI_BLOCK_IO *This,
+static EFI_STATUS LVM_PROTOCOL_ABI LvmBlockReset(EFI_BLOCK_IO *This,
                                       BOOLEAN ExtendedVerification) {
     (VOID)This; (VOID)ExtendedVerification;
     return EFI_SUCCESS;
 }
-static EFI_STATUS EFIAPI LvmBlockRead(EFI_BLOCK_IO *This, UINT32 MediaId,
+static EFI_STATUS LVM_PROTOCOL_ABI LvmBlockRead(EFI_BLOCK_IO *This, UINT32 MediaId,
                                      EFI_LBA Lba, UINTN BufferSize,
                                      VOID *Buffer) {
     LVM_LV *Lv = LVM_OWNER(This, LVM_LV, Block);
@@ -561,17 +581,17 @@ static EFI_STATUS EFIAPI LvmBlockRead(EFI_BLOCK_IO *This, UINT32 MediaId,
     if (Lba >= Lv->Sectors && BufferSize) return EFI_END_OF_MEDIA;
     return LvmMappedRead(Lv, Lba * 512, BufferSize, Buffer);
 }
-static EFI_STATUS EFIAPI LvmBlockWrite(EFI_BLOCK_IO *This, UINT32 MediaId,
+static EFI_STATUS LVM_PROTOCOL_ABI LvmBlockWrite(EFI_BLOCK_IO *This, UINT32 MediaId,
                                       EFI_LBA Lba, UINTN BufferSize,
                                       VOID *Buffer) {
     (VOID)This; (VOID)MediaId; (VOID)Lba; (VOID)BufferSize; (VOID)Buffer;
     return EFI_WRITE_PROTECTED;
 }
-static EFI_STATUS EFIAPI LvmFlush(EFI_BLOCK_IO *This) {
+static EFI_STATUS LVM_PROTOCOL_ABI LvmFlush(EFI_BLOCK_IO *This) {
     (VOID)This;
     return EFI_SUCCESS;
 }
-static EFI_STATUS EFIAPI LvmDiskRead(EFI_DISK_IO *This, UINT32 MediaId,
+static EFI_STATUS LVM_PROTOCOL_ABI LvmDiskRead(EFI_DISK_IO *This, UINT32 MediaId,
                                     UINT64 Offset, UINTN BufferSize,
                                     VOID *Buffer) {
     LVM_LV *Lv = LVM_OWNER(This, LVM_LV, Disk);
@@ -584,7 +604,7 @@ static EFI_STATUS EFIAPI LvmDiskRead(EFI_DISK_IO *This, UINT32 MediaId,
     if (!Buffer && BufferSize) return EFI_INVALID_PARAMETER;
     return LvmMappedRead(Lv, Offset, BufferSize, Buffer);
 }
-static EFI_STATUS EFIAPI LvmDiskWrite(EFI_DISK_IO *This, UINT32 MediaId,
+static EFI_STATUS LVM_PROTOCOL_ABI LvmDiskWrite(EFI_DISK_IO *This, UINT32 MediaId,
                                      UINT64 Offset, UINTN BufferSize,
                                      VOID *Buffer) {
     (VOID)This; (VOID)MediaId; (VOID)Offset; (VOID)BufferSize; (VOID)Buffer;
@@ -608,13 +628,13 @@ static BOOLEAN LvmPublish(LVM_LV *Lv) {
     Lv->Media.LastBlock = Lv->Sectors - 1;
     Lv->Block.Revision = 0x00010000;
     Lv->Block.Media = &Lv->Media;
-    Lv->Block.Reset = LvmBlockReset;
-    Lv->Block.ReadBlocks = LvmBlockRead;
-    Lv->Block.WriteBlocks = LvmBlockWrite;
-    Lv->Block.FlushBlocks = LvmFlush;
+    Lv->Block.Reset = LVM_PROTOCOL_FN(Lv->Block.Reset, LvmBlockReset);
+    Lv->Block.ReadBlocks = LVM_PROTOCOL_FN(Lv->Block.ReadBlocks, LvmBlockRead);
+    Lv->Block.WriteBlocks = LVM_PROTOCOL_FN(Lv->Block.WriteBlocks, LvmBlockWrite);
+    Lv->Block.FlushBlocks = LVM_PROTOCOL_FN(Lv->Block.FlushBlocks, LvmFlush);
     Lv->Disk.Revision = 0x00010000;
-    Lv->Disk.ReadDisk = LvmDiskRead;
-    Lv->Disk.WriteDisk = LvmDiskWrite;
+    Lv->Disk.ReadDisk = LVM_PROTOCOL_FN(Lv->Disk.ReadDisk, LvmDiskRead);
+    Lv->Disk.WriteDisk = LVM_PROTOCOL_FN(Lv->Disk.WriteDisk, LvmDiskWrite);
     Lv->DevicePath.Node.Type = MESSAGING_DEVICE_PATH;
     Lv->DevicePath.Node.SubType = MSG_VENDOR_DP;
     Lv->DevicePath.Node.Length[0] = sizeof(EFI_DEVICE_PATH) +
