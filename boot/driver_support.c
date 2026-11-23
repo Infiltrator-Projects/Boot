@@ -436,6 +436,8 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
     MY_EFI_BLOCK_IO_PROTOCOL *BlockIo;
     MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *Fs;
     UINTN Count = 0, Index, Attempted = 0, VolumeIndex, Excluded = 0;
+    UINTN Unsupported = 0;
+    BOOLEAN Recognized;
     UINT64 PassBegin = BootDiagTicks(), ConnectBegin;
 
     Status = boot_call5_wrapper(BS->LocateHandleBuffer, ByProtocol,
@@ -482,12 +484,38 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
             continue;
         }
 
-        /* Already readable volumes need no rebinding. */
+        /* Already readable volumes need no rebinding. Firmware-native
+         * SimpleFileSystem support takes precedence over BOOT's classifiers. */
         Status = boot_call3_wrapper(BS->HandleProtocol, Handles[Index],
                                    &gMyEfiSimpleFileSystemProtocolGuid,
                                    (VOID **)&Fs);
         if (Status == EFI_SUCCESS)
             continue;
+
+        /*
+         * Only offer filesystem drivers to physical volumes whose initial
+         * read-only superblock probe recognised a format actually supported
+         * by BOOT. This avoids searching every loaded EFI driver against SFS,
+         * PFS3, unknown and unrelated disk partitions. Newly published LVM
+         * volumes are handled by the existing explicit virtual binding path.
+         */
+        if (!LvmIsPublishedHandle(Handles[Index])) {
+            Recognized = FALSE;
+            for (VolumeIndex = 0; VolumeIndex < VolumesCount; ++VolumeIndex) {
+                if (Volumes[VolumeIndex] &&
+                    Volumes[VolumeIndex]->DeviceHandle == Handles[Index]) {
+                    Recognized = BootHasFilesystemReader(Volumes[VolumeIndex]->FSType);
+                    break;
+                }
+            }
+            if (!Recognized) {
+                ++Unsupported;
+                LOG(1, LOG_LINE_NORMAL,
+                    L"Skipping EFI driver connection handle=%d/%d: no supported filesystem signature",
+                    Index + 1, Count);
+                continue;
+            }
+        }
 
         ++Attempted;
         if (GlobalConfig.StartupDiagnostics) {
@@ -533,8 +561,8 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID)
 
     if (GlobalConfig.StartupDiagnostics) {
         LOG(1, LOG_LINE_NORMAL,
-            L"[DIAG] storage controller pass END attempts=%d excluded=%d elapsed=%lu ms",
-            Attempted, Excluded, BootDiagElapsedMs(PassBegin));
+            L"[DIAG] storage controller pass END attempts=%d excluded=%d unsupported=%d elapsed=%lu ms",
+            Attempted, Excluded, Unsupported, BootDiagElapsedMs(PassBegin));
         BootDiagFlush();
     }
     MyFreePool(Handles);
