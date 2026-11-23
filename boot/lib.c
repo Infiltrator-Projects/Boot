@@ -1039,6 +1039,31 @@ static BOOLEAN HasWindowsBiosBootFiles(BOOT_VOLUME *Volume) {
 }  
 
 /*
+ * Filesystem signatures recognised by BOOT's built-in read-only classifier
+ * and backed by EFI driver images in the current release. Unlike GPT labels
+ * or filesystem names, these types come from a bounded raw superblock probe.
+ * Firmware-supplied Simple File System protocols are always usable without
+ * this list; this capability only controls NEW driver mounting attempts.
+ * FAT, NTFS, XFS, JFS, SFS, PFS3 and unknown formats have no BOOT-provided
+ * EFI reader here and must not be offered an unrelated driver.
+ */
+BOOLEAN BootHasFilesystemReader(UINT32 FsType)
+{
+    switch (FsType) {
+        case FS_TYPE_EXT2:
+        case FS_TYPE_EXT3:
+        case FS_TYPE_EXT4:
+        case FS_TYPE_HFSPLUS:
+        case FS_TYPE_REISERFS:
+        case FS_TYPE_BTRFS:
+        case FS_TYPE_ISO9660:
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
+/*
  * A configured volume exclusion must take effect before connecting EFI
  * filesystem drivers or reading the same partition again during the volume
  * rescan. Previously dont_scan_volumes applied only to menu discovery, while
@@ -1070,7 +1095,7 @@ BOOLEAN BootVolumeExcluded(BOOT_VOLUME *Volume)
  * A missing protocol or a recognised-but-unreadable filesystem is not evidence
  * of a valid OS loader; downstream scanning must require readable RootDir.
  */
-VOID ScanVolume(BOOT_VOLUME *Volume)
+VOID ScanVolume(BOOT_VOLUME *Volume, BOOLEAN ProbeFilesystem)
 {
     EFI_STATUS              Status;
     EFI_DEVICE_PATH         *DevicePath, *NextDevicePath;
@@ -1169,6 +1194,23 @@ VOID ScanVolume(BOOT_VOLUME *Volume)
         Volume->VolName = GetVolumeName(Volume);
         LOG(1, LOG_LINE_NORMAL,
             L"Skipping excluded volume '%s' before filesystem probing",
+            Volume->VolName);
+        return;
+    }
+
+    /*
+     * On post-driver rescans, a partition classified on the first pass as
+     * unsupported and unreadable cannot have been mounted by any BOOT driver:
+     * driver binding is now signature-gated. Avoid repeating the raw-sector
+     * and OpenVolume probes, which can each block inside UEFI media firmware.
+     * Partition identity still comes from the current device path/GPT.
+     */
+    if (!ProbeFilesystem) {
+        Volume->RootDir = NULL;
+        Volume->IsReadable = FALSE;
+        Volume->VolName = GetVolumeName(Volume);
+        LOG(1, LOG_LINE_NORMAL,
+            L"Skipping repeated unsupported filesystem probe on '%s'",
             Volume->VolName);
         return;
     }
@@ -1292,8 +1334,30 @@ VOID ScanVolumes(VOID)
     EFI_GUID                *UuidList;
     EFI_GUID                NullUuid = NULL_GUID_VALUE;
     UINT64                  ProbeBegin, VolumeBegin;
+    EFI_HANDLE              *UnsupportedHandles = NULL;
+    UINTN                   UnsupportedCount = 0, OldVolumeIndex;
+    BOOLEAN                 ProbeFilesystem;
 
     LOG(1, LOG_LINE_SEPARATOR, L"Scanning for volumes");
+    /*
+     * Snapshot only the handle identities of initially unreadable, unsupported
+     * logical partitions before rebuilding the inventory. New handles (for
+     * example freshly published LVM logical volumes) are always probed.
+     * Physical GPT or filesystem labels never control this decision.
+     */
+    if (VolumesCount > 0 && Volumes) {
+        UnsupportedHandles = AllocateZeroPool(VolumesCount * sizeof(EFI_HANDLE));
+        if (UnsupportedHandles) {
+            for (OldVolumeIndex = 0; OldVolumeIndex < VolumesCount; ++OldVolumeIndex) {
+                BOOT_VOLUME *Old = Volumes[OldVolumeIndex];
+                if (Old && Old->DeviceHandle && !Old->IsReadable &&
+                    Old->BlockIO && Old->BlockIO->Media &&
+                    Old->BlockIO->Media->LogicalPartition &&
+                    !BootHasFilesystemReader(Old->FSType))
+                    UnsupportedHandles[UnsupportedCount++] = Old->DeviceHandle;
+            }
+        }
+    }
     MyFreePool(Volumes);
     Volumes = NULL;
     VolumesCount = 0;
@@ -1305,10 +1369,13 @@ VOID ScanVolumes(VOID)
         BootDiagHandleEnumeration(BootDiagElapsedMs(ProbeBegin), HandleCount, Status);
     LOG(2, LOG_LINE_NORMAL, L"Found handles for %d volumes", HandleCount);
     if (Status == EFI_NOT_FOUND) {
-        return;   
-    }
-    if (CheckError(Status, L"while listing all file systems"))
+        MyFreePool(UnsupportedHandles);
         return;
+    }
+    if (CheckError(Status, L"while listing all file systems")) {
+        MyFreePool(UnsupportedHandles);
+        return;
+    }
     UuidList = AllocateZeroPool(sizeof(EFI_GUID) * HandleCount);
 
     for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
@@ -1316,7 +1383,14 @@ VOID ScanVolumes(VOID)
         Volume->DeviceHandle = Handles[HandleIndex];
         VolumeBegin = BootDiagTicks();
         AddPartitionTable(Volume);
-        ScanVolume(Volume);
+        ProbeFilesystem = TRUE;
+        for (OldVolumeIndex = 0; OldVolumeIndex < UnsupportedCount; ++OldVolumeIndex) {
+            if (UnsupportedHandles[OldVolumeIndex] == Handles[HandleIndex]) {
+                ProbeFilesystem = FALSE;
+                break;
+            }
+        }
+        ScanVolume(Volume, ProbeFilesystem);
         if (GlobalConfig.StartupDiagnostics)
             BootDiagVolumeTiming(HandleIndex, HandleCount, Volume->VolName,
                                  BootDiagElapsedMs(VolumeBegin));
@@ -1338,6 +1412,7 @@ VOID ScanVolumes(VOID)
     }
     MyFreePool(UuidList);
     MyFreePool(Handles);
+    MyFreePool(UnsupportedHandles);
 
     if (SelfVolume == NULL)
         Print(L"WARNING: SelfVolume not found");
