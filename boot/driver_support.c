@@ -612,86 +612,11 @@ EFI_STATUS ConnectAllDriversToAllControllers(VOID) {
 }
 #endif
 
-/**
- * Inspect partition handles exposing Disk I/O that currently lack Simple File
- * System. For each driver-open record, disconnect its agent and, only on success,
- * offer the newly started driver to ConnectController. Existing readable
- * partition handles are skipped. Each OpenProtocolInformation array belongs to
- * one enumeration iteration and is freed after that handle is processed.
- * This routine has no result channel: neither DisconnectController nor
- * ConnectController failure propagates to its caller. Disconnecting an existing
- * driver can affect access to the volume; a subsequent rescan is needed to
- * observe which Simple File System protocols remain available. This is a
- * controller rebinding operation, not evidence that a newly loaded filesystem
- * driver successfully mounted a volume.
+/*
+ * Driver registration is nonbinding. The capability-filtered pass above is
+ * the only EFI mount entry point; legacy eager controller rebinding has been
+ * removed because it could bypass the on-disk signature check.
  */
-VOID ConnectFilesystemDriver(EFI_HANDLE DriverHandle) {
-    EFI_STATUS                            Status;
-    UINTN                                 HandleCount = 0;
-    UINTN                                 Index;
-    UINTN                                 OpenInfoIndex;
-    EFI_HANDLE                            *Handles = NULL;
-    MY_EFI_SIMPLE_FILE_SYSTEM_PROTOCOL       *Fs;
-    MY_EFI_BLOCK_IO_PROTOCOL                 *BlockIo;
-    EFI_OPEN_PROTOCOL_INFORMATION_ENTRY   *OpenInfo;
-    UINTN                                 OpenInfoCount;
-    EFI_HANDLE                            DriverHandleList[2];
-
-    Status = boot_call5_wrapper(gBS->LocateHandleBuffer,
-                                 ByProtocol,
-                                 &gMyEfiDiskIoProtocolGuid,
-                                 NULL,
-                                 &HandleCount,
-                                 &Handles);
-    if (EFI_ERROR(Status) || HandleCount == 0)
-        return;
-
-    for (Index = 0; Index < HandleCount; Index++) {
-
-        Status = boot_call3_wrapper(gBS->HandleProtocol,
-                                     Handles[Index],
-                                     &gMyEfiBlockIoProtocolGuid,
-                                     (VOID **) &BlockIo);
-        if (EFI_ERROR (Status))
-            continue;
-        if (BlockIo->Media == NULL || !BlockIo->Media->LogicalPartition)
-            continue;
-
-        Status = boot_call3_wrapper(gBS->HandleProtocol,
-                                     Handles[Index],
-                                     &gMyEfiSimpleFileSystemProtocolGuid,
-                                     (VOID **) &Fs);
-        if (Status == EFI_SUCCESS)
-            continue;
-
-        Status = boot_call4_wrapper(gBS->OpenProtocolInformation,
-                                     Handles[Index],
-                                     &gMyEfiDiskIoProtocolGuid,
-                                     &OpenInfo,
-                                     &OpenInfoCount);
-        if (EFI_ERROR (Status))
-            continue;
-        DriverHandleList[1] = NULL;
-        for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
-            if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
-                Status = boot_call3_wrapper(gBS->DisconnectController,
-                                             Handles[Index],
-                                             OpenInfo[OpenInfoIndex].AgentHandle,
-                                             NULL);
-                if (!(EFI_ERROR(Status))) {
-                    DriverHandleList[0] = DriverHandle;
-                    boot_call4_wrapper(gBS->ConnectController,
-                                        Handles[Index],
-                                        DriverHandleList,
-                                        NULL,
-                                        FALSE);
-                }  
-            }  
-        }  
-        MyFreePool (OpenInfo);
-    }
-    MyFreePool(Handles);
-}  
 
 /**
  * Count non-hidden .efi candidates as they are discovered, before StartEFIImage
