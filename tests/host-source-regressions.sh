@@ -9,6 +9,13 @@
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Normal Linux fallback launches Plymouth where available; do not silence
+# recovery mode or override an explicit distribution kernel options file.
+grep -Fq 'ro root=%s quiet splash' boot/config.c
+grep -Fq '%s root=/dev/disk/by-partuuid/%s quiet splash' boot/config.c
+grep -Fq 'ro root=%s single' boot/config.c
+grep -Fq '%s root=/dev/disk/by-partuuid/%s single' boot/config.c
+
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 {
