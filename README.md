@@ -47,7 +47,7 @@ Published `boot-VERSION-native-installer.run` files are different: executing one
 
 The installed executable is `BOOTX64.EFI`. Reinstallation replaces the contents of BOOT's dedicated directory, including its previous configuration; it does not remove the separate Windows, GRUB or `EFI/BOOT` firmware paths.
 
-The generic AMD64 `.deb` supplies the prebuilt EFI executable, six drivers and resources under `/usr/share/infiltrator-boot`. Its `postinst` installs them to the same fixed `/EFI/InfiltratorOS/BOOT` directory and registers BOOT first in UEFI BootOrder. It requires a mounted VFAT ESP and UEFI firmware access; it does not compile on the target host. A release publishes a `.run`, a `.deb` and `SHA256SUMS`; the release workflow labels these builds as prereleases pending broader hardware qualification.
+The generic AMD64 `.deb` supplies the prebuilt EFI executable, six drivers and resources under `/usr/share/infiltrator-boot`. Its `postinst` installs them to the same fixed `/EFI/InfiltratorOS/BOOT` directory and registers BOOT first in UEFI BootOrder. It requires a mounted VFAT ESP and UEFI firmware access; it does not compile on the target host. A release publishes a `.run`, a `.deb` and `SHA256SUMS`; the release workflow publishes these as stable GitHub releases. This classification does not establish physical-hardware or production boot qualification.
 
 ## Verification and limits
 

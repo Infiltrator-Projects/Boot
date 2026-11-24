@@ -82,7 +82,7 @@ The generic AMD64 `.deb` installs its precompiled EFI binary, six drivers and re
 
 `Makefile` calls the GNU-EFI build for `libeg/`, `mok/`, `gzip/`, `EfiLib/`, `boot/` and `filesystems/`. `packaging/build-release.sh` pins the exact source commit in the downloadable `.run` and creates an installing generic `.deb` plus checksums. `packaging/test-release.sh` verifies artifact metadata, expected driver contents and native-install structure.
 
-`.github/workflows/boot.yml` owns current AMD64 verification and automated prerelease publication. The source tree also includes older or alternative make targets; only the explicit native release path is authoritative for the shipped `.run`.
+`.github/workflows/boot.yml` owns current AMD64 verification and automated stable release publication; this release classification is separate from physical-hardware qualification. The source tree also includes older or alternative make targets; only the explicit native release path is authoritative for the shipped `.run`.
 
 ## Font-file provenance, verification and firmware rasterisation
 

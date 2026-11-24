@@ -10,6 +10,64 @@
 #include "fsw_core.h"
 
 #include "fsw_strfunc.h"
+#include <limits.h>
+
+/*
+ * The historical conversion helpers consume decoded units, not byte counts.
+ * Before either equality or coercion invokes them, prove that every unit
+ * resides inside the declared borrowed slice. Fixed-width encodings require
+ * exact byte/unit correspondence; UTF-8 requires a complete sequence and
+ * the exact advertised count. This is a storage-safety contract, not a
+ * claim of full Unicode scalar, normalization or surrogate-pair support.
+ * EMPTY descriptors deliberately have no live storage; callers may leave
+ * their other members unspecified.
+ */
+static int fsw_string_readable(const struct fsw_string *s)
+{
+    const fsw_u8 *bytes;
+    int pos = 0, units = 0;
+
+    if (!s)
+        return 0;
+    if (s->type == FSW_STRING_TYPE_EMPTY)
+        return 1;
+    if (s->len < 0 || s->size < 0 || (s->size != 0 && !s->data))
+        return 0;
+    if (s->type == FSW_STRING_TYPE_ISO88591)
+        return s->len == s->size;
+    if (s->type == FSW_STRING_TYPE_UTF16 ||
+        s->type == FSW_STRING_TYPE_UTF16_SWAPPED)
+        return s->size % 2 == 0 && s->len == s->size / 2;
+    if (s->type != FSW_STRING_TYPE_UTF8 || s->len > s->size)
+        return 0;
+
+    bytes = (const fsw_u8 *)s->data;
+    while (pos < s->size) {
+        fsw_u8 lead = bytes[pos++];
+        int tail;
+        if (lead < 0x80)
+            tail = 0;
+        else if (lead >= 0xc2 && lead <= 0xdf)
+            tail = 1;
+        else if (lead >= 0xe0 && lead <= 0xef)
+            tail = 2;
+        else if (lead >= 0xf0 && lead <= 0xf4)
+            tail = 3;
+        else
+            return 0;
+
+        if (tail > s->size - pos)
+            return 0;
+        while (tail-- > 0) {
+            if ((bytes[pos++] & 0xc0) != 0x80)
+                return 0;
+        }
+        if (++units > s->len)
+            return 0;
+    }
+    return units == s->len;
+}
+
 
 /*
  * Allocates and zero-initialises an FSW-owned buffer. The result must not
@@ -51,13 +109,16 @@ int fsw_strlen(struct fsw_string *s)
 
 /**
  * First compare logical lengths. Equal encodings also require equal byte lengths
- * and then use a byte comparison. Mixed encodings dispatch to a generated
- * pairwise comparator. Empty values compare equal across encodings, independently
+ * and then use a byte comparison. Mixed encodings dispatch to a legacy
+ * pairwise comparator only after both counted slices are validated. Empty values compare equal across encodings, independently
  * of their data pointers.
  */
 int fsw_streq(struct fsw_string *s1, struct fsw_string *s2)
 {
     struct fsw_string temp_s;
+
+    if (!fsw_string_readable(s1) || !fsw_string_readable(s2))
+        return 0;
 
     if (s1->type == FSW_STRING_TYPE_EMPTY) {
         temp_s.type = FSW_STRING_TYPE_ISO88591;
@@ -129,6 +190,14 @@ int fsw_streq_cstr(struct fsw_string *s1, const char *s2)
 fsw_status_t fsw_strdup_coerce(struct fsw_string *dest, int type, struct fsw_string *src)
 {
     fsw_status_t    status;
+
+    if (!dest || !fsw_string_readable(src))
+        return FSW_VOLUME_CORRUPTED;
+    /* The widest legacy encoder can emit four bytes per source unit.
+     * Bound its signed size accumulator before allocation or conversion. */
+    if (src->type != FSW_STRING_TYPE_EMPTY && src->type != type &&
+        src->len > INT_MAX / 4)
+        return FSW_UNSUPPORTED;
 
     if (src->type == FSW_STRING_TYPE_EMPTY || src->len == 0) {
         dest->type = type;

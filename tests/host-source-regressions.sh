@@ -109,3 +109,12 @@ grep -Fq 'static void fsw_btrfs_volume_free(' "$work/test.c"
 grep -Fq 'static fsw_status_t fsw_btrfs_volume_stat(' "$work/test.c"
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -O1 "$work/test.c" -o "$work/test"
 "$work/test"
+
+# Exercise actual production code, not a copied decoder. The retired Python
+# generator must not reappear in the source or native release archive.
+test ! -e filesystems/mk_fsw_strfunc.py
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -O1 -g -DHOST_POSIX \
+    -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie \
+    -I filesystems filesystems/fsw_lib.c tests/fsw-string-regressions.c \
+    -o "$work/fsw-string-test"
+"$work/fsw-string-test"

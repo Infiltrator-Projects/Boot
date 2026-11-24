@@ -2,7 +2,7 @@
 
 ## Authority and scope
 
-The authoritative automated verification path is [`.github/workflows/boot.yml`](../.github/workflows/boot.yml). It builds and tests the exact pushed revision and, if the release-publication step also succeeds, publishes an AMD64 GitHub prerelease. A passed workflow is evidence for the named automated contracts, **not** certification for every physical firmware or operating system.
+The authoritative automated verification path is [`.github/workflows/boot.yml`](../.github/workflows/boot.yml). It builds and tests the exact pushed revision and, if the release-publication step also succeeds, publishes an AMD64 stable GitHub release (release classification does not imply physical-hardware qualification). A passed workflow is evidence for the named automated contracts, **not** certification for every physical firmware or operating system.
 
 This repository does not use System Monitor's `make check` contract. Here, compilation is provided by `make gnuefi` and the dedicated executable regression scripts live in `tests/`. Test names should be read alongside their fixtures and assertions, not as broader promises.
 
@@ -374,7 +374,7 @@ evidence.
 | `filesystems/fsw_btrfs_zstd.h:zstd_decompress` | Early `goto finish` can reach a zero-fill using `out_buf.pos` before that field is initialised; short completed decode is zero-padded and reported as full requested length | Workspace-allocation failure, truncated frame, sparse/short-output cases with exact byte counts and absence of writes on failure |
 | `filesystems/fsw_btrfs.c:grub_btrfs_lzo_decompress` | Compressed-page size words and skipped segments are not bounded at every dereference/advance by remaining input length | Truncated headers, overdeclared blocks, page-alignment padding and extent-offset fuzz fixtures |
 | `gzip/decompress_inflate.c:gunzip` | Wrapper handles fixed gzip header and FNAME but not all other RFC 1952 optional fields before raw DEFLATE | Complete combinations of FEXTRA, FCOMMENT, FHCRC, FNAME and truncated/invalid wrappers, checking decoded-length publication |
-| `filesystems/mk_fsw_strfunc.py` / `fsw_strfunc.h` | Generated UTF-8 continuation-byte reads use only an encoded-unit count rather than source-byte limits; malformed/truncated UTF-8 can advance past input | Generate from the canonical producer, compare generated output and test malformed sequences with redzones/ASan |
+| `filesystems/fsw_lib.c` / `fsw_strfunc.h` | Historical continuation-byte overread addressed by validating both byte and unit counts before equality or conversion; the unused Python generator is retired | `tests/fsw-string-regressions.c` is wired into the host gate with ASan/UBSan; qualification requires the successful run for this revision. Complete Unicode scalar and normalization semantics remain outside this bounded fix. |
 | `filesystems/fsw_core.c:fsw_dnode_lookup_path` | An intermediate non-directory returns before the retained node reaches the common cleanup path | Fault-injected directory traversal with reference accounting before/after error |
 | `filesystems/scandisk.c:scan_disks` | `LocateHandleBuffer` allocation is not visibly freed after enumerating handles | Repeated probe scans under a counted EFI pool, including zero and failed enumerations |
 | `EfiLib/BdsTianoCore.c:BdsLibVariableToOption` | Boot#### UTF-16 text and embedded device-path size are read before complete variable bounds validation; malformed sizes may underflow derived lengths | Malformed NVRAM load-option fixtures, unterminated descriptions, zero/oversized FilePathSize, allocation faults |
@@ -614,7 +614,7 @@ invoke external tools and mutate firmware or disks only when actually run.
 | `filesystems/ext4.inf` | 0 | EDK build descriptor |
 | `filesystems/hfs.inf` | 0 | EDK build descriptor |
 | `filesystems/iso9660.inf` | 0 | EDK build descriptor |
-| `filesystems/mk_fsw_strfunc.py` | 0 | Generated-code producer |
+| `filesystems/mk_fsw_strfunc.py` | 0 | Historical inventory: retired generator |
 | `filesystems/ntfs.inf` | 0 | EDK build descriptor |
 | `filesystems/reiserfs.inf` | 0 | EDK build descriptor |
 | `filesystems/test/Makefile` | 0 | Build recipe |

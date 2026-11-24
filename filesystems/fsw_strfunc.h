@@ -1,6 +1,8 @@
-/* Generated filesystem string conversion/equality routines.
- * Supports ISO-8859-1, UTF-8 and UTF-16 endianness combinations.
- * Regenerate from the source generator rather than editing logic here.
+/* Legacy filesystem string conversion/equality routines, originally emitted
+ * by the upstream FSW Python generator. This tracked C header is now the
+ * maintained source; no code generation or Python interpreter is required.
+ * Call only through fsw_lib.c after validating the source slice bounds.
+ * Original conversion semantics and upstream provenance are retained.
  */
 
 static int fsw_streq_ISO88591_UTF8(void *s1data, void *s2data, int len)
