@@ -79,6 +79,10 @@ A single successful direct Linux Mint boot on an EXT4 volume is an observed outc
 
 ## Common V2 qualification gap
 
+Historical FAT12/FAT16 provider records and the Kernel README describe a generic Common V2 ELF/UEFI bridge and OVMF kernel handoffs (Kernel identifies BOOT 0.1.39 for FAT16). Those records refer to earlier integration work; the current BOOT tree builds the separate EFI drivers and does not contain the previously referenced `tests/test_so_boot.py` qualification entry point. Do not transfer historical results to this revision. Restoring and qualifying the generic V2-only loader, then testing each provider, remains open.
+
+The scope of the previous experiments is read-only firmware access and guest initramfs handoff, not generic kernel-side `.so` execution, read/write qualification or physical hardware support.
+
 At this revision, the released BOOT builds the original EFI filesystem drivers rather than a verified Common V2 `.so`-based firmware module loader. Full V2 compliance would require explicit ABI conformance tests, freestanding build checks, image authentication and dependency handling, module execution proofs and representative read-path tests for each filesystem. No such end-to-end guarantee is asserted by the current test suite.
 
 ## Interpretation of source-level contracts
