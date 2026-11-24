@@ -438,10 +438,9 @@ fsw_status_t fsw_dnode_lookup(struct fsw_dnode *dno,
  * component starts at the volume root. Later empty components and "." preserve
  * the current node. ".." requires a parent. Resolve an intermediate symbolic link
  * before asking the backend to look up its next child. The returned node carries
- * a reference for the caller. When an intermediate node is not a directory,
- * this implementation returns FSW_UNSUPPORTED before reaching errorexit,
- * leaving a retained dnode reference outstanding. The following goto is
- * unreachable: this is a real cleanup defect, not guaranteed error unwinding.
+ * a reference for the caller. An intermediate non-directory is a failed
+ * traversal, not a successful partial result. Route it through the same
+ * error exit as failed lookups so every retained reference is released.
  */
 fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
                                    struct fsw_string *lookup_path, char separator,
@@ -493,7 +492,7 @@ fsw_status_t fsw_dnode_lookup_path(struct fsw_dnode *dno,
             }
 
             if (dno->type != FSW_DNODE_TYPE_DIR) {
-                return FSW_UNSUPPORTED;
+                status = FSW_UNSUPPORTED;
                 goto errorexit;
             }
 

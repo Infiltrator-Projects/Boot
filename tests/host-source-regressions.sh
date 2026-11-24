@@ -118,3 +118,60 @@ test ! -e filesystems/mk_fsw_strfunc.py
     -I filesystems filesystems/fsw_lib.c tests/fsw-string-regressions.c \
     -o "$work/fsw-string-test"
 "$work/fsw-string-test"
+
+# Check the actual firmware PNG allocator's ownership and size arithmetic
+# against an instrumented host allocator, including forced failures.
+{
+cat <<'PNG_HEAD'
+#include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+static unsigned active, attempts, fail_next;
+static void *AllocateZeroPool(size_t bytes) {
+    void *p;
+    ++attempts;
+    if (fail_next) { fail_next=0; return NULL; }
+    p=calloc(1,bytes);
+    if (p) ++active;
+    return p;
+}
+static void MyFreePool(void *p) {
+    assert(p && active);
+    --active;
+    free(p);
+}
+#define MyCopyMem memcpy
+PNG_HEAD
+# Extract allocator entry points and their private size helper together.
+sed -n '/^void\* lodepng_malloc(/,/^int MyStrlen(/{ /^int MyStrlen(/!p; }' libeg/lodepng_xtra.c
+cat <<'PNG_MAIN'
+int main(void) {
+    unsigned char *a=lodepng_malloc(4), *b;
+    assert(a && active==1);
+    memcpy(a,"BOOT",4);
+    fail_next=1;
+    assert(lodepng_realloc(a,8)==NULL);
+    assert(active==1 && memcmp(a,"BOOT",4)==0);
+    b=lodepng_realloc(a,8);
+    assert(b && active==1 && memcmp(b,"BOOT",4)==0 && b[7]==0);
+    a=lodepng_realloc(b,2);
+    assert(a && active==1 && memcmp(a,"BO",2)==0);
+    lodepng_free(a);
+    assert(active==0);
+    a=lodepng_realloc(NULL,3);
+    assert(a && active==1);
+    lodepng_free(a);
+    unsigned before=attempts;
+    assert(lodepng_malloc(SIZE_MAX)==NULL && attempts==before);
+    lodepng_free(NULL);
+    assert(active==0);
+    puts("PNG allocator ownership regressions passed");
+    return 0;
+}
+PNG_MAIN
+} > "$work/png-allocator.c"
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -O1 -g -fsanitize=address,undefined \
+    -fno-omit-frame-pointer -fno-pie -no-pie "$work/png-allocator.c" -o "$work/png-allocator"
+"$work/png-allocator"

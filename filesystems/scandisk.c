@@ -88,14 +88,14 @@ static void free_dummy_volume(struct fsw_volume *vol)
 /*
  * Enumerates EFI Disk I/O handles and invokes a supplied hook on temporary
  * volume wrappers. Missing handles do not prove there are no disks elsewhere.
- * A successful LocateHandleBuffer allocates Handles; this function currently
- * does not release that buffer on the normal path, so repeated scans can leak
- * EFI pool allocations. Probe callback success counts are not mount counts.
+ * A successful LocateHandleBuffer transfers ownership of the handle array
+ * to this function, which releases it after the enumeration. Failed calls do
+ * not supply an array. Probe callback success counts are not mount counts.
  */
 static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), struct fsw_volume *master)
 {
     EFI_STATUS  Status;
-    EFI_HANDLE *Handles;
+    EFI_HANDLE *Handles = NULL;
     UINTN       HandleCount = 0;
     UINTN       i;
     UINTN       scanned = 0;
@@ -105,7 +105,7 @@ static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), str
 #endif
     DPRINT(L"Scanning disks\n");
     Status = boot_call5_wrapper(BS->LocateHandleBuffer, ByProtocol, &gMyEfiDiskIoProtocolGuid, NULL, &HandleCount, &Handles);
-    if (Status == EFI_NOT_FOUND)
+    if (EFI_ERROR(Status))
         return -1;   
     for (i = 0; i < HandleCount; i++) {
         EFI_DISK_IO *diskio;
@@ -129,5 +129,7 @@ static int scan_disks(int (*hook)(struct fsw_volume *, struct fsw_volume *), str
             free_dummy_volume(vol);
         }
     }
+    if (Handles)
+        fsw_free(Handles);
     return scanned;
 }

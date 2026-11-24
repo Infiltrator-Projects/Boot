@@ -3,8 +3,8 @@
  *
  * EFI allocation and image adapters for LodePNG.
  *
- * Pool allocations carry a private size prefix for copying and release. The
- * current realloc path retains its old allocation on success.
+ * Pool allocations carry a private size prefix for copying and release.
+ * Reallocation transfers ownership only after replacement allocation succeeds.
  */
 
 #include "global.h"
@@ -14,13 +14,16 @@
 
 /*
  * Prefix every decoded allocation with its requested payload size, returning
- * a pointer past the prefix. size + sizeof(size_t) is not overflow-checked;
- * a huge decoder-requested size can wrap before AllocateZeroPool. The prefix
- * is private to this allocator family and must be recovered at free time.
+ * a pointer past the prefix. Reject sizes that cannot accommodate the prefix
+ * before invoking the firmware allocator; otherwise a wrapped request could
+ * expose less storage than the decoder was promised. The prefix is private
+ * to this allocator family and must be recovered at free time.
  */
 void* lodepng_malloc(size_t size) {
    void *ptr;
 
+   if (size > (size_t)-1 - sizeof(size_t))
+      return NULL;
    ptr = AllocateZeroPool(size + sizeof(size_t));
    if (ptr) {
       *(size_t *) ptr = size;
@@ -50,9 +53,9 @@ static size_t report_size(void *ptr) {
 
 /**
  * Recover the old byte count from the prefix maintained by lodepng_malloc.
- * Allocate the new region and copy the smaller of the two sizes. The old
- * allocation is still live after a successful call because this implementation
- * has no release of ptr.
+ * Allocate the new region and copy the smaller of the two sizes. A failed
+ * allocation leaves the original buffer owned by the caller. On success,
+ * release the original exactly once, matching LodePNG's realloc contract.
  */
 void* lodepng_realloc(void *ptr, size_t new_size) {
    size_t *new_pool;
@@ -62,6 +65,7 @@ void* lodepng_realloc(void *ptr, size_t new_size) {
    if (new_pool && ptr) {
       old_size = report_size(ptr);
       MyCopyMem(new_pool, ptr, (old_size < new_size) ? old_size : new_size);
+      lodepng_free(ptr);
    }
    return new_pool;
 }  
