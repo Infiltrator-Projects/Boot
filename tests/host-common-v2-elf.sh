@@ -8,13 +8,15 @@ cc -shared -fPIC -fvisibility=hidden -ffreestanding -fcf-protection=none -fno-st
     -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now,-z,nopack-relative-relocs,-z,max-page-size=4096 tests/common_v2_elf_fixture.c -o "$tmp/fixture.so"
 cc -shared -fPIC -fvisibility=hidden -ffreestanding -fcf-protection=none -fno-stack-protector -mno-red-zone -nostdlib \
     -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now,-z,nopack-relative-relocs,-z,max-page-size=4096 -DTEST_MIXED_ABI tests/common_v2_elf_fixture.c -o "$tmp/mixed.so"
+cc -shared -fPIC -fvisibility=hidden -ffreestanding -fcf-protection=none -fno-stack-protector -mno-red-zone -nostdlib \
+    -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now,-z,nopack-relative-relocs,-z,max-page-size=4096 -DTEST_RELRO_ONLY tests/common_v2_elf_fixture.c -o "$tmp/relro.so"
 cc -std=c11 -Wall -Wextra -Werror -ffreestanding -fno-builtin -fno-stack-protector \
     -fno-tree-loop-distribute-patterns -mno-red-zone -c boot/common_v2_elf.c -o "$tmp/loader.o"
 test -z "$(nm -u "$tmp/loader.o")"
 cc -std=c11 -Wall -Wextra -Werror tests/common_v2_elf_test.c "$tmp/loader.o" -o "$tmp/test"
-if ! "$tmp/test" "$tmp/fixture.so" "$tmp/mixed.so"; then
+if ! "$tmp/test" "$tmp/fixture.so" "$tmp/mixed.so" "$tmp/relro.so"; then
     cc --version
     ld --version
-    readelf -W -h -l -d -s -r "$tmp/fixture.so"
+    readelf -W -h -l -d -s -r "$tmp/fixture.so" "$tmp/relro.so"
     exit 1
 fi

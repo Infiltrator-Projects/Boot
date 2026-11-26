@@ -46,6 +46,29 @@ static int region(const unsigned char *f, const Elf64_Ehdr *e, uint64_t va,
     return 0;
 }
 
+/* GNU ld may round the RELRO memory span to the end of the last page,
+ * although the owning PT_LOAD ends a few bytes earlier. Only file-backed
+ * RELRO bytes must lie in the actual segment. The rounded protection may
+ * include its own page padding but never another segment or an unmapped page. */
+static int valid_relro(const unsigned char *f,const Elf64_Ehdr *e,
+                       const Elf64_Phdr *relro,uint64_t end)
+{
+    unsigned i;
+    if(!relro->p_memsz || relro->p_filesz>relro->p_memsz ||
+       !span(relro->p_vaddr,relro->p_memsz,end) ||
+       (relro->p_vaddr+relro->p_memsz)%PAGE) return 0;
+    for(i=0;i<e->e_phnum;++i) {
+        Elf64_Phdr p=ph(f,e,i);
+        if(p.p_type!=PT_LOAD || !(p.p_flags&PF_W) || (p.p_flags&PF_X) ||
+           relro->p_vaddr<p.p_vaddr || relro->p_vaddr-p.p_vaddr>=p.p_memsz ||
+           !span(relro->p_vaddr-p.p_vaddr,relro->p_filesz,p.p_filesz) ||
+           relro->p_offset!=p.p_offset+relro->p_vaddr-p.p_vaddr ||
+           relro->p_vaddr+relro->p_memsz>ROUND(p.p_vaddr+p.p_memsz)) continue;
+        return 1;
+    }
+    return 0;
+}
+
 int boot_v2_elf_contains(const BootV2ElfImage *image, uintptr_t ptr, size_t bytes,
                          unsigned required, unsigned forbidden)
 {
@@ -130,9 +153,7 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
     }
     if(!loads || !dyn.p_filesz || dyn.p_filesz%sizeof(Elf64_Dyn) ||
        !region(f,&e,dyn.p_vaddr,dyn.p_filesz,PF_R,1,dyn.p_offset)) return -1;
-    if(relro.p_type && (!relro.p_memsz || !span(relro.p_vaddr,relro.p_memsz,end) ||
-       (relro.p_vaddr+relro.p_memsz)%PAGE ||
-       !region(f,&e,relro.p_vaddr,relro.p_memsz,PF_W,0,0))) return -1;
+    if(relro.p_type && !valid_relro(f,&e,&relro,end)) return -1;
     /* Dynamic tags are an allowlist, not a best-effort Linux linker. */
     for(i=0;i<dyn.p_filesz;i+=sizeof(Elf64_Dyn)) {
         Elf64_Dyn d; unsigned bit=0; uint64_t *slot=0;

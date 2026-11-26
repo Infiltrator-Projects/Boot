@@ -43,8 +43,9 @@ static unsigned char *read_fixture(const char *path, size_t *n)
 }
 int main(int argc, char **argv)
 {
-    assert(argc==3); size_t n, mixed_n; unsigned char *data=read_fixture(argv[1],&n);
+    assert(argc==4); size_t n, mixed_n, relro_n; unsigned char *data=read_fixture(argv[1],&n);
     unsigned char *mixed=read_fixture(argv[2],&mixed_n);
+    unsigned char *relro=read_fixture(argv[3],&relro_n);
     BootV2ElfHost h={NULL,authenticate,reserve,protect,release}; BootV2ElfImage out={0};
     assert(boot_v2_elf_load(&h,data,n,&out)==0);
     const unsigned *(*entry)(void); memcpy(&entry,&out.entry,sizeof(entry));
@@ -69,6 +70,16 @@ int main(int argc, char **argv)
     boot_v2_elf_unload(&h,&out); assert(!out.region_count && allocated==1 && *entry2()==0x12345678u);
     boot_v2_elf_unload(&h,&second); assert(!allocated);
     reject(&h,mixed,mixed_n); free(mixed);
+    assert(boot_v2_elf_load(&h,relro,relro_n,&out)==0);
+    memcpy(&entry,&out.entry,sizeof(entry)); assert(*entry()==0x12345678u);
+    assert(boot_v2_elf_contains(&out,(uintptr_t)entry(),sizeof(unsigned),BOOT_V2_ELF_R,BOOT_V2_ELF_W|BOOT_V2_ELF_X));
+    boot_v2_elf_unload(&h,&out); assert(!allocated);
+    /* Extend the same RELRO past its owning mapped page: must fail. */
+    Elf64_Ehdr *re=(void *)relro; Elf64_Phdr *rp=(void *)(relro+re->e_phoff);
+    for(unsigned i=0;i<re->e_phnum;++i) if(rp[i].p_type==PT_GNU_RELRO) {
+        rp[i].p_memsz+=4096; reject(&h,relro,relro_n); break;
+    }
+    free(relro);
     trusted=0; reject(&h,data,n); trusted=1;
     fail_protect=1; reject(&h,data,n); fail_protect=0;
     reject(&h,data,10); reject(&h,data,n/2);
