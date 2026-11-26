@@ -27,16 +27,28 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends build-essential binutils gnu-efi
-      - name: Test canonical V2 descriptors and host, ELF and storage
+      - name: Verify pinned canonical Common V2 header
         shell: bash
         run: |
-          set -euo pipefail
-          export COMMON_INCLUDE_DIR="$PWD/.common-v2/include"
-          test "$(git hash-object "$COMMON_INCLUDE_DIR/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
+          test "$(git hash-object "$PWD/.common-v2/include/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
+      - name: Test ELF mapping and storage independently
+        shell: bash
+        run: |
           bash tests/host-common-v2-elf.sh
           bash tests/host-common-v2-storage.sh
+      - name: Test canonical Common V2 descriptor and host
+        if: always()
+        shell: bash
+        run: |
+          export COMMON_INCLUDE_DIR="$PWD/.common-v2/include"
+          test "$(git hash-object "$COMMON_INCLUDE_DIR/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
           bash tests/host-common-v2-module.sh
+      - name: Regress existing filesystem and BOOT host tests
+        if: always()
+        shell: bash
+        run: bash tests/host-source-regressions.sh
       - name: Compile the new UEFI storage adapter against GNU-EFI
+        if: always()
         shell: bash
         run: |
           set -euo pipefail

@@ -4,12 +4,17 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-cc -shared -fPIC -fvisibility=hidden -ffreestanding -fno-stack-protector -mno-red-zone -nostdlib \
-    -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now tests/common_v2_elf_fixture.c -o "$tmp/fixture.so"
-cc -shared -fPIC -fvisibility=hidden -ffreestanding -fno-stack-protector -mno-red-zone -nostdlib \
-    -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now -DTEST_MIXED_ABI tests/common_v2_elf_fixture.c -o "$tmp/mixed.so"
+cc -shared -fPIC -fvisibility=hidden -ffreestanding -fcf-protection=none -fno-stack-protector -mno-red-zone -nostdlib \
+    -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now,-z,nopack-relative-relocs,-z,max-page-size=4096 tests/common_v2_elf_fixture.c -o "$tmp/fixture.so"
+cc -shared -fPIC -fvisibility=hidden -ffreestanding -fcf-protection=none -fno-stack-protector -mno-red-zone -nostdlib \
+    -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now,-z,nopack-relative-relocs,-z,max-page-size=4096 -DTEST_MIXED_ABI tests/common_v2_elf_fixture.c -o "$tmp/mixed.so"
 cc -std=c11 -Wall -Wextra -Werror -ffreestanding -fno-builtin -fno-stack-protector \
     -fno-tree-loop-distribute-patterns -mno-red-zone -c boot/common_v2_elf.c -o "$tmp/loader.o"
 test -z "$(nm -u "$tmp/loader.o")"
 cc -std=c11 -Wall -Wextra -Werror tests/common_v2_elf_test.c "$tmp/loader.o" -o "$tmp/test"
-"$tmp/test" "$tmp/fixture.so" "$tmp/mixed.so"
+if ! "$tmp/test" "$tmp/fixture.so" "$tmp/mixed.so"; then
+    cc --version
+    ld --version
+    readelf -W -h -l -d -s -r "$tmp/fixture.so"
+    exit 1
+fi

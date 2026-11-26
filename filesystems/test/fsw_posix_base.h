@@ -16,6 +16,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+
+/* FSW host callback annotations are firmware ABI markers. POSIX fixtures
+ * deliberately compile both callers and callees using the native host ABI. */
+#ifndef EFIAPI
+#define EFIAPI
+#endif
 /*
  * This test host declares little-endian native order. The FSW byte-swap
  * selections follow that declaration when interpreting on-disk multibyte
