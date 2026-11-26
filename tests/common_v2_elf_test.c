@@ -34,16 +34,27 @@ static void reject(const BootV2ElfHost *h, unsigned char *data, size_t n)
     assert(boot_v2_elf_load(h,data,n,&out)!=0);
     assert(!out.base && !out.bytes && !out.entry && !allocated);
 }
+static unsigned char *read_fixture(const char *path, size_t *n)
+{
+    FILE *f=fopen(path,"rb"); assert(f);
+    assert(fseek(f,0,SEEK_END)==0); long length=ftell(f); assert(length>0);
+    rewind(f); *n=(size_t)length; unsigned char *data=malloc(*n); assert(data);
+    assert(fread(data,1,*n,f)==*n); fclose(f); return data;
+}
 int main(int argc, char **argv)
 {
-    assert(argc==2); FILE *f=fopen(argv[1],"rb"); assert(f);
-    assert(fseek(f,0,SEEK_END)==0); long length=ftell(f); assert(length>0);
-    rewind(f); size_t n=(size_t)length; unsigned char *data=malloc(n); assert(data);
-    assert(fread(data,1,n,f)==n); fclose(f);
+    assert(argc==3); size_t n, mixed_n; unsigned char *data=read_fixture(argv[1],&n);
+    unsigned char *mixed=read_fixture(argv[2],&mixed_n);
     BootV2ElfHost h={NULL,authenticate,reserve,protect,release}; BootV2ElfImage out={0};
     assert(boot_v2_elf_load(&h,data,n,&out)==0);
     const unsigned *(*entry)(void); memcpy(&entry,&out.entry,sizeof(entry));
-    assert(*entry()==0x12345678u); boot_v2_elf_unload(&h,&out); assert(!allocated);
+    assert(*entry()==0x12345678u);
+    BootV2ElfImage second={0}; assert(boot_v2_elf_load(&h,data,n,&second)==0);
+    assert(second.base!=out.base && allocated==2);
+    const unsigned *(*entry2)(void); memcpy(&entry2,&second.entry,sizeof(entry2));
+    boot_v2_elf_unload(&h,&out); assert(allocated==1 && *entry2()==0x12345678u);
+    boot_v2_elf_unload(&h,&second); assert(!allocated);
+    reject(&h,mixed,mixed_n); free(mixed);
     trusted=0; reject(&h,data,n); trusted=1;
     fail_protect=1; reject(&h,data,n); fail_protect=0;
     reject(&h,data,10); reject(&h,data,n/2);
@@ -59,6 +70,15 @@ int main(int argc, char **argv)
         Elf64_Sxword tag=d[0].d_tag; d[0].d_tag=DT_NEEDED;
         reject(&h,data,n); d[0].d_tag=tag; break;
     }
+    Elf64_Shdr *sh=(void *)(data+eh->e_shoff); unsigned relocations=0;
+    for(unsigned i=0;i<eh->e_shnum;++i) if(sh[i].sh_type==SHT_RELA && sh[i].sh_size) {
+        Elf64_Rela *r=(void *)(data+sh[i].sh_offset); Elf64_Rela saved=*r;
+        r->r_info=ELF64_R_INFO(0,R_X86_64_IRELATIVE); reject(&h,data,n); *r=saved;
+        r->r_offset=UINT64_MAX-7; reject(&h,data,n); *r=saved;
+        r->r_addend=-1; reject(&h,data,n); *r=saved;
+        ++relocations; break;
+    }
+    assert(relocations);
     const char v2[]="infiltrator_filesystem_api_v2";
     unsigned changed=0;
     for(size_t i=0;i+sizeof(v2)<=n;++i) if(!memcmp(data+i,v2,sizeof(v2))) {

@@ -143,10 +143,25 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
     for(i=0;i<sym.sh_size;i+=sizeof(Elf64_Sym)) {
         Elf64_Sym s; copy(&s,f+sym.sh_offset+i,sizeof(s));
         if(s.st_name>=strsz || (i && s.st_shndx==SHN_UNDEF) || ELF64_ST_TYPE(s.st_info)==STT_GNU_IFUNC) return -1;
-        if(!nameeq((const char *)f+str.sh_offset+s.st_name,strsz-s.st_name,ENTRY)) continue;
+        if(!nameeq((const char *)f+str.sh_offset+s.st_name,strsz-s.st_name,ENTRY)) {
+            /* The firmware profile has one public symbol, not a mixed ABI
+             * or another callable entry point. Local symbols are harmless. */
+            if(i && ELF64_ST_BIND(s.st_info)!=STB_LOCAL &&
+               (ELF64_ST_VISIBILITY(s.st_other)==STV_DEFAULT ||
+                ELF64_ST_VISIBILITY(s.st_other)==STV_PROTECTED)) return -1;
+            continue;
+        }
         if(++found!=1 || ELF64_ST_TYPE(s.st_info)!=STT_FUNC || ELF64_ST_BIND(s.st_info)!=STB_GLOBAL ||
            ELF64_ST_VISIBILITY(s.st_other)!=STV_DEFAULT || !s.st_shndx || s.st_shndx>=e.e_shnum ||
            !s.st_size || !region(f,&e,s.st_value,s.st_size,PF_X,0,0)) return -1;
+        {
+            Elf64_Shdr code=sh(f,&e,s.st_shndx);
+            if(code.sh_type!=SHT_PROGBITS ||
+               (code.sh_flags&(SHF_ALLOC|SHF_EXECINSTR))!=(SHF_ALLOC|SHF_EXECINSTR) ||
+               s.st_value<code.sh_addr || !span(s.st_value-code.sh_addr,s.st_size,code.sh_size) ||
+               !span(code.sh_offset,code.sh_size,n) ||
+               !region(f,&e,s.st_value,s.st_size,PF_X,1,code.sh_offset+s.st_value-code.sh_addr)) return -1;
+        }
         entry=s.st_value;
     }
     if(found!=1) return -1;
