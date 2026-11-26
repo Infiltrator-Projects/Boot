@@ -46,6 +46,35 @@ static int region(const unsigned char *f, const Elf64_Ehdr *e, uint64_t va,
     return 0;
 }
 
+int boot_v2_elf_contains(const BootV2ElfImage *image, uintptr_t ptr, size_t bytes,
+                         unsigned required, unsigned forbidden)
+{
+    uintptr_t base;
+    size_t offset;
+    unsigned i;
+    if (!image || !image->base || !image->entry || !bytes ||
+        !image->region_count || image->region_count>BOOT_V2_ELF_MAX_SEGMENTS ||
+        (required|forbidden)&~7u || required&forbidden) return 0;
+    base=(uintptr_t)image->base;
+    if (ptr<base || !span(ptr-base,bytes,image->bytes)) return 0;
+    offset=ptr-base;
+    for(i=0;i<image->region_count;++i) {
+        const BootV2ElfRegion *r=&image->regions[i];
+        unsigned flags=r->flags;
+        if(offset<r->offset || !span(offset-r->offset,bytes,r->bytes)) continue;
+        if((required&BOOT_V2_ELF_X) && !span(offset-r->offset,bytes,r->file_bytes)) return 0;
+        if(image->relro_end>image->relro_start && offset<image->relro_end &&
+           image->relro_start<offset+bytes) {
+            /* Reject spans across the permission boundary; callers can
+             * query individual ranges without guessing their access. */
+            if(offset<image->relro_start || offset+bytes>image->relro_end) return 0;
+            flags=BOOT_V2_ELF_R;
+        }
+        return (flags&required)==required && !(flags&forbidden);
+    }
+    return 0;
+}
+
 void boot_v2_elf_unload(const BootV2ElfHost *h, BootV2ElfImage *out)
 {
     if (!out) return;
@@ -63,7 +92,7 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
     uint64_t entry=0, i,j, seen=0; unsigned loads=0, found=0;
     int terminated=0;
     unsigned char *base;
-    if (!out || out->base || out->entry || out->bytes) return -1;
+    if (!out || out->base || out->entry || out->bytes || out->region_count) return -1;
     if (!h || !h->authenticate || !h->reserve || !h->protect || !h->release ||
         !f || n<sizeof(e) || n>LIMIT || h->authenticate(h->context,f,n)!=0) return -1;
     copy(&e,f,sizeof(e));
@@ -72,7 +101,7 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
         e.e_ident[EI_CLASS]!=ELFCLASS64 || e.e_ident[EI_DATA]!=ELFDATA2LSB ||
         e.e_ident[EI_VERSION]!=EV_CURRENT || e.e_version!=EV_CURRENT ||
         e.e_type!=ET_DYN || e.e_machine!=EM_X86_64 || e.e_ehsize!=sizeof(e) ||
-        e.e_phentsize!=sizeof(Elf64_Phdr) || !e.e_phnum || e.e_phnum>128 ||
+        e.e_phentsize!=sizeof(Elf64_Phdr) || !e.e_phnum || e.e_phnum>BOOT_V2_ELF_MAX_SEGMENTS ||
         e.e_shentsize!=sizeof(Elf64_Shdr) || !e.e_shnum || e.e_shnum>4096 ||
         !span(e.e_phoff,(uint64_t)e.e_phnum*sizeof(Elf64_Phdr),n) ||
         !span(e.e_shoff,(uint64_t)e.e_shnum*sizeof(Elf64_Shdr),n)) return -1;
@@ -197,11 +226,17 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
     if(h->protect(h->context,base,end,0)!=0) goto fail;
     for(i=0;i<e.e_phnum;++i) {
         Elf64_Phdr p=ph(f,&e,i); uint64_t start=p.p_vaddr&~(PAGE-1);
-        if(p.p_type==PT_LOAD && h->protect(h->context,base+start,ROUND(p.p_vaddr+p.p_memsz)-start,p.p_flags)!=0) goto fail;
+        if(p.p_type==PT_LOAD) {
+            BootV2ElfRegion *r;
+            if(h->protect(h->context,base+start,ROUND(p.p_vaddr+p.p_memsz)-start,p.p_flags)!=0) goto fail;
+            r=&out->regions[out->region_count++];
+            r->offset=p.p_vaddr; r->bytes=p.p_memsz; r->file_bytes=p.p_filesz; r->flags=p.p_flags;
+        }
     }
     if(relro.p_type) {
         uint64_t start=relro.p_vaddr&~(PAGE-1);
         if(h->protect(h->context,base+start,ROUND(relro.p_vaddr+relro.p_memsz)-start,PF_R)!=0) goto fail;
+        out->relro_start=start; out->relro_end=ROUND(relro.p_vaddr+relro.p_memsz);
     }
     out->entry=base+entry;
     return 0;

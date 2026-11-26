@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Isolated validation of additive Common V2 source. No release is published.
+name: BOOT Common V2 development qualification
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'boot/common_v2_*'
+      - 'tests/common_v2_*'
+      - 'tests/host-common-v2-*'
+      - '.github/workflows/common-v2-development.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host-and-firmware-compile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Infiltrator-Projects/Libraries
+          ref: 225e640ebed5351b1481bfbeef1a6144ca5146e7
+          path: .common-v2
+          persist-credentials: false
+      - name: Install actual GNU-EFI compiler headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential binutils gnu-efi
+      - name: Test canonical V2 descriptors and host, ELF and storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          export COMMON_INCLUDE_DIR="$PWD/.common-v2/include"
+          test "$(git hash-object "$COMMON_INCLUDE_DIR/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
+          bash tests/host-common-v2-elf.sh
+          bash tests/host-common-v2-storage.sh
+          bash tests/host-common-v2-module.sh
+      - name: Compile the new UEFI storage adapter against GNU-EFI
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          gcc -std=gnu11 -Wall -Wextra -Werror -ffreestanding -fno-builtin -fno-stack-protector -fshort-wchar -mno-red-zone -mgeneral-regs-only -fPIC \
+            -DEFIX64 -DEFI_FUNCTION_WRAPPER -D__MAKEWITH_GNUEFI \
+            -I/usr/include/efi -I/usr/include/efi/x86_64 -I/usr/include/efi/protocol \
+            -I"$PWD/.common-v2/include" -Iinclude -Iboot \
+            -c boot/common_v2_uefi_storage.c -o "$tmp/uefi-storage.o"
+          test -s "$tmp/uefi-storage.o"
+          echo 'UEFI storage compilation is not an OVMF mount or boot qualification.'

@@ -49,10 +49,24 @@ int main(int argc, char **argv)
     assert(boot_v2_elf_load(&h,data,n,&out)==0);
     const unsigned *(*entry)(void); memcpy(&entry,&out.entry,sizeof(entry));
     assert(*entry()==0x12345678u);
+    assert(boot_v2_elf_contains(&out,(uintptr_t)out.entry,1,BOOT_V2_ELF_X,BOOT_V2_ELF_W));
+    assert(!boot_v2_elf_contains(&out,(uintptr_t)out.entry,1,BOOT_V2_ELF_W,0));
+    assert(boot_v2_elf_contains(&out,(uintptr_t)entry(),sizeof(unsigned),BOOT_V2_ELF_R,BOOT_V2_ELF_W|BOOT_V2_ELF_X));
+    assert(!boot_v2_elf_contains(&out,(uintptr_t)entry(),sizeof(unsigned),BOOT_V2_ELF_X,0));
+    assert(!boot_v2_elf_contains(&out,(uintptr_t)out.base+out.bytes,1,BOOT_V2_ELF_R,0));
+    assert(!boot_v2_elf_contains(&out,UINTPTR_MAX,2,BOOT_V2_ELF_R,0));
+    assert(!boot_v2_elf_contains(&out,(uintptr_t)out.entry,0,BOOT_V2_ELF_X,0));
+    for(unsigned i=0;i<out.region_count;++i) {
+        BootV2ElfRegion *r=&out.regions[i];
+        if(r->bytes%4096 && i+1<out.region_count) {
+            uintptr_t padding=(uintptr_t)out.base+r->offset+r->bytes;
+            assert(!boot_v2_elf_contains(&out,padding,1,BOOT_V2_ELF_R,0));
+        }
+    }
     BootV2ElfImage second={0}; assert(boot_v2_elf_load(&h,data,n,&second)==0);
     assert(second.base!=out.base && allocated==2);
     const unsigned *(*entry2)(void); memcpy(&entry2,&second.entry,sizeof(entry2));
-    boot_v2_elf_unload(&h,&out); assert(allocated==1 && *entry2()==0x12345678u);
+    boot_v2_elf_unload(&h,&out); assert(!out.region_count && allocated==1 && *entry2()==0x12345678u);
     boot_v2_elf_unload(&h,&second); assert(!allocated);
     reject(&h,mixed,mixed_n); free(mixed);
     trusted=0; reject(&h,data,n); trusted=1;
