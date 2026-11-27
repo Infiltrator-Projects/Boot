@@ -3,8 +3,29 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+static void check_utf8_decoder(void)
+{
+    const char good[]="A\xc2\x80\xe0\xa0\x80\xf4\x8f\xbf\xbf";
+    const uint32_t expected[]={0x41,0x80,0x800,0x10ffff};
+    size_t at=0;uint32_t scalar=0;
+    for(size_t i=0;i<sizeof(expected)/sizeof(expected[0]);i++){
+        assert(!boot_v2_utf8_next(good,sizeof(good)-1,&at,&scalar));
+        assert(scalar==expected[i]);
+    }
+    assert(at==sizeof(good)-1);
+    assert(boot_v2_utf8_next(good,sizeof(good)-1,&at,&scalar));
+    assert(at==sizeof(good)-1&&scalar==0x10ffff);
+    const char *invalid[]={"\xc0\x80","\xe0\x80\x80","\xed\xa0\x80","\xf4\x90\x80\x80","\xe2\x82","\xe2\x41\x80","\0"};
+    const size_t bytes[]={2,3,3,4,2,3,1};
+    for(size_t i=0;i<sizeof(bytes)/sizeof(bytes[0]);i++){
+        at=0;scalar=0x1234;
+        assert(boot_v2_utf8_next(invalid[i],bytes[i],&at,&scalar));
+        assert(at==0&&scalar==0x1234);
+    }
+}
 int main(void)
 {
+    check_utf8_decoder();
     char p[128];uint16_t text[128];size_t n;
     const uint16_t abs[]={'\\','E','F','I','\\','a','.','e','f','i',0};
     const uint16_t rel[]={'.','.','\\','b','\\','.','\\','c',0};
