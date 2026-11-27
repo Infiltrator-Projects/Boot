@@ -231,13 +231,18 @@ static int resolve_entry(const unsigned char *f, size_t n,
     if(!sym.sh_type || str.sh_type!=SHT_STRTAB || sym.sh_addr!=symtab || str.sh_addr!=strtab ||
        str.sh_size!=strsz || !region(f,&e,symtab,sym.sh_size,PF_R,1,sym.sh_offset) ||
        !region(f,&e,strtab,strsz,PF_R,1,str.sh_offset)) return -1;
-    for(i=0;i<sym.sh_size;i+=sizeof(Elf64_Sym)) {
+    /* ELF string tables begin and end with NUL. This makes every
+     * in-range name index safely terminated, including hidden symbols.
+     * Symbol zero is reserved and must be entirely empty. */
+    if(f[str.sh_offset] || f[str.sh_offset+strsz-1]) return -1;
+    for(i=0;i<sizeof(Elf64_Sym);++i) if(f[sym.sh_offset+i]) return -1;
+    for(i=sizeof(Elf64_Sym);i<sym.sh_size;i+=sizeof(Elf64_Sym)) {
         Elf64_Sym s; copy(&s,f+sym.sh_offset+i,sizeof(s));
-        if(s.st_name>=strsz || (i && s.st_shndx==SHN_UNDEF) || ELF64_ST_TYPE(s.st_info)==STT_GNU_IFUNC) return -1;
+        if(s.st_name>=strsz || s.st_shndx==SHN_UNDEF || ELF64_ST_TYPE(s.st_info)==STT_GNU_IFUNC) return -1;
         if(!nameeq((const char *)f+str.sh_offset+s.st_name,strsz-s.st_name,ENTRY)) {
             /* The firmware profile has one public symbol, not a mixed ABI
              * or another callable entry point. Local symbols are harmless. */
-            if(i && ELF64_ST_BIND(s.st_info)!=STB_LOCAL &&
+            if(ELF64_ST_BIND(s.st_info)!=STB_LOCAL &&
                (ELF64_ST_VISIBILITY(s.st_other)==STV_DEFAULT ||
                 ELF64_ST_VISIBILITY(s.st_other)==STV_PROTECTED)) return -1;
             continue;
@@ -294,6 +299,7 @@ static int relocate_image(const unsigned char *f, const Elf64_Ehdr *header,
             Elf64_Rela r; uint64_t value; copy(&r,f+off+i,sizeof(r));
             if(ELF64_R_TYPE(r.r_info)!=R_X86_64_RELATIVE || ELF64_R_SYM(r.r_info) ||
                r.r_offset%sizeof(value) || !region(f,&e,r.r_offset,sizeof(value),PF_W,0,0) ||
+               (r.r_offset<rela+relasz && rela<r.r_offset+sizeof(value)) ||
                r.r_addend<0 || !region(f,&e,(uint64_t)r.r_addend,1,PF_R,0,0)) return -1;
             value=(uintptr_t)base+(uint64_t)r.r_addend; copy(base+r.r_offset,&value,sizeof(value));
         }

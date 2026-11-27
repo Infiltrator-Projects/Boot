@@ -7,4 +7,7 @@ trap 'rm -rf "$tmp"' EXIT
 cc -std=c11 -Wall -Wextra -Werror -ffreestanding -fno-builtin -fno-stack-protector -fno-tree-loop-distribute-patterns -mno-red-zone -c boot/common_v2_memory.c -o "$tmp/memory.o"
 test -z "$(nm -u "$tmp/memory.o")"
 cc -std=c11 -Wall -Wextra -Werror tests/common_v2_memory_test.c "$tmp/memory.o" -o "$tmp/test"
+# Run the same regression suite with the implementation instrumented.
+cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-pie -no-pie boot/common_v2_memory.c tests/common_v2_memory_test.c -o "$tmp/test-sanitized"
+"$tmp/test-sanitized"
 "$tmp/test"

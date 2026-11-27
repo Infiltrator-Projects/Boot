@@ -104,6 +104,19 @@ int main(int argc, char **argv)
         ++relocations; break;
     }
     assert(relocations);
+    unsigned symbols=0;
+    for(unsigned i=0;i<eh->e_shnum;++i) if(sh[i].sh_type==SHT_DYNSYM) {
+        unsigned char *null_symbol=data+sh[i].sh_offset;
+        Elf64_Shdr *strings=&sh[sh[i].sh_link];
+        unsigned char *names=data+strings->sh_offset;
+        size_t last=strings->sh_size-1;
+        assert(!null_symbol[0]&&!names[0]&&!names[last]);
+        null_symbol[0]=1; reject(&h,data,n); null_symbol[0]=0;
+        names[0]=1; reject(&h,data,n); names[0]=0;
+        names[last]=1; reject(&h,data,n); names[last]=0;
+        ++symbols; break;
+    }
+    assert(symbols);
     const char v2[]="infiltrator_filesystem_api_v2";
     unsigned changed=0;
     for(size_t i=0;i+sizeof(v2)<=n;++i) if(!memcmp(data+i,v2,sizeof(v2))) {
