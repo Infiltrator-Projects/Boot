@@ -175,3 +175,43 @@ PNG_MAIN
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -O1 -g -fsanitize=address,undefined \
     -fno-omit-frame-pointer -fno-pie -no-pie "$work/png-allocator.c" -o "$work/png-allocator"
 "$work/png-allocator"
+
+# Exercise the production driver dispatcher with instrumented child makefiles.
+# These verify the selected backend and shared-object invalidation, not EFI
+# compilation. The firmware build and smoke tests qualify that separately.
+dispatch="$work/driver-dispatch"
+mkdir -p "$dispatch/test"
+cp filesystems/Makefile "$dispatch/Makefile"
+for profile in tiano gnuefi; do
+    case "$profile" in
+        tiano) object=fsw_efi.obj ;;
+        gnuefi) object=fsw_efi.o ;;
+    esac
+    printf 'all:\n\t@test ! -e %s\n\t@echo %s:$(DRIVERNAME) >> trace\n\t@touch %s\n' \
+        "$object" "$profile" "$object" > "$dispatch/Make.$profile"
+done
+printf 'clean:\n\t@echo clean >> ../trace\n' > "$dispatch/test/Makefile"
+# Deliberate filename collisions must not suppress any phony build target.
+for driver in ext2 ext4 reiserfs iso9660 hfs btrfs ntfs; do
+    touch "$dispatch/$driver" "$dispatch/${driver}_gnuefi"
+done
+check_dispatch() {
+    local profile=$1 expected=$2
+    shift 2
+    rm -f "$dispatch/trace"
+    make -s -C "$dispatch" -j16 "$@"
+    diff -u <(for driver in $expected; do echo "$profile:$driver"; done) "$dispatch/trace"
+}
+standard='ext2 ext4 reiserfs iso9660 hfs btrfs'
+check_dispatch tiano "$standard"
+check_dispatch tiano "$standard" all
+check_dispatch gnuefi "$standard" gnuefi
+check_dispatch gnuefi "$standard" all_gnuefi
+check_dispatch tiano ntfs ntfs
+check_dispatch gnuefi ntfs ntfs_gnuefi
+check_dispatch gnuefi 'ext2 hfs' ext2_gnuefi hfs_gnuefi
+rm -f "$dispatch/trace"
+make -s -C "$dispatch" clean
+test "$(cat "$dispatch/trace")" = clean
+test ! -e "$dispatch/fsw_efi.o" && test ! -e "$dispatch/fsw_efi.obj"
+echo 'Driver build dispatch regressions passed'
