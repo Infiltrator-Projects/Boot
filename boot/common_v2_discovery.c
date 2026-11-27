@@ -72,15 +72,18 @@ const BootV2Provider *BootV2DiscoverProviders(VOID)
         p=AllocateZeroPool(sizeof(*p));
         if(!p) break;
         for(UINTN i=0;id[i];i++) p->id[i]=id[i];
-        if(BootV2UefiMemoryInit(&p->memory,NULL,BootV2Authenticate)!=EFI_SUCCESS) {
+        EFI_STATUS memstatus=BootV2UefiMemoryInit(&p->memory,NULL,BootV2Authenticate);
+        if(memstatus!=EFI_SUCCESS) {
+            LOG(1,LOG_LINE_NORMAL,L"Common V2 unavailable: firmware memory attribute protocol status %r",memstatus);
             FreePool(p);break; /* same firmware protocol for all providers */
         }
         data=read_module(it.DirHandle,entry,&n);
-        if(!data){FreePool(p);continue;}
-        if(boot_v2_elf_load(&p->memory.host,data,n,&p->image) ||
-           p->image.bytes>MAX_MAPPED_BYTES-mapped_bytes ||
-           boot_v2_module_inspect(&p->image,p->id,&p->module)!=IFS_FS_OK ||
-           !boot_v2_module_readable_core(&p->module)) {
+        if(!data){LOG(1,LOG_LINE_NORMAL,L"Common V2 cannot read: %s",entry->FileName);FreePool(p);continue;}
+        int mapped=boot_v2_elf_load(&p->memory.host,data,n,&p->image);
+        int inspected=mapped?IFS_FS_INVALID:boot_v2_module_inspect(&p->image,p->id,&p->module);
+        if(mapped || p->image.bytes>MAX_MAPPED_BYTES-mapped_bytes ||
+           inspected!=IFS_FS_OK || !boot_v2_module_readable_core(&p->module)) {
+            LOG(1,LOG_LINE_NORMAL,L"Common V2 validation detail: map=%d descriptor=%d memory=%r",mapped,inspected,p->memory.last_status);
             FreePool(data);
             boot_v2_elf_unload(&p->memory.host,&p->image);
             LOG(1,LOG_LINE_NORMAL,L"Common V2 module rejected: %s",entry->FileName);

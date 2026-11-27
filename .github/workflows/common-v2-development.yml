@@ -96,14 +96,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Infiltrator-Projects/Filesystem-EXT4
-          ref: b23bbca8fc48b62be782c272fcc7190c77991671
+          ref: 563b85674fdcdd2d7ea467ce369254bc566b319d
           path: .provider-ext4
           persist-credentials: false
       - name: Check out independent NTFS firmware source
         uses: actions/checkout@v4
         with:
           repository: Infiltrator-Projects/Filesystem-NTFS
-          ref: f2f8dec290bf814ccf845e088b30f5aac5f7070b
+          ref: c27b4cae8dc1fc27b14fb94c7638ca81e93f886e
           path: .provider-ntfs
           persist-credentials: false
       - name: Build the actual provider firmware profiles
@@ -129,6 +129,14 @@ jobs:
         if: always()
         shell: bash
         run: bash tests/ovmf-smoke.sh
+      - name: Obtain pinned Debian OVMF with modern memory attribute support
+        if: always()
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 https://deb.debian.org/debian/pool/main/e/edk2/ovmf_2025.02-8+deb13u1_all.deb -o /tmp/ovmf-v2.deb
+          echo '78e0d54df11fc77406cb7a0bc9a39e5bca6d1cbe06556b91d9a73491c52decdf  /tmp/ovmf-v2.deb' | sha256sum -c -
+          dpkg-deb -x /tmp/ovmf-v2.deb "$RUNNER_TEMP/ovmf-v2"
+          echo "BOOT_V2_OVMF_DIR=$RUNNER_TEMP/ovmf-v2/usr/share/OVMF" >> "$GITHUB_ENV"
       - name: Exercise actual signed BOOT, EFI drivers and independent SOs under OVMF
         if: always()
         shell: bash

@@ -10,7 +10,7 @@ ntfs=${NTFS_FIRMWARE:?real NTFS firmware module}
 test -s boot/boot_x64.efi
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-ovmf=/usr/share/OVMF
+ovmf=${BOOT_V2_OVMF_DIR:-/usr/share/OVMF}
 test -s "$ovmf/OVMF_CODE_4M.secboot.fd"
 test -s "$ovmf/OVMF_VARS_4M.fd"
 build_efi(){
@@ -118,6 +118,7 @@ if ! mcopy -i "$work/after.img" ::/EFI/InfiltratorOS/BOOT/BOOT.log "$work/BOOT.l
 fi
 iconv -f UTF-16LE -t UTF-8 "$work/BOOT.log" > "$work/log.txt"
 cat "$work/log.txt"
+tail -n 100 "$work/boot.log" || true
 grep -Fq 'Common V2 authenticated reader: EXT4.so' "$work/log.txt"
 grep -Fq 'Common V2 authenticated reader: NTFS.so' "$work/log.txt"
 grep -Fq 'Common V2 module rejected: BAD.so' "$work/log.txt"
