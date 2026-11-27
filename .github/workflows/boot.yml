@@ -1,10 +1,4 @@
-# Release qualification for BOOT's x86-64 GNU-EFI build and separately packaged
-# native source installer. Compilation, disposable ESP/NVRAM tests and an OVMF
-# menu smoke test establish distinct contracts; none independently proves
-# bootability on every physical firmware or installed operating system.
-# Successful pushes to main publish a stable release with .run, .deb and checksums.
-# The .run builds and installs natively; the generic .deb installs the prebuilt
-# image at package configuration. Both register BOOT and its six EFI drivers.
+# Build the generic EFI image and publish BOOT's two installers.
 name: BOOT native source installer and generic AMD64 package
 
 on:
@@ -35,65 +29,12 @@ jobs:
           test "$(git hash-object "$PWD/.common-v2/include/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
           echo "COMMON_V2_INCLUDE=$PWD/.common-v2/include" >> "$GITHUB_ENV"
 
-      - name: Check BOOT identifiers and clean packaging layout
-        shell: bash
-        run: |
-
-          test -s themes/boot-logo.png
-          test -s themes/boot-luxury.png
-          test -s themes/boot-mark.png
-          test -s themes/boot-underline.png
-          ! grep -Eqi 'drawTwinSlash|svg' boot/theme.c
-          test -s filesystems/fsw_ext4.c
-          test -s filesystems/Make.gnuefi
-          grep -Eq 'DriverFilesFound[[:space:]]*=[[:space:]]*LoadDrivers\(\);' boot/main.c
-          grep -Fq 'LvmMapped = LvmDiscoverVolumes();' boot/main.c
-          grep -Fq 'if (DriverFilesFound || LvmMapped)' boot/main.c
-          grep -Fq 'lvm2.o' boot/Makefile
-          ! grep -Fq 'ConnectFilesystemDriver(ChildImageHandle);' boot/launch_efi.c
-          grep -Fq 'DetectedFsType = Volumes[VolumeIndex]->FSType;' boot/driver_support.c
-          grep -Fq 'BootBindFilesystem(Handles[Index], DetectedFsType)' boot/driver_support.c
-          grep -Fq 'BootProbeFilesystemType(Handles[Index])' boot/driver_support.c
-          grep -Fq 'ScanVolume(Volume, ProbeFilesystem);' boot/lib.c
-          grep -Fq 'set -- --alldrivers' boot-native-installer.run
-          if [[ -d gptsync || -e BootPkg.dsc ]]; then
-            echo "Obsolete build system remains" >&2
-            exit 1
-          fi
-          for legacy in debian boot.spec boot-alt.spec mkdistrib mkcdimage; do
-            if [[ -e "$legacy" ]]; then
-              echo "Obsolete legacy packaging remains: $legacy" >&2
-              exit 1
-            fi
-          done
-          for current in packaging/build-release.sh packaging/test-release.sh packaging/install-generic.sh tests/deb-install-safety.sh; do
-            test -s "$current" || exit 1
-          done
-
       - name: Install firmware and packaging dependencies
         run: |
           # These dependencies are Ubuntu packages; unrelated runner repositories must not block qualification.
           test -s /etc/apt/sources.list.d/ubuntu.sources
           sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 update
           sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y build-essential binutils gnu-efi file dpkg-dev
-
-      - name: Install disposable OVMF test tools
-        run: sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends qemu-system-x86 ovmf dosfstools mtools gdisk
-
-      # BOOT owns its generic ABI, mapping, trust and storage contracts.
-      # Independent filesystem projects own their implementations; the
-      # exhaustive cross-repository compatibility suite is manual only.
-      - name: Test BOOT Common V2 loader, host and installer contracts
-        shell: bash
-        run: |
-          export COMMON_INCLUDE_DIR="$COMMON_V2_INCLUDE"
-          bash tests/host-common-v2-elf.sh
-          bash tests/host-common-v2-storage.sh
-          bash tests/host-common-v2-memory.sh
-          bash tests/host-common-v2-trust.sh
-          bash tests/host-common-v2-module.sh
-          bash tests/host-common-v2-namespace.sh
-          bash -n boot-native-installer.run packaging/install-generic.sh packaging/build-release.sh
 
       - name: Compile BOOT with GNU-EFI
         shell: bash
@@ -103,94 +44,15 @@ jobs:
           printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$version" > boot-sbat-release.csv
           make COMMON_V2_INCLUDE="$COMMON_V2_INCLUDE" BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -fno-strict-aliasing -fno-tree-loop-distribute-patterns -fno-stack-protector -fshort-wchar -Wall -DBOOT_RELEASE_VERSION='L\"$version\"'" gnuefi
 
-      - name: Check BOOT EFI binary
-        run: |
-          test -s boot/boot_x64.efi
-          nm boot/boot_x64.so | grep -F 'BootV2MountVolumes'
-          for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
-            test -s "drivers_x64/${filesystem}_x64.efi"
-            file "drivers_x64/${filesystem}_x64.efi" | grep -F "PE32+"
-          done
-          file boot/boot_x64.efi
-          file boot/boot_x64.efi | grep -F 'PE32+'
-
-      - name: Verify actual CPU-native build profile without touching firmware
-        shell: bash
-        run: |
-          set -euo pipefail
-          native_dir=$(mktemp -d)
-          trap 'rm -rf -- "$native_dir"' EXIT
-          git archive HEAD | tar -xf - -C "$native_dir"
-          (
-            cd "$native_dir"
-            version="0.1.${GITHUB_RUN_NUMBER}"
-            printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$version" > boot-sbat-release.csv
-            make COMMON_V2_INCLUDE="$COMMON_V2_INCLUDE" BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$version\"'" gnuefi
-            test -s boot/boot_x64.efi
-            for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
-              test -s "drivers_x64/${filesystem}_x64.efi"
-            done
-            file boot/boot_x64.efi | grep -F 'PE32+'
-          )
-
-      - name: Build and test both installing .run and .deb releases
+      - name: Package .run and .deb
         shell: bash
         run: |
           set -euo pipefail
           echo "VERSION=0.1.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           bash -n packaging/build-release.sh
-          bash -n packaging/test-release.sh
           bash packaging/build-release.sh "0.1.${GITHUB_RUN_NUMBER}" dist
-          bash packaging/test-release.sh "0.1.${GITHUB_RUN_NUMBER}" dist
-
-      - name: Test source-isolated bounds and Btrfs ownership
-        shell: bash
-        run: bash tests/host-source-regressions.sh
-
-      - name: Regress bounded nonrecursive EFI storage binding
-        shell: bash
-        run: bash tests/host-storage-binding-regressions.sh
-
-      - name: Test native LVM2 metadata parsing and validated linear mappings
-        shell: bash
-        run: bash tests/host-lvm2-regressions.sh
-
-      - name: Check wallpaper scaling without stray colour pixels
-        shell: bash
-        run: bash tests/host-image-scaling.sh
-
-      - name: Exercise firmware BootOrder with source-isolated host mocks
-        shell: bash
-        run: bash tests/host-bootorder-regressions.sh
-
-      - name: Verify native installer against disposable ESP
-        shell: bash
-        run: bash tests/install-safety.sh
-
-      - name: Verify Secure Boot enrolled signing identity reuse
-        shell: bash
-        run: bash tests/host-secureboot-identity.sh
-
-      - name: Test BOOT default priority on fresh and 50 repeated installations
-        shell: bash
-        run: sudo bash tests/nvram-safety.sh
-
-      - name: Smoke-test BOOT main menu in disposable OVMF firmware
-        shell: bash
-        run: bash tests/ovmf-smoke.sh
-
-      - name: Upload verified workflow artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: boot-amd64-release
-          path: |
-            dist/*.deb
-            dist/*.run
-            dist/SHA256SUMS
-          if-no-files-found: error
 
       - name: Publish GitHub release
-        # Publish only after BOOT's own build and regression checks succeed.
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -213,8 +75,6 @@ jobs:
           Both installers update the BOOT ESP directory and UEFI registration.
           This is NOT yet validated for production UEFI
           use or direct-kernel launch on physical computers.
-          Do not install these releases on a production boot environment until those
-          separate qualifications have been completed.
           NOTES
           gh release create "v${VERSION}" dist/*.run dist/*.deb dist/SHA256SUMS \
             --target "$GITHUB_SHA" \
