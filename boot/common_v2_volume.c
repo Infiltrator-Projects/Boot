@@ -111,29 +111,35 @@ static EFI_STATUS V2_EFI close_file(EFI_FILE_PROTOCOL *this)
 }
 static EFI_STATUS V2_EFI delete_file(EFI_FILE_PROTOCOL *this)
 {return close_file(this)==EFI_SUCCESS?EFI_WARN_DELETE_FAILURE:EFI_INVALID_PARAMETER;}
-static EFI_STATUS V2_EFI read_file(EFI_FILE_PROTOCOL *this,UINTN *bytes,VOID *buffer)
+/* Directory reads return one EFI_FILE_INFO record. A short buffer must
+ * leave the cursor unchanged so firmware can retry the same entry. */
+static EFI_STATUS read_directory(V2File *f,UINTN *bytes,VOID *buffer)
 {
-    V2File *f=(V2File *)this;V2Volume *v=f->volume;
-    UINTN wanted,done=0;
-    if(!bytes||(!buffer&&*bytes))return EFI_INVALID_PARAMETER;
-    if(!live(v)){*bytes=0;return EFI_MEDIA_CHANGED;}
-    if(f->type==IFS_FS_ENTRY_DIRECTORY){
-        char name[BOOT_V2_PATH_BYTES];IfsFsEntryV2 e;
-        EFI_STATUS s;int rc;
-        if(f->index==UINT32_MAX){*bytes=0;return EFI_VOLUME_CORRUPTED;}
-        SetMem(name,sizeof(name),0xff);
-        e=(IfsFsEntryV2){.structure_bytes=sizeof(e),.name=name,.name_capacity=sizeof(name)};
-        rc=v->core->directory_entry(v->mounted,f->path,f->index,&e);
-        if(rc==IFS_FS_END){*bytes=0;return EFI_SUCCESS;}
-        if(rc!=IFS_FS_OK){*bytes=0;return result(rc);}
-        if(!valid_entry(&e,name,sizeof(name))||!e.name_bytes){*bytes=0;return EFI_VOLUME_CORRUPTED;}
-        for(uint32_t i=0;i<e.name_bytes;i++)if(name[i]=='/'||name[i]=='\\'||!name[i]){
-            *bytes=0;return EFI_VOLUME_CORRUPTED;
-        }
-        s=fill_file(bytes,buffer,&e,name,e.name_bytes);
-        if(s==EFI_SUCCESS)++f->index; /* retry short buffer at same entry */
-        return s;
+    V2Volume *v=f->volume;
+    char name[BOOT_V2_PATH_BYTES];IfsFsEntryV2 e;
+    EFI_STATUS s;int rc;
+    if(f->index==UINT32_MAX){*bytes=0;return EFI_VOLUME_CORRUPTED;}
+    SetMem(name,sizeof(name),0xff);
+    e=(IfsFsEntryV2){.structure_bytes=sizeof(e),.name=name,.name_capacity=sizeof(name)};
+    rc=v->core->directory_entry(v->mounted,f->path,f->index,&e);
+    if(rc==IFS_FS_END){*bytes=0;return EFI_SUCCESS;}
+    if(rc!=IFS_FS_OK){*bytes=0;return result(rc);}
+    if(!valid_entry(&e,name,sizeof(name))||!e.name_bytes){*bytes=0;return EFI_VOLUME_CORRUPTED;}
+    for(uint32_t i=0;i<e.name_bytes;i++)if(name[i]=='/'||name[i]=='\\'||!name[i]){
+        *bytes=0;return EFI_VOLUME_CORRUPTED;
     }
+    s=fill_file(bytes,buffer,&e,name,e.name_bytes);
+    if(s==EFI_SUCCESS)++f->index; /* retry short buffer at same entry */
+    return s;
+
+}
+
+/* Regular-file reads alone own byte-position advancement and chunking.
+ * Preserve the partial byte count if a provider reports an I/O failure. */
+static EFI_STATUS read_regular_file(V2File *f,UINTN *bytes,VOID *buffer)
+{
+    V2Volume *v=f->volume;
+    UINTN wanted,done=0;
     wanted=*bytes;*bytes=0;
     if(f->position>=f->size)return EFI_SUCCESS;
     if(wanted>f->size-f->position)wanted=(UINTN)(f->size-f->position);
@@ -144,6 +150,17 @@ static EFI_STATUS V2_EFI read_file(EFI_FILE_PROTOCOL *this,UINTN *bytes,VOID *bu
         f->position+=n;done+=n;
     }
     *bytes=done;return EFI_SUCCESS;
+}
+
+/* The EFI callback validates the shared preconditions once, then dispatches
+ * to the appropriate operation without mixing cursor semantics. */
+static EFI_STATUS V2_EFI read_file(EFI_FILE_PROTOCOL *this,UINTN *bytes,VOID *buffer)
+{
+    V2File *f=(V2File *)this;
+    if(!bytes||(!buffer&&*bytes))return EFI_INVALID_PARAMETER;
+    if(!live(f->volume)){*bytes=0;return EFI_MEDIA_CHANGED;}
+    if(f->type==IFS_FS_ENTRY_DIRECTORY)return read_directory(f,bytes,buffer);
+    return read_regular_file(f,bytes,buffer);
 }
 static EFI_STATUS V2_EFI write_file(EFI_FILE_PROTOCOL *this,UINTN *bytes,VOID *buffer)
 {(void)this;(void)buffer;if(bytes)*bytes=0;return EFI_WRITE_PROTECTED;}
@@ -294,36 +311,62 @@ static EFI_STATUS probe_candidate(EFI_HANDLE handle,BootV2Provider *p,
         return discard_candidate(v,EFI_MEDIA_CHANGED);
     *out=v;return EFI_SUCCESS;
 }
-static EFI_STATUS try_mount(V2Volume *v,uint32_t variant)
+/* Mounting and root validation are independent of firmware protocol
+ * publication. On failure the caller still owns the candidate session. */
+static EFI_STATUS mount_candidate(V2Volume *v,uint32_t variant)
 {
-    EFI_HANDLE handle=v->storage.handle;EFI_STATUS s;
-    int rc;IfsFsEntryV2 root;char name[BOOT_V2_PATH_BYTES];
-    VOID *existing=NULL;
+    int rc;
+    IfsFsEntryV2 root;
+    char name[BOOT_V2_PATH_BYTES];
     if(boot_v2_storage_read(&v->storage.storage,0,NULL,0))
-        return discard_candidate(v,EFI_MEDIA_CHANGED);
+        return EFI_MEDIA_CHANGED;
     v->info.structure_bytes=sizeof(v->info);
     rc=v->core->mount(&v->storage.host,&v->mounted,&v->info);
     LOG(1,LOG_LINE_NORMAL,L"Common V2 mount status=%d variant=%d maxname=%d total=%lx free=%lx",rc,v->info.variant,v->info.max_name_bytes,v->info.total_bytes,v->info.free_bytes);
-    if(rc!=IFS_FS_OK||!v->mounted||!valid_info(v,variant)){
-        s=rc==IFS_FS_OK?EFI_VOLUME_CORRUPTED:result(rc);goto reject;
-    }
+    if(rc!=IFS_FS_OK||!v->mounted||!valid_info(v,variant))
+        return rc==IFS_FS_OK?EFI_VOLUME_CORRUPTED:result(rc);
+
     rc=stat(v,"/",&root,name);
     LOG(1,LOG_LINE_NORMAL,L"Common V2 root stat status=%d type=%d",rc,rc==IFS_FS_OK?root.type:0);
-    if(rc!=IFS_FS_OK||root.type!=IFS_FS_ENTRY_DIRECTORY){s=EFI_VOLUME_CORRUPTED;goto reject;}
-    /* Recheck after probe/mount: existing EFI protocols always win. */
+    if(rc!=IFS_FS_OK||root.type!=IFS_FS_ENTRY_DIRECTORY)return EFI_VOLUME_CORRUPTED;
+    return EFI_SUCCESS;
+}
+
+/* Publication is the only stage that registers a new EFI interface.
+ * An existing firmware filesystem always retains priority. */
+static EFI_STATUS publish_volume(V2Volume *v)
+{
+    EFI_HANDLE handle=v->storage.handle;
+    EFI_STATUS s;
+    VOID *existing=NULL;
+
     s=boot_call3_wrapper(BS->HandleProtocol,handle,&sfs_guid,&existing);
-    if(s==EFI_SUCCESS){s=EFI_ALREADY_STARTED;goto reject;}
-    if(s!=EFI_UNSUPPORTED&&s!=EFI_NOT_FOUND)goto reject;
+    if(s==EFI_SUCCESS)return EFI_ALREADY_STARTED;
+    if(s!=EFI_UNSUPPORTED&&s!=EFI_NOT_FOUND)return s;
+
     v->sfs.Revision=EFI_FILE_IO_INTERFACE_REVISION;
     v->sfs.OpenVolume=CALLBACK(v->sfs.OpenVolume,open_volume);
     s=boot_call4_wrapper(BS->InstallProtocolInterface,&handle,&sfs_guid,EFI_NATIVE_INTERFACE,&v->sfs);
     LOG(1,LOG_LINE_NORMAL,L"Common V2 SimpleFS publication status=%r",s);
-    if(s!=EFI_SUCCESS)goto reject;
-    v->published=TRUE;retain(v);return EFI_SUCCESS;
-reject:
+    if(s==EFI_SUCCESS)v->published=TRUE;
+    return s;
+}
+
+/* The caller transfers ownership of the candidate to this coordinator.
+ * Success retains it as a published volume; failure unwinds the mount
+ * and storage session unless the provider still holds resources. */
+static EFI_STATUS try_mount(V2Volume *v,uint32_t variant)
+{
+    EFI_STATUS s=mount_candidate(v,variant);
+    if(s==EFI_SUCCESS)s=publish_volume(v);
+    if(s==EFI_SUCCESS){
+        retain(v);
+        return EFI_SUCCESS;
+    }
     if(v->mounted&&v->core->unmount(v->mounted)!=IFS_FS_OK){
         /* Do not free a host object still borrowed by provider code. */
-        retain(v);return EFI_DEVICE_ERROR;
+        retain(v);
+        return EFI_DEVICE_ERROR;
     }
     v->mounted=NULL;
     return discard_candidate(v,s);
@@ -369,25 +412,42 @@ UINTN BootV2MountVolumes(VOID)
     }
     return count;
 }
+/* Tear down one volume in strict dependency order. Each completed stage
+ * is recorded, allowing a later shutdown to resume without double release.
+ * The caller unlinks/frees the object only after this succeeds. */
+static EFI_STATUS release_volume(V2Volume *v)
+{
+    if(v->opens)return EFI_ACCESS_DENIED;
+    if(v->published){
+        EFI_STATUS s=boot_call3_wrapper(BS->UninstallProtocolInterface,v->storage.handle,&sfs_guid,&v->sfs);
+        if(s!=EFI_SUCCESS)return s;
+        v->published=FALSE;
+    }
+    if(v->mounted){
+        if(v->core->unmount(v->mounted)!=IFS_FS_OK)return EFI_DEVICE_ERROR;
+        v->mounted=NULL;
+    }
+    if(v->storage.storage.allocations)return EFI_DEVICE_ERROR;
+    BootV2UefiStorageClose(&v->storage);
+    return EFI_SUCCESS;
+}
+
 EFI_STATUS BootV2Shutdown(VOID)
 {
     V2Volume **at=&volumes;
     EFI_STATUS rc=EFI_SUCCESS;
     while(*at){
         V2Volume *v=*at;
-        if(v->opens){rc=EFI_ACCESS_DENIED;at=&v->next;continue;}
-        if(v->published){
-            EFI_STATUS s=boot_call3_wrapper(BS->UninstallProtocolInterface,v->storage.handle,&sfs_guid,&v->sfs);
-            if(s!=EFI_SUCCESS){rc=s;at=&v->next;continue;}
-            v->published=FALSE;
+        EFI_STATUS s=release_volume(v);
+        if(s!=EFI_SUCCESS){
+            rc=s;
+            at=&v->next;
+            continue;
         }
-        if(v->mounted){
-            if(v->core->unmount(v->mounted)!=IFS_FS_OK){rc=EFI_DEVICE_ERROR;at=&v->next;continue;}
-            v->mounted=NULL;
-        }
-        if(v->storage.storage.allocations){rc=EFI_DEVICE_ERROR;at=&v->next;continue;}
-        BootV2UefiStorageClose(&v->storage);
-        --v->provider->mounted;--volume_count;*at=v->next;FreePool(v);
+        --v->provider->mounted;
+        --volume_count;
+        *at=v->next;
+        FreePool(v);
     }
     if(rc==EFI_SUCCESS)rc=BootV2ReleaseProviders();
     return rc;
