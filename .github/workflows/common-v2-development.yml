@@ -298,6 +298,8 @@ jobs:
             revision: 4dcf2971ef9770cef2993f3c9273f68cfc8b622e
           - name: QNX6
             revision: 43170886c5e41e6d2525e57a9e7535792f504f74
+          - name: SysV
+            revision: 6729ade16d578216f575c3d6d014439d8e63bd02
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -355,6 +357,17 @@ jobs:
             hfsplus) sudo apt-get install -y --no-install-recommends hfsprogs ;;
             exfat) sudo apt-get install -y --no-install-recommends exfatprogs ;;
             minix|bfs) sudo apt-get install -y --no-install-recommends util-linux ;;
+            sysv)
+              # Byte-authored provider fixture, not third-party media.
+              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_sysv.c -ldl -o /tmp/sysv-fixture
+              mkdir -p "$RUNNER_TEMP/sysv-media"
+              /tmp/sysv-fixture --emit "$RUNNER_TEMP/sysv-media/media.img" "$RUNNER_TEMP/sysv-media/proof.bin"
+              (cd "$RUNNER_TEMP/sysv-media" && sha256sum media.img > before)
+              for sector in 512 4096; do
+                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/sysv-media/media.img" "$RUNNER_TEMP/sysv-media/proof.bin" /proof.bin "$sector"
+              done
+              (cd "$RUNNER_TEMP/sysv-media" && sha256sum -c before)
+              exit 0 ;;
             qnx6)
               # Byte-authored provider fixture, not third-party media.
               cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_qnx6.c -ldl -o /tmp/qnx6-fixture
@@ -404,14 +417,14 @@ jobs:
               dpkg-deb -x "${packages[0]}" /tmp/provider-package
               carrier="/tmp/provider-package/System/Filesystems/$name.so"
               ;;
-            QNX4|OMFS|QNX6)
+            QNX4|OMFS|QNX6|SysV)
               # actions/checkout leaves an empty directory for an uninitialised gitlink.
               # Remove only that empty directory, never an existing checkout.
               if [[ -d .provider/Libraries && ! -L .provider/Libraries ]]; then rmdir .provider/Libraries; fi
               ln -s "$PWD/.common-v2" .provider/Libraries
               test -s .provider/Libraries/include/infiltratr/filesystem_module_v2.h
               make -C .provider carrier
-              carrier="$PWD/.provider/build/carrier/$name.so"
+              carrier="$PWD/.provider/build/carrier/${name^^}.so"
               ;;
             *)
               # Build the owner's real hosted production target, not a
