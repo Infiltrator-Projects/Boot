@@ -11,6 +11,13 @@ test -s boot/boot_x64.efi
 kernel=${BOOT_V2_TEST_KERNEL:-}
 overlap=${BOOT_V2_TEST_OVERLAP:-}
 native_ext4=${BOOT_V2_TEST_NATIVE_EXT4:-0}
+extra=${BOOT_V2_EXTRA_FIRMWARE:-}
+extra_id=${BOOT_V2_EXTRA_ID:-}
+maker=${BOOT_V2_EXTRA_MAKER:-}
+if [[ -n "$extra" ]]; then
+    [[ -s "$extra" && -f "$maker" && "$extra_id" =~ ^[A-Za-z0-9_-]+$ && ${#extra_id} -le 32 ]] || exit 2
+    [[ "$native_ext4" == 0 && -z "$overlap" ]] || exit 2
+fi
 [[ "$native_ext4" == 0 || "$native_ext4" == 1 ]] || exit 2
 if [[ -n "$overlap" && ( -n "$kernel" || "$native_ext4" == 1 ) ]]; then exit 2; fi
 work=$(mktemp -d)
@@ -38,6 +45,7 @@ cert-to-efi-sig-list -g "$owner" "$work/cert.pem" "$work/cert.esl"
 cp "$work/cert.esl" "$work/db.esl"
 "$work/esl" "$ext4" >> "$work/db.esl"
 "$work/esl" "$ntfs" >> "$work/db.esl"
+if [[ -n "$extra" ]]; then "$work/esl" "$extra" >> "$work/db.esl"; fi
 if [[ -n "$overlap" ]]; then
     "$work/esl" "$overlap" >> "$work/db.esl"
 fi
@@ -66,6 +74,9 @@ mcopy -i "$esp" "$work/BOOTX64.EFI" ::/EFI/InfiltratorOS/BOOT/BOOTX64.EFI
 for var in db dbx KEK PK; do mcopy -i "$esp" "$work/$var.auth" "::/$var.auth";done
 mcopy -i "$esp" "$ext4" ::/EFI/InfiltratorOS/BOOT/drivers_x64/EXT4.so
 mcopy -i "$esp" "$ntfs" ::/EFI/InfiltratorOS/BOOT/drivers_x64/NTFS.so
+if [[ -n "$extra" ]]; then
+    mcopy -i "$esp" "$extra" "::/EFI/InfiltratorOS/BOOT/drivers_x64/$extra_id.so"
+fi
 if [[ -n "$overlap" ]]; then
     mcopy -i "$esp" "$overlap" ::/EFI/InfiltratorOS/BOOT/drivers_x64/OVERLAP.so
 fi
@@ -98,10 +109,15 @@ printf 'existing EFI reader\n' > "$work/tree/efi-proof.txt"
 extimg="$work/ext.img";truncate -s 64M "$extimg"
 features=has_journal,ext_attr,resize_inode,dir_index,filetype,extent,64bit,flex_bg
 features+=,sparse_super,large_file,huge_file,dir_nlink,extra_isize,metadata_csum
-ntimg="$work/ntfs.img";truncate -s 64M "$ntimg"
-mkntfs -F -Q -s 512 -c 4096 -L NTFSV2 "$ntimg"
+ntimg="$work/target.img"
+if [[ -z "$extra" ]]; then
+    truncate -s 64M "$ntimg"
+    mkntfs -F -Q -s 512 -c 4096 -L NTFSV2 "$ntimg"
+fi
 printf 'Common V2 native media proof\n' > "$work/proof.txt"
-if [[ "$native_ext4" == 1 ]]; then
+if [[ -n "$extra" ]]; then
+    : # The independent fixture generator receives every file below.
+elif [[ "$native_ext4" == 1 ]]; then
     cp "$work/proof.txt" "$work/v2child.efi" "$work/tree/"
 else
     ntfscp -f "$ntimg" "$work/proof.txt" /proof.txt
@@ -127,12 +143,22 @@ echo BOOT_COMMON_V2_LINUX_INITRAMFS_PASS
 GUEST
     chmod +x "$work/ram/init"
     (cd "$work/ram" && find . -print0 | cpio --null -o -H newc --owner=0:0 --quiet | gzip -n) > "$work/initramfs"
-    if [[ "$native_ext4" == 1 ]]; then
+    if [[ -n "$extra" ]]; then
+        :
+    elif [[ "$native_ext4" == 1 ]]; then
         cp "$work/vmlinuz.efi" "$work/initramfs" "$work/tree/"
     else
         ntfscp -f "$ntimg" "$work/vmlinuz.efi" /vmlinuz.efi
         ntfscp -f "$ntimg" "$work/initramfs" /initramfs
     fi
+fi
+if [[ -n "$extra" ]]; then
+    files=(v2child.efi "$work/v2child.efi" proof.txt "$work/proof.txt")
+    if [[ -n "$kernel" ]]; then
+        files+=(vmlinuz.efi "$work/vmlinuz.efi" initramfs "$work/initramfs")
+    fi
+    bash "$maker" "$ntimg" "${files[@]}"
+    test "$(stat -c %s "$ntimg")" = 67108864
 fi
 mkfs.ext4 -q -F -b 4096 -O "none,$features" -L EFIEXT4 -d "$work/tree" "$extimg"
 truncate -s 200M "$disk"
@@ -215,7 +241,11 @@ else
     expected_mounts=1
     if [[ "$native_ext4" == 1 ]]; then expected_mounts=2; fi
     test "$(grep -Fc 'Common V2 mounted volume on handle' "$work/log.txt")" = "$expected_mounts"
-    grep -Fq 'NTFSV2' "$work/log.txt"
+    if [[ -n "$extra" ]]; then
+        grep -Fq "Common V2 authenticated reader: $extra_id.so" "$work/log.txt"
+    else
+        grep -Fq 'NTFSV2' "$work/log.txt"
+    fi
 fi
 if [[ -n "$overlap" ]]; then
     echo 'Overlapping providers rejected without mounting or launching'
@@ -234,6 +264,8 @@ if [[ -n "$overlap" ]]; then
     echo 'BOOT OVMF Secure Boot ambiguous ownership rejection and unchanged media PASS'
 elif [[ "$native_ext4" == 1 ]]; then
     echo 'BOOT OVMF Secure Boot native EXT4 execution, independent NTFS mount and unchanged media PASS'
+elif [[ -n "$extra" ]]; then
+    echo "BOOT OVMF Secure Boot native $extra_id execution, legacy EFI coexistence and unchanged media PASS"
 else
     echo 'BOOT OVMF Secure Boot enrolled raw modules, EFI coexistence, NTFS execution and unchanged media PASS'
 fi
