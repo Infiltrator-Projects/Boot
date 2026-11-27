@@ -54,7 +54,7 @@ static int parent_geometry(BootV2UefiStorage *v)
     prefix[last+2]=sizeof(EFI_DEVICE_PATH);prefix[last+3]=0;
     remaining=(EFI_DEVICE_PATH *)prefix;
     s=boot_call3_wrapper(BS->LocateDevicePath,&block_guid,&remaining,&parent);
-    LOG(1,LOG_LINE_NORMAL,L"Common V2 parent: LocateDevicePath=%r exact=%d parent=%p",s,remaining==(EFI_DEVICE_PATH *)(prefix+last),parent);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 parent: LocateDevicePath=%r exact=%d parent=%lx",s,remaining==(EFI_DEVICE_PATH *)(prefix+last),(UINT64)(UINTN)parent);
     if(s!=EFI_SUCCESS||!parent||parent==v->handle||
        remaining!=(EFI_DEVICE_PATH *)(prefix+last))return -1;
     if(boot_call3_wrapper(BS->HandleProtocol,parent,&block_guid,(VOID **)&p)!=EFI_SUCCESS||!p||!p->Media)return -1;
@@ -131,7 +131,7 @@ EFI_STATUS BootV2UefiStorageInit(BootV2UefiStorage *v, EFI_HANDLE handle)
     status=boot_call3_wrapper(BS->HandleProtocol,handle,&disk_guid,(VOID **)&v->disk);
     if (EFI_ERROR(status)) return status;
     if (!v->block || !v->block->Media || !v->disk || !v->disk->ReadDisk) return EFI_UNSUPPORTED;
-    LOG(1,LOG_LINE_NORMAL,L"Common V2 BlockIO: handle=%p revision=%lx logical=%d sector=%d last=%lx",handle,v->block->Revision,v->block->Media->LogicalPartition,v->block->Media->BlockSize,v->block->Media->LastBlock);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 BlockIO: handle=%lx revision=%lx logical=%d sector=%d last=%lx",(UINT64)(UINTN)handle,v->block->Revision,v->block->Media->LogicalPartition,v->block->Media->BlockSize,v->block->Media->LastBlock);
     if(v->block->Media->LogicalPartition&&parent_geometry(v)){
         LOG(1,LOG_LINE_NORMAL,L"Common V2 storage: exact parent geometry unavailable");
         return EFI_UNSUPPORTED;

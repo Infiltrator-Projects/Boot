@@ -218,19 +218,19 @@ jobs:
           - name: UFS2
             revision: ed5f7d74cf3b41f622ca9701f96ad4c1998bfbbf
           - name: FAT12
-            revision: 22c6359acfc195a65ce1a122c95dc51e28f85d68
+            revision: 197685e883ffd5edec8672e4165bdc6ca084d1fd
           - name: FAT16
-            revision: c5cd7b814d76b89e61ad5c2555fe8eb9aa1393af
+            revision: d0911fecf7c1c43ff847f9cb5ba98c8ca267bb69
           - name: FAT32
-            revision: d9a103e8cf081c39c47e4d26c7116784268ada0c
+            revision: fdbdaecfb6ce0cace5ebe702fe73579443ae1b79
           - name: OFS
-            revision: 02d80b96d3129a12adcca929ba5f2c4862c7dfab
+            revision: c8714a4811c85e1a3a31b9884d9419107e1bda37
           - name: EFS
-            revision: a4356cb38a6d0a7b1199ffdd27fd7cc3fb034180
+            revision: 8bfda4176127ba8fba55d793864c216d4a39530e
           - name: BFS
-            revision: d7d96780cededefeac2a3f22015298c5b6df9cae
+            revision: 6d5ae312423191df22b00cab7b5ca3bc12084b4a
           - name: QNX4
-            revision: 9b52dd27beffdcb6f21365a5f5f01b122105c2da
+            revision: 1344ccee3033e89da11ae628b5f880bb47195e24
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -284,3 +284,37 @@ jobs:
             *) echo "No independent media fixture yet for $name"; exit 0 ;;
           esac
           bash tests/common-v2-provider-media.sh /tmp/provider-test "$module" "$name"
+      - name: Qualify installed carrier payload
+        if: contains(fromJSON('["FAT12","FAT16","FAT32","OFS","EFS","BFS","QNX4"]'), matrix.name)
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="${{ matrix.name }}"
+          case "$name" in
+            FAT12|FAT16|FAT32|OFS)
+              sudo apt-get install -y --no-install-recommends build-essential binutils cmake git python3 dpkg-dev
+              make -C .provider release
+              mapfile -t packages < <(find .provider/dist -maxdepth 1 -type f -name '*.deb')
+              test "${#packages[@]}" = 1
+              dpkg-deb -x "${packages[0]}" /tmp/provider-package
+              carrier="/tmp/provider-package/System/Filesystems/$name.so"
+              ;;
+            EFS|BFS)
+              ln -s "$PWD/.common-v2" .provider/Libraries
+              make -C .provider check
+              (cd .provider && sh scripts/package.sh "$RUNNER_TEMP/provider-package")
+              mapfile -t packages < <(find "$RUNNER_TEMP/provider-package" -maxdepth 1 -type f -name '*.deb')
+              test "${#packages[@]}" = 1
+              dpkg-deb -x "${packages[0]}" /tmp/provider-package
+              carrier="/tmp/provider-package/System/Filesystems/$name.so"
+              ;;
+            QNX4)
+              ln -s "$PWD/.common-v2" .provider/Libraries
+              make -C .provider carrier
+              carrier="$PWD/.provider/build/carrier/$name.so"
+              ;;
+            *) exit 2 ;;
+          esac
+          test -s "$carrier"
+          objcopy --dump-section .infiltrator_boot=/tmp/packaged-firmware.so "$carrier" /tmp/carrier-copy.so
+          /tmp/provider-test /tmp/packaged-firmware.so "$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"

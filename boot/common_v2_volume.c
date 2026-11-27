@@ -304,13 +304,13 @@ UINTN BootV2MountVolumes(VOID)
     if(!BootV2DiscoverProviders())return 0;
     for(UINTN i=0;i<VolumesCount&&volume_count<MAX_VOLUMES;i++){
         BOOT_VOLUME *vol=Volumes[i];
-        if(vol)LOG(1,LOG_LINE_NORMAL,L"Common V2 candidate %d: %s handle=%p readable=%d partition=%d",i,vol->VolName,vol->DeviceHandle,vol->IsReadable,vol->BlockIO&&vol->BlockIO->Media?vol->BlockIO->Media->LogicalPartition:0);
+        if(vol)LOG(1,LOG_LINE_NORMAL,L"Common V2 candidate %d: %s handle=%lx readable=%d partition=%d",i,vol->VolName,(UINT64)(UINTN)vol->DeviceHandle,vol->IsReadable,vol->BlockIO&&vol->BlockIO->Media?vol->BlockIO->Media->LogicalPartition:0);
         if(!vol||!vol->DeviceHandle||vol->IsReadable||!vol->BlockIO||!vol->BlockIO->Media||
            !vol->BlockIO->Media->LogicalPartition||BootVolumeExcluded(vol)||retained_handle(vol->DeviceHandle))continue;
         for(BootV2Provider *p=BootV2Providers();p&&volume_count<MAX_VOLUMES;p=p->next){
             if(p->memory.memory.quarantined)continue;
             EFI_STATUS s=try_mount(vol->DeviceHandle,p);
-            if(s==EFI_SUCCESS){++count;LOG(1,LOG_LINE_NORMAL,L"Common V2 mounted volume on handle %p",vol->DeviceHandle);break;}
+            if(s==EFI_SUCCESS){++count;LOG(1,LOG_LINE_NORMAL,L"Common V2 mounted volume on handle %lx",(UINT64)(UINTN)vol->DeviceHandle);break;}
             if(s==EFI_ALREADY_STARTED||s==EFI_OUT_OF_RESOURCES||retained_handle(vol->DeviceHandle))break;
         }
     }
