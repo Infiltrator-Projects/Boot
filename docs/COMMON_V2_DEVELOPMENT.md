@@ -94,19 +94,32 @@ Both BOOT packaging safety tests passed. The OVMF fixture explicitly retains
 the standard memory-attribute protocol; production BOOT still rejects native
 execution without enforceable permissions.
 
-The 25-provider matrix establishes structural ELF and descriptor
-compatibility of pinned source revisions. This is not equivalent to
-independent real-media or OS boot qualification for all 25 providers.
-Separate provider carrier checks passed for FAT12/16/32, OFS, EFS, BFS and
-QNX4 at the tested revisions. The QNX4 check uses its production carrier
-build, not an installed Debian package.
+The expanded matrix includes exact owning-repository source revisions,
+independent AMD64 firmware payloads, the actual release-target carrier
+section, authenticated extraction and BOOT native ELF execution. The
+successful [27-provider run 45947669658](https://github.com/Infiltrator-Projects/Boot/actions/runs/45947669658)
+had 28 passing jobs, including signed native OMFS EFI and Linux boot from
+independently formatted media. The [29-provider run 45954781822](https://github.com/Infiltrator-Projects/Boot/actions/runs/45954781822)
+had 30 passing jobs; it added SysV and HPFS byte-authored media tests and
+carrier verification. Independent vintage-media and actual signed boot
+qualification for these two providers are still outstanding.
+The QNX4, OMFS, QNX6, SysV and HPFS carrier checks exercise their development
+carrier targets, not published installable Debian packages.
 
-The subsequent bounded namespace/link changes, direct native EXT4 signed
-EFI and Linux tests, and expanded production-carrier checks have been
-committed. Consult their exact workflow results before claiming success.
-The expanded carrier checks preserve the owning project's pinned Common
-dependency and authenticate the actual embedded image using disposable
-trust fixtures before exercising the BOOT loader.
+UDF has passed independent genisoimage UDF 1.02 media qualification and
+hosted/firmware fixture and sanitizer tests at revision
+`e2faadccedd561e152c2fa37e7856628ed7bfab1`
+([provider run 45955129622](https://github.com/Infiltrator-Projects/Filesystem-UDF/actions/runs/45955129622)).
+The expanded [30-provider run 45955194121](https://github.com/Infiltrator-Projects/Boot/actions/runs/45955194121)
+has passed every provider job; at the time of this entry the combined
+signed-boot job was still running. Consult its final conclusion, not
+this snapshot, for UDF EFI and Linux boot qualification.
+
+Structural ELF, carrier and fixture tests are not equivalent to
+independently formatted media or signed EFI and Linux boot qualification.
+Each result is specific to the pinned source revision and admitted
+read-only filesystem profile. Original EFI drivers remain available
+and retain precedence.
 
 Pushes marked `[v2-dev]` do not publish an installable release. Production
 publication requires successful qualification and authorization of the exact
