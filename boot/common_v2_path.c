@@ -61,16 +61,8 @@ int boot_v2_utf16(const char *name,size_t bytes,uint16_t *out,size_t cap,size_t 
     size_t i=0,n=0;
     if(!name || !out || !cap || !units)return -1;
     while(i<bytes){
-        uint32_t c=(unsigned char)name[i++],min=0;unsigned extra=0;
-        if(!c)return -1;
-        if(c<0x80){}
-        else if(c>=0xc2&&c<=0xdf){c&=31;extra=1;min=0x80;}
-        else if(c>=0xe0&&c<=0xef){c&=15;extra=2;min=0x800;}
-        else if(c>=0xf0&&c<=0xf4){c&=7;extra=3;min=0x10000;}
-        else return -1;
-        if(extra>bytes-i)return -1;
-        while(extra--){unsigned x=(unsigned char)name[i++];if((x&0xc0)!=0x80)return -1;c=(c<<6)|(x&63);}
-        if(c<min || c>0x10ffff || (c>=0xd800&&c<=0xdfff))return -1;
+        uint32_t c;
+        if(boot_v2_utf8_next(name,bytes,&i,&c))return -1;
         if(c>=0x10000){
             if(n>=cap||cap-n<3)return -1;
             c-=0x10000;out[n++]=(uint16_t)(0xd800|(c>>10));out[n++]=(uint16_t)(0xdc00|(c&1023));
