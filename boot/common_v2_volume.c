@@ -257,19 +257,48 @@ static BOOLEAN valid_info(const V2Volume *v,uint32_t variant)
 }
 static void retain(V2Volume *v)
 {v->next=volumes;volumes=v;++volume_count;++v->provider->mounted;}
-static EFI_STATUS try_mount(EFI_HANDLE handle,BootV2Provider *p)
+/* A probe is a temporary host session, not a mounted filesystem. Keep
+ * a positive candidate's exact media snapshot until ownership is resolved.
+ * A provider that leaks allocations is retained for safety, never mounted. */
+static EFI_STATUS discard_candidate(V2Volume *v,EFI_STATUS s)
 {
-    V2Volume *v=AllocateZeroPool(sizeof(*v));EFI_STATUS s;
-    uint32_t variant=0;int rc;IfsFsEntryV2 root;char name[BOOT_V2_PATH_BYTES];
-    VOID *existing=NULL;
+    if(v->storage.storage.allocations){
+        retain(v);
+        LOG(1,LOG_LINE_NORMAL,L"Common V2 provider retained after allocation leak");
+        return EFI_DEVICE_ERROR;
+    }
+    BootV2UefiStorageClose(&v->storage);FreePool(v);return s;
+}
+static EFI_STATUS probe_candidate(EFI_HANDLE handle,BootV2Provider *p,
+                                  V2Volume **out,uint32_t *variant)
+{
+    V2Volume *v=AllocateZeroPool(sizeof(*v));EFI_STATUS s;int rc;
+    *out=NULL;*variant=0;
     if(!v)return EFI_OUT_OF_RESOURCES;
     v->provider=p;v->core=boot_v2_module_readable_core(&p->module);
-    if(!v->core){FreePool(v);return EFI_UNSUPPORTED;}
+    if(!v->core){FreePool(v);return EFI_NOT_FOUND;}
     s=BootV2UefiStorageInit(&v->storage,handle);
     if(s!=EFI_SUCCESS){LOG(1,LOG_LINE_NORMAL,L"Common V2 storage initialization status=%r",s);FreePool(v);return s;}
-    rc=v->core->probe(&v->storage.host,&variant);
-    LOG(1,LOG_LINE_NORMAL,L"Common V2 probe status=%d variant=%d",rc,variant);
-    if(rc!=IFS_FS_OK){s=result(rc);goto reject;}
+    rc=v->core->probe(&v->storage.host,variant);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 probe status=%d variant=%d",rc,*variant);
+    if(v->storage.storage.allocations)
+        return discard_candidate(v,EFI_DEVICE_ERROR);
+    /* Unrecognised, unsupported or invalid format does not establish a
+     * claim. A host I/O or resource failure prevents a complete decision. */
+    if(rc==IFS_FS_NOT_FOUND||rc==IFS_FS_UNSUPPORTED||rc==IFS_FS_INVALID||rc==IFS_FS_CORRUPT)
+        return discard_candidate(v,EFI_NOT_FOUND);
+    if(rc!=IFS_FS_OK)return discard_candidate(v,result(rc));
+    if(boot_v2_storage_read(&v->storage.storage,0,NULL,0))
+        return discard_candidate(v,EFI_MEDIA_CHANGED);
+    *out=v;return EFI_SUCCESS;
+}
+static EFI_STATUS try_mount(V2Volume *v,uint32_t variant)
+{
+    EFI_HANDLE handle=v->storage.handle;EFI_STATUS s;
+    int rc;IfsFsEntryV2 root;char name[BOOT_V2_PATH_BYTES];
+    VOID *existing=NULL;
+    if(boot_v2_storage_read(&v->storage.storage,0,NULL,0))
+        return discard_candidate(v,EFI_MEDIA_CHANGED);
     v->info.structure_bytes=sizeof(v->info);
     rc=v->core->mount(&v->storage.host,&v->mounted,&v->info);
     LOG(1,LOG_LINE_NORMAL,L"Common V2 mount status=%d variant=%d maxname=%d total=%lx free=%lx",rc,v->info.variant,v->info.max_name_bytes,v->info.total_bytes,v->info.free_bytes);
@@ -295,8 +324,33 @@ reject:
         retain(v);return EFI_DEVICE_ERROR;
     }
     v->mounted=NULL;
-    if(v->storage.storage.allocations){retain(v);return EFI_DEVICE_ERROR;}
-    BootV2UefiStorageClose(&v->storage);FreePool(v);return s;
+    return discard_candidate(v,s);
+}
+/* All positive probes must agree on one owner. Do not let sorted module
+ * names, a failed mount, or the order of files on the ESP choose a format.
+ * A pre-existing EFI filesystem protocol has already had first refusal. */
+static EFI_STATUS select_and_mount(EFI_HANDLE handle)
+{
+    V2Volume *selected=NULL;
+    uint32_t selected_variant=0;
+    for(BootV2Provider *p=BootV2Providers();p;p=p->next){
+        V2Volume *candidate=NULL;uint32_t variant=0;EFI_STATUS s;
+        if(p->memory.memory.quarantined)continue;
+        s=probe_candidate(handle,p,&candidate,&variant);
+        if(s==EFI_NOT_FOUND)continue;
+        if(s!=EFI_SUCCESS){
+            if(selected)discard_candidate(selected,s);
+            return s;
+        }
+        if(selected){
+            LOG(1,LOG_LINE_NORMAL,L"Common V2 ambiguous filesystem ownership on handle %lx",(UINT64)(UINTN)handle);
+            discard_candidate(candidate,EFI_ACCESS_DENIED);
+            discard_candidate(selected,EFI_ACCESS_DENIED);
+            return EFI_ACCESS_DENIED;
+        }
+        selected=candidate;selected_variant=variant;
+    }
+    return selected?try_mount(selected,selected_variant):EFI_NOT_FOUND;
 }
 UINTN BootV2MountVolumes(VOID)
 {
@@ -307,11 +361,8 @@ UINTN BootV2MountVolumes(VOID)
         if(vol)LOG(1,LOG_LINE_NORMAL,L"Common V2 candidate %d: %s handle=%lx readable=%d partition=%d",i,vol->VolName,(UINT64)(UINTN)vol->DeviceHandle,vol->IsReadable,vol->BlockIO&&vol->BlockIO->Media?vol->BlockIO->Media->LogicalPartition:0);
         if(!vol||!vol->DeviceHandle||vol->IsReadable||!vol->BlockIO||!vol->BlockIO->Media||
            !vol->BlockIO->Media->LogicalPartition||BootVolumeExcluded(vol)||retained_handle(vol->DeviceHandle))continue;
-        for(BootV2Provider *p=BootV2Providers();p&&volume_count<MAX_VOLUMES;p=p->next){
-            if(p->memory.memory.quarantined)continue;
-            EFI_STATUS s=try_mount(vol->DeviceHandle,p);
-            if(s==EFI_SUCCESS){++count;LOG(1,LOG_LINE_NORMAL,L"Common V2 mounted volume on handle %lx",(UINT64)(UINTN)vol->DeviceHandle);break;}
-            if(s==EFI_ALREADY_STARTED||s==EFI_OUT_OF_RESOURCES||retained_handle(vol->DeviceHandle))break;
+        if(select_and_mount(vol->DeviceHandle)==EFI_SUCCESS){
+            ++count;LOG(1,LOG_LINE_NORMAL,L"Common V2 mounted volume on handle %lx",(UINT64)(UINTN)vol->DeviceHandle);
         }
     }
     return count;

@@ -9,6 +9,8 @@ ext4=${EXT4_FIRMWARE:?real EXT4 firmware module}
 ntfs=${NTFS_FIRMWARE:?real NTFS firmware module}
 test -s boot/boot_x64.efi
 kernel=${BOOT_V2_TEST_KERNEL:-}
+overlap=${BOOT_V2_TEST_OVERLAP:-}
+if [[ -n "$overlap" && -n "$kernel" ]]; then exit 2; fi
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 ovmf=${BOOT_V2_OVMF_DIR:-/usr/share/OVMF}
@@ -34,6 +36,9 @@ cert-to-efi-sig-list -g "$owner" "$work/cert.pem" "$work/cert.esl"
 cp "$work/cert.esl" "$work/db.esl"
 "$work/esl" "$ext4" >> "$work/db.esl"
 "$work/esl" "$ntfs" >> "$work/db.esl"
+if [[ -n "$overlap" ]]; then
+    "$work/esl" "$overlap" >> "$work/db.esl"
+fi
 printf 'not ELF but explicitly authenticated\n' > "$work/BAD.so"
 "$work/esl" "$work/BAD.so" >> "$work/db.esl"
 printf 'revoked test image\n' > "$work/REVOKED.so"
@@ -59,6 +64,9 @@ mcopy -i "$esp" "$work/BOOTX64.EFI" ::/EFI/InfiltratorOS/BOOT/BOOTX64.EFI
 for var in db dbx KEK PK; do mcopy -i "$esp" "$work/$var.auth" "::/$var.auth";done
 mcopy -i "$esp" "$ext4" ::/EFI/InfiltratorOS/BOOT/drivers_x64/EXT4.so
 mcopy -i "$esp" "$ntfs" ::/EFI/InfiltratorOS/BOOT/drivers_x64/NTFS.so
+if [[ -n "$overlap" ]]; then
+    mcopy -i "$esp" "$overlap" ::/EFI/InfiltratorOS/BOOT/drivers_x64/OVERLAP.so
+fi
 mcopy -i "$esp" "$work/BAD.so" "$work/REVOKED.so" "$work/ext4_x64.efi" ::/EFI/InfiltratorOS/BOOT/drivers_x64/
 printf 'not trusted\n' > "$work/UNTRUSTED.so"
 mcopy -i "$esp" "$work/UNTRUSTED.so" ::/EFI/InfiltratorOS/BOOT/drivers_x64/
@@ -73,6 +81,9 @@ dont_scan_files +,EFI/BOOT/bootx64.efi
 showtools about,reboot
 default_selection v2child
 CONFIG
+if [[ -n "$overlap" ]]; then
+    sed -i 's/^timeout 3$/timeout 0/' "$work/boot.conf"
+fi
 mcopy -i "$esp" "$work/boot.conf" ::/EFI/InfiltratorOS/BOOT/boot.conf
 # Same VM has a real EXT4 volume for the existing EFI driver, and real
 # NTFS for the new provider. The module cannot displace the EXT4 EFI SFS.
@@ -171,12 +182,22 @@ grep -Fq 'Common V2 authenticated reader: NTFS.so' "$work/log.txt"
 grep -Fq 'Common V2 module rejected: BAD.so' "$work/log.txt"
 grep -Fq 'Common V2 module rejected: REVOKED.so' "$work/log.txt"
 grep -Fq 'Common V2 module rejected: UNTRUSTED.so' "$work/log.txt"
-test "$(grep -Fc 'Common V2 mounted volume on handle' "$work/log.txt")" = 1
 grep -Fiq "Launching 'ext4_x64.efi'" "$work/log.txt"
 grep -Fq 'EFIEXT4' "$work/log.txt"
-grep -Fq 'NTFSV2' "$work/log.txt"
 grep -Fq 'Entering main loop' "$work/log.txt"
-if [[ -n "$kernel" ]]; then
+if [[ -n "$overlap" ]]; then
+    grep -Fq 'Common V2 authenticated reader: OVERLAP.so' "$work/log.txt"
+    grep -Fq 'Common V2 ambiguous filesystem ownership' "$work/log.txt"
+    ! grep -Fq 'Common V2 mounted volume on handle' "$work/log.txt"
+    ! grep -Fiq "Launching 'v2child.efi'" "$work/log.txt"
+    ! grep -aFq 'BOOT_V2_CHILD_READ_AND_RETURN_PASS' "$work/vars.fd"
+else
+    test "$(grep -Fc 'Common V2 mounted volume on handle' "$work/log.txt")" = 1
+    grep -Fq 'NTFSV2' "$work/log.txt"
+fi
+if [[ -n "$overlap" ]]; then
+    echo 'Overlapping providers rejected without mounting or launching'
+elif [[ -n "$kernel" ]]; then
     grep -Fiq "Launching 'vmlinuz.efi'" "$work/log.txt"
     grep -Fq 'BOOT_COMMON_V2_LINUX_INITRAMFS_PASS' "$work/boot.log"
 else
@@ -187,4 +208,8 @@ dd if="$disk" of="$work/after-ext.img" bs=1M skip=65 count=64 status=none
 dd if="$disk" of="$work/after-ntfs.img" bs=1M skip=129 count=64 status=none
 cmp "$extimg" "$work/after-ext.img"
 cmp "$ntimg" "$work/after-ntfs.img"
-echo 'BOOT OVMF Secure Boot enrolled raw modules, EFI coexistence, NTFS execution and unchanged media PASS'
+if [[ -n "$overlap" ]]; then
+    echo 'BOOT OVMF Secure Boot ambiguous ownership rejection and unchanged media PASS'
+else
+    echo 'BOOT OVMF Secure Boot enrolled raw modules, EFI coexistence, NTFS execution and unchanged media PASS'
+fi

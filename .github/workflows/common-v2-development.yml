@@ -158,6 +158,18 @@ jobs:
           export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
           export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
           bash tests/ovmf-common-v2.sh
+      - name: Reject overlapping authenticated native filesystem claims under OVMF
+        shell: bash
+        run: |
+          export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
+          export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
+          export BOOT_V2_TEST_OVERLAP="$RUNNER_TEMP/overlap.so"
+          gcc -std=c11 -Wall -Wextra -Werror -O2 -I"$PWD/.common-v2/include" \
+            -shared -fPIC -fvisibility=hidden -ffreestanding -fno-builtin -mno-red-zone \
+            -mgeneral-regs-only -fcf-protection=none -fno-stack-protector -nostdlib \
+            -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now,-z,nopack-relative-relocs,-z,max-page-size=4096 \
+            tests/common_v2_overlap_fixture.c -o "$BOOT_V2_TEST_OVERLAP"
+          bash tests/ovmf-common-v2.sh
       - name: Build actual native RUN and generic AMD64 Debian artifacts
         if: always()
         shell: bash
