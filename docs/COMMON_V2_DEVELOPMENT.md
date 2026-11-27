@@ -111,9 +111,23 @@ hosted/firmware fixture and sanitizer tests at revision
 `e2faadccedd561e152c2fa37e7856628ed7bfab1`
 ([provider run 45955129622](https://github.com/Infiltrator-Projects/Filesystem-UDF/actions/runs/45955129622)).
 The expanded [30-provider run 45955194121](https://github.com/Infiltrator-Projects/Boot/actions/runs/45955194121)
-has passed every provider job; at the time of this entry the combined
-signed-boot job was still running. Consult its final conclusion, not
-this snapshot, for UDF EFI and Linux boot qualification.
+completed successfully, including signed EFI and Linux kernel execution
+from independently generated UDF. The [31-provider run 45956010219](https://github.com/Infiltrator-Projects/Boot/actions/runs/45956010219)
+completed with all 32 jobs successful, including the ReiserFS carrier
+and native fixture.
+
+Three additional independent development readers have passed their owning
+repositories' hosted and freestanding tests:
+[Fosfat](https://github.com/Infiltrator-Projects/Filesystem-Fosfat/actions/runs/45972231768),
+[ADFS](https://github.com/Infiltrator-Projects/Filesystem-ADFS/actions/runs/45972969338),
+and [BeFS](https://github.com/Infiltrator-Projects/Filesystem-BeFS/actions/runs/45972578631).
+ADFS also passed recursive namespace reads on independently sourced
+Acorn E, E+, F and F+ hardware images with unchanged image hashes.
+Fosfat and BeFS evidence currently uses byte-authored fixtures. The
+[34-provider matrix](https://github.com/Infiltrator-Projects/Boot/actions/runs/45973011411)
+pins the three development revisions for native ELF, carrier, and BOOT
+namespace tests; its final result remains authoritative. No signed boot
+claim is made for these three providers.
 
 Structural ELF, carrier and fixture tests are not equivalent to
 independently formatted media or signed EFI and Linux boot qualification.
