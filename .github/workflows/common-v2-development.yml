@@ -384,6 +384,26 @@ jobs:
             echo 'Firmware module uses extended register state' >&2
             exit 1
           fi
+          # Shared read-only media qualification: test both host geometries
+          # and fail if the provider changes the input image.
+          qualify_media() {
+            local media_dir="$1" proof_file="$2" namespace_path="$3" sector
+            (cd "$media_dir" && sha256sum media.img > before)
+            for sector in 512 4096; do
+              /tmp/provider-test "$module" "$name" "$media_dir/media.img" "$proof_file" "$namespace_path" "$sector"
+            done
+            (cd "$media_dir" && sha256sum -c before)
+          }
+          # The owning repository creates each byte-authored fixture.
+          # BOOT only exercises the common namespace and storage contract.
+          qualify_authored_fixture() {
+            local namespace_path="$1" media_dir="$RUNNER_TEMP/$name-media"
+            local fixture="$RUNNER_TEMP/$name-fixture"
+            cc -std=c11 -Wall -Wextra -Werror -I"$common" ".provider/tests/test_$name.c" -ldl -o "$fixture"
+            mkdir -p "$media_dir"
+            "$fixture" --emit "$media_dir/media.img" "$media_dir/proof.bin"
+            qualify_media "$media_dir" "$media_dir/proof.bin" "$namespace_path"
+          }
           case "$name" in
             ext2|ext3) sudo apt-get install -y --no-install-recommends e2fsprogs ;;
             btrfs) sudo apt-get install -y --no-install-recommends btrfs-progs ;;
@@ -395,103 +415,32 @@ jobs:
             minix|bfs) sudo apt-get install -y --no-install-recommends util-linux ;;
             udf)
               sudo apt-get install -y --no-install-recommends genisoimage
-              mkdir -p "$RUNNER_TEMP/udf-media/tree/dir"
-              printf yes > "$RUNNER_TEMP/udf-media/tree/dir/child"
-              dd if=/dev/urandom of="$RUNNER_TEMP/udf-media/tree/proof.bin" bs=1 count=65573 status=none
-              genisoimage -quiet -udf -V V2UDF -o "$RUNNER_TEMP/udf-media/media.img" "$RUNNER_TEMP/udf-media/tree"
-              size=$(stat -c %s "$RUNNER_TEMP/udf-media/media.img")
-              truncate -s "$(( (size+4095)/4096*4096 ))" "$RUNNER_TEMP/udf-media/media.img"
-              (cd "$RUNNER_TEMP/udf-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/udf-media/media.img" "$RUNNER_TEMP/udf-media/tree/proof.bin" /proof.bin "$sector"
-              done
-              (cd "$RUNNER_TEMP/udf-media" && sha256sum -c before)
+              media_dir="$RUNNER_TEMP/udf-media"
+              mkdir -p "$media_dir/tree/dir"
+              printf yes > "$media_dir/tree/dir/child"
+              dd if=/dev/urandom of="$media_dir/tree/proof.bin" bs=1 count=65573 status=none
+              genisoimage -quiet -udf -V V2UDF -o "$media_dir/media.img" "$media_dir/tree"
+              size=$(stat -c %s "$media_dir/media.img")
+              truncate -s "$(( (size+4095)/4096*4096 ))" "$media_dir/media.img"
+              qualify_media "$media_dir" "$media_dir/tree/proof.bin" /proof.bin
               exit 0 ;;
-            fosfat)
-              # Byte-authored provider fixture; verify namespace and unchanged image.
-              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_fosfat.c -ldl -o /tmp/fosfat-fixture
-              mkdir -p "$RUNNER_TEMP/fosfat-media"
-              /tmp/fosfat-fixture --emit "$RUNNER_TEMP/fosfat-media/media.img" "$RUNNER_TEMP/fosfat-media/proof.bin"
-              (cd "$RUNNER_TEMP/fosfat-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/fosfat-media/media.img" "$RUNNER_TEMP/fosfat-media/proof.bin" /proof.bin "$sector"
-              done
-              (cd "$RUNNER_TEMP/fosfat-media" && sha256sum -c before)
+            fosfat|befs|reiserfs|sysv)
+              # These are authored fixtures, not independent third-party media.
+              qualify_authored_fixture /proof.bin
               exit 0 ;;
             adfs)
-              # Byte-authored provider fixture; verify namespace and unchanged image.
-              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_adfs.c -ldl -o /tmp/adfs-fixture
-              mkdir -p "$RUNNER_TEMP/adfs-media"
-              /tmp/adfs-fixture --emit "$RUNNER_TEMP/adfs-media/media.img" "$RUNNER_TEMP/adfs-media/proof.bin"
-              (cd "$RUNNER_TEMP/adfs-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/adfs-media/media.img" "$RUNNER_TEMP/adfs-media/proof.bin" /PROOF.BIN "$sector"
-              done
-              (cd "$RUNNER_TEMP/adfs-media" && sha256sum -c before)
-              exit 0 ;;
-            befs)
-              # Byte-authored provider fixture; verify namespace and unchanged image.
-              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_befs.c -ldl -o /tmp/befs-fixture
-              mkdir -p "$RUNNER_TEMP/befs-media"
-              /tmp/befs-fixture --emit "$RUNNER_TEMP/befs-media/media.img" "$RUNNER_TEMP/befs-media/proof.bin"
-              (cd "$RUNNER_TEMP/befs-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/befs-media/media.img" "$RUNNER_TEMP/befs-media/proof.bin" /proof.bin "$sector"
-              done
-              (cd "$RUNNER_TEMP/befs-media" && sha256sum -c before)
-              exit 0 ;;
-            reiserfs)
-              # Independent mkreiserfs empty-root tests are in the provider
-              # CI; this byte-authored image exercises actual BOOT reads.
-              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_reiserfs.c -ldl -o /tmp/reiserfs-fixture
-              mkdir -p "$RUNNER_TEMP/reiserfs-media"
-              /tmp/reiserfs-fixture --emit "$RUNNER_TEMP/reiserfs-media/media.img" "$RUNNER_TEMP/reiserfs-media/proof.bin"
-              (cd "$RUNNER_TEMP/reiserfs-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/reiserfs-media/media.img" "$RUNNER_TEMP/reiserfs-media/proof.bin" /proof.bin "$sector"
-              done
-              (cd "$RUNNER_TEMP/reiserfs-media" && sha256sum -c before)
+              qualify_authored_fixture /PROOF.BIN
               exit 0 ;;
             hpfs)
-              # Byte-authored provider fixture, not third-party media.
-              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_hpfs.c -ldl -o /tmp/hpfs-fixture
-              mkdir -p "$RUNNER_TEMP/hpfs-media"
-              /tmp/hpfs-fixture --emit "$RUNNER_TEMP/hpfs-media/media.img" "$RUNNER_TEMP/hpfs-media/proof.bin"
-              (cd "$RUNNER_TEMP/hpfs-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/hpfs-media/media.img" "$RUNNER_TEMP/hpfs-media/proof.bin" /boot.efi "$sector"
-              done
-              (cd "$RUNNER_TEMP/hpfs-media" && sha256sum -c before)
-              exit 0 ;;
-            sysv)
-              # Byte-authored provider fixture, not third-party media.
-              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_sysv.c -ldl -o /tmp/sysv-fixture
-              mkdir -p "$RUNNER_TEMP/sysv-media"
-              /tmp/sysv-fixture --emit "$RUNNER_TEMP/sysv-media/media.img" "$RUNNER_TEMP/sysv-media/proof.bin"
-              (cd "$RUNNER_TEMP/sysv-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/sysv-media/media.img" "$RUNNER_TEMP/sysv-media/proof.bin" /proof.bin "$sector"
-              done
-              (cd "$RUNNER_TEMP/sysv-media" && sha256sum -c before)
+              qualify_authored_fixture /boot.efi
               exit 0 ;;
             qnx6)
-              # Byte-authored provider fixture, not third-party media.
-              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_qnx6.c -ldl -o /tmp/qnx6-fixture
-              mkdir -p "$RUNNER_TEMP/qnx6-media"
-              /tmp/qnx6-fixture --emit "$RUNNER_TEMP/qnx6-media/media.img" "$RUNNER_TEMP/qnx6-media/proof.bin"
-              (cd "$RUNNER_TEMP/qnx6-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/qnx6-media/media.img" "$RUNNER_TEMP/qnx6-media/proof.bin" /short.bin "$sector"
-              done
-              (cd "$RUNNER_TEMP/qnx6-media" && sha256sum -c before)
+              qualify_authored_fixture /short.bin
               exit 0 ;;
             omfs)
-              bash .provider/tests/make-oracle-media.sh .omfs-oracle "$RUNNER_TEMP/omfs-media"
-              (cd "$RUNNER_TEMP/omfs-media" && sha256sum media.img > before)
-              for sector in 512 4096; do
-                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/omfs-media/media.img" "$RUNNER_TEMP/omfs-media/proof.bin" /proof.bin "$sector"
-              done
-              (cd "$RUNNER_TEMP/omfs-media" && sha256sum -c before)
+              media_dir="$RUNNER_TEMP/omfs-media"
+              bash .provider/tests/make-oracle-media.sh .omfs-oracle "$media_dir"
+              qualify_media "$media_dir" "$media_dir/proof.bin" /proof.bin
               exit 0 ;;
             *) echo "No independent media fixture yet for $name"; exit 0 ;;
           esac
