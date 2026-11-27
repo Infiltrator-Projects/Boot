@@ -215,3 +215,107 @@ make -s -C "$dispatch" clean
 test "$(cat "$dispatch/trace")" = clean
 test ! -e "$dispatch/fsw_efi.o" && test ! -e "$dispatch/fsw_efi.obj"
 echo 'Driver build dispatch regressions passed'
+
+# Exercise the production UTF-16 and CSV functions with EFI pool ownership
+# instrumentation. Use short wchar_t to retain the firmware CHAR16 width.
+{
+cat <<'STRING_HEAD'
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+typedef uint16_t CHAR16;
+typedef size_t UINTN;
+typedef int BOOLEAN;
+#define IN
+#define OUT
+#define CONST const
+#define VOID void
+#define TRUE 1
+#define FALSE 0
+#define CopyMem memcpy
+#define CompareMem memcmp
+static unsigned Active, Attempts, Fail;
+static void *AllocatePool(size_t Bytes) {
+    ++Attempts;
+    if (Fail) { Fail = 0; return NULL; }
+    void *p = malloc(Bytes);
+    if (p) ++Active;
+    return p;
+}
+static void MyFreePool(void *p) {
+    if (p) { assert(Active); --Active; free(p); }
+}
+static void Print(const CHAR16 *Format, ...) { (void)Format; }
+static size_t StrLen(const CHAR16 *p) { size_t n = 0; while (p[n]) ++n; return n; }
+static struct { CHAR16 *ExtraKernelVersionStrings; } GlobalConfig;
+CHAR16 *FindCommaDelimited(CHAR16 *, UINTN);
+STRING_HEAD
+sed -n '/^static CHAR16 AsciiLower(/,/^VOID MergeWords(/{ /^VOID MergeWords(/!p; }' boot/mystrings.c
+sed -n '/^BOOLEAN LimitStringLength(/,/^UINTN NumCharsInCommon(/{ /^UINTN NumCharsInCommon(/!p; }' boot/mystrings.c
+sed -n '/^static CHAR16 \*CsvFieldEnd(/,/^BOOLEAN ReplaceSubstring(/{ /^BOOLEAN ReplaceSubstring(/!p; }' boot/mystrings.c
+sed -n '/^BOOLEAN IsValidHex(/,/^UINT64 StrToHex(/{ /^UINT64 StrToHex(/!p; }' boot/mystrings.c
+cat <<'STRING_MAIN'
+static void expect(const CHAR16 *Actual, const CHAR16 *Expected) {
+    assert(Actual && StrLen(Actual) == StrLen(Expected));
+    assert(!memcmp(Actual, Expected, (StrLen(Expected) + 1) * sizeof(CHAR16)));
+}
+static void owned(CHAR16 *Actual, const CHAR16 *Expected) { expect(Actual, Expected); MyFreePool(Actual); }
+int main(void) {
+    CHAR16 *empty = AllocatePool(sizeof(CHAR16)); assert(empty); *empty = 0;
+    assert(!MyStriCmp(L" ", empty) && !MyStriCmp(empty, L" "));
+    assert(MyStriCmp(L"A-Z", L"a-z") && !MyStriCmp(L"[", L"{"));
+    assert(!MyStriCmp(L"@", L"`") && !MyStriCmp(L"\x00c4", L"\x00e4"));
+    assert(!MyStriCmp(NULL, L"")); MyFreePool(empty);
+    assert(StriSubCmp(L"aBa", L"xxABABA") && StriSubCmp(L"", L""));
+    assert(!StriSubCmp(L"a ", L"a") && !StriSubCmp(L"{", L"["));
+    assert(!StriSubCmp(NULL, L"a") && !StriSubCmp(L"a", NULL));
+    CHAR16 lower[] = L"A[Z\x00c4"; ToLower(lower); expect(lower, L"a[z\x00c4");
+    ToLower(NULL);
+    CHAR16 normalized[] = L"  A   B  ", single[] = L"A ", limited[] = L"a  b", zero[] = L"abc";
+    unsigned before = Attempts;
+    assert(LimitStringLength(normalized, 100)); expect(normalized, L" A B");
+    assert(!LimitStringLength(single, 100)); expect(single, L"A ");
+    assert(LimitStringLength(limited, 2)); expect(limited, L"a ");
+    assert(LimitStringLength(zero, 0)); expect(zero, L"");
+    assert(!LimitStringLength(NULL, 1) && Attempts == before);
+    CHAR16 list[] = L"foobar,foo,bar", second[] = L"first,second", first[] = L"a,b", sole[] = L"one";
+    assert(DeleteItemFromCsvList(L"foo", list)); expect(list, L"foobar,bar");
+    assert(!DeleteItemFromCsvList(L"oba", list)); expect(list, L"foobar,bar");
+    assert(DeleteItemFromCsvList(L"second", second)); expect(second, L"first");
+    assert(DeleteItemFromCsvList(L"a", first)); expect(first, L"b");
+    assert(DeleteItemFromCsvList(L"one", sole)); expect(sole, L"");
+    assert(!DeleteItemFromCsvList(L"", list));
+    before = Attempts;
+    assert(IsIn(L"FOO", L"foobar,foo,bar") && !IsIn(L"foo", L"foobar,bar"));
+    assert(IsIn(L"", L"a,") && !IsIn(L"[", L"{"));
+    assert(IsInSubstring(L"xxBaRxx", L",foo,bar,") && !IsInSubstring(L"x", L",,"));
+    assert(!IsInSubstring(L"[", L"{") && Attempts == before);
+    owned(FindCommaDelimited(L",foo,", 0), L"");
+    owned(FindCommaDelimited(L",foo,", 1), L"foo");
+    owned(FindCommaDelimited(L",foo,", 2), L"");
+    assert(!FindCommaDelimited(L",foo,", 3) && !FindCommaDelimited(NULL, 0));
+    GlobalConfig.ExtraKernelVersionStrings = L",generic,";
+    owned(FindNumbers(L"0"), L"0");
+    owned(FindNumbers(L"generic"), L"generic");
+    owned(FindNumbers(L"vmlinuz-6.12-generic"), L"6.12-generic");
+    assert(!FindNumbers(L"no-version") && !FindNumbers(NULL));
+    assert(IsValidHex(L"01Abf") && IsValidHex(L"") && !IsValidHex(NULL) && !IsValidHex(L"0x1"));
+    CHAR16 *merged = DuplicateSpan(L"abc", 3); assert(merged);
+    MergeStrings(&merged, merged + 1, L','); expect(merged, L"abc,bc");
+    Fail = 1; CHAR16 *old = merged; MergeStrings(&merged, L"fail", L','); assert(merged == old);
+    MyFreePool(merged);
+    merged = DuplicateSpan(L"", 0); assert(merged); MergeStrings(&merged, merged, L','); expect(merged, L"");
+    MyFreePool(merged); merged = NULL; MergeStrings(&merged, L"first", L','); expect(merged, L"first");
+    MyFreePool(merged); MergeStrings(NULL, L"x", 0);
+    assert(Active == 0);
+    puts("BOOT UTF-16 and CSV regression tests passed (ASan/UBSan)");
+    return 0;
+}
+STRING_MAIN
+} > "$work/strings.c"
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fshort-wchar -O1 -g -fsanitize=address,undefined \
+    -fno-omit-frame-pointer -fno-pie -no-pie "$work/strings.c" -o "$work/strings"
+"$work/strings"

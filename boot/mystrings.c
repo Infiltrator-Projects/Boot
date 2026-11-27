@@ -11,57 +11,48 @@
 #include "screen.h"
 #include "../include/boot_call_wrapper.h"
 
-/*
- * Search by clearing bit 5 of CHAR16 code units. This reproduces
- * ASCII case folding for letters but also equates some punctuation
- * and is not Unicode collation. A NULL input never matches.
- */
-BOOLEAN StriSubCmp(IN CHAR16 *SmallStr, IN CHAR16 *BigStr) {
-    BOOLEAN Found = 0, Terminate = 0;
-    UINTN BigIndex = 0, SmallIndex = 0, BigStart = 0;
+/* Fold only ASCII letters. Clearing bit 5 unconditionally conflates
+ * punctuation and even maps a space to NUL, which can overrun a string. */
+static CHAR16 AsciiLower(CHAR16 c) {
+    return c >= L'A' && c <= L'Z' ? c - L'A' + L'a' : c;
+}
 
-    if (SmallStr && BigStr) {
-        while (!Terminate) {
-            if (BigStr[BigIndex] == '\0') {
-                Terminate = 1;
-            }
-            if (SmallStr[SmallIndex] == '\0') {
-                Found = 1;
-                Terminate = 1;
-            }
-            if ((SmallStr[SmallIndex] & ~0x20) == (BigStr[BigIndex] & ~0x20)) {
-                SmallIndex++;
-                BigIndex++;
-            } else {
-                SmallIndex = 0;
-                BigStart++;
-                BigIndex = BigStart;
-            }
-        }  
-    }  
-    return Found;
-}  
-
-/*
- * Compares CHAR16 strings using an ASCII-like case fold. Do not interpret
- * this as a locale-aware Unicode filename identity comparison.
- */
-BOOLEAN MyStriCmp(IN CONST CHAR16 *FirstString, IN CONST CHAR16 *SecondString) {
-    if (FirstString && SecondString) {
-        /*
-         * Clearing bit 5 implements the ASCII A/a distinction for letters,
-         * but also collapses punctuation pairs such as '[' and '{'. Callers
-         * using this equality for paths inherit that comparison rule.
-         */
-        while ((*FirstString != L'\0') && ((*FirstString & ~0x20) == (*SecondString & ~0x20))) {
-                FirstString++;
-                SecondString++;
-        }
-        return (*FirstString == *SecondString);
-    } else {
-        return FALSE;
+/* Compare a bounded token against a NUL-terminated string. Stop at the
+ * terminator before accessing another code unit, even for malformed input. */
+static BOOLEAN FoldedPrefix(CONST CHAR16 *Text, CONST CHAR16 *Token, UINTN Length) {
+    while (Length--) {
+        if (!*Text || AsciiLower(*Text++) != AsciiLower(*Token++))
+            return FALSE;
     }
-}  
+    return TRUE;
+}
+
+static BOOLEAN FoldedContains(CONST CHAR16 *Text, CONST CHAR16 *Token, UINTN Length) {
+    if (!Length)
+        return TRUE;
+    for (; *Text; ++Text) {
+        if (FoldedPrefix(Text, Token, Length))
+            return TRUE;
+    }
+    return FALSE;
+}
+
+/* Case-insensitive substring containment; NULL never matches. Only ASCII
+ * letters fold, so distinct punctuation and non-ASCII code units stay distinct. */
+BOOLEAN StriSubCmp(IN CHAR16 *SmallStr, IN CHAR16 *BigStr) {
+    return SmallStr && BigStr && FoldedContains(BigStr, SmallStr, StrLen(SmallStr));
+}
+
+/* Compare complete UTF-16 strings using the same ASCII fold as containment. */
+BOOLEAN MyStriCmp(IN CONST CHAR16 *FirstString, IN CONST CHAR16 *SecondString) {
+    if (!FirstString || !SecondString)
+        return FALSE;
+    while (*FirstString && AsciiLower(*FirstString) == AsciiLower(*SecondString)) {
+        ++FirstString;
+        ++SecondString;
+    }
+    return *FirstString == *SecondString;
+}
 
 /*
  * Return a borrowed pointer to the first exact UTF-16 substring
@@ -94,57 +85,45 @@ CHAR16* MyStrStr (IN CHAR16  *String, IN CHAR16  *StrCharSet)
     }
 }  
 
-/*
- * Change ASCII uppercase code units in place; non-ASCII text is
- * left unchanged. This is suitable for BOOT's historical ASCII
- * tokens, not locale-sensitive filesystem-name normalisation.
- */
-VOID ToLower(CHAR16 * MyString) {
-    UINTN i = 0;
-
+/* Apply the common ASCII fold in place without altering non-ASCII text. */
+VOID ToLower(CHAR16 *MyString) {
     if (MyString) {
-        while (MyString[i] != L'\0') {
-            if ((MyString[i] >= L'A') && (MyString[i] <= L'Z'))
-                MyString[i] = MyString[i] - L'A' + L'a';
-            i++;
-        }  
-    }  
-}  
+        for (; *MyString; ++MyString)
+            *MyString = AsciiLower(*MyString);
+    }
+}
 
-/*
- * Reallocates and replaces the destination string; callers must treat the
- * previous destination allocation as consumed by this operation.
- */
+/* Allocate exactly one replacement, preserving the original until all
+ * borrowed input has been copied. Second may alias the original allocation.
+ * A separator is appended only when the original string is nonempty. */
 VOID MergeStrings(IN OUT CHAR16 **First, IN CHAR16 *Second, CHAR16 AddChar) {
-    UINTN Length1 = 0, Length2 = 0;
-    CHAR16* NewString;
+    UINTN Length1, Length2, Separator, MaxChars, At;
+    CHAR16 *NewString;
 
-    if (*First != NULL)
-        Length1 = StrLen(*First);
-    if (Second != NULL)
-        Length2 = StrLen(Second);
-    NewString = AllocatePool(sizeof(CHAR16) * (Length1 + Length2 + 2));
-    if (NewString != NULL) {
-        if ((*First != NULL) && (Length1 == 0)) {
-            MyFreePool(*First);
-            *First = NULL;
-        }
-        NewString[0] = L'\0';
-        if (*First != NULL) {
-            StrCat(NewString, *First);
-            if (AddChar) {
-                NewString[Length1] = AddChar;
-                NewString[Length1 + 1] = '\0';
-            }  
-        }  
-        if (Second != NULL)
-            StrCat(NewString, Second);
-        MyFreePool(*First);
-        *First = NewString;
-    } else {
+    if (!First)
+        return;
+    Length1 = *First ? StrLen(*First) : 0;
+    Length2 = Second ? StrLen(Second) : 0;
+    Separator = Length1 && AddChar ? 1 : 0;
+    MaxChars = ((UINTN)-1) / sizeof(CHAR16);
+    if (Length1 > MaxChars - 1 - Separator || Length2 > MaxChars - 1 - Separator - Length1)
+        return;
+    NewString = AllocatePool((Length1 + Length2 + Separator + 1) * sizeof(CHAR16));
+    if (!NewString) {
         Print(L"Error! Unable to allocate memory in MergeStrings()!\n");
-    }  
-}  
+        return;
+    }
+    if (Length1)
+        CopyMem(NewString, *First, Length1 * sizeof(CHAR16));
+    At = Length1;
+    if (Separator)
+        NewString[At++] = AddChar;
+    if (Length2)
+        CopyMem(NewString + At, Second, Length2 * sizeof(CHAR16));
+    NewString[At + Length2] = L'\0';
+    MyFreePool(*First);
+    *First = NewString;
+}
 
 /*
  * Split a temporary duplicate on spaces, colons, underscores and
@@ -177,94 +156,76 @@ VOID MergeWords(CHAR16 **MergeTo, CHAR16 *SourceString, CHAR16 AddChar) {
     }  
 }  
 
-/* Canonicalise adjacent spaces in the caller's writable UTF-16 string, then
- * cap its code-unit count. Collapsing a run uses a temporary duplicate, so
- * allocation failure can stop normalisation before truncation occurs.
- * Limit is a count of CHAR16 units, not Unicode scalar values or pixels.
- */
+/* Collapse repeated spaces and truncate in one forward, in-place pass.
+ * As before, a trailing run of two or more spaces is discarded; a single
+ * trailing space is retained. The write index never exceeds the read index.
+ * Limit counts CHAR16 units rather than Unicode scalars or rendered pixels. */
 BOOLEAN LimitStringLength(CHAR16 *TheString, UINTN Limit) {
-    CHAR16    *SubString, *TempString;
-    UINTN     i;
-    BOOLEAN   HasChanged = FALSE;
+    UINTN Read = 0, Write = 0;
+    BOOLEAN Changed = FALSE;
 
-    SubString = MyStrStr(TheString, L"  ");
-    while (SubString != NULL) {
-        i = 0;
-        while (SubString[i] == L' ')
-            i++;
-        if (i >= StrLen(SubString)) {
-            SubString[0] = '\0';
-            HasChanged = TRUE;
-        } else {
-            TempString = StrDuplicate(&SubString[i]);
-            if (TempString != NULL) {
-                StrCpy(&SubString[1], TempString);
-                MyFreePool(TempString);
-                HasChanged = TRUE;
-            } else {
-
+    if (!TheString)
+        return FALSE;
+    while (TheString[Read]) {
+        CHAR16 c = TheString[Read++];
+        if (c == L' ' && TheString[Read] == L' ') {
+            do { ++Read; } while (TheString[Read] == L' ');
+            Changed = TRUE;
+            if (!TheString[Read])
                 break;
-            }  
-        }  
-        SubString = MyStrStr(TheString, L"  ");
-    }  
+        }
+        if (Write == Limit) {
+            Changed = TRUE;
+            break;
+        }
+        TheString[Write++] = c;
+    }
+    TheString[Write] = L'\0';
+    return Changed;
+}
 
-    if (StrLen(TheString) > Limit) {
-        TheString[Limit] = '\0';
-        HasChanged = TRUE;
-    }  
-
-    return HasChanged;
-}  
-
-/**
- * Return the inclusive span covering every digit and the first configured extra
- * version string found in the name. Punctuation between the outermost matches
- * survives, so vmlinuz-6.12.3 yields 6.12.3. The end-index test also means a
- * single digit at index zero by itself produces NULL.
- */
-CHAR16 *FindNumbers(IN CHAR16 *InString) {
-    UINTN i = 0, StartOfElement, EndOfElement = 0, CopyLength;
-    CHAR16 *Found = NULL, *ExtraFound = NULL, *LookFor;
-
-    if (InString == NULL)
+/* Copy an exact UTF-16 span with its own terminator and checked allocation.
+ * The caller owns the returned EFI pool allocation. */
+static CHAR16 *DuplicateSpan(CONST CHAR16 *Start, UINTN Length) {
+    CHAR16 *Result;
+    if (Length >= ((UINTN)-1) / sizeof(CHAR16))
         return NULL;
+    Result = AllocatePool((Length + 1) * sizeof(CHAR16));
+    if (Result) {
+        if (Length)
+            CopyMem(Result, Start, Length * sizeof(CHAR16));
+        Result[Length] = L'\0';
+    }
+    return Result;
+}
 
-    StartOfElement = StrLen(InString);
+/* Return the span covering every digit and the first nonempty configured
+ * extra version token found in the name. End is exclusive, so a single digit
+ * at index zero is a valid version. Empty configured fields never match. */
+CHAR16 *FindNumbers(IN CHAR16 *InString) {
+    UINTN i, Start, End = 0;
+    CHAR16 *LookFor, *ExtraFound = NULL;
 
-    while ((ExtraFound == NULL) && (LookFor = FindCommaDelimited(GlobalConfig.ExtraKernelVersionStrings, i++))) {
-        if ((ExtraFound = MyStrStr(InString, LookFor))) {
-            StartOfElement = ExtraFound - InString;
-            EndOfElement = StartOfElement + StrLen(LookFor) - 1;
-        }  
+    if (!InString)
+        return NULL;
+    Start = StrLen(InString);
+    for (i = 0; !ExtraFound && (LookFor = FindCommaDelimited(GlobalConfig.ExtraKernelVersionStrings, i)); ++i) {
+        if (*LookFor && (ExtraFound = MyStrStr(InString, LookFor))) {
+            Start = (UINTN)(ExtraFound - InString);
+            End = Start + StrLen(LookFor);
+        }
         MyFreePool(LookFor);
-    }  
-
-    /*
-     * Use the span from the earliest to the latest digit, widened by a
-     * configured extra version string if one matched. Separators and flavour
-     * text inside that span survive, which affects how FindInitrd compares
-     * kernel and initrd names.
-     */
-    for (i = 0; InString[i] != L'\0'; i++) {
-        if ((InString[i] >= L'0') && (InString[i] <= L'9')) {
-            if (StartOfElement > i)
-                StartOfElement = i;
-            if (EndOfElement < i)
-                EndOfElement = i;
-        }  
-    }  
-
-    if (EndOfElement > 0) {
-        if (EndOfElement >= StartOfElement) {
-            CopyLength = EndOfElement - StartOfElement + 1;
-            Found = StrDuplicate(&InString[StartOfElement]);
-            if (Found != NULL)
-                Found[CopyLength] = 0;
-        }  
-    }  
-    return (Found);
-}  
+    }
+    for (i = 0; InString[i]; ++i) {
+        if (InString[i] >= L'0' && InString[i] <= L'9') {
+            if (Start > i)
+                Start = i;
+            if (End <= i)
+                End = i + 1;
+        }
+    }
+    return End > Start ? DuplicateSpan(InString + Start, End - Start) : NULL;
+}
 
 /* Count equal leading UTF-16 code units, stopping at either NUL terminator.
  * This is a binary-prefix length, not case folding or Unicode normalisation;
@@ -279,113 +240,87 @@ UINTN NumCharsInCommon(IN CHAR16* String1, IN CHAR16* String2) {
     return Count;
 }  
 
-/**
- * Return an owned copy of the zero-based field. Adjacent or trailing commas can
- * produce a valid empty string. Running out of separators before reaching Index
- * produces NULL. A caller iterating successive indices rescans the prefix on
- * every call.
- */
+/* Locate a CSV field's exclusive end without allocating or changing its
+ * input. A terminating NUL represents the last (possibly empty) field. */
+static CHAR16 *CsvFieldEnd(CHAR16 *Field) {
+    while (*Field && *Field != L',')
+        ++Field;
+    return Field;
+}
+
+/* Return an owned copy of exactly one zero-based field. Empty fields are
+ * valid; an index beyond the final field returns NULL. */
 CHAR16 *FindCommaDelimited(IN CHAR16 *InString, IN UINTN Index) {
-    UINTN    StartPos = 0, CurPos = 0, InLength;
-    BOOLEAN  Found = FALSE;
-    CHAR16   *FoundString = NULL;
+    CHAR16 *End;
+    if (!InString)
+        return NULL;
+    while (Index--) {
+        End = CsvFieldEnd(InString);
+        if (!*End)
+            return NULL;
+        InString = End + 1;
+    }
+    End = CsvFieldEnd(InString);
+    return DuplicateSpan(InString, (UINTN)(End - InString));
+}
 
-    if (InString != NULL) {
-        InLength = StrLen(InString);
-
-        while ((Index > 0) && (CurPos < InLength)) {
-            if (InString[CurPos] == L',') {
-                Index--;
-                StartPos = CurPos + 1;
-            }  
-            CurPos++;
-        }  
-
-        while ((CurPos < InLength) && (!Found)) {
-            if (InString[CurPos] == L',')
-                Found = TRUE;
-            else
-                CurPos++;
-        }  
-        if (Index == 0)
-            FoundString = StrDuplicate(&InString[StartPos]);
-        if (FoundString != NULL)
-            FoundString[CurPos - StartPos] = 0;
-    }  
-    return (FoundString);
-}  
-
-/*
- * Delete the first textual substring matching ToDelete, not
- * necessarily a complete comma-delimited field. Callers must avoid
- * ambiguous item names or risk removing part of a larger token;
- * the supplied list is modified in place.
- */
+/* Remove the first exact, case-sensitive CSV field, never a substring of
+ * another hidden entry. Copy forwards because the destination precedes the
+ * source; deleting the final field also removes its preceding delimiter. */
 BOOLEAN DeleteItemFromCsvList(CHAR16 *ToDelete, CHAR16 *List) {
-    CHAR16 *Found, *Comma;
-
-    if ((ToDelete == NULL) || (List == NULL))
+    UINTN Length;
+    CHAR16 *Field, *End;
+    if (!ToDelete || !*ToDelete || !List)
         return FALSE;
+    Length = StrLen(ToDelete);
+    for (Field = List; ; Field = End + 1) {
+        End = CsvFieldEnd(Field);
+        if ((UINTN)(End - Field) == Length && !CompareMem(Field, ToDelete, Length * sizeof(CHAR16))) {
+            if (*End) {
+                ++End;
+                while ((*Field++ = *End++) != L'\0') {}
+            } else {
+                if (Field != List)
+                    --Field;
+                *Field = L'\0';
+            }
+            return TRUE;
+        }
+        if (!*End)
+            return FALSE;
+    }
+}
 
-    if ((Found = MyStrStr(List, ToDelete)) != NULL) {
-        if ((Comma = MyStrStr(Found, L",")) == NULL) {
-
-            if (Found == List) {  
-                List[0] = L'\0';
-            } else {  
-                Found--;
-                Found[0] = L'\0';
-            }  
-        } else {  
-            StrCpy(Found, &Comma[1]);
-        }  
-        return TRUE;
-    } else {
-        return FALSE;
-    }  
-}  
-
-/* Exact-element membership in a comma-separated UTF-16 list. Each element
- * is temporarily duplicated and released; comparisons inherit MyStriCmp's
- * case-folding semantics, not a Unicode locale-independent identity rule.
- */
+/* Exact case-insensitive CSV membership in one pass with no pool allocation. */
 BOOLEAN IsIn(IN CHAR16 *SmallString, IN CHAR16 *List) {
-    UINTN     i = 0;
-    BOOLEAN   Found = FALSE;
-    CHAR16    *OneElement;
+    UINTN Length;
+    CHAR16 *End;
+    if (!SmallString || !List)
+        return FALSE;
+    Length = StrLen(SmallString);
+    for (;; List = End + 1) {
+        End = CsvFieldEnd(List);
+        if ((UINTN)(End - List) == Length && FoldedPrefix(SmallString, List, Length))
+            return TRUE;
+        if (!*End)
+            return FALSE;
+    }
+}
 
-    if (SmallString && List) {
-        while (!Found && (OneElement = FindCommaDelimited(List, i++))) {
-            if (MyStriCmp(OneElement, SmallString))
-                Found = TRUE;
-            MyFreePool(OneElement);
-        }  
-    }  
-    return Found;
-}  
-
-/* Return TRUE if any nonempty CSV element matches BigString's leading
- * substring according to StriSubCmp. This is prefix matching, not arbitrary
- * substring containment; owned temporary list elements are always freed.
- */
+/* Match any nonempty CSV field anywhere in BigString, using the same ASCII
+ * containment semantics as StriSubCmp without allocating temporary fields. */
 BOOLEAN IsInSubstring(IN CHAR16 *BigString, IN CHAR16 *List) {
-    UINTN   i = 0, ElementLength;
-    BOOLEAN Found = FALSE;
-    CHAR16  *OneElement;
-
-    if (BigString && List) {
-        while (!Found && (OneElement = FindCommaDelimited(List, i++))) {
-            ElementLength = StrLen(OneElement);
-            if ((ElementLength <= StrLen(BigString)) &&
-                 (ElementLength > 0) &&
-                 (StriSubCmp(OneElement, BigString))) {
-                    Found = TRUE;
-            }  
-            MyFreePool(OneElement);
-        }  
-    }  
-    return Found;
-}  
+    CHAR16 *End;
+    if (!BigString || !List)
+        return FALSE;
+    for (;; List = End + 1) {
+        End = CsvFieldEnd(List);
+        if (End != List && FoldedContains(BigString, List, (UINTN)(End - List)))
+            return TRUE;
+        if (!*End)
+            return FALSE;
+    }
+}
 
 /**
  * Replace only the first nonempty SearchString occurrence. A percent sign
@@ -451,24 +386,18 @@ BOOLEAN ReplaceSubstring(IN OUT CHAR16 **MainString, IN CHAR16 *SearchString, IN
     return TRUE;
 }
 
-/* Check ASCII hexadecimal digits through the first UTF-16 NUL. The empty
- * string returns TRUE and NULL is not accepted; callers validating a GUID
- * must additionally establish its exact length and separator positions.
- */
+/* An empty string is valid; NULL is not. Exact-width users must separately
+ * validate the expected digit count and separator positions. */
 BOOLEAN IsValidHex(CHAR16 *Input) {
-    BOOLEAN IsHex = TRUE;
-    UINTN i = 0;
-
-    while ((Input[i] != L'\0') && IsHex) {
-        if (!(((Input[i] >= L'0') && (Input[i] <= L'9')) ||
-              ((Input[i] >= L'A') && (Input[i] <= L'F')) ||
-              ((Input[i] >= L'a') && (Input[i] <= L'f')))) {
-                IsHex = FALSE;
-        }
-        i++;
-    }  
-    return IsHex;
-}  
+    if (!Input)
+        return FALSE;
+    for (; *Input; ++Input) {
+        CHAR16 c = AsciiLower(*Input);
+        if (!((c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f')))
+            return FALSE;
+    }
+    return TRUE;
+}
 
 /*
  * Accumulate up to sixteen hexadecimal digits into UINT64 from
