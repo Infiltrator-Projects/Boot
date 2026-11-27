@@ -36,16 +36,8 @@ static int link_target_valid(const char *target,size_t n)
     size_t i=0;
     if(!n||n>=BOOT_V2_PATH_BYTES)return 0;
     while(i<n){
-        uint32_t c=(unsigned char)target[i++],min=0;unsigned extra=0;
-        if(!c||c=='\\')return 0;
-        if(c<0x80)continue;
-        if(c>=0xc2&&c<=0xdf){c&=31;extra=1;min=0x80;}
-        else if(c>=0xe0&&c<=0xef){c&=15;extra=2;min=0x800;}
-        else if(c>=0xf0&&c<=0xf4){c&=7;extra=3;min=0x10000;}
-        else return 0;
-        if(extra>n-i)return 0;
-        while(extra--){unsigned x=(unsigned char)target[i++];if((x&0xc0)!=0x80)return 0;c=(c<<6)|(x&63);}
-        if(c<min||c>0x10ffff||(c>=0xd800&&c<=0xdfff))return 0;
+        uint32_t c;
+        if(boot_v2_utf8_next(target,n,&i,&c)||c=='\\')return 0;
     }
     return 1;
 }
