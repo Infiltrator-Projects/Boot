@@ -38,6 +38,7 @@ jobs:
           bash tests/host-common-v2-storage.sh
           bash tests/host-common-v2-memory.sh
           bash tests/host-common-v2-trust.sh
+          bash tests/host-common-v2-path.sh
       - name: Test canonical Common V2 descriptor and host
         if: always()
         shell: bash
@@ -67,7 +68,7 @@ jobs:
             -I/usr/include/efi -I/usr/include/efi/x86_64 -I/usr/include/efi/protocol \
             -Iinclude -Iboot -c boot/common_v2_uefi_memory.c -o "$tmp/uefi-memory.o"
           test -s "$tmp/uefi-memory.o"
-          for source in common_v2_uefi_trust common_v2_discovery; do
+          for source in common_v2_uefi_trust common_v2_discovery common_v2_volume; do
             gcc -std=gnu11 -Wall -Wextra -Werror -ffreestanding -fno-builtin -fno-stack-protector -fshort-wchar -mno-red-zone -mgeneral-regs-only -fPIC \
               -DEFIX64 -DEFI_FUNCTION_WRAPPER -D__MAKEWITH_GNUEFI \
               -I/usr/include/efi -I/usr/include/efi/x86_64 -I/usr/include/efi/protocol \
@@ -75,3 +76,13 @@ jobs:
               -c "boot/$source.c" -o "$tmp/$source.o"
           done
           echo 'UEFI storage compilation is not an OVMF mount or boot qualification.'
+      - name: Link actual BOOT with both EFI and Common V2 paths
+        if: always()
+        shell: bash
+        run: |
+          make COMMON_V2_INCLUDE="$PWD/.common-v2/include" gnuefi
+          test -s boot/boot_x64.efi
+          nm boot/boot_x64.so | grep -F 'BootV2MountVolumes'
+          for driver in ext2 ext4 reiserfs iso9660 hfs btrfs; do
+            test -s "drivers_x64/${driver}_x64.efi"
+          done

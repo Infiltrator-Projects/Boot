@@ -26,6 +26,9 @@
 #include "mystrings.h"
 #include "security_policy.h"
 #include "driver_support.h"
+#ifdef BOOT_COMMON_V2
+#include "common_v2_volume.h"
+#endif
 #include "lvm2.h"
 #include "launch_efi.h"
 #include "scan.h"
@@ -577,6 +580,14 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
         BootStartupProgressReport(L"Volume rescan completed", BOOT_PROGRESS_OK);
     }
 
+#ifdef BOOT_COMMON_V2
+    /* Existing EFI drivers and LVM bindings have already run. The additional
+     * registry can claim only still-unclaimed partitions; successful SFS
+     * publication feeds the ordinary OS discovery and launch mechanisms. */
+    if (BootV2MountVolumes())
+        ScanVolumes();
+#endif
+
     LOG(1, LOG_LINE_SEPARATOR, L"Initializing basic features");
     AdjustDefaultSelection();
 
@@ -716,6 +727,17 @@ efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
                    MainLoopRunning = FALSE;    
                 } else {
                    BeginTextScreen(L" ");
+#ifdef BOOT_COMMON_V2
+                   /* Published protocols point into this application image.
+                    * Never return to firmware while any such callback remains. */
+                   if (BootV2HasVolumes()) {
+                       UninitBootLib();
+                       if (BootV2Shutdown() != EFI_SUCCESS) {
+                           MainLoopRunning = FALSE;
+                           break;
+                       }
+                   }
+#endif
                    return EFI_SUCCESS;
                 }
                 break;

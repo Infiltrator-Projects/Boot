@@ -13,6 +13,9 @@
 #pragma pack(0)
 #include "global.h"
 #include "lib.h"
+#ifdef BOOT_COMMON_V2
+#include "common_v2_volume.h"
+#endif
 #include "icns.h"
 #include "screen.h"
 #include "../include/boot_call_wrapper.h"
@@ -1401,6 +1404,17 @@ VOID ScanVolumes(VOID)
             }
         }
     }
+#ifdef BOOT_COMMON_V2
+    /* The original inventory may retain EFI roots. Close only roots owned
+     * by the additive V2 provider before dropping the previous inventory. */
+    for (OldVolumeIndex = 0; OldVolumeIndex < VolumesCount; ++OldVolumeIndex) {
+        BOOT_VOLUME *Old = Volumes[OldVolumeIndex];
+        if (Old && Old->RootDir && BootV2OwnsVolume(Old->DeviceHandle)) {
+            boot_call1_wrapper(Old->RootDir->Close, Old->RootDir);
+            Old->RootDir = NULL;
+        }
+    }
+#endif
     MyFreePool(Volumes);
     Volumes = NULL;
     VolumesCount = 0;
@@ -1433,6 +1447,12 @@ VOID ScanVolumes(VOID)
                 break;
             }
         }
+#ifdef BOOT_COMMON_V2
+        /* A new authenticated V2 SFS can make an unclassified filesystem
+         * readable. Do not suppress its OpenVolume with the old EFI cache. */
+        if (BootV2OwnsVolume(Volume->DeviceHandle))
+            ProbeFilesystem = TRUE;
+#endif
         ScanVolume(Volume, ProbeFilesystem);
         if (GlobalConfig.StartupDiagnostics)
             BootDiagVolumeTiming(HandleIndex, HandleCount, Volume->VolName,

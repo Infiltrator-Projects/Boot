@@ -36,6 +36,18 @@ OBJS            = apple.o config.o crc32.o driver_support.o gpt.o icns.o \
                   linux.o log.o lvm2.o main.o menu.o mystrings.o pointer.o scan.o \
                   screen.o theme.o
 
+# The new path is initially built only by explicit qualification builds.
+# Use the canonical, pinned Libraries include path; no copied ABI header.
+ifneq ($(strip $(COMMON_V2_INCLUDE)),)
+ifeq ($(ARCH),x86_64)
+  LOCAL_GNUEFI_CFLAGS += -DBOOT_COMMON_V2 -I$(COMMON_V2_INCLUDE)
+  OBJS += common_v2_elf.o common_v2_memory.o common_v2_module.o \
+          common_v2_storage.o common_v2_trust.o common_v2_path.o \
+          common_v2_uefi_memory.o common_v2_uefi_storage.o common_v2_uefi_trust.o \
+          common_v2_discovery.o common_v2_volume.o
+endif
+endif
+
 include $(SRCDIR)/../Make.common
 
 all: $(TARGET)
