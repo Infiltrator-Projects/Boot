@@ -9,7 +9,7 @@ cc -std=c11 -Wall -Wextra -Werror tests/common_v2_esl.c boot/common_v2_trust.c -
 flags=(-shared -fPIC -fvisibility=hidden -ffreestanding -fcf-protection=none -fno-stack-protector -mno-red-zone -nostdlib -Wl,-Bsymbolic,-z,defs,-z,noexecstack,-z,relro,-z,now,-z,nopack-relative-relocs,-z,max-page-size=4096)
 cc "${flags[@]}" tests/common_v2_elf_fixture.c -o "$work/raw.so"
 cc "${flags[@]}" -DTEST_MIXED_ABI tests/common_v2_elf_fixture.c -o "$work/mixed.so"
-mkdir "$work/vars" "$work/source" "$work/stage" "$work/drivers"
+mkdir "$work/vars"
 vars="$work/vars"
 db="$vars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
 dbx="$vars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
@@ -44,16 +44,4 @@ mv "$work/dbx.saved" "$dbx"
 printf '\006\000\000\000\001' > "$setup"
 reject "$work/raw.so"
 printf '\006\000\000\000\000' > "$setup"
-cp "$work/carrier.so" "$work/source/EXT4.so"
-cp "$work/bad.so" "$work/source/Bad.so"
-ln -s "$work/raw.so" "$work/source/link.so"
-printf 'existing EFI driver' > "$work/drivers/ext4_x64.efi"
-source packaging/common-v2-install.sh
-boot_v2_stage_modules "$work/source" "$work/stage" "$work/verify" "$vars"
-test "$(find "$work/stage" -type f | wc -l)" = 1
-boot_v2_install_staged "$work/stage" "$work/drivers"
-cmp "$work/drivers/ext4.so" "$work/raw.so"
-test "$(cat "$work/drivers/ext4_x64.efi")" = 'existing EFI driver'
-boot_v2_install_staged "$work/stage" "$work/drivers"
-cmp "$work/drivers/ext4.so" "$work/raw.so"
-echo 'BOOT installer extraction, authenticated staging, rejection and coexistence PASS'
+echo 'BOOT test-only carrier extraction, authentication and rejection PASS'

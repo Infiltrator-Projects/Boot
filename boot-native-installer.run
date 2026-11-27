@@ -83,11 +83,6 @@ make COMMON_V2_INCLUDE="$work/Libraries/include" BOOT_SBAT_CSV=boot-sbat-release
 for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     [[ -s "drivers_x64/${filesystem}_x64.efi" ]] || { echo "Required EFI driver is missing: $filesystem" >&2; exit 1; }
 done
-gcc -std=c11 -Wall -Wextra -Werror -O2 packaging/common-v2-verify.c boot/common_v2_elf.c boot/common_v2_trust.c -o "$work/verify"
-source "$source_dir/packaging/common-v2-install.sh"
-BOOT_V2_STAGE="$work/v2-stage"
-mkdir -m 0700 "$BOOT_V2_STAGE"
-boot_v2_stage_modules /System/Filesystems "$BOOT_V2_STAGE" "$work/verify" /sys/firmware/efi/efivars
 echo "Running the native BOOT installation..."
 
 export BOOT_INSTALL_SOURCE_DIR="$source_dir"
@@ -1429,12 +1424,6 @@ InstallOnLinux() {
       return 1
    fi
    CopyBootFiles
-   if [[ -n "${BOOT_V2_STAGE:-}" ]]; then
-      boot_v2_install_staged "$BOOT_V2_STAGE" "$InstallDir/$TargetDir/drivers_x64" || {
-         Problems=1
-         return 1
-      }
-   fi
    InstalledBootDigest=$(sha256sum "$InstallDir/$TargetDir/BOOTX64.EFI" 2>/dev/null | cut -d ' ' -f1)
    # Never promote an incomplete BOOT payload ahead of working OS loaders.
    if [[ "${Problems:-0}" == 1 ]] ||

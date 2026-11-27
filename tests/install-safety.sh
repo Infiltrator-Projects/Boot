@@ -88,6 +88,9 @@ if CheckBootDestination; then echo "Accepted symlinked EFI path" >&2; exit 1; fi
 InstallDir="$work/esp"
 TargetDir=/EFI/InfiltratorOS/BOOT
 printf 'obsolete' > "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt"
+printf 'old module' > "$InstallDir/EFI/InfiltratorOS/BOOT/drivers_x64/ext4.so"
+printf 'old module' > "$InstallDir/EFI/InfiltratorOS/BOOT/drivers_x64/ntfs.SO"
+printf 'source module must not be installed' > "$ThisDir/drivers_x64/ntfs.so"
 # Seed BOOT's own directory with recognisable obsolete contents. Changes
 # inside that directory and byte-for-byte preservation of the separate vendor
 # files are independent expectations of a reinstall.
@@ -111,6 +114,7 @@ if grep -Fq "preserving it" "$work/reinstall-output.txt"; then
 fi
 test -s "$InstallDir/EFI/InfiltratorOS/BOOT/BOOTX64.EFI" || exit 1
 test ! -e "$InstallDir/EFI/InfiltratorOS/BOOT/obsolete.txt" || exit 1
+test -z "$(find "$InstallDir/EFI/InfiltratorOS/BOOT" -iname '*.so' -print)" || exit 1
 for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     test -s "$InstallDir/EFI/InfiltratorOS/BOOT/drivers_x64/${filesystem}_x64.efi" || exit 1
 done

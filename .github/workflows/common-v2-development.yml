@@ -249,7 +249,7 @@ jobs:
         shell: bash
         run: |
           gcc -std=c11 -O2 -Wall -Wextra -Werror packaging/common-v2-verify.c boot/common_v2_elf.c boot/common_v2_trust.c -o /tmp/common-v2-verify
-          bash -n boot-native-installer.run packaging/common-v2-install.sh packaging/install-generic.sh packaging/build-release.sh
+          bash -n boot-native-installer.run packaging/install-generic.sh packaging/build-release.sh
 
   provider-elf-compatibility:
     name: Provider ELF - ${{ matrix.name }}

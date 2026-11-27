@@ -58,17 +58,17 @@ test does not prove it passed.
 
 ## Installation contract
 
-The existing native RUN and generic AMD64 package stage modules from
-`/System/Filesystems`. The host verifier recognizes either a raw firmware ELF
-or a hosted ELF carrier with a single `.infiltrator_boot` section. It authenticates
-the exact extracted bytes against platform db/dbx and uses the same structural
-loader with non-executable host mappings; it never executes provider code on
-the installation host. The firmware independently authenticates and validates
-the descriptor before execution. Only accepted payloads enter
-`/EFI/InfiltratorOS/BOOT/drivers_x64/`. Existing EFI drivers remain present.
-Neither installer changes the platform trust database. A new module's raw
-digest must be explicitly authorized by the platform owner; a hosted package's
-APT signature or the local MOK certificate alone does not authorize raw ELF.
+Both BOOT installers replace the entire fixed BOOT EFI directory, removing
+all existing files, including independent filesystem shared objects. Neither
+installer scans /System/Filesystems, extracts a carrier, copies a firmware
+.so, or installs a module-management tool. The original six EFI drivers
+remain part of BOOT. Independently managed firmware modules can subsequently
+be deployed to /EFI/InfiltratorOS/BOOT/drivers_x64/ by their own installation
+mechanism. BOOT dynamically discovers and authenticates these modules at
+runtime; their absence must not prevent the existing EFI driver path.
+The host carrier verifier is retained solely for optional compatibility
+testing and is not packaged. Neither installer changes platform trust
+databases. A hosted package signature or MOK alone does not authorize raw ELF.
 
 ## Evidence and outstanding qualification
 

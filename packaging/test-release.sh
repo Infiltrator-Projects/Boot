@@ -121,6 +121,14 @@ grep -Fq 'sbverify --cert "$CertKey"' "$run"
 grep -Fq 'BootSecureBootEnabled=$(od -An -tu1 -j4 -N1' "$run"
 ! grep -Fq 'BOOT Boot Manager (direct)' "$run"
 grep -Fq 'rm -rf -- "$InstallDir/$TargetDir"' "$run"
+if grep -Eq 'boot_v2_(stage_modules|install_staged)|BOOT_V2_STAGE|/System/Filesystems|common-v2-verify' "$run"; then
+    echo 'Native installer must not install independent filesystem modules' >&2
+    exit 1
+fi
+if grep -Ei '(/System/Filesystems/|/[^/[:space:]]+\.so([[:space:]]|$)|common-v2-(install\.sh|verify)([[:space:]]|$))' "$work/package-files.txt"; then
+    echo 'Generic package must not contain independent filesystem modules or their installers' >&2
+    exit 1
+fi
 ! grep -Fq "BootFileHash" "$run"
 ! grep -Fq ".infiltrator-boot-loader.sha256" "$run"
 grep -Fq 'CheckBootDestination || exit 1' "$run"

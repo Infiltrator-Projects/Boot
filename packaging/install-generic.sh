@@ -94,9 +94,6 @@ boot_generic_install_files() {
     for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
         install -m 0644 "$source/drivers_x64/${filesystem}_x64.efi" "$destination/drivers_x64/"
     done
-    if [[ -n "${3:-}" ]]; then
-        boot_v2_install_staged "$3" "$destination/drivers_x64" || return 1
-    fi
     install -m 0644 "$source/boot.conf-sample" "$destination/boot.conf"
     for asset in icons fonts banners themes keys; do
         if [[ -d "$source/$asset" ]]; then
@@ -200,14 +197,7 @@ boot_generic_main() (
     local source=/usr/share/infiltrator-boot/boot
     boot_generic_payload_check "$source"
     boot_generic_esp
-    local stage
-    stage=$(mktemp -d)
-    trap 'rm -rf -- "$stage"' EXIT
-    source /usr/lib/infiltrator-boot/common-v2-install.sh
-    boot_v2_stage_modules /System/Filesystems "$stage" /usr/lib/infiltrator-boot/common-v2-verify /sys/firmware/efi/efivars || return 1
-    boot_generic_install_files "$BOOT_GENERIC_ESP" "$source" "$stage" || return 1
-    rm -rf -- "$stage"
-    trap - EXIT
+    boot_generic_install_files "$BOOT_GENERIC_ESP" "$source" || return 1
     boot_generic_register "$BOOT_GENERIC_DISK" "$BOOT_GENERIC_PART" "$BOOT_GENERIC_PARTUUID"
 )
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
