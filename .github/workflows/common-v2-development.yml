@@ -8,6 +8,8 @@ on:
       - 'boot/common_v2_*'
       - 'tests/common_v2_*'
       - 'tests/host-common-v2-*'
+      - 'tests/common-v2-*'
+      - 'tests/ovmf-common-v2.sh'
       - '.github/workflows/common-v2-development.yml'
   workflow_dispatch:
 permissions:
@@ -86,3 +88,47 @@ jobs:
           for driver in ext2 ext4 reiserfs iso9660 hfs btrfs; do
             test -s "drivers_x64/${driver}_x64.efi"
           done
+      - name: Check out independent EXT4 firmware source
+        uses: actions/checkout@v4
+        with:
+          repository: Infiltrator-Projects/Filesystem-EXT4
+          ref: b23bbca8fc48b62be782c272fcc7190c77991671
+          path: .provider-ext4
+          persist-credentials: false
+      - name: Check out independent NTFS firmware source
+        uses: actions/checkout@v4
+        with:
+          repository: Infiltrator-Projects/Filesystem-NTFS
+          ref: f2f8dec290bf814ccf845e088b30f5aac5f7070b
+          path: .provider-ntfs
+          persist-credentials: false
+      - name: Build the actual provider firmware profiles
+        shell: bash
+        run: |
+          sudo apt-get install -y --no-install-recommends cmake e2fsprogs ntfs-3g qemu-system-x86 ovmf dosfstools mtools gdisk efitools sbsigntool openssl
+          cmake -S .provider-ext4/module/firmware -B .provider-ext4-build -DCOMMON_INCLUDE_DIR="$PWD/.common-v2/include"
+          cmake --build .provider-ext4-build
+          cmake -S .provider-ntfs/module/firmware -B .provider-ntfs-build -DCOMMON_INCLUDE_DIR="$PWD/.common-v2/include"
+          cmake --build .provider-ntfs-build
+          test -s .provider-ext4-build/EXT4.so
+          test -s .provider-ntfs-build/NTFS.so
+          readelf -W -l -d -r .provider-ext4-build/EXT4.so
+          readelf -W -l -d -r .provider-ntfs-build/NTFS.so
+      - name: Read real EXT4 and NTFS media through BOOT's actual ELF loader
+        shell: bash
+        run: |
+          export COMMON_INCLUDE_DIR="$PWD/.common-v2/include"
+          export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
+          export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
+          bash tests/common-v2-real-media.sh
+      - name: Qualify unchanged EFI loader menu path under OVMF
+        if: always()
+        shell: bash
+        run: bash tests/ovmf-smoke.sh
+      - name: Exercise actual signed BOOT, EFI drivers and independent SOs under OVMF
+        if: always()
+        shell: bash
+        run: |
+          export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
+          export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
+          bash tests/ovmf-common-v2.sh
