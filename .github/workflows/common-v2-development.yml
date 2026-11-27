@@ -262,6 +262,8 @@ jobs:
             revision: 6d5ae312423191df22b00cab7b5ca3bc12084b4a
           - name: QNX4
             revision: 1344ccee3033e89da11ae628b5f880bb47195e24
+          - name: OMFS
+            revision: ae39efa84cd0f668d63dc381c0d321cc62108372
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -275,6 +277,13 @@ jobs:
           repository: Infiltrator-Projects/Filesystem-${{ matrix.name }}
           ref: ${{ matrix.revision }}
           path: .provider
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        if: matrix.name == 'OMFS'
+        with:
+          repository: bcopeland/omfsprogs
+          ref: e77827eb5520b3e14fa8ed1eb6516f2d998c17e4
+          path: .omfs-oracle
           persist-credentials: false
       - name: Build independent provider and exercise actual BOOT ELF mapping
         shell: bash
@@ -312,6 +321,14 @@ jobs:
             hfsplus) sudo apt-get install -y --no-install-recommends hfsprogs ;;
             exfat) sudo apt-get install -y --no-install-recommends exfatprogs ;;
             minix|bfs) sudo apt-get install -y --no-install-recommends util-linux ;;
+            omfs)
+              bash .provider/tests/make-oracle-media.sh .omfs-oracle "$RUNNER_TEMP/omfs-media"
+              (cd "$RUNNER_TEMP/omfs-media" && sha256sum media.img > before)
+              for sector in 512 4096; do
+                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/omfs-media/media.img" "$RUNNER_TEMP/omfs-media/proof.bin" /proof.bin "$sector"
+              done
+              (cd "$RUNNER_TEMP/omfs-media" && sha256sum -c before)
+              exit 0 ;;
             *) echo "No independent media fixture yet for $name"; exit 0 ;;
           esac
           bash tests/common-v2-provider-media.sh /tmp/provider-test "$module" "$name"
@@ -342,7 +359,7 @@ jobs:
               dpkg-deb -x "${packages[0]}" /tmp/provider-package
               carrier="/tmp/provider-package/System/Filesystems/$name.so"
               ;;
-            QNX4)
+            QNX4|OMFS)
               # actions/checkout leaves an empty directory for an uninitialised gitlink.
               # Remove only that empty directory, never an existing checkout.
               if [[ -d .provider/Libraries && ! -L .provider/Libraries ]]; then rmdir .provider/Libraries; fi
