@@ -6,6 +6,56 @@
 static EFI_GUID block_guid={0x964e5b21,0x6459,0x11d2,{0x8e,0x39,0x00,0xa0,0xc9,0x69,0x72,0x3b}};
 static EFI_GUID disk_guid={0xce345171,0xba0b,0x11d2,{0x8e,0x4f,0x00,0xa0,0xc9,0x69,0x72,0x3b}};
 static EFI_GUID sfs_guid={0x964e5b22,0x6459,0x11d2,{0x8e,0x39,0x00,0xa0,0xc9,0x69,0x72,0x3b}};
+static EFI_GUID path_guid={0x09576e91,0x6d3f,0x11d2,{0x8e,0x39,0x00,0xa0,0xc9,0x69,0x72,0x3b}};
+
+/* UEFI Media Access, Block I/O: revision-2 physical geometry fields are
+ * zero on logical partition handles. Resolve the exact parent device path
+ * by removing only the last Hard Drive Media Device Path node. Never
+ * substitute a guessed sector size, a different disk or a partial match. */
+static int parent_geometry(BootV2UefiStorage *v)
+{
+    EFI_DEVICE_PATH *path=NULL,*cursor,*remaining;
+    UINT8 prefix[4096];
+    UINTN at=0,last=0,len;
+    HARDDRIVE_DEVICE_PATH hd;
+    EFI_BLOCK_IO *p=NULL;
+    EFI_HANDLE parent=NULL;
+    EFI_STATUS s;
+    if(boot_call3_wrapper(BS->HandleProtocol,v->handle,&path_guid,(VOID **)&path)!=EFI_SUCCESS||!path)return -1;
+    cursor=path;
+    for(;;) {
+        len=DevicePathNodeLength(cursor);
+        if(len<sizeof(EFI_DEVICE_PATH)||len>sizeof(prefix)-at)return -1;
+        if(DevicePathType(cursor)==END_DEVICE_PATH_TYPE) {
+            if(DevicePathSubType(cursor)!=END_ENTIRE_DEVICE_PATH_SUBTYPE||len!=sizeof(EFI_DEVICE_PATH)||!at)return -1;
+            break;
+        }
+        last=at;at+=len;cursor=NextDevicePathNode(cursor);
+        if(at>sizeof(prefix)-sizeof(EFI_DEVICE_PATH))return -1;
+    }
+    cursor=(EFI_DEVICE_PATH *)((UINT8 *)path+last);
+    if(DevicePathType(cursor)!=MEDIA_DEVICE_PATH||DevicePathSubType(cursor)!=MEDIA_HARDDRIVE_DP||
+       DevicePathNodeLength(cursor)!=sizeof(hd))return -1;
+    CopyMem(&hd,cursor,sizeof(hd));
+    if(!hd.PartitionSize||hd.PartitionSize-1!=v->block->Media->LastBlock)return -1;
+    CopyMem(prefix,path,last);
+    prefix[last]=END_DEVICE_PATH_TYPE;prefix[last+1]=END_ENTIRE_DEVICE_PATH_SUBTYPE;
+    prefix[last+2]=sizeof(EFI_DEVICE_PATH);prefix[last+3]=0;
+    remaining=(EFI_DEVICE_PATH *)prefix;
+    s=boot_call3_wrapper(BS->LocateDevicePath,&block_guid,&remaining,&parent);
+    if(s!=EFI_SUCCESS||!parent||parent==v->handle||
+       remaining!=(EFI_DEVICE_PATH *)(prefix+last))return -1;
+    if(boot_call3_wrapper(BS->HandleProtocol,parent,&block_guid,(VOID **)&p)!=EFI_SUCCESS||
+       !p||!p->Media||!p->Media->MediaPresent||p->Media->LogicalPartition||
+       p->Revision<0x00020001ULL||p->Media->BlockSize!=v->block->Media->BlockSize||
+       !p->Media->LogicalBlocksPerPhysicalBlock||
+       hd.PartitionStart>p->Media->LastBlock||
+       hd.PartitionSize-1>p->Media->LastBlock-hd.PartitionStart)return -1;
+    v->parent_handle=parent;v->parent=p;v->parent_media_id=p->Media->MediaId;
+    v->parent_last_block=p->Media->LastBlock;
+    v->partition_start=hd.PartitionStart;v->partition_blocks=hd.PartitionSize;
+    return 0;
+}
 
 /* Revision 2 introduces physical geometry. A zero or missing geometry is
  * unknown, not evidence that physical and logical sectors are identical. */
@@ -16,13 +66,25 @@ static int geometry(void *ctx, BootV2Geometry *out)
     EFI_DISK_IO *disk=NULL;
     EFI_BLOCK_IO_MEDIA *m;
     UINT32 ratio;
+    EFI_BLOCK_IO *parent=NULL;
     if (!v || !out ||
         EFI_ERROR(boot_call3_wrapper(BS->HandleProtocol,v->handle,&block_guid,(VOID **)&block)) ||
         EFI_ERROR(boot_call3_wrapper(BS->HandleProtocol,v->handle,&disk_guid,(VOID **)&disk)) ||
-        block!=v->block || disk!=v->disk || !block || !disk || !block->Media ||
-        block->Revision<0x00020001ULL) return -1;
+        block!=v->block || disk!=v->disk || !block || !disk || !block->Media) return -1;
     m=block->Media;
-    ratio=m->LogicalBlocksPerPhysicalBlock;
+    if(m->LogicalPartition) {
+        if(!v->parent_handle||!v->parent||
+           boot_call3_wrapper(BS->HandleProtocol,v->parent_handle,&block_guid,(VOID **)&parent)!=EFI_SUCCESS||
+           parent!=v->parent||!parent->Media||!parent->Media->MediaPresent||
+           parent->Media->LogicalPartition||parent->Revision<0x00020001ULL||
+           parent->Media->MediaId!=v->parent_media_id||parent->Media->LastBlock!=v->parent_last_block||
+           parent->Media->BlockSize!=m->BlockSize||
+           !v->partition_blocks||v->partition_blocks-1!=m->LastBlock) return -1;
+        ratio=parent->Media->LogicalBlocksPerPhysicalBlock;
+    } else {
+        if(v->parent||block->Revision<0x00020001ULL)return -1;
+        ratio=m->LogicalBlocksPerPhysicalBlock;
+    }
     if (!m->BlockSize || !ratio || ratio>65536U/m->BlockSize) return -1;
     *out=(BootV2Geometry){m->LastBlock,m->MediaId,m->BlockSize,m->BlockSize*ratio,
                          !!m->MediaPresent,!!m->ReadOnly};
@@ -55,7 +117,8 @@ EFI_STATUS BootV2UefiStorageInit(BootV2UefiStorage *v, EFI_HANDLE handle)
     if (EFI_ERROR(status)) return status;
     status=boot_call3_wrapper(BS->HandleProtocol,handle,&disk_guid,(VOID **)&v->disk);
     if (EFI_ERROR(status)) return status;
-    if (!v->block || !v->disk || !v->disk->ReadDisk) return EFI_UNSUPPORTED;
+    if (!v->block || !v->block->Media || !v->disk || !v->disk->ReadDisk) return EFI_UNSUPPORTED;
+    if(v->block->Media->LogicalPartition&&parent_geometry(v))return EFI_UNSUPPORTED;
     backend.context=v; backend.geometry=geometry; backend.read=read_disk;
     backend.allocate=allocate; backend.release=release;
     /* No firmware exclusivity or durability claim has been established.

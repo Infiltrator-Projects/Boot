@@ -153,6 +153,7 @@ static EFI_STATUS V2_EFI get_position(EFI_FILE_PROTOCOL *this,UINT64 *position)
     V2File *f=(V2File *)this;
     if(!position)return EFI_INVALID_PARAMETER;
     if(f->type==IFS_FS_ENTRY_DIRECTORY)return EFI_UNSUPPORTED;
+    if(!live(f->volume))return EFI_MEDIA_CHANGED;
     *position=f->position;return EFI_SUCCESS;
 }
 static EFI_STATUS V2_EFI set_position(EFI_FILE_PROTOCOL *this,UINT64 position)
@@ -241,6 +242,12 @@ BOOLEAN BootV2OwnsVolume(EFI_HANDLE handle)
     return FALSE;
 }
 BOOLEAN BootV2HasVolumes(VOID){return volumes!=NULL;}
+static BOOLEAN retained_handle(EFI_HANDLE handle)
+{
+    for(V2Volume *v=volumes;v;v=v->next)
+        if(v->storage.handle==handle)return TRUE;
+    return FALSE;
+}
 static BOOLEAN valid_info(const V2Volume *v,uint32_t variant)
 {
     return v->info.structure_bytes==sizeof(v->info)&&v->info.variant==variant&&
@@ -283,6 +290,7 @@ reject:
         /* Do not free a host object still borrowed by provider code. */
         retain(v);return EFI_DEVICE_ERROR;
     }
+    v->mounted=NULL;
     if(v->storage.storage.allocations){retain(v);return EFI_DEVICE_ERROR;}
     BootV2UefiStorageClose(&v->storage);FreePool(v);return s;
 }
@@ -293,11 +301,11 @@ UINTN BootV2MountVolumes(VOID)
     for(UINTN i=0;i<VolumesCount&&volume_count<MAX_VOLUMES;i++){
         BOOT_VOLUME *vol=Volumes[i];
         if(!vol||!vol->DeviceHandle||vol->IsReadable||!vol->BlockIO||!vol->BlockIO->Media||
-           !vol->BlockIO->Media->LogicalPartition||BootVolumeExcluded(vol)||BootV2OwnsVolume(vol->DeviceHandle))continue;
+           !vol->BlockIO->Media->LogicalPartition||BootVolumeExcluded(vol)||retained_handle(vol->DeviceHandle))continue;
         for(BootV2Provider *p=BootV2Providers();p&&volume_count<MAX_VOLUMES;p=p->next){
             EFI_STATUS s=try_mount(vol->DeviceHandle,p);
             if(s==EFI_SUCCESS){++count;LOG(1,LOG_LINE_NORMAL,L"Common V2 mounted volume on handle %p",vol->DeviceHandle);break;}
-            if(s==EFI_ALREADY_STARTED||s==EFI_OUT_OF_RESOURCES)break;
+            if(s==EFI_ALREADY_STARTED||s==EFI_OUT_OF_RESOURCES||retained_handle(vol->DeviceHandle))break;
         }
     }
     return count;

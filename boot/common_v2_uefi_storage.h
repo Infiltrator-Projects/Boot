@@ -8,6 +8,10 @@ typedef struct {
     EFI_HANDLE handle;
     EFI_BLOCK_IO *block;
     EFI_DISK_IO *disk;
+    EFI_HANDLE parent_handle;
+    EFI_BLOCK_IO *parent;
+    UINT32 parent_media_id;
+    UINT64 parent_last_block, partition_start, partition_blocks;
     BootV2Storage storage;
     IfsFsHostRuntimeV2 host;
 } BootV2UefiStorage;

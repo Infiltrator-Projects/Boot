@@ -223,6 +223,10 @@ VOID RescanAll(BOOLEAN DisplayMessage, BOOLEAN Reconnect) {
     if (Reconnect) {
         ConnectAllDriversToAllControllers();
         ScanVolumes();
+#ifdef BOOT_COMMON_V2
+        if (BootV2MountVolumes())
+            ScanVolumes();
+#endif
     }
     ReadConfig(GlobalConfig.ConfigFilename);
     SetVolumeIcons();
