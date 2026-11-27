@@ -136,8 +136,10 @@ read-only filesystem profile. Original EFI drivers remain available
 and retain precedence.
 
 Pushes marked `[v2-dev]` do not publish an installable release. Production
-publication requires successful qualification and authorization of the exact
-commit. Further work includes remaining independent providers, complete
+publication runs automatically on ordinary pushes to main (or explicit workflow
+dispatch) only after the exact commit passes the full automated Common V2
+qualification and all release packaging and regression checks. No separate
+manual approval variable is required. Further work includes remaining independent providers, complete
 real-media and boot coverage, the InfiltratorFS 0.20 production adapter,
 firmware-exclusive write ownership and durability (the path remains read-only),
 and release qualification. Swap has no file namespace and is not an OS
