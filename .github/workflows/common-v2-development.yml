@@ -315,8 +315,7 @@ jobs:
             *) echo "No independent media fixture yet for $name"; exit 0 ;;
           esac
           bash tests/common-v2-provider-media.sh /tmp/provider-test "$module" "$name"
-      - name: Qualify installed carrier payload
-        if: contains(fromJSON('["FAT12","FAT16","FAT32","OFS","EFS","BFS","QNX4"]'), matrix.name)
+      - name: Qualify provider release-target carrier payload
         shell: bash
         run: |
           set -euo pipefail
@@ -352,8 +351,38 @@ jobs:
               make -C .provider carrier
               carrier="$PWD/.provider/build/carrier/$name.so"
               ;;
-            *) exit 2 ;;
+            *)
+              # Build the owner's real hosted production target, not a
+              # synthetic carrier wrapped around our isolated test payload.
+              # Preserve its own pinned Common dependency.
+              case "$name" in
+                EXT2) target=ext-ext2-driver ;;
+                EXT3) target=ext-ext3-driver ;;
+                EXT4) target=ext-ext4-driver ;;
+                NTFS) target=ntfs-driver ;;
+                exFAT) target=exfat-unified ;;
+                Btrfs) target=btrfs-driver ;;
+                XFS) target=xfs-driver ;;
+                ZFS) target=zfs-driver ;;
+                HFS) target=hfs-driver ;;
+                HFSPlus) target=hfsplus-driver ;;
+                APFS) target=apfs-driver ;;
+                FFS) target=ffs-unified ;;
+                Minix) target=minix-driver ;;
+                SFS) target=sfs-driver ;;
+                SFS2) target=sfs2-driver ;;
+                PFS3) target=pfs3-driver ;;
+                UFS1) target=ufs1-driver ;;
+                UFS2) target=ufs-driver ;;
+                *) exit 2 ;;
+              esac
+              sudo apt-get install -y --no-install-recommends libssl-dev libsqlite3-dev pkg-config libtool autoconf automake
+              cmake -S .provider -B .carrier-build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+              cmake --build .carrier-build --target "$target" --parallel 2
+              mapfile -t carriers < <(find .carrier-build -maxdepth 1 -type f -iname "$name.so")
+              test "${#carriers[@]}" = 1
+              carrier="${carriers[0]}"
+              ;;
           esac
           test -s "$carrier"
-          objcopy --dump-section .infiltrator_boot=/tmp/packaged-firmware.so "$carrier" /tmp/carrier-copy.so
-          /tmp/provider-test /tmp/packaged-firmware.so "$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
+          bash tests/common-v2-carrier.sh "$carrier" "$name" /tmp/provider-test
