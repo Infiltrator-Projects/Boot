@@ -10,6 +10,8 @@ on:
       - 'tests/host-common-v2-*'
       - 'tests/common-v2-*'
       - 'tests/ovmf-common-v2.sh'
+      - 'packaging/**'
+      - 'boot-native-installer.run'
       - '.github/workflows/common-v2-development.yml'
   workflow_dispatch:
 permissions:
@@ -132,3 +134,9 @@ jobs:
           export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
           export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
           bash tests/ovmf-common-v2.sh
+      - name: Compile installer verifier and check shell syntax
+        if: always()
+        shell: bash
+        run: |
+          gcc -std=c11 -O2 -Wall -Wextra -Werror packaging/common-v2-verify.c boot/common_v2_elf.c boot/common_v2_trust.c -o /tmp/common-v2-verify
+          bash -n boot-native-installer.run packaging/common-v2-install.sh packaging/install-generic.sh packaging/build-release.sh

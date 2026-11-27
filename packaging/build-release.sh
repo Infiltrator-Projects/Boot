@@ -80,6 +80,8 @@ cp -a "$payload/usr" "$package/usr"
 # tools or source checkout are needed for the generic binary installation.
 install -d -m 0755 "$package/usr/lib/infiltrator-boot"
 install -m 0755 packaging/install-generic.sh "$package/usr/lib/infiltrator-boot/install-generic.sh"
+install -m 0644 packaging/common-v2-install.sh "$package/usr/lib/infiltrator-boot/common-v2-install.sh"
+gcc -std=c11 -O2 -Wall -Wextra -Werror packaging/common-v2-verify.c boot/common_v2_elf.c boot/common_v2_trust.c -o "$package/usr/lib/infiltrator-boot/common-v2-verify"
 cat > "$package/DEBIAN/postinst" <<'POSTINST'
 #!/bin/sh
 set -e

@@ -59,7 +59,7 @@ git -C "$source_dir" remote add origin "$SOURCE_URL"
 # packaged object ID and verify the detached HEAD before compiling so a newer
 # main cannot silently change what this installer builds.
 git -C "$source_dir" sparse-checkout init --cone
-git -C "$source_dir" sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys filesystems
+git -C "$source_dir" sparse-checkout set boot EfiLib gzip libeg mok include icons fonts banners themes keys filesystems packaging
 git -C "$source_dir" -c protocol.version=2 fetch --quiet --depth 1 --filter=blob:none origin "$SOURCE_SHA"
 git -C "$source_dir" -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD
 [[ $(git -C "$source_dir" rev-parse HEAD) == "$SOURCE_SHA" ]] || {
@@ -69,13 +69,25 @@ cd "$source_dir"
 [[ -f Makefile && -f Make.common && -f boot/main.c ]] || {
     echo "Downloaded BOOT build source is incomplete" >&2; exit 1;
 }
+common_sha=225e640ebed5351b1481bfbeef1a6144ca5146e7
+git -C "$work" init -q Libraries
+git -C "$work/Libraries" remote add origin https://github.com/Infiltrator-Projects/Libraries.git
+git -C "$work/Libraries" fetch --quiet --depth 1 origin "$common_sha"
+git -C "$work/Libraries" checkout --quiet --detach FETCH_HEAD
+[[ $(git -C "$work/Libraries" rev-parse HEAD) == "$common_sha" ]]
+[[ $(git hash-object "$work/Libraries/include/infiltratr/filesystem_module_v2.h") == 90730b68a53ecf6a6e304c789501f29c17c728c7 ]]
 echo "Building BOOT natively from source commit $SOURCE_SHA..."
 printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$RELEASE_VERSION" > boot-sbat-release.csv
-make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$RELEASE_VERSION\"'" gnuefi
+make COMMON_V2_INCLUDE="$work/Libraries/include" BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$RELEASE_VERSION\"'" gnuefi
 [[ -s boot/boot_x64.efi ]] || { echo "Native BOOT EFI build failed" >&2; exit 1; }
 for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
     [[ -s "drivers_x64/${filesystem}_x64.efi" ]] || { echo "Required EFI driver is missing: $filesystem" >&2; exit 1; }
 done
+gcc -std=c11 -Wall -Wextra -Werror -O2 packaging/common-v2-verify.c boot/common_v2_elf.c boot/common_v2_trust.c -o "$work/verify"
+source "$source_dir/packaging/common-v2-install.sh"
+BOOT_V2_STAGE="$work/v2-stage"
+mkdir -m 0700 "$BOOT_V2_STAGE"
+boot_v2_stage_modules /System/Filesystems "$BOOT_V2_STAGE" "$work/verify" /sys/firmware/efi/efivars
 echo "Running the native BOOT installation..."
 
 export BOOT_INSTALL_SOURCE_DIR="$source_dir"
@@ -1417,6 +1429,12 @@ InstallOnLinux() {
       return 1
    fi
    CopyBootFiles
+   if [[ -n "${BOOT_V2_STAGE:-}" ]]; then
+      boot_v2_install_staged "$BOOT_V2_STAGE" "$InstallDir/$TargetDir/drivers_x64" || {
+         Problems=1
+         return 1
+      }
+   fi
    InstalledBootDigest=$(sha256sum "$InstallDir/$TargetDir/BOOTX64.EFI" 2>/dev/null | cut -d ' ' -f1)
    # Never promote an incomplete BOOT payload ahead of working OS loaders.
    if [[ "${Problems:-0}" == 1 ]] ||
