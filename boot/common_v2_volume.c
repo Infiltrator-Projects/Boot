@@ -241,7 +241,7 @@ BOOLEAN BootV2OwnsVolume(EFI_HANDLE handle)
         if(v->published&&v->storage.handle==handle)return TRUE;
     return FALSE;
 }
-BOOLEAN BootV2HasVolumes(VOID){return volumes!=NULL;}
+BOOLEAN BootV2HasVolumes(VOID){return volumes!=NULL || BootV2HasProviders();}
 static BOOLEAN retained_handle(EFI_HANDLE handle)
 {
     for(V2Volume *v=volumes;v;v=v->next)
@@ -308,6 +308,7 @@ UINTN BootV2MountVolumes(VOID)
         if(!vol||!vol->DeviceHandle||vol->IsReadable||!vol->BlockIO||!vol->BlockIO->Media||
            !vol->BlockIO->Media->LogicalPartition||BootVolumeExcluded(vol)||retained_handle(vol->DeviceHandle))continue;
         for(BootV2Provider *p=BootV2Providers();p&&volume_count<MAX_VOLUMES;p=p->next){
+            if(p->memory.memory.quarantined)continue;
             EFI_STATUS s=try_mount(vol->DeviceHandle,p);
             if(s==EFI_SUCCESS){++count;LOG(1,LOG_LINE_NORMAL,L"Common V2 mounted volume on handle %p",vol->DeviceHandle);break;}
             if(s==EFI_ALREADY_STARTED||s==EFI_OUT_OF_RESOURCES||retained_handle(vol->DeviceHandle))break;
@@ -335,6 +336,6 @@ EFI_STATUS BootV2Shutdown(VOID)
         BootV2UefiStorageClose(&v->storage);
         --v->provider->mounted;--volume_count;*at=v->next;FreePool(v);
     }
-    if(rc==EFI_SUCCESS)BootV2ReleaseProviders();
+    if(rc==EFI_SUCCESS)rc=BootV2ReleaseProviders();
     return rc;
 }

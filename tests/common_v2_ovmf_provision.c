@@ -43,6 +43,7 @@ EFI_STATUS efi_main(EFI_HANDLE image,EFI_SYSTEM_TABLE *system)
     }
     n=1;s=uefi_call_wrapper(RT->GetVariable,5,L"SecureBoot",&global,NULL,&n,&secure);
     if(s!=EFI_SUCCESS||n!=1||secure!=1){Print(L"V2 test Secure Boot not enabled\r\n");return EFI_SECURITY_VIOLATION;}
+    Print(L"V2 test Secure Boot active\r\n");
     path=FileDevicePath(li->DeviceHandle,L"\\EFI\\InfiltratorOS\\BOOT\\BOOTX64.EFI");
     if(!path)return EFI_OUT_OF_RESOURCES;
     s=uefi_call_wrapper(BS->LoadImage,6,FALSE,image,path,NULL,0,&child);

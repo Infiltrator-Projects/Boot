@@ -16,5 +16,6 @@ typedef struct BootV2Provider {
  * providers remain mapped while a volume or EFI file handle may borrow them. */
 const BootV2Provider *BootV2DiscoverProviders(VOID);
 BootV2Provider *BootV2Providers(VOID);
-VOID BootV2ReleaseProviders(VOID);
+BOOLEAN BootV2HasProviders(VOID);
+EFI_STATUS BootV2ReleaseProviders(VOID);
 #endif

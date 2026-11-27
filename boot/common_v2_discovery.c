@@ -11,6 +11,7 @@
 #define MAX_CANDIDATES 256U
 static BootV2Provider *providers;
 static BOOLEAN scanned;
+static BOOLEAN quarantined;
 static UINTN mapped_bytes;
 static int compare(const char *a,const char *b)
 {
@@ -88,7 +89,11 @@ const BootV2Provider *BootV2DiscoverProviders(VOID)
             FreePool(data);
             boot_v2_elf_unload(&p->memory.host,&p->image);
             LOG(1,LOG_LINE_NORMAL,L"Common V2 module rejected: %s",entry->FileName);
-            if(p->memory.memory.quarantined) {FreePool(p);break;}
+            if(p->memory.memory.quarantined) {
+                /* Retain the failed mapping's ownership record until reset.
+                 * Never pretend that its pages were released. */
+                quarantined=TRUE;p->next=*at;*at=p;break;
+            }
             FreePool(p);continue;
         }
         FreePool(data);
@@ -100,14 +105,18 @@ const BootV2Provider *BootV2DiscoverProviders(VOID)
     DirIterClose(&it);
     return providers;
 }
-VOID BootV2ReleaseProviders(VOID)
+BOOLEAN BootV2HasProviders(VOID) {return providers!=NULL || quarantined;}
+EFI_STATUS BootV2ReleaseProviders(VOID)
 {
     BootV2Provider **at=&providers;
+    EFI_STATUS rc=EFI_SUCCESS;
     while(*at) {
         BootV2Provider *p=*at;
-        if(p->mounted){at=&p->next;continue;}
+        if(p->mounted || p->memory.memory.quarantined){rc=EFI_ACCESS_DENIED;at=&p->next;continue;}
         mapped_bytes-=p->image.bytes;
         boot_v2_elf_unload(&p->memory.host,&p->image);
+        if(p->memory.memory.quarantined){quarantined=TRUE;rc=EFI_DEVICE_ERROR;at=&p->next;continue;}
         *at=p->next;FreePool(p);
     }
+    return quarantined?EFI_DEVICE_ERROR:rc;
 }

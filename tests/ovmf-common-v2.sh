@@ -123,6 +123,7 @@ fi
 iconv -f UTF-16LE -t UTF-8 "$work/BOOT.log" > "$work/log.txt"
 cat "$work/log.txt"
 tail -n 100 "$work/boot.log" || true
+grep -aFq 'V2 test Secure Boot active' "$work/boot.log"
 grep -Fq 'Common V2 authenticated reader: EXT4.so' "$work/log.txt"
 grep -Fq 'Common V2 authenticated reader: NTFS.so' "$work/log.txt"
 grep -Fq 'Common V2 module rejected: BAD.so' "$work/log.txt"

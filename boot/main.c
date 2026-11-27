@@ -268,7 +268,8 @@ static BOOLEAN SecureBootSetup(VOID) {
     BOOLEAN    Success = FALSE;
 
     LOG(1, LOG_LINE_NORMAL, L"Setting up Secure Boot (if applicable)");
-    if (secure_mode() && ShimLoaded()) {
+    BOOLEAN Secure = secure_mode();
+    if (Secure && ShimLoaded()) {
         LOG(2, LOG_LINE_NORMAL, L"Secure boot mode detected with loaded Shim; adding MOK extensions");
         Status = security_policy_install();
         if (Status == EFI_SUCCESS) {
@@ -278,7 +279,7 @@ static BOOLEAN SecureBootSetup(VOID) {
             PauseForKey();
         }
     } else {
-        LOG(2, LOG_LINE_NORMAL, L"Secure boot disabled; doing nothing");
+        LOG(2, LOG_LINE_NORMAL, Secure ? L"Secure Boot active; firmware policy retained without Shim" : L"Secure boot disabled; doing nothing");
     }
     return Success;
 }  
