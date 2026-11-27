@@ -377,6 +377,12 @@ jobs:
                 *) exit 2 ;;
               esac
               sudo apt-get install -y --no-install-recommends libssl-dev libsqlite3-dev pkg-config libtool autoconf automake
+              if [[ "$name" == NTFS ]]; then
+                # Use the owning project's exact pinned source preparation,
+                # as its own CI does, not a distribution NTFS runtime.
+                sudo apt-get install -y --no-install-recommends libgcrypt20-dev
+                (cd .provider && python3 -c 'from standalone import build; build.prepare_release_source()')
+              fi
               cmake -S .provider -B .carrier-build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
               cmake --build .carrier-build --target "$target" --parallel 2
               mapfile -t carriers < <(find .carrier-build -maxdepth 1 -type f -iname "$name.so")
