@@ -200,9 +200,9 @@ jobs:
           - name: PFS3
             revision: 960df440cf7cbabcd996d96727a7f25e3b520eb6
           - name: UFS1
-            revision: 9402749c7a60fea381d206a156d135eebd2290f5
+            revision: 0fcc900de768ae554fb21298706280d73353e26a
           - name: UFS2
-            revision: ab555c569e60ad177d669dac040132b7d3e8b3af
+            revision: ed5f7d74cf3b41f622ca9701f96ad4c1998bfbbf
           - name: FAT12
             revision: 22c6359acfc195a65ce1a122c95dc51e28f85d68
           - name: FAT16
@@ -211,6 +211,12 @@ jobs:
             revision: d9a103e8cf081c39c47e4d26c7116784268ada0c
           - name: OFS
             revision: 02d80b96d3129a12adcca929ba5f2c4862c7dfab
+          - name: EFS
+            revision: a4356cb38a6d0a7b1199ffdd27fd7cc3fb034180
+          - name: BFS
+            revision: d7d96780cededefeac2a3f22015298c5b6df9cae
+          - name: QNX4
+            revision: 9b52dd27beffdcb6f21365a5f5f01b122105c2da
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
