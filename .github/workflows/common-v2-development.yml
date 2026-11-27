@@ -29,8 +29,10 @@ jobs:
           persist-credentials: false
       - name: Install actual GNU-EFI compiler headers
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends build-essential binutils gnu-efi
+          # These dependencies are Ubuntu packages; unrelated runner repositories must not block qualification.
+          test -s /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 update
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends build-essential binutils gnu-efi
       - name: Verify pinned canonical Common V2 header
         shell: bash
         run: |
@@ -108,7 +110,7 @@ jobs:
       - name: Build the actual provider firmware profiles
         shell: bash
         run: |
-          sudo apt-get install -y --no-install-recommends cmake e2fsprogs ntfs-3g qemu-system-x86 ovmf dosfstools mtools gdisk efitools sbsigntool openssl
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends cmake e2fsprogs ntfs-3g qemu-system-x86 ovmf dosfstools mtools gdisk efitools sbsigntool openssl
           cmake -S .provider-ext4/module/firmware -B .provider-ext4-build -DCOMMON_INCLUDE_DIR="$PWD/.common-v2/include"
           cmake --build .provider-ext4-build
           cmake -S .provider-ntfs/module/firmware -B .provider-ntfs-build -DCOMMON_INCLUDE_DIR="$PWD/.common-v2/include"
@@ -146,11 +148,11 @@ jobs:
       - name: Boot a real signed Linux EFI-stub kernel and independent NTFS initramfs
         shell: bash
         run: |
-          sudo apt-get install -y --no-install-recommends busybox-static cpio
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends busybox-static cpio
           mkdir -p "$RUNNER_TEMP/v2-kernel"
           image=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ { name=$2 } END { print name }')
           test -n "$image"
-          (cd "$RUNNER_TEMP/v2-kernel" && apt-get download "linux-image-unsigned-${image#linux-image-}")
+          (cd "$RUNNER_TEMP/v2-kernel" && apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 download "linux-image-unsigned-${image#linux-image-}")
           dpkg-deb -x "$RUNNER_TEMP/v2-kernel/"linux-image-unsigned-*.deb "$RUNNER_TEMP/v2-kernel/extracted"
           export BOOT_V2_TEST_KERNEL="$RUNNER_TEMP/v2-kernel/extracted/boot/vmlinuz-${image#linux-image-}"
           test -s "$BOOT_V2_TEST_KERNEL"
@@ -229,7 +231,7 @@ jobs:
       - name: Execute signed EFI and Linux kernel directly from independently generated UDF
         shell: bash
         run: |
-          sudo apt-get install -y --no-install-recommends genisoimage
+          sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends genisoimage
           cmake -S .provider-udf/module/firmware -B .provider-udf-build -DCOMMON_INCLUDE_DIR="$PWD/.common-v2/include"
           cmake --build .provider-udf-build
           export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
@@ -404,16 +406,16 @@ jobs:
             qualify_media "$media_dir" "$media_dir/proof.bin" "$namespace_path"
           }
           case "$name" in
-            ext2|ext3) sudo apt-get install -y --no-install-recommends e2fsprogs ;;
-            btrfs) sudo apt-get install -y --no-install-recommends btrfs-progs ;;
-            xfs) sudo apt-get install -y --no-install-recommends xfsprogs ;;
-            fat12|fat16|fat32) sudo apt-get install -y --no-install-recommends dosfstools mtools ;;
-            hfs) sudo apt-get install -y --no-install-recommends hfsutils ;;
-            hfsplus) sudo apt-get install -y --no-install-recommends hfsprogs ;;
-            exfat) sudo apt-get install -y --no-install-recommends exfatprogs ;;
-            minix|bfs) sudo apt-get install -y --no-install-recommends util-linux ;;
+            ext2|ext3) sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends e2fsprogs ;;
+            btrfs) sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends btrfs-progs ;;
+            xfs) sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends xfsprogs ;;
+            fat12|fat16|fat32) sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends dosfstools mtools ;;
+            hfs) sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends hfsutils ;;
+            hfsplus) sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends hfsprogs ;;
+            exfat) sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends exfatprogs ;;
+            minix|bfs) sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends util-linux ;;
             udf)
-              sudo apt-get install -y --no-install-recommends genisoimage
+              sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends genisoimage
               media_dir="$RUNNER_TEMP/udf-media"
               mkdir -p "$media_dir/tree/dir"
               printf yes > "$media_dir/tree/dir/child"
@@ -451,7 +453,7 @@ jobs:
           name="${{ matrix.name }}"
           case "$name" in
             FAT12|FAT16|FAT32|OFS)
-              sudo apt-get install -y --no-install-recommends build-essential binutils cmake git python3 dpkg-dev
+              sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends build-essential binutils cmake git python3 dpkg-dev
               make -C .provider release
               mapfile -t packages < <(find .provider/dist -maxdepth 1 -type f -name '*.deb')
               test "${#packages[@]}" = 1
@@ -505,11 +507,11 @@ jobs:
                 UFS2) target=ufs-driver ;;
                 *) exit 2 ;;
               esac
-              sudo apt-get install -y --no-install-recommends libssl-dev libsqlite3-dev pkg-config libtool autoconf automake
+              sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends libssl-dev libsqlite3-dev pkg-config libtool autoconf automake
               if [[ "$name" == NTFS ]]; then
                 # Use the owning project's exact pinned source preparation,
                 # as its own CI does, not a distribution NTFS runtime.
-                sudo apt-get install -y --no-install-recommends libgcrypt20-dev
+                sudo apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3 install -y --no-install-recommends libgcrypt20-dev
                 (cd .provider && python3 -c 'from standalone import build; build.prepare_release_source()')
               fi
               cmake -S .provider -B .carrier-build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
