@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "common_v2_uefi_storage.h"
 #include <efilib.h>
+#include "log.h"
 #include "../include/boot_call_wrapper.h"
 
 static EFI_GUID block_guid={0x964e5b21,0x6459,0x11d2,{0x8e,0x39,0x00,0xa0,0xc9,0x69,0x72,0x3b}};
@@ -34,19 +35,30 @@ static int parent_geometry(BootV2UefiStorage *v)
         if(at>sizeof(prefix)-sizeof(EFI_DEVICE_PATH))return -1;
     }
     cursor=(EFI_DEVICE_PATH *)((UINT8 *)path+last);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 parent: terminal node type=%d subtype=%d bytes=%d struct=%d",DevicePathType(cursor),DevicePathSubType(cursor),DevicePathNodeLength(cursor),sizeof(hd));
+    /* The wire format is exactly 42 bytes. Some GNU-EFI headers expose an
+     * unpacked struct with tail padding, which must never be read from the
+     * device path or used as the on-wire length. Decode little-endian
+     * partition start and length directly from the standard byte offsets. */
     if(DevicePathType(cursor)!=MEDIA_DEVICE_PATH||DevicePathSubType(cursor)!=MEDIA_HARDDRIVE_DP||
-       DevicePathNodeLength(cursor)!=sizeof(hd))return -1;
-    CopyMem(&hd,cursor,sizeof(hd));
+       DevicePathNodeLength(cursor)!=42)return -1;
+    SetMem(&hd,sizeof(hd),0);
+    for(unsigned i=0;i<8;i++){
+        hd.PartitionStart|=(UINT64)((UINT8 *)cursor)[8+i]<<(8*i);
+        hd.PartitionSize|=(UINT64)((UINT8 *)cursor)[16+i]<<(8*i);
+    }
     if(!hd.PartitionSize||hd.PartitionSize-1!=v->block->Media->LastBlock)return -1;
     CopyMem(prefix,path,last);
     prefix[last]=END_DEVICE_PATH_TYPE;prefix[last+1]=END_ENTIRE_DEVICE_PATH_SUBTYPE;
     prefix[last+2]=sizeof(EFI_DEVICE_PATH);prefix[last+3]=0;
     remaining=(EFI_DEVICE_PATH *)prefix;
     s=boot_call3_wrapper(BS->LocateDevicePath,&block_guid,&remaining,&parent);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 parent: LocateDevicePath=%r exact=%d parent=%p",s,remaining==(EFI_DEVICE_PATH *)(prefix+last),parent);
     if(s!=EFI_SUCCESS||!parent||parent==v->handle||
        remaining!=(EFI_DEVICE_PATH *)(prefix+last))return -1;
-    if(boot_call3_wrapper(BS->HandleProtocol,parent,&block_guid,(VOID **)&p)!=EFI_SUCCESS||
-       !p||!p->Media||!p->Media->MediaPresent||p->Media->LogicalPartition||
+    if(boot_call3_wrapper(BS->HandleProtocol,parent,&block_guid,(VOID **)&p)!=EFI_SUCCESS||!p||!p->Media)return -1;
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 parent: rev=%lx sector=%d ratio=%d last=%lx partition start=%lx size=%lx",p->Revision,p->Media->BlockSize,p->Revision>=0x00020001ULL?p->Media->LogicalBlocksPerPhysicalBlock:0,p->Media->LastBlock,hd.PartitionStart,hd.PartitionSize);
+    if(!p->Media->MediaPresent||p->Media->LogicalPartition||
        p->Revision<0x00020001ULL||p->Media->BlockSize!=v->block->Media->BlockSize||
        !p->Media->LogicalBlocksPerPhysicalBlock||
        hd.PartitionStart>p->Media->LastBlock||
@@ -118,7 +130,11 @@ EFI_STATUS BootV2UefiStorageInit(BootV2UefiStorage *v, EFI_HANDLE handle)
     status=boot_call3_wrapper(BS->HandleProtocol,handle,&disk_guid,(VOID **)&v->disk);
     if (EFI_ERROR(status)) return status;
     if (!v->block || !v->block->Media || !v->disk || !v->disk->ReadDisk) return EFI_UNSUPPORTED;
-    if(v->block->Media->LogicalPartition&&parent_geometry(v))return EFI_UNSUPPORTED;
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 BlockIO: handle=%p revision=%lx logical=%d sector=%d last=%lx",handle,v->block->Revision,v->block->Media->LogicalPartition,v->block->Media->BlockSize,v->block->Media->LastBlock);
+    if(v->block->Media->LogicalPartition&&parent_geometry(v)){
+        LOG(1,LOG_LINE_NORMAL,L"Common V2 storage: exact parent geometry unavailable");
+        return EFI_UNSUPPORTED;
+    }
     backend.context=v; backend.geometry=geometry; backend.read=read_disk;
     backend.allocate=allocate; backend.release=release;
     /* No firmware exclusivity or durability claim has been established.

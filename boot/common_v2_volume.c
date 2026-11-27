@@ -266,15 +266,18 @@ static EFI_STATUS try_mount(EFI_HANDLE handle,BootV2Provider *p)
     v->provider=p;v->core=boot_v2_module_readable_core(&p->module);
     if(!v->core){FreePool(v);return EFI_UNSUPPORTED;}
     s=BootV2UefiStorageInit(&v->storage,handle);
-    if(s!=EFI_SUCCESS){FreePool(v);return s;}
+    if(s!=EFI_SUCCESS){LOG(1,LOG_LINE_NORMAL,L"Common V2 storage initialization status=%r",s);FreePool(v);return s;}
     rc=v->core->probe(&v->storage.host,&variant);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 probe status=%d variant=%d",rc,variant);
     if(rc!=IFS_FS_OK){s=result(rc);goto reject;}
     v->info.structure_bytes=sizeof(v->info);
     rc=v->core->mount(&v->storage.host,&v->mounted,&v->info);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 mount status=%d variant=%d maxname=%d total=%lx free=%lx",rc,v->info.variant,v->info.max_name_bytes,v->info.total_bytes,v->info.free_bytes);
     if(rc!=IFS_FS_OK||!v->mounted||!valid_info(v,variant)){
         s=rc==IFS_FS_OK?EFI_VOLUME_CORRUPTED:result(rc);goto reject;
     }
     rc=stat(v,"/",&root,name);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 root stat status=%d type=%d",rc,rc==IFS_FS_OK?root.type:0);
     if(rc!=IFS_FS_OK||root.type!=IFS_FS_ENTRY_DIRECTORY){s=EFI_VOLUME_CORRUPTED;goto reject;}
     /* Recheck after probe/mount: existing EFI protocols always win. */
     s=boot_call3_wrapper(BS->HandleProtocol,handle,&sfs_guid,&existing);
@@ -283,6 +286,7 @@ static EFI_STATUS try_mount(EFI_HANDLE handle,BootV2Provider *p)
     v->sfs.Revision=EFI_FILE_IO_INTERFACE_REVISION;
     v->sfs.OpenVolume=CALLBACK(v->sfs.OpenVolume,open_volume);
     s=boot_call4_wrapper(BS->InstallProtocolInterface,&handle,&sfs_guid,EFI_NATIVE_INTERFACE,&v->sfs);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 SimpleFS publication status=%r",s);
     if(s!=EFI_SUCCESS)goto reject;
     v->published=TRUE;retain(v);return EFI_SUCCESS;
 reject:
@@ -300,6 +304,7 @@ UINTN BootV2MountVolumes(VOID)
     if(!BootV2DiscoverProviders())return 0;
     for(UINTN i=0;i<VolumesCount&&volume_count<MAX_VOLUMES;i++){
         BOOT_VOLUME *vol=Volumes[i];
+        if(vol)LOG(1,LOG_LINE_NORMAL,L"Common V2 candidate %d: %s handle=%p readable=%d partition=%d",i,vol->VolName,vol->DeviceHandle,vol->IsReadable,vol->BlockIO&&vol->BlockIO->Media?vol->BlockIO->Media->LogicalPartition:0);
         if(!vol||!vol->DeviceHandle||vol->IsReadable||!vol->BlockIO||!vol->BlockIO->Media||
            !vol->BlockIO->Media->LogicalPartition||BootVolumeExcluded(vol)||retained_handle(vol->DeviceHandle))continue;
         for(BootV2Provider *p=BootV2Providers();p&&volume_count<MAX_VOLUMES;p=p->next){

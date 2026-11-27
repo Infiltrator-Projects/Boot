@@ -200,17 +200,17 @@ jobs:
           - name: PFS3
             revision: 960df440cf7cbabcd996d96727a7f25e3b520eb6
           - name: UFS1
-            revision: 906ccf1204984b3bc2f682ffd1cd73c86a81b2eb
+            revision: 377a9445a697b610126493266ae5e6e06d5cdf61
           - name: UFS2
-            revision: bea40e4194a379e05e741eff056a2d3f522839e0
+            revision: 56f81a2e049777a6b2adfa8c2b5918253f24e369
           - name: FAT12
-            revision: 3e0e096544dfda0cd527d9cc66e1088726866d98
+            revision: 22c6359acfc195a65ce1a122c95dc51e28f85d68
           - name: FAT16
-            revision: 2a399d57238c80068f853c9a77ee30bbeb13f3cc
+            revision: c5cd7b814d76b89e61ad5c2555fe8eb9aa1393af
           - name: FAT32
-            revision: d05e5fbd74c81690cdc6dd4153d1000beddb9c10
+            revision: d9a103e8cf081c39c47e4d26c7116784268ada0c
           - name: OFS
-            revision: c2eb38cf900d209f53a8aa05da594a12c593ae05
+            revision: 02d80b96d3129a12adcca929ba5f2c4862c7dfab
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -240,5 +240,16 @@ jobs:
           cc -std=c11 -Wall -Wextra -Werror -I"$common" -O2 -fno-tree-loop-distribute-patterns \
             tests/common_v2_media_test.c boot/common_v2_elf.c boot/common_v2_module.c \
             boot/common_v2_storage.c boot/common_v2_trust.c -o /tmp/provider-test
-          /tmp/provider-test "$module" "$name"
+          if ! /tmp/provider-test "$module" "$name"; then
+            readelf -W -h -l -d -s -r "$module"
+            exit 1
+          fi
+          # Verify that the linked provider has no extended-register
+          # instructions. The common arithmetic helper TU may contain
+          # floating-point code before unused sections are discarded.
+          objdump -d "$module" > /tmp/provider-disassembly
+          if grep -E '(%[xyz]mm[0-9]+|%st\(|%mm[0-9]+|%k[0-7]([,[:space:]]|$))' /tmp/provider-disassembly; then
+            echo 'Firmware module uses extended register state' >&2
+            exit 1
+          fi
           echo "Structural mapping and descriptor inspection only; real-media and firmware qualification remain separate."
