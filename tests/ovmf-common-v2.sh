@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 ext4=${EXT4_FIRMWARE:?real EXT4 firmware module}
 ntfs=${NTFS_FIRMWARE:?real NTFS firmware module}
 test -s boot/boot_x64.efi
+kernel=${BOOT_V2_TEST_KERNEL:-}
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 ovmf=${BOOT_V2_OVMF_DIR:-/usr/share/OVMF}
@@ -86,9 +87,50 @@ mkntfs -F -Q -s 512 -c 4096 -L NTFSV2 "$ntimg"
 printf 'Common V2 native media proof\n' > "$work/proof.txt"
 ntfscp -f "$ntimg" "$work/proof.txt" /proof.txt
 ntfscp -f "$ntimg" "$work/v2child.efi" /v2child.efi
+if [[ -n "$kernel" ]]; then
+    # A real EFI-stub kernel and separate initramfs, both present only on NTFS.
+    sign "$kernel" "$work/vmlinuz.efi"
+    mkdir -p "$work/ram"/{bin,dev,proc}
+    cp "$(command -v busybox)" "$work/ram/bin/busybox"
+    ! readelf -lW "$work/ram/bin/busybox" | grep -q INTERP
+    ln -s busybox "$work/ram/bin/sh"
+    cat > "$work/ram/init" <<'GUEST'
+#!/bin/sh
+set -eu
+b=/bin/busybox
+$b mount -t devtmpfs devtmpfs /dev
+exec </dev/ttyS0 >/dev/ttyS0 2>&1
+trap '/bin/busybox poweroff -f' EXIT
+$b mount -t proc proc /proc
+$b grep -qw boot_common_v2_trial /proc/cmdline
+echo BOOT_COMMON_V2_LINUX_INITRAMFS_PASS
+GUEST
+    chmod +x "$work/ram/init"
+    (cd "$work/ram" && find . -print0 | cpio --null -o -H newc --owner=0:0 --quiet | gzip -n) > "$work/initramfs"
+    ntfscp -f "$ntimg" "$work/vmlinuz.efi" /vmlinuz.efi
+    ntfscp -f "$ntimg" "$work/initramfs" /initramfs
+fi
 truncate -s 200M "$disk"
 sgdisk --clear --new=1:2048:+64M --typecode=1:ef00 --new=2:133120:+64M \
     --typecode=2:8300 --new=3:264192:+64M --typecode=3:0700 "$disk"
+if [[ -n "$kernel" ]]; then
+    uuid=$(sgdisk --info=3 "$disk" | awk '/Partition unique GUID: / {print $4}')
+    [[ $uuid =~ ^[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12}$ ]]
+    # Replace, rather than rely on precedence of duplicated configuration.
+    sed -i '/^scanfor /d; /^default_selection /d' "$work/boot.conf"
+    cat >> "$work/boot.conf" <<CONFIG
+scanfor manual,internal,external
+default_selection "Common V2 Linux trial"
+menuentry "Common V2 Linux trial" {
+    volume $uuid
+    loader \vmlinuz.efi
+    initrd \initramfs
+    ostype L
+    options "console=ttyS0 rdinit=/init panic=1 boot_common_v2_trial"
+}
+CONFIG
+    mcopy -o -i "$esp" "$work/boot.conf" ::/EFI/InfiltratorOS/BOOT/boot.conf
+fi
 dd if="$esp" of="$disk" bs=1M seek=1 conv=notrunc status=none
 dd if="$extimg" of="$disk" bs=1M seek=65 conv=notrunc status=none
 dd if="$ntimg" of="$disk" bs=1M seek=129 conv=notrunc status=none
@@ -114,7 +156,7 @@ run(){
     fi
 }
 run enroll 45
-run boot 65
+if [[ -n "$kernel" ]]; then run boot 180; else run boot 65; fi
 dd if="$disk" of="$work/after.img" bs=1M skip=1 count=64 status=none
 if ! mcopy -i "$work/after.img" ::/EFI/InfiltratorOS/BOOT/BOOT.log "$work/BOOT.log"; then
     tail -n 120 "$work/"{enroll,boot}.log >&2 || true
@@ -134,10 +176,15 @@ grep -Fiq "Launching 'ext4_x64.efi'" "$work/log.txt"
 grep -Fq 'EFIEXT4' "$work/log.txt"
 grep -Fq 'NTFSV2' "$work/log.txt"
 grep -Fq 'Entering main loop' "$work/log.txt"
-grep -Fiq "Launching 'v2child.efi'" "$work/log.txt"
-grep -aFq 'BOOT_V2_CHILD_READ_AND_RETURN_PASS' "$work/vars.fd"
+if [[ -n "$kernel" ]]; then
+    grep -Fiq "Launching 'vmlinuz.efi'" "$work/log.txt"
+    grep -Fq 'BOOT_COMMON_V2_LINUX_INITRAMFS_PASS' "$work/boot.log"
+else
+    grep -Fiq "Launching 'v2child.efi'" "$work/log.txt"
+    grep -aFq 'BOOT_V2_CHILD_READ_AND_RETURN_PASS' "$work/vars.fd"
+fi
 dd if="$disk" of="$work/after-ext.img" bs=1M skip=65 count=64 status=none
 dd if="$disk" of="$work/after-ntfs.img" bs=1M skip=129 count=64 status=none
 cmp "$extimg" "$work/after-ext.img"
 cmp "$ntimg" "$work/after-ntfs.img"
-echo 'BOOT OVMF Secure Boot enrolled raw modules, EFI coexistence, NTFS child execution and unchanged media PASS'
+echo 'BOOT OVMF Secure Boot enrolled raw modules, EFI coexistence, NTFS execution and unchanged media PASS'

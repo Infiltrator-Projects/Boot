@@ -8,12 +8,23 @@ reader=$(realpath "$1")
 module=$(realpath "$2")
 name="$3"
 work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
+cleanup(){
+    if mountpoint -q "$work/mnt"; then sudo umount "$work/mnt" || return 1; fi
+    rm -rf -- "$work"
+}
+trap cleanup EXIT
 cd "$work"
-mkdir tree
+mkdir tree mnt
 dd if=/dev/urandom of=tree/proof.bin bs=4093 count=19 status=none
 # Every supported fixture is populated by a tool independent of the
 # provider, tested at the available sector sizes and rehashed after use.
+# Only the independent fixture writer mounts a loopback image, never BOOT.
+populate(){
+    sudo mount -t "$1" -o loop,rw media.img mnt
+    sudo cp tree/proof.bin mnt/proof.bin
+    sync
+    sudo umount mnt
+}
 case "$name" in
   ext2|ext3)
     truncate -s 64M media.img
@@ -50,6 +61,30 @@ case "$name" in
     truncate -s 64M media.img
     hformat -l BOOTV2 media.img
     hcopy -r tree/proof.bin :proof.bin
+    sectors=(512)
+    ;;
+  exfat)
+    truncate -s 64M media.img
+    mkfs.exfat -L BOOTV2 media.img
+    populate exfat
+    sectors=(512)
+    ;;
+  minix)
+    truncate -s 64M media.img
+    mkfs.minix -3 media.img
+    populate minix
+    sectors=(512)
+    ;;
+  hfsplus)
+    truncate -s 128M media.img
+    mkfs.hfsplus -v BOOTV2 media.img
+    populate hfsplus
+    sectors=(512)
+    ;;
+  bfs)
+    truncate -s 16M media.img
+    mkfs.bfs media.img
+    populate bfs
     sectors=(512)
     ;;
   *) echo "No independent media fixture yet for $name" >&2; exit 2;;

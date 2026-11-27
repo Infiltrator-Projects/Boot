@@ -144,6 +144,20 @@ jobs:
           export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
           export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
           bash tests/ovmf-common-v2.sh
+      - name: Boot a real signed Linux EFI-stub kernel and independent NTFS initramfs
+        shell: bash
+        run: |
+          sudo apt-get install -y --no-install-recommends busybox-static cpio
+          mkdir -p "$RUNNER_TEMP/v2-kernel"
+          image=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ { name=$2 } END { print name }')
+          test -n "$image"
+          (cd "$RUNNER_TEMP/v2-kernel" && apt-get download "linux-image-unsigned-${image#linux-image-}")
+          dpkg-deb -x "$RUNNER_TEMP/v2-kernel/"linux-image-unsigned-*.deb "$RUNNER_TEMP/v2-kernel/extracted"
+          export BOOT_V2_TEST_KERNEL="$RUNNER_TEMP/v2-kernel/extracted/boot/vmlinuz-${image#linux-image-}"
+          test -s "$BOOT_V2_TEST_KERNEL"
+          export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
+          export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
+          bash tests/ovmf-common-v2.sh
       - name: Build actual native RUN and generic AMD64 Debian artifacts
         if: always()
         shell: bash
@@ -264,6 +278,9 @@ jobs:
             xfs) sudo apt-get install -y --no-install-recommends xfsprogs ;;
             fat12|fat16|fat32) sudo apt-get install -y --no-install-recommends dosfstools mtools ;;
             hfs) sudo apt-get install -y --no-install-recommends hfsutils ;;
+            hfsplus) sudo apt-get install -y --no-install-recommends hfsprogs ;;
+            exfat) sudo apt-get install -y --no-install-recommends exfatprogs ;;
+            minix|bfs) sudo apt-get install -y --no-install-recommends util-linux ;;
             *) echo "No independent media fixture yet for $name"; exit 0 ;;
           esac
           bash tests/common-v2-provider-media.sh /tmp/provider-test "$module" "$name"
