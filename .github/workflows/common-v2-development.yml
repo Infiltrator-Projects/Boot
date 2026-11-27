@@ -221,6 +221,30 @@ jobs:
           export BOOT_V2_TEST_KERNEL="$RUNNER_TEMP/v2-kernel/extracted/boot/vmlinuz-${image#linux-image-}"
           test -s "$BOOT_V2_TEST_KERNEL"
           bash tests/ovmf-common-v2.sh
+      - name: Check out independent UDF firmware source
+        uses: actions/checkout@v4
+        with:
+          repository: Infiltrator-Projects/Filesystem-UDF
+          ref: e2faadccedd561e152c2fa37e7856628ed7bfab1
+          path: .provider-udf
+          persist-credentials: false
+      - name: Execute signed EFI and Linux kernel directly from independently generated UDF
+        shell: bash
+        run: |
+          sudo apt-get install -y --no-install-recommends genisoimage
+          cmake -S .provider-udf/module/firmware -B .provider-udf-build -DCOMMON_INCLUDE_DIR="$PWD/.common-v2/include"
+          cmake --build .provider-udf-build
+          export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
+          export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
+          export BOOT_V2_EXTRA_FIRMWARE="$PWD/.provider-udf-build/UDF.so"
+          export BOOT_V2_EXTRA_ID=UDF
+          export BOOT_V2_EXTRA_MAKER="$PWD/tests/common-v2-udf-media.sh"
+          bash tests/ovmf-common-v2.sh
+          image=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ { name=$2 } END { print name }')
+          test -n "$image"
+          export BOOT_V2_TEST_KERNEL="$RUNNER_TEMP/v2-kernel/extracted/boot/vmlinuz-${image#linux-image-}"
+          test -s "$BOOT_V2_TEST_KERNEL"
+          bash tests/ovmf-common-v2.sh
       - name: Build actual native RUN and generic AMD64 Debian artifacts
         if: always()
         shell: bash
@@ -302,6 +326,8 @@ jobs:
             revision: 6729ade16d578216f575c3d6d014439d8e63bd02
           - name: HPFS
             revision: d36c85b11cebedf1ea9402ae8b18e5beb93bf5e3
+          - name: UDF
+            revision: e2faadccedd561e152c2fa37e7856628ed7bfab1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -359,6 +385,20 @@ jobs:
             hfsplus) sudo apt-get install -y --no-install-recommends hfsprogs ;;
             exfat) sudo apt-get install -y --no-install-recommends exfatprogs ;;
             minix|bfs) sudo apt-get install -y --no-install-recommends util-linux ;;
+            udf)
+              sudo apt-get install -y --no-install-recommends genisoimage
+              mkdir -p "$RUNNER_TEMP/udf-media/tree/dir"
+              printf yes > "$RUNNER_TEMP/udf-media/tree/dir/child"
+              dd if=/dev/urandom of="$RUNNER_TEMP/udf-media/tree/proof.bin" bs=1 count=65573 status=none
+              genisoimage -quiet -udf -V V2UDF -o "$RUNNER_TEMP/udf-media/media.img" "$RUNNER_TEMP/udf-media/tree"
+              size=$(stat -c %s "$RUNNER_TEMP/udf-media/media.img")
+              truncate -s "$(( (size+4095)/4096*4096 ))" "$RUNNER_TEMP/udf-media/media.img"
+              (cd "$RUNNER_TEMP/udf-media" && sha256sum media.img > before)
+              for sector in 512 4096; do
+                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/udf-media/media.img" "$RUNNER_TEMP/udf-media/tree/proof.bin" /proof.bin "$sector"
+              done
+              (cd "$RUNNER_TEMP/udf-media" && sha256sum -c before)
+              exit 0 ;;
             hpfs)
               # Byte-authored provider fixture, not third-party media.
               cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_hpfs.c -ldl -o /tmp/hpfs-fixture
@@ -430,7 +470,7 @@ jobs:
               dpkg-deb -x "${packages[0]}" /tmp/provider-package
               carrier="/tmp/provider-package/System/Filesystems/$name.so"
               ;;
-            QNX4|OMFS|QNX6|SysV|HPFS)
+            QNX4|OMFS|QNX6|SysV|HPFS|UDF)
               # actions/checkout leaves an empty directory for an uninitialised gitlink.
               # Remove only that empty directory, never an existing checkout.
               if [[ -d .provider/Libraries && ! -L .provider/Libraries ]]; then rmdir .provider/Libraries; fi
