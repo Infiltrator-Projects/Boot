@@ -252,4 +252,12 @@ jobs:
             echo 'Firmware module uses extended register state' >&2
             exit 1
           fi
-          echo "Structural mapping and descriptor inspection only; real-media and firmware qualification remain separate."
+          case "$name" in
+            ext2|ext3) sudo apt-get install -y --no-install-recommends e2fsprogs ;;
+            btrfs) sudo apt-get install -y --no-install-recommends btrfs-progs ;;
+            xfs) sudo apt-get install -y --no-install-recommends xfsprogs ;;
+            fat12|fat16|fat32) sudo apt-get install -y --no-install-recommends dosfstools mtools ;;
+            hfs) sudo apt-get install -y --no-install-recommends hfsutils ;;
+            *) echo "No independent media fixture yet for $name"; exit 0 ;;
+          esac
+          bash tests/common-v2-provider-media.sh /tmp/provider-test "$module" "$name"
