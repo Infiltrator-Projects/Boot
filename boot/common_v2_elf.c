@@ -105,19 +105,20 @@ void boot_v2_elf_unload(const BootV2ElfHost *h, BootV2ElfImage *out)
     zero(out,sizeof(*out));
 }
 
-int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
-                     BootV2ElfImage *out)
+/* Parsed metadata stays separate from the mapped image. Validation phases
+ * do not allocate pages or mutate the caller's output. */
+typedef struct {
+    Elf64_Phdr dynamic, relro;
+    uint64_t end;
+} ElfLayout;
+
+typedef struct {
+    uint64_t rela, relasz, symtab, strtab, strsz;
+} ElfDynamic;
+
+static int validate_header(const unsigned char *f, size_t n, Elf64_Ehdr *header)
 {
-    const unsigned char *f=data;
-    Elf64_Ehdr e; Elf64_Phdr dyn={0}, relro={0};
-    Elf64_Shdr sym={0}, str={0};
-    uint64_t end=0, rela=0, relasz=0, relaent=0, symtab=0, strtab=0, strsz=0, syment=0;
-    uint64_t entry=0, i,j, seen=0; unsigned loads=0, found=0;
-    int terminated=0;
-    unsigned char *base;
-    if (!out || out->base || out->entry || out->bytes || out->region_count) return -1;
-    if (!h || !h->authenticate || !h->reserve || !h->protect || !h->release ||
-        !f || n<sizeof(e) || n>LIMIT || h->authenticate(h->context,f,n)!=0) return -1;
+    Elf64_Ehdr e;
     copy(&e,f,sizeof(e));
     if (e.e_ident[0]!=ELFMAG0 || e.e_ident[1]!=ELFMAG1 ||
         e.e_ident[2]!=ELFMAG2 || e.e_ident[3]!=ELFMAG3 ||
@@ -128,6 +129,18 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
         e.e_shentsize!=sizeof(Elf64_Shdr) || !e.e_shnum || e.e_shnum>4096 ||
         !span(e.e_phoff,(uint64_t)e.e_phnum*sizeof(Elf64_Phdr),n) ||
         !span(e.e_shoff,(uint64_t)e.e_shnum*sizeof(Elf64_Shdr),n)) return -1;
+    *header=e;
+    return 0;
+}
+
+/* Validate every segment and establish the size of the page reservation. */
+static int inspect_segments(const unsigned char *f, size_t n,
+                            const Elf64_Ehdr *header, ElfLayout *layout)
+{
+    const Elf64_Ehdr e=*header;
+    Elf64_Phdr dyn={0}, relro={0};
+    uint64_t end=0, i, j;
+    unsigned loads=0;
     for (i=0;i<e.e_phnum;++i) {
         Elf64_Phdr p=ph(f,&e,i);
         if (!span(p.p_offset,p.p_filesz,n)) return -1;
@@ -154,6 +167,19 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
     if(!loads || !dyn.p_filesz || dyn.p_filesz%sizeof(Elf64_Dyn) ||
        !region(f,&e,dyn.p_vaddr,dyn.p_filesz,PF_R,1,dyn.p_offset)) return -1;
     if(relro.p_type && !valid_relro(f,&e,&relro,end)) return -1;
+    *layout=(ElfLayout){.dynamic=dyn,.relro=relro,.end=end};
+    return 0;
+}
+
+/* Parse only dynamic features provided by the restricted firmware profile. */
+static int inspect_dynamic(const unsigned char *f, const Elf64_Ehdr *header,
+                           const ElfLayout *layout, ElfDynamic *dynamic)
+{
+    const Elf64_Ehdr e=*header;
+    const Elf64_Phdr dyn=layout->dynamic;
+    uint64_t rela=0, relasz=0, relaent=0, symtab=0, strtab=0, strsz=0, syment=0;
+    uint64_t i, seen=0;
+    int terminated=0;
     /* Dynamic tags are an allowlist, not a best-effort Linux linker. */
     for(i=0;i<dyn.p_filesz;i+=sizeof(Elf64_Dyn)) {
         Elf64_Dyn d; unsigned bit=0; uint64_t *slot=0;
@@ -178,6 +204,21 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
     if(!terminated || (seen&0xf0)!=0xf0 || !strsz || syment!=sizeof(Elf64_Sym) ||
        ((seen&14)!=0 && ((seen&14)!=14 || relaent!=sizeof(Elf64_Rela) ||
         relasz%sizeof(Elf64_Rela) || !region(f,&e,rela,relasz,PF_R,0,0)))) return -1;
+    *dynamic=(ElfDynamic){.rela=rela,.relasz=relasz,.symtab=symtab,
+                         .strtab=strtab,.strsz=strsz};
+    return 0;
+}
+
+/* Resolve exactly one exported Common V2 entry against file-backed code. */
+static int resolve_entry(const unsigned char *f, size_t n,
+                         const Elf64_Ehdr *header, const ElfDynamic *dynamic,
+                         uint64_t *entry_offset)
+{
+    const Elf64_Ehdr e=*header;
+    Elf64_Shdr sym={0}, str={0};
+    const uint64_t symtab=dynamic->symtab, strtab=dynamic->strtab, strsz=dynamic->strsz;
+    uint64_t entry=0, i;
+    unsigned found=0;
     for(i=0;i<e.e_shnum;++i) {
         Elf64_Shdr s=sh(f,&e,i);
         if(s.sh_type!=SHT_NOBITS && !span(s.sh_offset,s.sh_size,n)) return -1;
@@ -215,15 +256,30 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
         entry=s.st_value;
     }
     if(found!=1) return -1;
-    base=h->reserve(h->context,end);
-    if(!base) return -1;
-    out->base=base; out->bytes=end;
-    if((uintptr_t)base%PAGE || (uintptr_t)base>UINTPTR_MAX-end) goto fail;
+    *entry_offset=entry;
+    return 0;
+}
+
+/* Populate an existing RW/NX reservation; no ownership transfer occurs here. */
+static void map_segments(const unsigned char *f, const Elf64_Ehdr *header,
+                         unsigned char *base, uint64_t end)
+{
+    const Elf64_Ehdr e=*header;
+    uint64_t i;
     zero(base,end);
     for(i=0;i<e.e_phnum;++i) {
         Elf64_Phdr p=ph(f,&e,i);
         if(p.p_type==PT_LOAD) copy(base+p.p_vaddr,f+p.p_offset,p.p_filesz);
     }
+}
+
+/* Apply only validated, image-relative relocations from immutable input. */
+static int relocate_image(const unsigned char *f, const Elf64_Ehdr *header,
+                          const ElfDynamic *dynamic, unsigned char *base)
+{
+    const Elf64_Ehdr e=*header;
+    const uint64_t rela=dynamic->rela, relasz=dynamic->relasz;
+    uint64_t i;
     /* Relocations may never target the relocation table or read-only code.
      * Read records from the immutable source, not memory being relocated. */
     if(relasz) {
@@ -233,32 +289,79 @@ int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
                 off=p.p_offset+rela-p.p_vaddr; located=1; break;
             }
         }
-        if(!located) goto fail;
+        if(!located) return -1;
         for(i=0;i<relasz;i+=sizeof(Elf64_Rela)) {
             Elf64_Rela r; uint64_t value; copy(&r,f+off+i,sizeof(r));
             if(ELF64_R_TYPE(r.r_info)!=R_X86_64_RELATIVE || ELF64_R_SYM(r.r_info) ||
                r.r_offset%sizeof(value) || !region(f,&e,r.r_offset,sizeof(value),PF_W,0,0) ||
-               r.r_addend<0 || !region(f,&e,(uint64_t)r.r_addend,1,PF_R,0,0)) goto fail;
+               r.r_addend<0 || !region(f,&e,(uint64_t)r.r_addend,1,PF_R,0,0)) return -1;
             value=(uintptr_t)base+(uint64_t)r.r_addend; copy(base+r.r_offset,&value,sizeof(value));
         }
     }
+    return 0;
+}
+
+/* Establish final permissions and publish the corresponding region metadata. */
+static int protect_image(const BootV2ElfHost *h, const unsigned char *f,
+                         const Elf64_Ehdr *header, const ElfLayout *layout,
+                         BootV2ElfImage *out)
+{
+    const Elf64_Ehdr e=*header;
+    const Elf64_Phdr relro=layout->relro;
+    const uint64_t end=layout->end;
+    unsigned char *base=out->base;
+    uint64_t i;
     /* First remove access to the whole reservation, then grant exactly the
      * segment permissions. Gaps stay inaccessible. RELRO is applied last. */
-    if(h->protect(h->context,base,end,0)!=0) goto fail;
+    if(h->protect(h->context,base,end,0)!=0) return -1;
     for(i=0;i<e.e_phnum;++i) {
         Elf64_Phdr p=ph(f,&e,i); uint64_t start=p.p_vaddr&~(PAGE-1);
         if(p.p_type==PT_LOAD) {
             BootV2ElfRegion *r;
-            if(h->protect(h->context,base+start,ROUND(p.p_vaddr+p.p_memsz)-start,p.p_flags)!=0) goto fail;
+            if(h->protect(h->context,base+start,ROUND(p.p_vaddr+p.p_memsz)-start,p.p_flags)!=0) return -1;
             r=&out->regions[out->region_count++];
             r->offset=p.p_vaddr; r->bytes=p.p_memsz; r->file_bytes=p.p_filesz; r->flags=p.p_flags;
         }
     }
     if(relro.p_type) {
         uint64_t start=relro.p_vaddr&~(PAGE-1);
-        if(h->protect(h->context,base+start,ROUND(relro.p_vaddr+relro.p_memsz)-start,PF_R)!=0) goto fail;
+        if(h->protect(h->context,base+start,ROUND(relro.p_vaddr+relro.p_memsz)-start,PF_R)!=0) return -1;
         out->relro_start=start; out->relro_end=ROUND(relro.p_vaddr+relro.p_memsz);
     }
+    return 0;
+}
+
+int boot_v2_elf_load(const BootV2ElfHost *h, const void *data, size_t n,
+                     BootV2ElfImage *out)
+{
+    const unsigned char *f=data;
+    Elf64_Ehdr e;
+    ElfLayout layout;
+    ElfDynamic dynamic;
+    uint64_t entry;
+    unsigned char *base;
+
+    if (!out || out->base || out->entry || out->bytes || out->region_count) return -1;
+    if (!h || !h->authenticate || !h->reserve || !h->protect || !h->release ||
+        !f || n<sizeof(e) || n>LIMIT || h->authenticate(h->context,f,n)!=0) return -1;
+
+    /* Complete all static metadata validation before reserving firmware pages. */
+    if (validate_header(f,n,&e) ||
+        inspect_segments(f,n,&e,&layout) ||
+        inspect_dynamic(f,&e,&layout,&dynamic) ||
+        resolve_entry(f,n,&e,&dynamic,&entry)) return -1;
+
+    base=h->reserve(h->context,layout.end);
+    if (!base) return -1;
+    out->base=base;
+    out->bytes=layout.end;
+
+    /* From this point onward, this function owns the single cleanup path. */
+    if ((uintptr_t)base%PAGE || (uintptr_t)base>UINTPTR_MAX-layout.end) goto fail;
+    map_segments(f,&e,base,layout.end);
+    if (relocate_image(f,&e,&dynamic,base) ||
+        protect_image(h,f,&e,&layout,out)) goto fail;
+
     out->entry=base+entry;
     return 0;
 fail:
