@@ -3,6 +3,7 @@
 #include "common_v2_discovery.h"
 #include "common_v2_uefi_storage.h"
 #include "common_v2_path.h"
+#include "common_v2_namespace.h"
 #include "lib.h"
 #include "log.h"
 #include "../include/boot_call_wrapper.h"
@@ -66,10 +67,7 @@ static int valid_entry(const IfsFsEntryV2 *e,const char *name,size_t cap)
 }
 static int stat(V2Volume *v,const char *path,IfsFsEntryV2 *e,char *name)
 {
-    int rc;
-    *e=(IfsFsEntryV2){.structure_bytes=sizeof(*e),.name=name,.name_capacity=BOOT_V2_PATH_BYTES};
-    rc=v->core->stat(v->mounted,path,e);
-    return rc==IFS_FS_OK&&!valid_entry(e,name,BOOT_V2_PATH_BYTES)?IFS_FS_CORRUPT:rc;
+    return boot_v2_stat_entry(v->core,v->mounted,path,e,name);
 }
 static EFI_STATUS fill_file(UINTN *bytes,VOID *buffer,const IfsFsEntryV2 *entry,
                             const char *name,size_t n)
@@ -123,6 +121,7 @@ static EFI_STATUS V2_EFI read_file(EFI_FILE_PROTOCOL *this,UINTN *bytes,VOID *bu
         char name[BOOT_V2_PATH_BYTES];IfsFsEntryV2 e;
         EFI_STATUS s;int rc;
         if(f->index==UINT32_MAX){*bytes=0;return EFI_VOLUME_CORRUPTED;}
+        SetMem(name,sizeof(name),0xff);
         e=(IfsFsEntryV2){.structure_bytes=sizeof(e),.name=name,.name_capacity=sizeof(name)};
         rc=v->core->directory_entry(v->mounted,f->path,f->index,&e);
         if(rc==IFS_FS_END){*bytes=0;return EFI_SUCCESS;}
@@ -209,11 +208,14 @@ static EFI_STATUS V2_EFI flush_file(EFI_FILE_PROTOCOL *this)
 {(void)this;return EFI_WRITE_PROTECTED;}
 static EFI_STATUS new_file(V2Volume *v,const char *path,EFI_FILE_PROTOCOL **out)
 {
-    V2File *f;IfsFsEntryV2 e;char name[BOOT_V2_PATH_BYTES];int rc;size_t i;
+    V2File *f;IfsFsEntryV2 e;char name[BOOT_V2_PATH_BYTES],resolved[BOOT_V2_PATH_BYTES];int rc;size_t i;
+    const IfsFsMetadataOpsV2 *meta=(const IfsFsMetadataOpsV2 *)v->provider->module.groups[IFS_FS_GROUP_METADATA];
     if(!out)return EFI_INVALID_PARAMETER;
     *out=NULL;
     if(!live(v))return EFI_MEDIA_CHANGED;
-    rc=stat(v,path,&e,name);if(rc!=IFS_FS_OK)return result(rc);
+    rc=boot_v2_resolve(v->core,meta,v->mounted,path,resolved,&e,name);
+    if(rc!=IFS_FS_OK)return result(rc);
+    path=resolved;
     if(e.type!=IFS_FS_ENTRY_DIRECTORY&&e.type!=IFS_FS_ENTRY_FILE)return EFI_UNSUPPORTED;
     if(v->opens==(UINTN)-1)return EFI_OUT_OF_RESOURCES;
     f=AllocateZeroPool(sizeof(*f));if(!f)return EFI_OUT_OF_RESOURCES;

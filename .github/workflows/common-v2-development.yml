@@ -52,6 +52,7 @@ jobs:
           export COMMON_INCLUDE_DIR="$PWD/.common-v2/include"
           test "$(git hash-object "$COMMON_INCLUDE_DIR/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
           bash tests/host-common-v2-module.sh
+          bash tests/host-common-v2-namespace.sh
       - name: Regress existing filesystem and BOOT host tests
         if: always()
         shell: bash
