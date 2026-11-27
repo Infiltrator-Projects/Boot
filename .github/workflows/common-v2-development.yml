@@ -330,6 +330,12 @@ jobs:
             revision: e2faadccedd561e152c2fa37e7856628ed7bfab1
           - name: ReiserFS
             revision: bf7ae4acb53baf8b35652f6c70dae2886a0ad8c5
+          - name: Fosfat
+            revision: 4ece8bed7cdb39da35c8761ef23b5297ab0d39ca
+          - name: ADFS
+            revision: e2d325572dcbfcc53d7046fb4f0c56cd3d92a80b
+          - name: BeFS
+            revision: cc977bd41e14a90de1435140f8cfa674affa7a9d
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -400,6 +406,39 @@ jobs:
                 /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/udf-media/media.img" "$RUNNER_TEMP/udf-media/tree/proof.bin" /proof.bin "$sector"
               done
               (cd "$RUNNER_TEMP/udf-media" && sha256sum -c before)
+              exit 0 ;;
+            fosfat)
+              # Byte-authored provider fixture; verify namespace and unchanged image.
+              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_fosfat.c -ldl -o /tmp/fosfat-fixture
+              mkdir -p "$RUNNER_TEMP/fosfat-media"
+              /tmp/fosfat-fixture --emit "$RUNNER_TEMP/fosfat-media/media.img" "$RUNNER_TEMP/fosfat-media/proof.bin"
+              (cd "$RUNNER_TEMP/fosfat-media" && sha256sum media.img > before)
+              for sector in 512 4096; do
+                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/fosfat-media/media.img" "$RUNNER_TEMP/fosfat-media/proof.bin" /proof.bin "$sector"
+              done
+              (cd "$RUNNER_TEMP/fosfat-media" && sha256sum -c before)
+              exit 0 ;;
+            adfs)
+              # Byte-authored provider fixture; verify namespace and unchanged image.
+              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_adfs.c -ldl -o /tmp/adfs-fixture
+              mkdir -p "$RUNNER_TEMP/adfs-media"
+              /tmp/adfs-fixture --emit "$RUNNER_TEMP/adfs-media/media.img" "$RUNNER_TEMP/adfs-media/proof.bin"
+              (cd "$RUNNER_TEMP/adfs-media" && sha256sum media.img > before)
+              for sector in 512 4096; do
+                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/adfs-media/media.img" "$RUNNER_TEMP/adfs-media/proof.bin" /PROOF.BIN "$sector"
+              done
+              (cd "$RUNNER_TEMP/adfs-media" && sha256sum -c before)
+              exit 0 ;;
+            befs)
+              # Byte-authored provider fixture; verify namespace and unchanged image.
+              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_befs.c -ldl -o /tmp/befs-fixture
+              mkdir -p "$RUNNER_TEMP/befs-media"
+              /tmp/befs-fixture --emit "$RUNNER_TEMP/befs-media/media.img" "$RUNNER_TEMP/befs-media/proof.bin"
+              (cd "$RUNNER_TEMP/befs-media" && sha256sum media.img > before)
+              for sector in 512 4096; do
+                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/befs-media/media.img" "$RUNNER_TEMP/befs-media/proof.bin" /proof.bin "$sector"
+              done
+              (cd "$RUNNER_TEMP/befs-media" && sha256sum -c before)
               exit 0 ;;
             reiserfs)
               # Independent mkreiserfs empty-root tests are in the provider
@@ -484,7 +523,7 @@ jobs:
               dpkg-deb -x "${packages[0]}" /tmp/provider-package
               carrier="/tmp/provider-package/System/Filesystems/$name.so"
               ;;
-            QNX4|OMFS|QNX6|SysV|HPFS|UDF|ReiserFS)
+            QNX4|OMFS|QNX6|SysV|HPFS|UDF|ReiserFS|Fosfat|ADFS|BeFS)
               # actions/checkout leaves an empty directory for an uninitialised gitlink.
               # Remove only that empty directory, never an existing checkout.
               if [[ -d .provider/Libraries && ! -L .provider/Libraries ]]; then rmdir .provider/Libraries; fi
