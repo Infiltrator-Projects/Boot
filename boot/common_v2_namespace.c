@@ -114,12 +114,23 @@ static size_t length(const char *p,size_t cap)
 static void copy(char *d,const char *s,size_t n)
 {for(size_t i=0;i<n;i++)d[i]=s[i];}
 
-static int valid_name(const IfsFsEntryV2 *e,const char *p)
+/* Validate the provider's returned descriptor before consuming its name.
+ * STAT can describe the root with an empty name; directory enumeration
+ * must return a nonempty single EFI-representable component. */
+int boot_v2_entry_valid(const IfsFsEntryV2 *e,const char *name,int directory)
 {
-    return e->structure_bytes==sizeof(*e)&&e->name==p&&
-           e->name_capacity==BOOT_V2_PATH_BYTES&&e->name_bytes<BOOT_V2_PATH_BYTES&&
-           length(p,BOOT_V2_PATH_BYTES)==e->name_bytes&&
-           (e->type==IFS_FS_ENTRY_FILE||e->type==IFS_FS_ENTRY_DIRECTORY||e->type==IFS_FS_ENTRY_LINK);
+    size_t at=0;
+    if(!e||!name||e->structure_bytes!=sizeof(*e)||e->name!=name||
+       e->name_capacity!=BOOT_V2_PATH_BYTES||e->name_bytes>=BOOT_V2_PATH_BYTES||
+       name[e->name_bytes]||(directory&&!e->name_bytes)||
+       (e->type!=IFS_FS_ENTRY_FILE&&e->type!=IFS_FS_ENTRY_DIRECTORY&&
+        e->type!=IFS_FS_ENTRY_LINK))return 0;
+    while(at<e->name_bytes){
+        uint32_t c;
+        if(boot_v2_utf8_next(name,e->name_bytes,&at,&c)||
+           (directory&&(c=='/'||c=='\\')))return 0;
+    }
+    return 1;
 }
 int boot_v2_stat_entry(const IfsFsCoreOpsV2 *core,void *v,const char *path,
                        IfsFsEntryV2 *e,char name[BOOT_V2_PATH_BYTES])
@@ -130,7 +141,7 @@ int boot_v2_stat_entry(const IfsFsCoreOpsV2 *core,void *v,const char *path,
     for(size_t i=0;i<BOOT_V2_PATH_BYTES;i++)name[i]=(char)0xff;
     *e=(IfsFsEntryV2){.structure_bytes=sizeof(*e),.name=name,.name_capacity=BOOT_V2_PATH_BYTES};
     int rc=core->stat(v,path,e);
-    return rc==IFS_FS_OK&&!valid_name(e,name)?IFS_FS_CORRUPT:rc;
+    return rc==IFS_FS_OK&&!boot_v2_entry_valid(e,name,0)?IFS_FS_CORRUPT:rc;
 }
 static int link_target_valid(const char *target,size_t n)
 {

@@ -58,16 +58,6 @@ static BOOLEAN live(V2Volume *v)
      * return cached directory/file metadata for changed media. */
     return v && v->mounted && !boot_v2_storage_read(&v->storage.storage,0,NULL,0);
 }
-static int valid_entry(const IfsFsEntryV2 *e,const char *name,size_t cap)
-{
-    return e->structure_bytes==sizeof(*e) && e->name==name &&
-        e->name_capacity==cap && e->name_bytes<cap && name[e->name_bytes]==0 &&
-        (e->type==IFS_FS_ENTRY_DIRECTORY||e->type==IFS_FS_ENTRY_FILE||e->type==IFS_FS_ENTRY_LINK);
-}
-static int stat(V2Volume *v,const char *path,IfsFsEntryV2 *e,char *name)
-{
-    return boot_v2_stat_entry(v->core,v->mounted,path,e,name);
-}
 static EFI_STATUS fill_file(UINTN *bytes,VOID *buffer,const IfsFsEntryV2 *entry,
                             const char *name,size_t n)
 {
@@ -123,10 +113,7 @@ static EFI_STATUS read_directory(V2File *f,UINTN *bytes,VOID *buffer)
     rc=v->core->directory_entry(v->mounted,f->path,f->index,&e);
     if(rc==IFS_FS_END){*bytes=0;return EFI_SUCCESS;}
     if(rc!=IFS_FS_OK){*bytes=0;return result(rc);}
-    if(!valid_entry(&e,name,sizeof(name))||!e.name_bytes){*bytes=0;return EFI_VOLUME_CORRUPTED;}
-    for(uint32_t i=0;i<e.name_bytes;i++)if(name[i]=='/'||name[i]=='\\'||!name[i]){
-        *bytes=0;return EFI_VOLUME_CORRUPTED;
-    }
+    if(!boot_v2_entry_valid(&e,name,1)){*bytes=0;return EFI_VOLUME_CORRUPTED;}
     s=fill_file(bytes,buffer,&e,name,e.name_bytes);
     if(s==EFI_SUCCESS)++f->index; /* retry short buffer at same entry */
     return s;
@@ -214,7 +201,7 @@ static EFI_STATUS V2_EFI get_info(EFI_FILE_PROTOCOL *this,EFI_GUID *guid,UINTN *
     if(!CompareMem(guid,&fs_guid,sizeof(*guid)))return volume_info(f->volume,FALSE,bytes,buffer);
     if(!CompareMem(guid,&label_guid,sizeof(*guid)))return volume_info(f->volume,TRUE,bytes,buffer);
     if(CompareMem(guid,&file_guid,sizeof(*guid)))return EFI_UNSUPPORTED;
-    rc=stat(f->volume,f->path,&e,name);
+    rc=boot_v2_stat_entry(f->volume->core,f->volume->mounted,f->path,&e,name);
     if(rc!=IFS_FS_OK)return result(rc);
     return fill_file(bytes,buffer,&e,name,(f->path[0]=='/'&&!f->path[1])?0:e.name_bytes);
 }
@@ -325,7 +312,7 @@ static EFI_STATUS mount_candidate(V2Volume *v,uint32_t variant)
     if(rc!=IFS_FS_OK||!v->mounted||!valid_info(v,variant))
         return rc==IFS_FS_OK?EFI_VOLUME_CORRUPTED:result(rc);
 
-    rc=stat(v,"/",&root,name);
+    rc=boot_v2_stat_entry(v->core,v->mounted,"/",&root,name);
     LOG(1,LOG_LINE_NORMAL,L"Common V2 root stat status=%d type=%d",rc,rc==IFS_FS_OK?root.type:0);
     if(rc!=IFS_FS_OK||root.type!=IFS_FS_ENTRY_DIRECTORY)return EFI_VOLUME_CORRUPTED;
     return EFI_SUCCESS;

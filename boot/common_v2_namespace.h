@@ -16,6 +16,8 @@ int boot_v2_utf8_next(const char *,size_t,size_t *,uint32_t *);
  * The output path is absolute UTF-8 and is valid only on IFS_FS_OK. */
 int boot_v2_resolve(const IfsFsCoreOpsV2 *,const IfsFsMetadataOpsV2 *,void *,
                    const char *,char [BOOT_V2_PATH_BYTES],IfsFsEntryV2 *,char [BOOT_V2_PATH_BYTES]);
+/* Validate a returned descriptor against the fixed host name buffer. */
+int boot_v2_entry_valid(const IfsFsEntryV2 *,const char *,int directory);
 int boot_v2_stat_entry(const IfsFsCoreOpsV2 *,void *,const char *,
                        IfsFsEntryV2 *,char [BOOT_V2_PATH_BYTES]);
 #endif

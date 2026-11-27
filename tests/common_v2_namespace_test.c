@@ -56,5 +56,21 @@ int main(void)
     check("/unterminated",NULL);check("/file/child",NULL);
     IfsFsEntryV2 e;char name[BOOT_V2_PATH_BYTES],resolved[BOOT_V2_PATH_BYTES];
     assert(boot_v2_resolve(&core,NULL,NULL,"/absolute",resolved,&e,name)==IFS_FS_UNSUPPORTED);
+    /* STAT and directory enumeration share the same descriptor checks. */
+    e=(IfsFsEntryV2){.structure_bytes=sizeof(e),.name=name,.name_capacity=sizeof(name),.type=IFS_FS_ENTRY_FILE};
+    name[0]=0;
+    assert(boot_v2_entry_valid(&e,name,0)&&!boot_v2_entry_valid(&e,name,1));
+    memcpy(name,"a/b",4);e.name_bytes=3;
+    assert(boot_v2_entry_valid(&e,name,0)&&!boot_v2_entry_valid(&e,name,1));
+    memcpy(name,"a\\b",4);
+    assert(!boot_v2_entry_valid(&e,name,1));
+    memcpy(name,"a\0b",4);
+    assert(!boot_v2_entry_valid(&e,name,0)&&!boot_v2_entry_valid(&e,name,1));
+    memcpy(name,"\xc0\xaf",3);e.name_bytes=2;
+    assert(!boot_v2_entry_valid(&e,name,0)&&!boot_v2_entry_valid(&e,name,1));
+    memcpy(name,"abc",4);e.name_bytes=3;
+    assert(boot_v2_entry_valid(&e,name,0)&&boot_v2_entry_valid(&e,name,1));
+    e.name_capacity--;
+    assert(!boot_v2_entry_valid(&e,name,1));
     puts("BOOT bounded Common V2 namespace links, malformed names and cycles PASS");return 0;
 }
