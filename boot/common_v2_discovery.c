@@ -53,52 +53,116 @@ close:
     boot_call1_wrapper(file->Close,file);
     return data;
 }
+/* Discovery decisions are distinct from provider ownership. Only a
+ * ready or quarantined result transfers an allocated provider to the list. */
+typedef enum {
+    PROVIDER_SKIP,
+    PROVIDER_STOP,
+    PROVIDER_READY,
+    PROVIDER_QUARANTINED
+} ProviderLoadResult;
+
+/* Load and validate one candidate without editing the discovery list.
+ * The caller owns list ordering and the total mapped-byte accounting. */
+static ProviderLoadResult load_provider(EFI_FILE_PROTOCOL *dir,EFI_FILE_INFO *entry,
+                                        const char *id,UINTN available_bytes,
+                                        BootV2Provider **out)
+{
+    BootV2Provider *p;
+    UINTN n;
+    VOID *data;
+    EFI_STATUS memstatus;
+    int mapped,inspected;
+
+    *out=NULL;
+    p=AllocateZeroPool(sizeof(*p));
+    if(!p)return PROVIDER_STOP;
+    for(UINTN i=0;id[i];i++)p->id[i]=id[i];
+
+    memstatus=BootV2UefiMemoryInit(&p->memory,NULL,BootV2Authenticate);
+    if(memstatus!=EFI_SUCCESS){
+        LOG(1,LOG_LINE_NORMAL,L"Common V2 unavailable: firmware memory attribute protocol status %r",memstatus);
+        FreePool(p);
+        return PROVIDER_STOP; /* Same firmware protocol for every provider. */
+    }
+
+    data=read_module(dir,entry,&n);
+    if(!data){
+        LOG(1,LOG_LINE_NORMAL,L"Common V2 cannot read: %s",entry->FileName);
+        FreePool(p);
+        return PROVIDER_SKIP;
+    }
+
+    mapped=boot_v2_elf_load(&p->memory.host,data,n,&p->image);
+    inspected=(mapped||p->image.bytes>available_bytes)?
+        IFS_FS_INVALID:boot_v2_module_inspect(&p->image,p->id,&p->module);
+    FreePool(data);
+
+    if(!mapped&&p->image.bytes<=available_bytes&&inspected==IFS_FS_OK&&
+       boot_v2_module_readable_core(&p->module)){
+        *out=p;
+        return PROVIDER_READY;
+    }
+
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 validation detail: map=%d descriptor=%d memory=%r",mapped,inspected,p->memory.last_status);
+    boot_v2_elf_unload(&p->memory.host,&p->image);
+    LOG(1,LOG_LINE_NORMAL,L"Common V2 module rejected: %s",entry->FileName);
+
+    if(p->memory.memory.quarantined){
+        /* Preserve the ownership record until reset: the mapping cannot
+         * safely be destroyed or counted as an authenticated reader. */
+        *out=p;
+        return PROVIDER_QUARANTINED;
+    }
+    FreePool(p);
+    return PROVIDER_SKIP;
+}
+
+/* Return the insertion link for an ID, retaining deterministic ordering. */
+static BootV2Provider **provider_slot(const char *id)
+{
+    BootV2Provider **at=&providers;
+    while(*at&&compare((*at)->id,id)<0)at=&(*at)->next;
+    return at;
+}
+
 BootV2Provider *BootV2Providers(VOID) {return providers;}
+
 const BootV2Provider *BootV2DiscoverProviders(VOID)
 {
-    BOOT_DIR_ITER it;EFI_FILE_INFO *entry;
+    BOOT_DIR_ITER it;
+    EFI_FILE_INFO *entry;
     UINTN accepted=0,candidates=0;
-    if(scanned) return providers;
+    if(scanned)return providers;
     scanned=TRUE;
-    if(!SelfDir) return NULL;
+    if(!SelfDir)return NULL;
+
     DirIterOpen(SelfDir,L"drivers_x64",&it);
-    while(accepted<MAX_MODULES && candidates<MAX_CANDIDATES &&
-          DirIterNext(&it,2,NULL,&entry)) {
-        BootV2Provider *p,**at;char id[IFS_FS_MAX_FORMAT_ID+1];
-        UINTN n;VOID *data;
+    while(accepted<MAX_MODULES&&candidates<MAX_CANDIDATES&&
+          DirIterNext(&it,2,NULL,&entry)){
+        BootV2Provider *p,**at;
+        char id[IFS_FS_MAX_FORMAT_ID+1];
+        ProviderLoadResult decision;
+
         ++candidates;
-        if(!format_id(entry->FileName,id)) continue;
-        for(at=&providers;*at && compare((*at)->id,id)<0;at=&(*at)->next){}
-        if(*at && !compare((*at)->id,id)) continue;
-        p=AllocateZeroPool(sizeof(*p));
-        if(!p) break;
-        for(UINTN i=0;id[i];i++) p->id[i]=id[i];
-        EFI_STATUS memstatus=BootV2UefiMemoryInit(&p->memory,NULL,BootV2Authenticate);
-        if(memstatus!=EFI_SUCCESS) {
-            LOG(1,LOG_LINE_NORMAL,L"Common V2 unavailable: firmware memory attribute protocol status %r",memstatus);
-            FreePool(p);break; /* same firmware protocol for all providers */
+        if(!format_id(entry->FileName,id))continue;
+        at=provider_slot(id);
+        if(*at&&!compare((*at)->id,id))continue;
+
+        decision=load_provider(it.DirHandle,entry,id,MAX_MAPPED_BYTES-mapped_bytes,&p);
+        if(decision==PROVIDER_SKIP)continue;
+        if(decision==PROVIDER_STOP)break;
+
+        /* Both retained outcomes carry an ownership record. Only a ready
+         * provider contributes to the usable count and mapped-byte budget. */
+        p->next=*at;
+        *at=p;
+        if(decision==PROVIDER_QUARANTINED){
+            quarantined=TRUE;
+            break;
         }
-        data=read_module(it.DirHandle,entry,&n);
-        if(!data){LOG(1,LOG_LINE_NORMAL,L"Common V2 cannot read: %s",entry->FileName);FreePool(p);continue;}
-        int mapped=boot_v2_elf_load(&p->memory.host,data,n,&p->image);
-        int inspected=(mapped || p->image.bytes>MAX_MAPPED_BYTES-mapped_bytes)?
-            IFS_FS_INVALID:boot_v2_module_inspect(&p->image,p->id,&p->module);
-        if(mapped || p->image.bytes>MAX_MAPPED_BYTES-mapped_bytes ||
-           inspected!=IFS_FS_OK || !boot_v2_module_readable_core(&p->module)) {
-            LOG(1,LOG_LINE_NORMAL,L"Common V2 validation detail: map=%d descriptor=%d memory=%r",mapped,inspected,p->memory.last_status);
-            FreePool(data);
-            boot_v2_elf_unload(&p->memory.host,&p->image);
-            LOG(1,LOG_LINE_NORMAL,L"Common V2 module rejected: %s",entry->FileName);
-            if(p->memory.memory.quarantined) {
-                /* Retain the failed mapping's ownership record until reset.
-                 * Never pretend that its pages were released. */
-                quarantined=TRUE;p->next=*at;*at=p;break;
-            }
-            FreePool(p);continue;
-        }
-        FreePool(data);
         mapped_bytes+=p->image.bytes;
-        p->next=*at;*at=p;++accepted;
+        ++accepted;
         LOG(1,LOG_LINE_NORMAL,L"Common V2 authenticated reader: %s",entry->FileName);
         /* DirIter owns entry, so the next iteration or Close releases it. */
     }
