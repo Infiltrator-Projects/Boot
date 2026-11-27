@@ -56,8 +56,8 @@ static void *allocate(void *ctx,size_t n){(void)ctx;return malloc(n);}
 static void release_pool(void *ctx,void *p){(void)ctx;free(p);}
 int main(int argc,char **argv)
 {
-    assert(argc==7);size_t n,want_n;
-    unsigned char *elf=load(argv[1],&n),*want=load(argv[4],&want_n),digest[32];
+    assert(argc==3 || argc==7);size_t n,want_n=0;
+    unsigned char *elf=load(argv[1],&n),*want=argc==7?load(argv[4],&want_n):NULL,digest[32];
     BootV2ElfImage image={0};BootV2ModuleView module={0};
     BootV2ElfHost elf_host={digest,auth,reserve,protect,release};
     boot_v2_sha256(elf,n,digest);
@@ -66,7 +66,14 @@ int main(int argc,char **argv)
     }
     free(elf);
     assert(boot_v2_module_inspect(&image,argv[2],&module)==IFS_FS_OK);
-    const IfsFsCoreOpsV2 *core=boot_v2_module_readable_core(&module);assert(core);
+    const IfsFsCoreOpsV2 *core=boot_v2_module_readable_core(&module);
+    if(argc==3){
+        printf("BOOT %s mapped and inspected: %s; no media qualification claimed\n",
+               argv[2],core?"readable namespace advertised":"no readable namespace");
+        boot_v2_elf_unload(&elf_host,&image);
+        return 0;
+    }
+    assert(core);
     Media media={.fd=open(argv[3],O_RDONLY),.sector=(uint32_t)strtoul(argv[6],NULL,10)};
     struct stat st;assert(media.fd>=0&&!fstat(media.fd,&st)&&S_ISREG(st.st_mode)&&st.st_size>0);
     media.bytes=(uint64_t)st.st_size;assert(media.sector&&!(media.bytes%media.sector));

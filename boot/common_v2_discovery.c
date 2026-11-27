@@ -80,7 +80,8 @@ const BootV2Provider *BootV2DiscoverProviders(VOID)
         data=read_module(it.DirHandle,entry,&n);
         if(!data){LOG(1,LOG_LINE_NORMAL,L"Common V2 cannot read: %s",entry->FileName);FreePool(p);continue;}
         int mapped=boot_v2_elf_load(&p->memory.host,data,n,&p->image);
-        int inspected=mapped?IFS_FS_INVALID:boot_v2_module_inspect(&p->image,p->id,&p->module);
+        int inspected=(mapped || p->image.bytes>MAX_MAPPED_BYTES-mapped_bytes)?
+            IFS_FS_INVALID:boot_v2_module_inspect(&p->image,p->id,&p->module);
         if(mapped || p->image.bytes>MAX_MAPPED_BYTES-mapped_bytes ||
            inspected!=IFS_FS_OK || !boot_v2_module_readable_core(&p->module)) {
             LOG(1,LOG_LINE_NORMAL,L"Common V2 validation detail: map=%d descriptor=%d memory=%r",mapped,inspected,p->memory.last_status);

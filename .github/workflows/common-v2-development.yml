@@ -144,9 +144,101 @@ jobs:
           export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
           export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
           bash tests/ovmf-common-v2.sh
+      - name: Build actual native RUN and generic AMD64 Debian artifacts
+        if: always()
+        shell: bash
+        run: |
+          bash packaging/build-release.sh 0.0.0 /tmp/boot-v2-package
+          (cd /tmp/boot-v2-package && sha256sum -c SHA256SUMS)
+          bash tests/deb-install-safety.sh /tmp/boot-v2-package/infiltrator-boot_0.0.0_amd64.deb
+          bash tests/install-safety.sh
       - name: Compile installer verifier and check shell syntax
         if: always()
         shell: bash
         run: |
           gcc -std=c11 -O2 -Wall -Wextra -Werror packaging/common-v2-verify.c boot/common_v2_elf.c boot/common_v2_trust.c -o /tmp/common-v2-verify
           bash -n boot-native-installer.run packaging/common-v2-install.sh packaging/install-generic.sh packaging/build-release.sh
+
+  provider-elf-compatibility:
+    name: Provider ELF - ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - name: EXT4
+            revision: 563b85674fdcdd2d7ea467ce369254bc566b319d
+          - name: NTFS
+            revision: c27b4cae8dc1fc27b14fb94c7638ca81e93f886e
+          - name: EXT2
+            revision: cfdbcd92e3e8f882f0c88d714ad2b63f35c1e270
+          - name: EXT3
+            revision: 25167718f953b911f4f087ebedd609aef20eec42
+          - name: exFAT
+            revision: c9538fde968a5a2e94e852c16e6a96a2746560be
+          - name: Btrfs
+            revision: 08b41e156f534ae33aacb3b89bcbec59062b2be1
+          - name: XFS
+            revision: a6322b575ef9afba884a80d18630ca9e2d52b902
+          - name: ZFS
+            revision: a4d8b3a8cf349e472a83bdd493861bad10446ebd
+          - name: HFS
+            revision: d76c60ec038864bdc102176ad3aab6ae18833613
+          - name: HFSPlus
+            revision: d7140e0e389481893468b12919721ae4e4cbfc11
+          - name: APFS
+            revision: 183a7d563a74eaf1616ace8edcf1d10a38a9fc2b
+          - name: FFS
+            revision: 8bbf7f1fe31ea62111cc6afb641ae59e5f1a8c3c
+          - name: Minix
+            revision: 3af9d32c224c1806baef2599b8565fe9a2dcbabc
+          - name: SFS
+            revision: 69877273da86a5c22da8d1f9fe804d59d9da50f3
+          - name: SFS2
+            revision: 659c7613e1326c9515ecd42afa81ff97ec3c33b5
+          - name: PFS3
+            revision: 960df440cf7cbabcd996d96727a7f25e3b520eb6
+          - name: UFS1
+            revision: 906ccf1204984b3bc2f682ffd1cd73c86a81b2eb
+          - name: UFS2
+            revision: bea40e4194a379e05e741eff056a2d3f522839e0
+          - name: FAT12
+            revision: 3e0e096544dfda0cd527d9cc66e1088726866d98
+          - name: FAT16
+            revision: 2a399d57238c80068f853c9a77ee30bbeb13f3cc
+          - name: FAT32
+            revision: d05e5fbd74c81690cdc6dd4153d1000beddb9c10
+          - name: OFS
+            revision: c2eb38cf900d209f53a8aa05da594a12c593ae05
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Infiltrator-Projects/Libraries
+          ref: 225e640ebed5351b1481bfbeef1a6144ca5146e7
+          path: .common-v2
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Infiltrator-Projects/Filesystem-${{ matrix.name }}
+          ref: ${{ matrix.revision }}
+          path: .provider
+          persist-credentials: false
+      - name: Build independent provider and exercise actual BOOT ELF mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+          common="$PWD/.common-v2/include"
+          test "$(git hash-object "$common/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
+          cmake -S .provider/module/firmware -B .provider-build -DCOMMON_INCLUDE_DIR="$common" -DCOMMON_SOURCE_DIR="$PWD/.common-v2"
+          cmake --build .provider-build
+          mapfile -t modules < <(find .provider-build -maxdepth 1 -type f -name '*.so')
+          test "${#modules[@]}" = 1
+          module="${modules[0]}"
+          name="$(basename "$module" .so | tr '[:upper:]' '[:lower:]')"
+          cc -std=c11 -Wall -Wextra -Werror -I"$common" -O2 -fno-tree-loop-distribute-patterns \
+            tests/common_v2_media_test.c boot/common_v2_elf.c boot/common_v2_module.c \
+            boot/common_v2_storage.c boot/common_v2_trust.c -o /tmp/provider-test
+          /tmp/provider-test "$module" "$name"
+          echo "Structural mapping and descriptor inspection only; real-media and firmware qualification remain separate."
