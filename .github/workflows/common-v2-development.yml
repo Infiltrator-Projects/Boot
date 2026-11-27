@@ -14,6 +14,7 @@ on:
       - 'boot-native-installer.run'
       - '.github/workflows/common-v2-development.yml'
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -43,6 +44,7 @@ jobs:
           bash tests/host-common-v2-memory.sh
           bash tests/host-common-v2-trust.sh
           bash tests/host-common-v2-path.sh
+          bash tests/host-common-v2-install.sh
       - name: Test canonical Common V2 descriptor and host
         if: always()
         shell: bash

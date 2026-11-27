@@ -20,12 +20,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  common-v2-qualification:
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[v2-dev]')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/common-v2-development.yml
   build-package-release:
+    needs: common-v2-qualification
     # Explicit development pushes must not publish an unqualified firmware release.
     if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[v2-dev]')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Infiltrator-Projects/Libraries
+          ref: 225e640ebed5351b1481bfbeef1a6144ca5146e7
+          path: .common-v2
+          persist-credentials: false
+      - name: Verify Common V2 build dependency
+        run: |
+          test "$(git hash-object "$PWD/.common-v2/include/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
+          echo "COMMON_V2_INCLUDE=$PWD/.common-v2/include" >> "$GITHUB_ENV"
 
       - name: Check BOOT identifiers and clean packaging layout
         shell: bash
@@ -76,7 +92,7 @@ jobs:
           set -euo pipefail
           version="0.1.${GITHUB_RUN_NUMBER}"
           printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$version" > boot-sbat-release.csv
-          make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -fno-strict-aliasing -fno-tree-loop-distribute-patterns -fno-stack-protector -fshort-wchar -Wall -DBOOT_RELEASE_VERSION='L\"$version\"'" gnuefi
+          make COMMON_V2_INCLUDE="$COMMON_V2_INCLUDE" BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -fno-strict-aliasing -fno-tree-loop-distribute-patterns -fno-stack-protector -fshort-wchar -Wall -DBOOT_RELEASE_VERSION='L\"$version\"'" gnuefi
 
       - name: Check BOOT EFI binary
         run: |
@@ -99,7 +115,7 @@ jobs:
             cd "$native_dir"
             version="0.1.${GITHUB_RUN_NUMBER}"
             printf 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nboot,1,Infiltrator-Projects,boot,%s,https://github.com/Infiltrator-Projects/Boot\n' "$version" > boot-sbat-release.csv
-            make BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$version\"'" gnuefi
+            make COMMON_V2_INCLUDE="$COMMON_V2_INCLUDE" BOOT_SBAT_CSV=boot-sbat-release.csv CFLAGS="-O2 -march=native -mtune=native -mgeneral-regs-only -fno-stack-protector -fshort-wchar -fno-strict-aliasing -fno-tree-loop-distribute-patterns -Wall -DBOOT_RELEASE_VERSION='L\"$version\"'" gnuefi
             test -s boot/boot_x64.efi
             for filesystem in ext2 ext4 reiserfs iso9660 hfs btrfs; do
               test -s "drivers_x64/${filesystem}_x64.efi"
@@ -164,6 +180,9 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub release
+        # Require explicit release qualification of this exact commit, not a
+        # successful compiler run or a stale result from another source tree.
+        if: vars.BOOT_COMMON_V2_RELEASE_QUALIFIED == github.sha
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

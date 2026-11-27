@@ -193,7 +193,7 @@ boot_generic_register() {
 # Installing a generic package is an ESP/NVRAM mutation, never build-only.
 # Validate privilege, architecture, package, partition, file install and
 # firmware registration in order; failure must terminate the chain.
-boot_generic_main() {
+boot_generic_main() (
     (($# == 0)) || { echo "BOOT generic installer accepts no arguments." >&2; return 2; }
     [[ $(id -u) == 0 ]] || { echo "BOOT generic installation requires root." >&2; return 1; }
     [[ $(uname -m) == x86_64 ]] || { echo "BOOT generic package requires x86-64." >&2; return 1; }
@@ -202,14 +202,14 @@ boot_generic_main() {
     boot_generic_esp
     local stage
     stage=$(mktemp -d)
-    trap 'rm -rf -- "$stage"' RETURN
+    trap 'rm -rf -- "$stage"' EXIT
     source /usr/lib/infiltrator-boot/common-v2-install.sh
     boot_v2_stage_modules /System/Filesystems "$stage" /usr/lib/infiltrator-boot/common-v2-verify /sys/firmware/efi/efivars || return 1
     boot_generic_install_files "$BOOT_GENERIC_ESP" "$source" "$stage" || return 1
     rm -rf -- "$stage"
-    trap - RETURN
+    trap - EXIT
     boot_generic_register "$BOOT_GENERIC_DISK" "$BOOT_GENERIC_PART" "$BOOT_GENERIC_PARTUUID"
-}
+)
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     boot_generic_main "$@"
 fi
