@@ -19,7 +19,7 @@ typedef struct {
     void *trust_context;
     int (*authenticate)(void *,const void *,size_t);
     uintptr_t base;
-    size_t bytes;
+    size_t bytes, maximum_bytes; /* Hard reservation limit; set before ELF loading. */
     unsigned allocated,quarantined;
 } BootV2Memory;
 /* One memory context per module. Authentication is mandatory and supplied

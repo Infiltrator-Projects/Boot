@@ -56,7 +56,7 @@ static void release(void *ctx,void *p,size_t n)
 static void *reserve(void *ctx,size_t n)
 {
     BootV2Memory *m=ctx; uintptr_t p=0;
-    if(!m || m->allocated || m->quarantined || !n || n%PAGE ||
+    if(!m || m->allocated || m->quarantined || !n || n%PAGE || n>m->maximum_bytes ||
        m->backend.allocate(m->backend.context,n,&p)) return NULL;
     m->base=p; m->bytes=n; m->allocated=1;
     if(!p || p%PAGE || p>UINTPTR_MAX-n) {
@@ -88,6 +88,7 @@ int boot_v2_memory_host(BootV2Memory *m,const BootV2MemoryBackend *b,void *trust
     if(!m || m->allocated || m->quarantined || !b || !b->allocate || !b->free ||
        !b->set || !b->clear || !b->get || !auth || !out) return -1;
     m->backend=*b; m->trust_context=trust; m->authenticate=auth;
+    m->maximum_bytes=SIZE_MAX;
     *out=(BootV2ElfHost){m,authenticate,reserve,protect,release};
     return 0;
 }

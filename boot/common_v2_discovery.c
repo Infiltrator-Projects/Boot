@@ -86,6 +86,9 @@ static ProviderLoadResult load_provider(EFI_FILE_PROTOCOL *dir,EFI_FILE_INFO *en
         return PROVIDER_STOP; /* Same firmware protocol for every provider. */
     }
 
+    /* Enforce the aggregate budget before any page allocation, not after
+     * mapping. The ELF loader requests the complete aligned reservation. */
+    p->memory.memory.maximum_bytes=available_bytes;
     data=read_module(dir,entry,&n);
     if(!data){
         LOG(1,LOG_LINE_NORMAL,L"Common V2 cannot read: %s",entry->FileName);
@@ -94,11 +97,11 @@ static ProviderLoadResult load_provider(EFI_FILE_PROTOCOL *dir,EFI_FILE_INFO *en
     }
 
     mapped=boot_v2_elf_load(&p->memory.host,data,n,&p->image);
-    inspected=(mapped||p->image.bytes>available_bytes)?
+    inspected=mapped?
         IFS_FS_INVALID:boot_v2_module_inspect(&p->image,p->id,&p->module);
     FreePool(data);
 
-    if(!mapped&&p->image.bytes<=available_bytes&&inspected==IFS_FS_OK&&
+    if(!mapped&&inspected==IFS_FS_OK&&
        boot_v2_module_readable_core(&p->module)){
         *out=p;
         return PROVIDER_READY;
@@ -138,7 +141,7 @@ const BootV2Provider *BootV2DiscoverProviders(VOID)
     if(!SelfDir)return NULL;
 
     DirIterOpen(SelfDir,L"drivers_x64",&it);
-    while(accepted<MAX_MODULES&&candidates<MAX_CANDIDATES&&
+    while(accepted<MAX_MODULES&&candidates<MAX_CANDIDATES&&mapped_bytes<MAX_MAPPED_BYTES&&
           DirIterNext(&it,2,NULL,&entry)){
         BootV2Provider *p,**at;
         char id[IFS_FS_MAX_FORMAT_ID+1];

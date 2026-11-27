@@ -49,7 +49,13 @@ int main(void)
     assert(boot_v2_memory_host(&m,&b,&f,auth,&h)==0);
     assert(h.authenticate(h.context,"x",1)!=0); f.authorized=1;
     assert(h.authenticate(h.context,"x",1)==0);
-    assert(!h.reserve(h.context,1)); unsigned char *p=h.reserve(h.context,3*PAGE); assert(p);
+    assert(!h.reserve(h.context,1));
+    m.maximum_bytes=0;
+    assert(!h.reserve(h.context,3*PAGE)&&!f.active&&!m.allocated);
+    m.maximum_bytes=3*PAGE-1;
+    assert(!h.reserve(h.context,3*PAGE)&&!f.active&&!m.allocated);
+    m.maximum_bytes=3*PAGE;
+    unsigned char *p=h.reserve(h.context,3*PAGE); assert(p);
     assert(!h.reserve(h.context,3*PAGE)); assert(h.authenticate(h.context,"x",1)!=0);
     assert(h.protect(h.context,p,3*PAGE,0)==0);
     assert(h.protect(h.context,p,PAGE,BOOT_V2_ELF_R|BOOT_V2_ELF_X)==0);
