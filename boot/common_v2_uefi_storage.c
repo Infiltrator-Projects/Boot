@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 #include "common_v2_uefi_storage.h"
 #include <efilib.h>
+#include "global.h"
 #include "log.h"
 #include "../include/boot_call_wrapper.h"
 

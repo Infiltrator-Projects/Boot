@@ -200,9 +200,9 @@ jobs:
           - name: PFS3
             revision: 960df440cf7cbabcd996d96727a7f25e3b520eb6
           - name: UFS1
-            revision: 377a9445a697b610126493266ae5e6e06d5cdf61
+            revision: 9402749c7a60fea381d206a156d135eebd2290f5
           - name: UFS2
-            revision: 56f81a2e049777a6b2adfa8c2b5918253f24e369
+            revision: ab555c569e60ad177d669dac040132b7d3e8b3af
           - name: FAT12
             revision: 22c6359acfc195a65ce1a122c95dc51e28f85d68
           - name: FAT16
