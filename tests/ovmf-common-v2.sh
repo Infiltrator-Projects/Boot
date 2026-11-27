@@ -68,6 +68,7 @@ startup_diagnostics on
 use_nvram false
 textonly true
 scanfor internal,external
+dont_scan_files +,EFI/BOOT/bootx64.efi
 showtools about,reboot
 default_selection v2child
 CONFIG
@@ -95,6 +96,9 @@ cp "$ovmf/OVMF_VARS_4M.fd" "$work/vars.fd"
 qemu=(
  qemu-system-x86_64 -machine q35,smm=on,accel=tcg -cpu max -m 1024
  -global driver=cfi.pflash01,property=secure,value=on
+ # Debian's Secure Boot OVMF disables the standard memory-attribute
+ # protocol by default; explicitly retain the protocol in this test VM.
+ -fw_cfg name=opt/org.tianocore/UninstallMemAttrProtocol,string=no
  -display none -monitor none -net none -no-reboot
  -drive "if=pflash,format=raw,readonly=on,file=$ovmf/OVMF_CODE_4M.secboot.fd"
  -drive "if=pflash,format=raw,file=$work/vars.fd"
