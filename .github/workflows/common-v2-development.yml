@@ -263,7 +263,9 @@ jobs:
           - name: QNX4
             revision: 1344ccee3033e89da11ae628b5f880bb47195e24
           - name: OMFS
-            revision: ae39efa84cd0f668d63dc381c0d321cc62108372
+            revision: af9db3e8b686bd2f82b61ef4ef80618f0cf5f9d2
+          - name: QNX6
+            revision: 43170886c5e41e6d2525e57a9e7535792f504f74
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -321,6 +323,17 @@ jobs:
             hfsplus) sudo apt-get install -y --no-install-recommends hfsprogs ;;
             exfat) sudo apt-get install -y --no-install-recommends exfatprogs ;;
             minix|bfs) sudo apt-get install -y --no-install-recommends util-linux ;;
+            qnx6)
+              # Byte-authored provider fixture, not third-party media.
+              cc -std=c11 -Wall -Wextra -Werror -I"$common" .provider/tests/test_qnx6.c -ldl -o /tmp/qnx6-fixture
+              mkdir -p "$RUNNER_TEMP/qnx6-media"
+              /tmp/qnx6-fixture --emit "$RUNNER_TEMP/qnx6-media/media.img" "$RUNNER_TEMP/qnx6-media/proof.bin"
+              (cd "$RUNNER_TEMP/qnx6-media" && sha256sum media.img > before)
+              for sector in 512 4096; do
+                /tmp/provider-test "$module" "$name" "$RUNNER_TEMP/qnx6-media/media.img" "$RUNNER_TEMP/qnx6-media/proof.bin" /short.bin "$sector"
+              done
+              (cd "$RUNNER_TEMP/qnx6-media" && sha256sum -c before)
+              exit 0 ;;
             omfs)
               bash .provider/tests/make-oracle-media.sh .omfs-oracle "$RUNNER_TEMP/omfs-media"
               (cd "$RUNNER_TEMP/omfs-media" && sha256sum media.img > before)
@@ -359,7 +372,7 @@ jobs:
               dpkg-deb -x "${packages[0]}" /tmp/provider-package
               carrier="/tmp/provider-package/System/Filesystems/$name.so"
               ;;
-            QNX4|OMFS)
+            QNX4|OMFS|QNX6)
               # actions/checkout leaves an empty directory for an uninitialised gitlink.
               # Remove only that empty directory, never an existing checkout.
               if [[ -d .provider/Libraries && ! -L .provider/Libraries ]]; then rmdir .provider/Libraries; fi
