@@ -2,7 +2,6 @@
 #include "common_v2_volume.h"
 #include "common_v2_discovery.h"
 #include "common_v2_uefi_storage.h"
-#include "common_v2_path.h"
 #include "common_v2_namespace.h"
 #include "lib.h"
 #include "log.h"

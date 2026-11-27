@@ -42,7 +42,7 @@ ifneq ($(strip $(COMMON_V2_INCLUDE)),)
 ifeq ($(ARCH),x86_64)
   LOCAL_GNUEFI_CFLAGS += -DBOOT_COMMON_V2 -I$(COMMON_V2_INCLUDE)
   OBJS += common_v2_elf.o common_v2_memory.o common_v2_module.o \
-          common_v2_storage.o common_v2_trust.o common_v2_path.o common_v2_namespace.o \
+          common_v2_storage.o common_v2_trust.o common_v2_namespace.o \
           common_v2_uefi_memory.o common_v2_uefi_storage.o common_v2_uefi_trust.o \
           common_v2_discovery.o common_v2_volume.o
 endif

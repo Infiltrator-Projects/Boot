@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
-#include "../boot/common_v2_path.h"
+#include "../boot/common_v2_namespace.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -2,7 +2,14 @@
 #ifndef BOOT_COMMON_V2_NAMESPACE_H
 #define BOOT_COMMON_V2_NAMESPACE_H
 #include <infiltratr/filesystem_module_v2.h>
-#include "common_v2_path.h"
+#include <stddef.h>
+#include <stdint.h>
+#define BOOT_V2_PATH_BYTES 4096u
+/* Translate EFI UTF-16 paths to normalized absolute UTF-8 paths. */
+int boot_v2_path(const char *,const uint16_t *,char *,size_t);
+int boot_v2_utf16(const char *,size_t,uint16_t *,size_t,size_t *);
+/* Advance the cursor only after validating one complete non-NUL scalar. */
+int boot_v2_utf8_next(const char *,size_t,size_t *,uint32_t *);
 /* Resolve only within the supplied mounted volume. Providers that already
  * follow links through CORE retain that behavior. When CORE exposes links
  * and METADATA.READLINK exists, resolve them without format-specific code.
