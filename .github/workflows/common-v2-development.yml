@@ -159,6 +159,24 @@ jobs:
           export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
           export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
           bash tests/ovmf-common-v2.sh
+      - name: Launch signed EFI application directly from native EXT4
+        shell: bash
+        run: |
+          export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
+          export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
+          export BOOT_V2_TEST_NATIVE_EXT4=1
+          bash tests/ovmf-common-v2.sh
+      - name: Boot signed Linux kernel and initramfs directly from native EXT4
+        shell: bash
+        run: |
+          image=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ { name=$2 } END { print name }')
+          test -n "$image"
+          export BOOT_V2_TEST_KERNEL="$RUNNER_TEMP/v2-kernel/extracted/boot/vmlinuz-${image#linux-image-}"
+          test -s "$BOOT_V2_TEST_KERNEL"
+          export EXT4_FIRMWARE="$PWD/.provider-ext4-build/EXT4.so"
+          export NTFS_FIRMWARE="$PWD/.provider-ntfs-build/NTFS.so"
+          export BOOT_V2_TEST_NATIVE_EXT4=1
+          bash tests/ovmf-common-v2.sh
       - name: Reject overlapping authenticated native filesystem claims under OVMF
         shell: bash
         run: |

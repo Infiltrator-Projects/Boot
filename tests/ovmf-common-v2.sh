@@ -10,7 +10,9 @@ ntfs=${NTFS_FIRMWARE:?real NTFS firmware module}
 test -s boot/boot_x64.efi
 kernel=${BOOT_V2_TEST_KERNEL:-}
 overlap=${BOOT_V2_TEST_OVERLAP:-}
-if [[ -n "$overlap" && -n "$kernel" ]]; then exit 2; fi
+native_ext4=${BOOT_V2_TEST_NATIVE_EXT4:-0}
+[[ "$native_ext4" == 0 || "$native_ext4" == 1 ]] || exit 2
+if [[ -n "$overlap" && ( -n "$kernel" || "$native_ext4" == 1 ) ]]; then exit 2; fi
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 ovmf=${BOOT_V2_OVMF_DIR:-/usr/share/OVMF}
@@ -67,7 +69,10 @@ mcopy -i "$esp" "$ntfs" ::/EFI/InfiltratorOS/BOOT/drivers_x64/NTFS.so
 if [[ -n "$overlap" ]]; then
     mcopy -i "$esp" "$overlap" ::/EFI/InfiltratorOS/BOOT/drivers_x64/OVERLAP.so
 fi
-mcopy -i "$esp" "$work/BAD.so" "$work/REVOKED.so" "$work/ext4_x64.efi" ::/EFI/InfiltratorOS/BOOT/drivers_x64/
+mcopy -i "$esp" "$work/BAD.so" "$work/REVOKED.so" ::/EFI/InfiltratorOS/BOOT/drivers_x64/
+if [[ "$native_ext4" == 0 ]]; then
+    mcopy -i "$esp" "$work/ext4_x64.efi" ::/EFI/InfiltratorOS/BOOT/drivers_x64/
+fi
 printf 'not trusted\n' > "$work/UNTRUSTED.so"
 mcopy -i "$esp" "$work/UNTRUSTED.so" ::/EFI/InfiltratorOS/BOOT/drivers_x64/
 cat > "$work/boot.conf" <<'CONFIG'
@@ -85,21 +90,25 @@ if [[ -n "$overlap" ]]; then
     sed -i 's/^timeout 3$/timeout 0/' "$work/boot.conf"
 fi
 mcopy -i "$esp" "$work/boot.conf" ::/EFI/InfiltratorOS/BOOT/boot.conf
-# Same VM has a real EXT4 volume for the existing EFI driver, and real
-# NTFS for the new provider. The module cannot displace the EXT4 EFI SFS.
+# Coexistence mode tests the legacy EXT4 driver alongside native NTFS.
+# Native EXT4 mode omits only the test ESP copy of the EFI driver and
+# places the executable and its proof exclusively on the EXT4 volume.
 mkdir "$work/tree"
 printf 'existing EFI reader\n' > "$work/tree/efi-proof.txt"
 extimg="$work/ext.img";truncate -s 64M "$extimg"
 features=has_journal,ext_attr,resize_inode,dir_index,filetype,extent,64bit,flex_bg
 features+=,sparse_super,large_file,huge_file,dir_nlink,extra_isize,metadata_csum
-mkfs.ext4 -q -F -b 4096 -O "none,$features" -L EFIEXT4 -d "$work/tree" "$extimg"
 ntimg="$work/ntfs.img";truncate -s 64M "$ntimg"
 mkntfs -F -Q -s 512 -c 4096 -L NTFSV2 "$ntimg"
 printf 'Common V2 native media proof\n' > "$work/proof.txt"
-ntfscp -f "$ntimg" "$work/proof.txt" /proof.txt
-ntfscp -f "$ntimg" "$work/v2child.efi" /v2child.efi
+if [[ "$native_ext4" == 1 ]]; then
+    cp "$work/proof.txt" "$work/v2child.efi" "$work/tree/"
+else
+    ntfscp -f "$ntimg" "$work/proof.txt" /proof.txt
+    ntfscp -f "$ntimg" "$work/v2child.efi" /v2child.efi
+fi
 if [[ -n "$kernel" ]]; then
-    # A real EFI-stub kernel and separate initramfs, both present only on NTFS.
+    # A real EFI-stub kernel and separate initramfs, present only on the selected filesystem.
     sign "$kernel" "$work/vmlinuz.efi"
     mkdir -p "$work/ram"/{bin,dev,proc}
     cp "$(command -v busybox)" "$work/ram/bin/busybox"
@@ -118,14 +127,21 @@ echo BOOT_COMMON_V2_LINUX_INITRAMFS_PASS
 GUEST
     chmod +x "$work/ram/init"
     (cd "$work/ram" && find . -print0 | cpio --null -o -H newc --owner=0:0 --quiet | gzip -n) > "$work/initramfs"
-    ntfscp -f "$ntimg" "$work/vmlinuz.efi" /vmlinuz.efi
-    ntfscp -f "$ntimg" "$work/initramfs" /initramfs
+    if [[ "$native_ext4" == 1 ]]; then
+        cp "$work/vmlinuz.efi" "$work/initramfs" "$work/tree/"
+    else
+        ntfscp -f "$ntimg" "$work/vmlinuz.efi" /vmlinuz.efi
+        ntfscp -f "$ntimg" "$work/initramfs" /initramfs
+    fi
 fi
+mkfs.ext4 -q -F -b 4096 -O "none,$features" -L EFIEXT4 -d "$work/tree" "$extimg"
 truncate -s 200M "$disk"
 sgdisk --clear --new=1:2048:+64M --typecode=1:ef00 --new=2:133120:+64M \
     --typecode=2:8300 --new=3:264192:+64M --typecode=3:0700 "$disk"
 if [[ -n "$kernel" ]]; then
-    uuid=$(sgdisk --info=3 "$disk" | awk '/Partition unique GUID: / {print $4}')
+    part=3
+    if [[ "$native_ext4" == 1 ]]; then part=2; fi
+    uuid=$(sgdisk --info="$part" "$disk" | awk '/Partition unique GUID: / {print $4}')
     [[ $uuid =~ ^[[:xdigit:]]{8}(-[[:xdigit:]]{4}){3}-[[:xdigit:]]{12}$ ]]
     # Replace, rather than rely on precedence of duplicated configuration.
     sed -i '/^scanfor /d; /^default_selection /d' "$work/boot.conf"
@@ -182,7 +198,11 @@ grep -Fq 'Common V2 authenticated reader: NTFS.so' "$work/log.txt"
 grep -Fq 'Common V2 module rejected: BAD.so' "$work/log.txt"
 grep -Fq 'Common V2 module rejected: REVOKED.so' "$work/log.txt"
 grep -Fq 'Common V2 module rejected: UNTRUSTED.so' "$work/log.txt"
-grep -Fiq "Launching 'ext4_x64.efi'" "$work/log.txt"
+if [[ "$native_ext4" == 1 ]]; then
+    ! grep -Fiq "Launching 'ext4_x64.efi'" "$work/log.txt"
+else
+    grep -Fiq "Launching 'ext4_x64.efi'" "$work/log.txt"
+fi
 grep -Fq 'EFIEXT4' "$work/log.txt"
 grep -Fq 'Entering main loop' "$work/log.txt"
 if [[ -n "$overlap" ]]; then
@@ -192,7 +212,9 @@ if [[ -n "$overlap" ]]; then
     ! grep -Fiq "Launching 'v2child.efi'" "$work/log.txt"
     ! grep -aFq 'BOOT_V2_CHILD_READ_AND_RETURN_PASS' "$work/vars.fd"
 else
-    test "$(grep -Fc 'Common V2 mounted volume on handle' "$work/log.txt")" = 1
+    expected_mounts=1
+    if [[ "$native_ext4" == 1 ]]; then expected_mounts=2; fi
+    test "$(grep -Fc 'Common V2 mounted volume on handle' "$work/log.txt")" = "$expected_mounts"
     grep -Fq 'NTFSV2' "$work/log.txt"
 fi
 if [[ -n "$overlap" ]]; then
@@ -210,6 +232,8 @@ cmp "$extimg" "$work/after-ext.img"
 cmp "$ntimg" "$work/after-ntfs.img"
 if [[ -n "$overlap" ]]; then
     echo 'BOOT OVMF Secure Boot ambiguous ownership rejection and unchanged media PASS'
+elif [[ "$native_ext4" == 1 ]]; then
+    echo 'BOOT OVMF Secure Boot native EXT4 execution, independent NTFS mount and unchanged media PASS'
 else
     echo 'BOOT OVMF Secure Boot enrolled raw modules, EFI coexistence, NTFS execution and unchanged media PASS'
 fi
