@@ -1,23 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Qualify every development push regardless of which build input changed.
-# Stable pushes call this workflow from the release gate instead of running
-# a second provider matrix. Manual qualification never publishes a release.
-name: BOOT Common V2 development qualification
+# Optional ecosystem-wide compatibility and real-media integration checks.
+# BOOT releases do not depend on rebuilding independent providers.
+# This workflow runs only on explicit dispatch and never publishes a release.
+name: BOOT Common V2 ecosystem compatibility
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
-  workflow_call:
-    inputs:
-      release_qualification:
-        description: Run qualification as part of the gated release workflow.
-        type: boolean
-        default: false
 permissions:
   contents: read
 jobs:
   host-and-firmware-compile:
-    if: github.event_name != 'push' || inputs.release_qualification || contains(github.event.head_commit.message, '[v2-dev]')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -261,7 +252,6 @@ jobs:
           bash -n boot-native-installer.run packaging/common-v2-install.sh packaging/install-generic.sh packaging/build-release.sh
 
   provider-elf-compatibility:
-    if: github.event_name != 'push' || inputs.release_qualification || contains(github.event.head_commit.message, '[v2-dev]')
     name: Provider ELF - ${{ matrix.name }}
     runs-on: ubuntu-24.04
     strategy:
