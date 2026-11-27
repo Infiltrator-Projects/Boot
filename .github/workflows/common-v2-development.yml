@@ -300,7 +300,11 @@ jobs:
               carrier="/tmp/provider-package/System/Filesystems/$name.so"
               ;;
             EFS|BFS)
+              # actions/checkout leaves an empty directory for an uninitialised gitlink.
+              # Remove only that empty directory, never an existing checkout.
+              if [[ -d .provider/Libraries && ! -L .provider/Libraries ]]; then rmdir .provider/Libraries; fi
               ln -s "$PWD/.common-v2" .provider/Libraries
+              test -s .provider/Libraries/include/infiltratr/filesystem_module_v2.h
               make -C .provider check
               (cd .provider && sh scripts/package.sh "$RUNNER_TEMP/provider-package")
               mapfile -t packages < <(find "$RUNNER_TEMP/provider-package" -maxdepth 1 -type f -name '*.deb')
@@ -309,7 +313,11 @@ jobs:
               carrier="/tmp/provider-package/System/Filesystems/$name.so"
               ;;
             QNX4)
+              # actions/checkout leaves an empty directory for an uninitialised gitlink.
+              # Remove only that empty directory, never an existing checkout.
+              if [[ -d .provider/Libraries && ! -L .provider/Libraries ]]; then rmdir .provider/Libraries; fi
               ln -s "$PWD/.common-v2" .provider/Libraries
+              test -s .provider/Libraries/include/infiltratr/filesystem_module_v2.h
               make -C .provider carrier
               carrier="$PWD/.provider/build/carrier/$name.so"
               ;;
